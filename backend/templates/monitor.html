@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<h3 id="status" class="m-3">停止中</h3>
+
+<form id="controll-form" name="controll">
+    <button type="button" id="controll-btn" class="btn btn-success m-3" onclick="startMonitoring()">稼働開始</button>
+</form>
+
+<form id="config-form" name="config">
+    <button id="config-btn" class="btn btn-primary m-3">設定変更</button>
+</form>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/monitor.js') }}"></script>
+
+{% endblock %}
