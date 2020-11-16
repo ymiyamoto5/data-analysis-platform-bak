@@ -99,7 +99,7 @@ class DataImporter:
 
         with open(csv_file, "rt", encoding="utf-8") as file:
             reader = DictReader(file, fieldnames=[
-                                "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-C01"])
+                                "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-V02", "(3)HA-V03", "(3)HA-V04", "(3)HA-C01"])
             _ = next(reader)
 
             dt_old = datetime.now(JST)
@@ -110,13 +110,27 @@ class DataImporter:
 
                 wave = {
                     "sequential_number": i,
-                    "load": float(row["(3)HA-V01"]),
+                    "load01": float(row["(3)HA-V01"]),
+                    "load02": float(row["(3)HA-V02"]),
+                    "load03": float(row["(3)HA-V03"]),
+                    "load04": float(row["(3)HA-V04"]),
                     "displacement": float(row["(3)HA-C01"])
                 }
 
+                # wave = {
+                #     "sequential_number": i,
+                #     "displacement": float(row["(3)HA-C01"]),
+                #     "loads": [
+                #         {"load": "load01", "value": float(row["(3)HA-V01"])},
+                #         {"load": "load02", "value": float(row["(3)HA-V02"])},
+                #         {"load": "load03", "value": float(row["(3)HA-V03"])},
+                #         {"load": "load04", "value": float(row["(3)HA-V04"])},
+                #     ]
+                # }
+
                 # テスト用のアドホック処理
-                # if 100 <= i <= 1000:
-                #     wave["tag"] = "異常発生"
+                if 100 <= i <= 1000:
+                    wave["tag"] = "異常発生"
 
                 yield {
                     "_index": index_name,
@@ -292,7 +306,8 @@ if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
     print(os.getcwd())
     data_importer = DataImporter()
-    data_importer.import_data_by_shot(
-        'wave1-15.csv', 'test_shots', -15.000, -17.000, 0)
+    # data_importer.import_data_by_shot(
+    #     'wave1-15.csv', 'test_shots', -15.000, -17.000, 0)
     # data_importer.import_data_by_shot(
     #     'raw_data', 'test_shots', -15.000, -17.000, 0)
+    data_importer.import_raw_data('notebooks/wave1-15-5ch-2.csv', 'rawdata-20201113-1')
