@@ -1,18 +1,15 @@
-from elasticsearch import Elasticsearch
+import os
 from elasticsearch import helpers
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
-# from data_reader import read_raw_data
-import data_reader
-import os
-import json
+from .elastic_manager import ElasticManager
 
 # datetime取得時に日本時間を指定する
 JST = timezone(timedelta(hours=+9), 'JST')
 
 
 class DataImporter:
-    '''
+    """
      データインポートクラス
      現状は from csv to Elasticsearch のみ実装
 
@@ -20,14 +17,11 @@ class DataImporter:
            from elasticsearch(生データ) to elasticsearch処理追加
            meta_index作成
            並列処理化
-    '''
-
-    def __init__(self) -> None:
-        self.es = Elasticsearch(hosts="localhost:9200", http_auth=(
-            'elastic', 'P@ssw0rd12345'), timeout=50000)
+    """
 
     def time_log(func) -> None:
-        ''' 開始・終了・経過時間を表示するデコレータ '''
+        """ 開始・終了・経過時間を表示するデコレータ """
+
         def wrapper(*args, **kwargs):
             start = datetime.now(JST)
             print(f"{start} start {func.__name__}")
@@ -39,17 +33,17 @@ class DataImporter:
 
     @time_log
     def import_raw_data(self, data_to_import: str, index_to_import: str) -> None:
-        ''' データインポート処理(shot切り出しせず、生データをインポートする) '''
-        # MAPPING_FILE = "notebooks/mappings_rawdata.json"
-        MAPPING_FILE = None
+        """ rawデータインポート処理 """
 
-        self._delete_existing_index(index_to_import)
-        self._create_index(index_to_import, mapping_file= MAPPING_FILE)
+        ElasticManager.delete_exists_index(index=index_to_import)
+        ElasticManager.create_index(index=index_to_import)
 
-        for success, info in helpers.parallel_bulk(
-                self.es, self._doc_generator(data_to_import, index_to_import), chunk_size=5000, thread_count=2):
-            if not success:
-                print('A document failed:', info)
+        ElasticManager.parallel_bulk(
+            doc_generator=self.__doc_generator,
+            data_to_import=data_to_import,
+            index_to_import=index_to_import,
+            thread_count=2,
+            chunk_size=5000)
 
     @time_log
     def import_data_by_shot(
@@ -59,9 +53,9 @@ class DataImporter:
             start_displacement: float,
             end_displacement: float,
             start_seq_num: int):
-        '''
+        """
          データインポート処理(変位値に応じてshot切り出し)
-        '''
+        """
 
         # ☆並列実行のため一時的にコメントアウト
         self._delete_existing_index(index_to_import)
@@ -95,7 +89,7 @@ class DataImporter:
             if not success:
                 print('A document failed:', info)
 
-    def _doc_generator(self, csv_file: str, index_name: str) -> dict:
+    def __doc_generator(self, csv_file: str, index_name: str) -> dict:
         ''' csv を読み込んで一行ずつ辞書型で返すジェネレータ '''
 
         DISPLAY_THROUGHPUT_DOC_NUM = 100000
@@ -252,10 +246,10 @@ class DataImporter:
                 }
 
                 # テスト用アドホック処理
-                # if 3000 <= sequential_number <= 30000:
-                #     shot["tag"] = "プレス機異常"
-                # if 50000 <= sequential_number <= 80000:
-                #     shot["tag"] = "センサーに異常が発生"
+                if 3000 <= sequential_number <= 30000:
+                    shot["tag"] = "プレス機異常"
+                if 20000 <= sequential_number <= 50000:
+                    shot["tag"] = "センサーに異常が発生"
 
                 yield {
                     "_index": index_name,
@@ -281,32 +275,28 @@ class DataImporter:
 
         print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
 
-    def _delete_existing_index(self, index_to_import: str) -> None:
-        ''' 既存のインデックスを削除する '''
-        if self.es.indices.exists(index=index_to_import):
-            result = self.es.indices.delete(index=index_to_import)
-            print(result)
+    # def _delete_existing_index(self, index_to_import: str) -> None:
+    #     ''' 既存のインデックスを削除する '''
+    #     if self.es.indices.exists(index=index_to_import):
+    #         result = self.es.indices.delete(index=index_to_import)
+    #         print(result)
 
-    def _create_index(self, index_to_import: str, mapping_file: str = None) -> None:
-        ''' インデックスを作成する。documentは1度に30,000件まで読める設定とする。 '''
+    # def _create_index(self, index_to_import: str, mapping_file: str = None) -> None:
+    #     ''' インデックスを作成する。documentは1度に30,000件まで読める設定とする。 '''
 
-        body = {"settings": {"index": {"max_result_window": 30000}}}
+    #     body = {"settings": {"index": {"max_result_window": 30000}}}
 
-        if mapping_file:
-            with open(mapping_file) as f:
-                d = json.load(f)
-                body["mappings"] = d
+    #     if mapping_file:
+    #         with open(mapping_file) as f:
+    #             d = json.load(f)
+    #             body["mappings"] = d
 
-        result = self.es.indices.create(index=index_to_import, body=body)
-        print(result)
+    #     result = self.es.indices.create(index=index_to_import, body=body)
+    #     print(result)
 
 
 if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
     print(os.getcwd())
     data_importer = DataImporter()
-    # data_importer.import_data_by_shot(
-    #     'wave1-15.csv', 'test_shots', -15.000, -17.000, 0)
-    # data_importer.import_data_by_shot(
-    #     'raw_data', 'test_shots', -15.000, -17.000, 0)
-    data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-20201118-1')
+    data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')

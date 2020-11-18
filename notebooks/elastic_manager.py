@@ -1,17 +1,26 @@
+""" Elasticsearchへの各種処理を行うwrapperモジュール
+"""
+
 from elasticsearch import Elasticsearch
+from elasticsearch import helpers
 import pandas as pd
+import json
 
 
 class ElasticManager:
+    """ Elasticsearchへの各種処理を行うwrapperクラス """
+
     es = Elasticsearch(hosts="localhost:9200", http_auth=('elastic', 'P@ssw0rd12345'), timeout=50000)
 
     @classmethod
     def show_indices(cls, show_all_index: bool = False) -> pd.DataFrame:
-        '''
-         インデックス一覧を表示する。
-            Args:
-                show_all_index: Trueの場合、すべてのインデックスを表示する。デフォルトはFalseで、本プロジェクトに関係するインデックスのみ表示する。
-        '''
+        """
+         インデックス一覧のDataFrameを返す。
+
+        Args:
+            show_all_index: Trueの場合、すべてのインデックスを表示する。
+                            デフォルトはFalseで、本プロジェクトに関係するインデックスのみ表示する。
+        """
 
         if show_all_index:
             indices = cls.es.cat.indices(
@@ -29,6 +38,8 @@ class ElasticManager:
 
     @classmethod
     def delete_index(cls, index: str) -> None:
+        """ インデックスを削除する """
+
         is_valid_index, message = ElasticManager.__check_index(index)
 
         if not is_valid_index:
@@ -44,6 +55,8 @@ class ElasticManager:
 
     @classmethod
     def delete_data_by_seq_num(cls, index: str, start: int, end: int) -> None:
+        """ documentを削除する（連番指定） """
+
         is_valid_index, message = ElasticManager.__check_index(index)
 
         if not is_valid_index:
@@ -81,6 +94,7 @@ class ElasticManager:
 
     @classmethod
     def delete_data_by_shot_num(cls, index: str, shot_number: int) -> None:
+        """ documentを削除する（shot番号指定） """
         is_valid_index, message = ElasticManager.__check_index(index)
 
         if not is_valid_index:
@@ -107,7 +121,9 @@ class ElasticManager:
         print(f"データを{result['deleted']}件削除しました。")
 
     @classmethod
-    def __check_index(cls, index):
+    def __check_index(cls, index: str):
+        """ インデックスが指定されているかチェックする """
+
         if index == '':
             message = "エラー：インデックスを指定してください。"
             return False, message
@@ -118,8 +134,41 @@ class ElasticManager:
 
         return True, ""
 
+    @classmethod
+    def delete_exists_index(cls, index: str) -> None:
+        """ 既存のインデックスを削除する """
+
+        if cls.es.indices.exists(index=index):
+            result = cls.es.indices.delete(index=index)
+            print(result)
+
+    @classmethod
+    def create_index(cls, index: str, mapping_file: str = None) -> None:
+        """ インデックスを作成する。documentは1度に30,000件まで読める設定とする。 """
+
+        body = {"settings": {"index": {"max_result_window": 30000}}}
+
+        if mapping_file:
+            with open(mapping_file) as f:
+                d = json.load(f)
+                body["mappings"] = d
+
+        result = cls.es.indices.create(index=index, body=body)
+        print(result)
+
+    @classmethod
+    def parallel_bulk(
+        cls, doc_generator, data_to_import: str, index_to_import: str,
+        thread_count: int = 4, chunk_size: int = 500) -> None:
+        """
+         並列処理でbulk insertする。
+        """
+
+        for success, info in helpers.parallel_bulk(
+            cls.es, doc_generator(data_to_import, index_to_import), chunk_size=chunk_size, thread_count=thread_count):
+            if not success:
+                print('A document failed:', info)
+
+
 if __name__ == '__main__':
     pass
-    # ElasticManager.show_indices()
-    # ElasticManager.delete_index('rawdata-20201112-*')
-    ElasticManager.delete_data_by_seq_num('rawdata-20201112-1', 0, 10)
