@@ -1,17 +1,5 @@
 <template>
-  <div id="analysis">
-    <div id="info">
-      <div id="molding_machine_name">
-        <label>成形機：テスト成形機</label>
-      </div>
-      <div id="mold-name">
-        <label>金型：テスト金型</label>
-      </div>
-      <div id="material_name">
-        <label>材料：テスト材料</label>
-      </div>
-    </div>
-
+  <div id="manager">
     <v-container>
       <v-row justify="space-around">
         <v-col>
@@ -92,7 +80,7 @@ import { createBaseApiClient } from '@/api/apiBase';
 import { v4 as uuidv4 } from 'uuid';
 
 export default Vue.extend({
-  name: 'Analysis',
+  name: 'Manager',
   data() {
     return {
       isMonitoring: false,
@@ -231,15 +219,5 @@ export default Vue.extend({
 
 .v-btn.v-size--default {
     font-size: 2vw;
-}
-
-label {
-  margin: 10px;
-}
-
-#info {
-  width: 300px;
-  margin: 10px;
-  border: 1px solid #000000;
 }
 </style>

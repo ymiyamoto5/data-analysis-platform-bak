@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 # from data_reader import read_raw_data
 import data_reader
 import os
+import json
 
 # datetime取得時に日本時間を指定する
 JST = timezone(timedelta(hours=+9), 'JST')
@@ -39,9 +40,11 @@ class DataImporter:
     @time_log
     def import_raw_data(self, data_to_import: str, index_to_import: str) -> None:
         ''' データインポート処理(shot切り出しせず、生データをインポートする) '''
+        # MAPPING_FILE = "notebooks/mappings_rawdata.json"
+        MAPPING_FILE = None
 
         self._delete_existing_index(index_to_import)
-        self._create_index(index_to_import)
+        self._create_index(index_to_import, mapping_file= MAPPING_FILE)
 
         for success, info in helpers.parallel_bulk(
                 self.es, self._doc_generator(data_to_import, index_to_import), chunk_size=5000, thread_count=2):
@@ -116,17 +119,6 @@ class DataImporter:
                     "load04": float(row["(3)HA-V04"]),
                     "displacement": float(row["(3)HA-C01"])
                 }
-
-                # wave = {
-                #     "sequential_number": i,
-                #     "displacement": float(row["(3)HA-C01"]),
-                #     "loads": [
-                #         {"load": "load01", "value": float(row["(3)HA-V01"])},
-                #         {"load": "load02", "value": float(row["(3)HA-V02"])},
-                #         {"load": "load03", "value": float(row["(3)HA-V03"])},
-                #         {"load": "load04", "value": float(row["(3)HA-V04"])},
-                #     ]
-                # }
 
                 # テスト用のアドホック処理
                 if 100 <= i <= 1000:
@@ -295,9 +287,16 @@ class DataImporter:
             result = self.es.indices.delete(index=index_to_import)
             print(result)
 
-    def _create_index(self, index_to_import: str) -> None:
+    def _create_index(self, index_to_import: str, mapping_file: str = None) -> None:
         ''' インデックスを作成する。documentは1度に30,000件まで読める設定とする。 '''
+
         body = {"settings": {"index": {"max_result_window": 30000}}}
+
+        if mapping_file:
+            with open(mapping_file) as f:
+                d = json.load(f)
+                body["mappings"] = d
+
         result = self.es.indices.create(index=index_to_import, body=body)
         print(result)
 
@@ -310,4 +309,4 @@ if __name__ == '__main__':
     #     'wave1-15.csv', 'test_shots', -15.000, -17.000, 0)
     # data_importer.import_data_by_shot(
     #     'raw_data', 'test_shots', -15.000, -17.000, 0)
-    data_importer.import_raw_data('notebooks/wave1-15-5ch-2.csv', 'rawdata-20201113-1')
+    data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-20201118-1')
