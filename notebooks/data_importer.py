@@ -2,7 +2,8 @@ import os
 from elasticsearch import helpers
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
-from .elastic_manager import ElasticManager
+from elastic_manager import ElasticManager
+from time_logger import time_log
 
 # datetime取得時に日本時間を指定する
 JST = timezone(timedelta(hours=+9), 'JST')
@@ -18,18 +19,6 @@ class DataImporter:
            meta_index作成
            並列処理化
     """
-
-    def time_log(func) -> None:
-        """ 開始・終了・経過時間を表示するデコレータ """
-
-        def wrapper(*args, **kwargs):
-            start = datetime.now(JST)
-            print(f"{start} start {func.__name__}")
-            func(*args, **kwargs)
-            end = datetime.now(JST)
-            delta = end - start
-            print(f"{end} end {func.__name__}. elapsed time: {delta}")
-        return wrapper
 
     @time_log
     def import_raw_data(self, data_to_import: str, index_to_import: str) -> None:
@@ -58,8 +47,8 @@ class DataImporter:
         """
 
         # ☆並列実行のため一時的にコメントアウト
-        self._delete_existing_index(index_to_import)
-        self._create_index(index_to_import)
+        ElasticManager.delete_exists_index(index=index_to_import)
+        ElasticManager.create_index(index=index_to_import)
 
         # TODO: マルチプロセス化
 
@@ -90,7 +79,11 @@ class DataImporter:
                 print('A document failed:', info)
 
     def __doc_generator(self, csv_file: str, index_name: str) -> dict:
-        ''' csv を読み込んで一行ずつ辞書型で返すジェネレータ '''
+        """ csv を読み込んで一行ずつ辞書型で返すジェネレータ
+
+        TODO:
+            csv_file読み込みからpcmファイル読み込みに変更する
+        """
 
         DISPLAY_THROUGHPUT_DOC_NUM = 100000
 
@@ -99,11 +92,11 @@ class DataImporter:
                                 "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-V02", "(3)HA-V03", "(3)HA-V04", "(3)HA-C01"])
             _ = next(reader)
 
-            dt_old = datetime.now(JST)
+            dt_now = datetime.now(JST)
 
             for i, row in enumerate(reader):
                 if i % DISPLAY_THROUGHPUT_DOC_NUM == 0:
-                    self._throughput_counter(i, dt_old)
+                    self.__throughput_counter(i, dt_now)
 
                 wave = {
                     "sequential_number": i,
@@ -113,10 +106,6 @@ class DataImporter:
                     "load04": float(row["(3)HA-V04"]),
                     "displacement": float(row["(3)HA-C01"])
                 }
-
-                # テスト用のアドホック処理
-                if 100 <= i <= 1000:
-                    wave["tag"] = "異常発生"
 
                 yield {
                     "_index": index_name,
@@ -141,15 +130,16 @@ class DataImporter:
 
         dt_old = datetime.now(JST)
 
-        is_shot_start = False
-        sequential_number = 0
-        shot_number = 0
-        inserted_count = 0  # Thoughput算出用
-        shots = []
+        is_shot_start: bool = False
+        sequential_number: int = 0
+        sequential_number_by_shot: int = 0
+        shot_number: int = 0
+        inserted_count: int = 0  # Thoughput算出用
+        shots: list = []
 
         for data in raw_data:
             if inserted_count % 100000 == 0 and inserted_count != 0:
-                self._throughput_counter(inserted_count, dt_old)
+                self.__throughput_counter(inserted_count, dt_old)
 
             load = data['_source']['load']
             displacement = data['_source']['displacement']
@@ -218,12 +208,13 @@ class DataImporter:
 
             is_shot_start = False
             sequential_number = 0
+            sequential_number_by_shot = 0
             shot_number = 0
             inserted_count = 0  # Thoughput算出用
 
             for row in reader:
                 if inserted_count % 100000 == 0 and inserted_count != 0:
-                    self._throughput_counter(inserted_count, dt_old)
+                    self.__throughput_counter(inserted_count, dt_old)
 
                 load = float(row["(3)HA-V01"])
                 displacement = float(row["(3)HA-C01"])
@@ -266,33 +257,15 @@ class DataImporter:
                 sequential_number_by_shot += 1
                 inserted_count += 1
 
-    def _throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
-        ''' スループットの表示 '''
+    def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
+        """ スループットの表示 """
+
         dt_now = datetime.now(JST)
         dt_delta = dt_now - dt_old
         total_sec = dt_delta.total_seconds()
         throughput = processed_count / total_sec
 
         print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
-
-    # def _delete_existing_index(self, index_to_import: str) -> None:
-    #     ''' 既存のインデックスを削除する '''
-    #     if self.es.indices.exists(index=index_to_import):
-    #         result = self.es.indices.delete(index=index_to_import)
-    #         print(result)
-
-    # def _create_index(self, index_to_import: str, mapping_file: str = None) -> None:
-    #     ''' インデックスを作成する。documentは1度に30,000件まで読める設定とする。 '''
-
-    #     body = {"settings": {"index": {"max_result_window": 30000}}}
-
-    #     if mapping_file:
-    #         with open(mapping_file) as f:
-    #             d = json.load(f)
-    #             body["mappings"] = d
-
-    #     result = self.es.indices.create(index=index_to_import, body=body)
-    #     print(result)
 
 
 if __name__ == '__main__':

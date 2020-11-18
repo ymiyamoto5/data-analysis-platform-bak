@@ -1,10 +1,10 @@
-""" Elasticsearchへの各種処理を行うwrapperモジュール
-"""
+""" Elasticsearchへの各種処理を行うwrapperモジュール """
 
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 import pandas as pd
 import json
+from typing import Iterable
 
 
 class ElasticManager:
@@ -158,7 +158,7 @@ class ElasticManager:
 
     @classmethod
     def parallel_bulk(
-        cls, doc_generator, data_to_import: str, index_to_import: str,
+        cls, doc_generator: Iterable, data_to_import: str, index_to_import: str,
         thread_count: int = 4, chunk_size: int = 500) -> None:
         """
          並列処理でbulk insertする。
