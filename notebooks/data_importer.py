@@ -1,4 +1,5 @@
 import os
+from typing import Iterable
 from elasticsearch import helpers
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
@@ -28,7 +29,7 @@ class DataImporter:
         ElasticManager.create_index(index=index_to_import)
 
         ElasticManager.parallel_bulk(
-            doc_generator=self.__doc_generator,
+            doc_generator=self.__doc_generator(data_to_import, index_to_import),
             data_to_import=data_to_import,
             index_to_import=index_to_import,
             thread_count=2,
@@ -37,8 +38,8 @@ class DataImporter:
     @time_log
     def import_data_by_shot(
             self,
-            data_to_import: str,
-            index_to_import: str,
+            rawdata_index: str,
+            shots_index: str,
             start_displacement: float,
             end_displacement: float,
             start_seq_num: int):
@@ -47,18 +48,15 @@ class DataImporter:
         """
 
         # ☆並列実行のため一時的にコメントアウト
-        ElasticManager.delete_exists_index(index=index_to_import)
-        ElasticManager.create_index(index=index_to_import)
+        ElasticManager.delete_exists_index(index=shots_index)
+        ElasticManager.create_index(index=shots_index)
 
         # TODO: マルチプロセス化
-
         # 生データを取得（ジェネレータ）
-        # dr = data_reader.DataReader()
-        # raw_data = dr.read_raw_data(data_to_import)
+        raw_data_gen: Iterable = ElasticManager.scan(index=rawdata_index)
 
         # ショット切り出し
-        # shot_data = self._cut_out_shot(
-        #     raw_data, start_displacement, end_displacement)
+        # shots = self.__cut_out_shot(raw_data_gen, start_displacement, end_displacement)
 
         # データをプロセスの数に分割
         # splitted_data_list = self._split_data(shot_data, num_of_split=4)
@@ -69,14 +67,21 @@ class DataImporter:
 
         # ここからマルチプロセス
 
-        for success, info in helpers.parallel_bulk(
-                self.es,
-                self._doc_generator_by_shot(
-                    data_to_import, index_to_import, start_displacement, end_displacement, start_seq_num),
-                chunk_size=5000,
-                thread_count=2):
-            if not success:
-                print('A document failed:', info)
+        # for success, info in helpers.parallel_bulk(
+        #         self.es,
+        #         self._doc_generator_by_shot(
+        #             rawdata_index, shots_index, start_displacement, end_displacement, start_seq_num),
+        #         chunk_size=5000,
+        #         thread_count=2):
+        #     if not success:
+        #         print('A document failed:', info)
+        ElasticManager.parallel_bulk(
+            doc_generator=self._doc_generator_by_shot(
+                rawdata_index, shots_index, start_displacement, end_displacement, start_seq_num),
+            data_to_import=rawdata_index,
+            index_to_import=shots_index,
+            thread_count=2,
+            chunk_size=5000)
 
     def __doc_generator(self, csv_file: str, index_name: str) -> dict:
         """ csv を読み込んで一行ずつ辞書型で返すジェネレータ
@@ -114,8 +119,8 @@ class DataImporter:
                 }
 
     @time_log
-    def _cut_out_shot(self, raw_data, start_displacement: float, end_displacement: float) -> list:
-        '''
+    def __cut_out_shot(self, raw_data: Iterable, start_displacement: float, end_displacement: float) -> list:
+        """
         ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。
         メモリ上に展開するため、データ量に要注意。
 
@@ -126,9 +131,9 @@ class DataImporter:
 
         Returns:
             list: ショットデータのリスト
-        '''
+        """
 
-        dt_old = datetime.now(JST)
+        dt_now = datetime.now(JST)
 
         is_shot_start: bool = False
         sequential_number: int = 0
@@ -139,7 +144,7 @@ class DataImporter:
 
         for data in raw_data:
             if inserted_count % 100000 == 0 and inserted_count != 0:
-                self.__throughput_counter(inserted_count, dt_old)
+                self.__throughput_counter(inserted_count, dt_now)
 
             load = data['_source']['load']
             displacement = data['_source']['displacement']
@@ -174,7 +179,7 @@ class DataImporter:
 
         return shots
 
-    def _split_data(self, shot_data: list, num_of_split: int) -> list:
+    def __split_data(self, shot_data: list, num_of_split: int) -> list:
         '''
             マルチプロセスで実行するために、ショットデータをプロセスの数に分割する
 
@@ -185,6 +190,13 @@ class DataImporter:
             returns:
                 list: 分割されたデータを要素として持つリスト
         '''
+        pass
+
+    def __doc_generator_by_shot(
+        self,
+        rawdata_index: str,
+        shots_index: str
+    ) -> dict:
         pass
 
     def _doc_generator_by_shot(
@@ -199,9 +211,10 @@ class DataImporter:
 
         '''
 
-        with open(csv_file, "rt", encoding="utf-8") as file:
+        with open('notebooks/wave1-15-5ch-3.csv', "rt", encoding="utf-8") as file:
             reader = DictReader(file, fieldnames=[
-                                "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-C01"])
+                                "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-V02", "(3)HA-V03", "(3)HA-V04", "(3)HA-C01"])
+
             _ = next(reader)
 
             dt_old = datetime.now(JST)
@@ -216,7 +229,6 @@ class DataImporter:
                 if inserted_count % 100000 == 0 and inserted_count != 0:
                     self.__throughput_counter(inserted_count, dt_old)
 
-                load = float(row["(3)HA-V01"])
                 displacement = float(row["(3)HA-C01"])
 
                 # ショット開始判定
@@ -231,16 +243,20 @@ class DataImporter:
                 shot = {
                     "sequential_number": sequential_number + start_seq_num,
                     "sequential_number_by_shot": sequential_number_by_shot,
-                    "load": load,
+                    "load01": float(row["(3)HA-V01"]),
+                    "load02": float(row["(3)HA-V02"]),
+                    "load03": float(row["(3)HA-V03"]),
+                    "load04": float(row["(3)HA-V04"]),
                     "displacement": displacement,
-                    "shot_number": shot_number
+                    "shot_number": shot_number,
+                    "tags": []
                 }
 
                 # テスト用アドホック処理
                 if 3000 <= sequential_number <= 30000:
-                    shot["tag"] = "プレス機異常"
+                    shot["tags"].append("プレス機異常")
                 if 20000 <= sequential_number <= 50000:
-                    shot["tag"] = "センサーに異常が発生"
+                    shot["tags"].append("センサーに異常が発生")
 
                 yield {
                     "_index": index_name,
@@ -273,3 +289,4 @@ if __name__ == '__main__':
     print(os.getcwd())
     data_importer = DataImporter()
     data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
+    # data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 0)

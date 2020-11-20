@@ -162,12 +162,34 @@ class ElasticManager:
         thread_count: int = 4, chunk_size: int = 500) -> None:
         """
          並列処理でbulk insertする。
+         TODO: data_to_importはいらなくなる
         """
 
         for success, info in helpers.parallel_bulk(
-            cls.es, doc_generator(data_to_import, index_to_import), chunk_size=chunk_size, thread_count=thread_count):
+            cls.es, doc_generator, chunk_size=chunk_size, thread_count=thread_count):
             if not success:
                 print('A document failed:', info)
+
+    @classmethod
+    def scan(cls, index: str) -> Iterable:
+        """ 生データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
+
+        query = {
+            "sort": {
+                "sequential_number": {
+                    "order": "asc"
+                }
+            }
+        }
+
+        raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query, preserve_order=True)
+
+        raw_data = [x['_source'] for x in raw_data_gen]
+        # raw_data.sort(key=lambda x: x['sequential_number'])
+
+        print(f"取得データ数：{len(raw_data)}")
+
+        return raw_data
 
 
 if __name__ == '__main__':
