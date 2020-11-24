@@ -1,5 +1,6 @@
 import os
-from typing import Iterable
+import json
+from typing import Iterable, Tuple
 from elasticsearch import helpers
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
@@ -55,26 +56,18 @@ class DataImporter:
         # 生データを取得（ジェネレータ）
         raw_data_gen: Iterable = ElasticManager.scan(index=rawdata_index)
 
+        PROCESS_COUNT: int = 4
         # ショット切り出し
-        # shots = self.__cut_out_shot(raw_data_gen, start_displacement, end_displacement)
+        shot_data: list = self.__cut_out_shot(raw_data_gen, start_displacement, end_displacement)
 
         # データをプロセスの数に分割
-        # splitted_data_list = self._split_data(shot_data, num_of_split=4)
+        splitted_data_list = self.__split_data(shot_data, num_of_split=PROCESS_COUNT)
 
-        # for data_list in splitted_data_list:
-        #     for data in data_list:
-        #         print(data)
+        for data_list in splitted_data_list:
+            print(len(data_list))
 
         # ここからマルチプロセス
 
-        # for success, info in helpers.parallel_bulk(
-        #         self.es,
-        #         self._doc_generator_by_shot(
-        #             rawdata_index, shots_index, start_displacement, end_displacement, start_seq_num),
-        #         chunk_size=5000,
-        #         thread_count=2):
-        #     if not success:
-        #         print('A document failed:', info)
         ElasticManager.parallel_bulk(
             doc_generator=self._doc_generator_by_shot(
                 rawdata_index, shots_index, start_displacement, end_displacement, start_seq_num),
@@ -179,8 +172,8 @@ class DataImporter:
 
         return shots
 
-    def __split_data(self, shot_data: list, num_of_split: int) -> list:
-        '''
+    def _split_data(self, shot_data: list, num_of_split: int) -> list:
+        """
             マルチプロセスで実行するために、ショットデータをプロセスの数に分割する
 
             args:
@@ -189,8 +182,26 @@ class DataImporter:
 
             returns:
                 list: 分割されたデータを要素として持つリスト
-        '''
-        pass
+        """
+
+        print(f"分割前データ数{len(shot_data)}")
+
+        batch_size, mod = divmod(len(shot_data), num_of_split)
+        splitted_data_list: list = []
+
+        # ex) [a, b, c, d, e, f, g] を3分割 => [[a, b],[c, d], [e, f, g]]
+        for i in range(num_of_split):
+            start_index: int = i * batch_size
+            splitted_data: list = shot_data[start_index:start_index + batch_size]
+            splitted_data_list.append(splitted_data)
+
+        # 余りを一番最後のリストに追加
+        mod_start_index: int = num_of_split * batch_size
+        mod_list = shot_data[mod_start_index:]
+        for x in mod_list:
+            splitted_data_list[-1].append(x)
+
+        return splitted_data_list
 
     def __doc_generator_by_shot(
         self,

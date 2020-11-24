@@ -183,13 +183,10 @@ class ElasticManager:
         }
 
         raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query, preserve_order=True)
+        # raw_data: list = [x['_source'] for x in raw_data_gen]
+        # print(f"取得データ数：{len(raw_data)}")
 
-        raw_data = [x['_source'] for x in raw_data_gen]
-        # raw_data.sort(key=lambda x: x['sequential_number'])
-
-        print(f"取得データ数：{len(raw_data)}")
-
-        return raw_data
+        return raw_data_gen
 
 
 if __name__ == '__main__':

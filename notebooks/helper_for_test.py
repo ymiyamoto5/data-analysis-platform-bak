@@ -43,6 +43,22 @@ class MockIndex:
         return result
 
 
+def shots_data_create(num_of_data: int):
+    shots = []
+
+    for i in range(num_of_data):
+        shots.append({
+            "sequential_number": i,
+            "displacement": i,
+            "load01": i * 1,
+            "load02": i * 2,
+            "load03": i * 3,
+            "load04": i * 4,
+        })
+
+    return shots
+
+
 if __name__ == '__main__':
     mock_index = MockIndex("test-raw-index")
 

@@ -12,7 +12,11 @@ def mock_raw_index():
     raw_data = [
         {
             "sequential_number": 1,
-            "load": 10
+            "displacement": 1,
+            "load01": 0.1,
+            "load02": 0.2,
+            "load03": 0.3,
+            "load04": 0.4,
         },
         {
             "sequential_number": 2,
