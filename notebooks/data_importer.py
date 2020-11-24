@@ -1,9 +1,9 @@
 import os
-import json
-from typing import Iterable, Tuple
-from elasticsearch import helpers
+from typing import Iterable, Iterator
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
+from itertools import islice, tee
+from more_itertools import ilen
 from elastic_manager import ElasticManager
 from time_logger import time_log
 
@@ -14,7 +14,6 @@ JST = timezone(timedelta(hours=+9), 'JST')
 class DataImporter:
     """
      データインポートクラス
-     現状は from csv to Elasticsearch のみ実装
 
      TODO:
            from elasticsearch(生データ) to elasticsearch処理追加
@@ -37,38 +36,31 @@ class DataImporter:
             chunk_size=5000)
 
     @time_log
-    def import_data_by_shot(
-            self,
-            rawdata_index: str,
-            shots_index: str,
-            start_displacement: float,
-            end_displacement: float,
-            num_of_process: int = 4):
-        """
-         データインポート処理(変位値に応じてshot切り出し)
-        """
+    def import_data_by_shot(self, rawdata_index: str, shots_index: str, start_displacement: float,
+                            end_displacement: float, num_of_process: int = 4):
+        """ shotデータインポート処理 """
 
-        # ☆並列実行のため一時的にコメントアウト
         ElasticManager.delete_exists_index(index=shots_index)
         ElasticManager.create_index(index=shots_index)
 
-        # 生データを取得するジェネレータ
-        raw_data_gen: Iterable = ElasticManager.scan(index=rawdata_index)
+        # rawデータを取得するジェネレータ
+        raw_data_gen: Iterator = ElasticManager.scan(index=rawdata_index)
 
         # ショット切り出し
-        shot_data = self._cut_out_shot(raw_data_gen, start_displacement, end_displacement)
+        shot_data_gen: Iterator = self._cut_out_shot(raw_data_gen, start_displacement, end_displacement)
 
         # データをプロセスの数に分割し、ジェネレーターのリストにする。
-        splitted_data_list = self._create_splitted_data_gen(shot_data, num_of_split=num_of_process)
+        shot_data_gen_list = self._create_splitted_data_gen(shot_data_gen, num_of_split=num_of_process)
 
+        # マルチプロセスでデータ投入
         ElasticManager.multi_process_bulk(
-            data_gen_list=splitted_data_list,
+            data_gen_list=shot_data_gen_list,
             index_to_import=shots_index,
             num_of_process=num_of_process,
-            chunk_size=1000
+            chunk_size=5000
         )
 
-    def __doc_generator(self, csv_file: str, index_name: str) -> dict:
+    def __doc_generator(self, csv_file: str, index_name: str) -> Iterator:
         """ csv を読み込んで一行ずつ辞書型で返すジェネレータ
 
         TODO:
@@ -103,7 +95,7 @@ class DataImporter:
                     "_source": wave
                 }
 
-    def _cut_out_shot(self, raw_data: Iterable, start_displacement: float, end_displacement: float) -> list:
+    def _cut_out_shot(self, raw_data: Iterable, start_displacement: float, end_displacement: float) -> Iterator:
         """
         ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。
         メモリ上に展開するため、データ量に要注意。
@@ -117,20 +109,19 @@ class DataImporter:
             list: ショットデータのリスト
         """
 
-        DISPLAY_THROUGHPUT_DOC_NUM = 100000
+        # DISPLAY_THROUGHPUT_DOC_NUM = 100000
 
-        dt_now = datetime.now(JST)
+        # dt_now = datetime.now(JST)
 
         is_shot_start: bool = False
         sequential_number: int = 0
         sequential_number_by_shot: int = 0
         shot_number: int = 0
-        inserted_count: int = 0  # Thoughput算出用
-        shots: list = []
+        # inserted_count: int = 0  # Thoughput算出用
 
         for data in raw_data:
-            if inserted_count % DISPLAY_THROUGHPUT_DOC_NUM == 0 and inserted_count != 0:
-                self.__throughput_counter(inserted_count, dt_now)
+            # if inserted_count % DISPLAY_THROUGHPUT_DOC_NUM == 0 and inserted_count != 0:
+            #     self.__throughput_counter(inserted_count, dt_now)
 
             displacement = data['_source']['displacement']
 
@@ -154,8 +145,7 @@ class DataImporter:
                 "shot_number": shot_number
             }
 
-            # yield shot
-            shots.append(shot)
+            yield shot
 
             # shotの終了
             if displacement <= end_displacement:
@@ -164,65 +154,48 @@ class DataImporter:
 
             sequential_number += 1
             sequential_number_by_shot += 1
-            inserted_count += 1
+            # inserted_count += 1
 
-        return shots
+        # return shots
 
-    def _create_splitted_data_gen(self, shot_data: Iterable, num_of_split: int) -> list:
+    def _create_splitted_data_gen(self, shot_data_gen, num_of_split: int) -> list:
         """
             マルチプロセスで実行するために、ショットデータをプロセスの数に分割する
             ex) [a, b, c, d, e, f, g] を3分割 => [[a, b],[c, d], [e, f, g]]
             なお、メモリ節約のため、データそのものを返すのではなくジェネレータのリストを返す。
 
             args:
-                shot_data: ショットデータ
+                shot_data_gen: ショットデータのジェネレーター
                 num_of_split: 分割数
 
             returns:
-                list: 分割されたデータを要素として持つリスト
-
-            TODO:
-                メモリ上に展開すると膨大な量になるため、改善する。
-                リスト化してデータを持たなくても、インデックスだけで良いはず。
+                list: 分割されたデータのジェネレーターを要素として持つリスト
         """
 
-        print(f"分割前データ数{len(shot_data)}")
+        # NOTE: ilenでジェネレーターは一度データを取得してしまう。
+        #       ジェネレーターは再利用できないので、再利用可能なようにteeでジェネレーターを複製しておく。
+        gen, gen_backup = tee(shot_data_gen)
 
-        batch_size, mod = divmod(len(shot_data), num_of_split)
-        # splitted_data_list: list = []
-        data_gen_list: list = []
+        # NOTE: ジェネレーターから件数を取得するため、ilenを利用
+        num_of_data: int = ilen(gen)
+        print(f"num_of_all：{num_of_data}")
+
+        # 何個ずつのデータに分割するのか計算
+        batch_size, mod = divmod(num_of_data, num_of_split)
+
+        shot_data_gen_list: list = []
 
         # 最後のジェネレーターには余り分も含めるため、一つ手前まで生成
         for i in range(num_of_split - 1):
             start_index: int = i * batch_size
             end_index: int = start_index + batch_size
-            # ジェネレーター式をリストに積んでいく
-            data_gen_list.append((x for x in shot_data[start_index:end_index]))
-            # splitted_data: list = shot_data[start_index:start_index + batch_size]
-            # splitted_data_list.append(splitted_data)
+            shot_data_gen_list.append(islice(gen_backup, start_index, end_index))
 
         # 一番最後のジェネレーター
         start_index_of_last_gen: int = (num_of_split - 1) * batch_size
-        data_gen_list.append((x for x in shot_data[start_index_of_last_gen:]))
+        shot_data_gen_list.append(islice(gen_backup, start_index_of_last_gen, None))
 
-        return data_gen_list
-
-        # mod_start_index: int = num_of_split * batch_size
-        # mod_list = shot_data[mod_start_index:]
-        # for x in mod_list:
-        #     splitted_data_list[-1].append(x)
-
-        # for i, splitted_data in enumerate(splitted_data_list):
-        #     print(f"データセット：{i+1}, データ数：{len(splitted_data)}")
-
-        # return splitted_data_list
-
-    def __doc_generator_by_shot(
-        self,
-        rawdata_index: str,
-        shots_index: str
-    ) -> dict:
-        pass
+        return shot_data_gen_list
 
     def _doc_generator_by_shot(
             self,
@@ -233,7 +206,6 @@ class DataImporter:
             start_seq_num: int) -> dict:
         '''
          csvを読み込み、shot切り出し後のデータのみ返却するジェネレーター（廃止予定）
-
         '''
 
         with open('notebooks/wave1-15-5ch-3.csv', "rt", encoding="utf-8") as file:
@@ -307,6 +279,14 @@ class DataImporter:
         throughput = processed_count / total_sec
 
         print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
+
+
+# class ReiteratableWrapper(object):
+#     def __init__(self, f):
+#         self._f = f
+
+#     def __iter__(self):
+#         return self._f()
 
 
 if __name__ == '__main__':

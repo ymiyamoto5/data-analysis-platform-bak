@@ -1,11 +1,16 @@
 """ Elasticsearchへの各種処理を行うwrapperモジュール """
 
+import os
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 import pandas as pd
 import json
 from typing import Iterable, Iterator
 import multiprocessing
+from datetime import datetime, timezone, timedelta
+
+# datetime取得時に日本時間を指定する
+JST = timezone(timedelta(hours=+9), 'JST')
 
 
 class ElasticManager:
@@ -198,23 +203,33 @@ class ElasticManager:
         """
          マルチプロセスで実行する処理。渡されたジェネレーターをもとにElasticsearchにデータ投入する。
         """
+
+        dt_now = datetime.now(JST)
+
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
         # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
         es = Elasticsearch(hosts="localhost:9200", http_auth=('elastic', 'P@ssw0rd12345'), timeout=50000)
 
-        actions = []
+        inserted_count: int = 0
+        actions: list = []
 
         for data in data_gen:
             actions.append({'_index': index_to_import, '_source': data})
 
-            if len(actions) > chunk_size:
+            if len(actions) >= chunk_size:
                 helpers.bulk(es, actions)
+                inserted_count += len(actions)
+                # TODO: 標準出力がプロセス間で取り合いになるせいか、改行がされない場合がある。
+                throughput_counter(inserted_count, dt_now)
                 actions = []
 
         # 残っているデータを登録
         if len(actions) > 0:
             helpers.bulk(es, actions)
+            inserted_count += len(actions)
+
+        print(f"pid:{os.getpid()}, inserted {inserted_count} docs")
 
     @classmethod
     def scan(cls, index: str) -> Iterable:
@@ -233,6 +248,19 @@ class ElasticManager:
         # print(f"取得データ数：{len(raw_data)}")
 
         return raw_data_gen
+
+
+def throughput_counter(processed_count: int, dt_old: datetime) -> None:
+    """ スループットの表示
+     TODO: 外部モジュール化検討
+    """
+
+    dt_now = datetime.now(JST)
+    dt_delta = dt_now - dt_old
+    total_sec = dt_delta.total_seconds()
+    throughput = processed_count / total_sec
+
+    print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
 
 
 if __name__ == '__main__':
