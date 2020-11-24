@@ -43,7 +43,6 @@ class DataImporter:
             shots_index: str,
             start_displacement: float,
             end_displacement: float,
-            start_seq_num: int,
             num_of_process: int = 4):
         """
          データインポート処理(変位値に応じてshot切り出し)
@@ -53,25 +52,17 @@ class DataImporter:
         ElasticManager.delete_exists_index(index=shots_index)
         ElasticManager.create_index(index=shots_index)
 
-        # 生データを取得（ジェネレータ）
+        # 生データを取得するジェネレータ
         raw_data_gen: Iterable = ElasticManager.scan(index=rawdata_index)
 
         # ショット切り出し
         shot_data = self._cut_out_shot(raw_data_gen, start_displacement, end_displacement)
 
-        # データをプロセスの数に分割
-        splitted_data_list = self._split_data(shot_data, num_of_split=num_of_process)
+        # データをプロセスの数に分割し、ジェネレーターのリストにする。
+        splitted_data_list = self._create_splitted_data_gen(shot_data, num_of_split=num_of_process)
 
-        # TODO: マルチプロセス化
-        # ElasticManager.parallel_bulk(
-        #     doc_generator=self._doc_generator_by_shot(
-        #         rawdata_index, shots_index, start_displacement, end_displacement, start_seq_num),
-        #     data_to_import=rawdata_index,
-        #     index_to_import=shots_index,
-        #     thread_count=2,
-        #     chunk_size=5000)
         ElasticManager.multi_process_bulk(
-            data_list=splitted_data_list,
+            data_gen_list=splitted_data_list,
             index_to_import=shots_index,
             num_of_process=num_of_process,
             chunk_size=1000
@@ -163,6 +154,7 @@ class DataImporter:
                 "shot_number": shot_number
             }
 
+            # yield shot
             shots.append(shot)
 
             # shotの終了
@@ -176,39 +168,54 @@ class DataImporter:
 
         return shots
 
-    def _split_data(self, shot_data: list, num_of_split: int) -> list:
+    def _create_splitted_data_gen(self, shot_data: Iterable, num_of_split: int) -> list:
         """
             マルチプロセスで実行するために、ショットデータをプロセスの数に分割する
             ex) [a, b, c, d, e, f, g] を3分割 => [[a, b],[c, d], [e, f, g]]
-            
+            なお、メモリ節約のため、データそのものを返すのではなくジェネレータのリストを返す。
+
             args:
                 shot_data: ショットデータ
                 num_of_split: 分割数
 
             returns:
                 list: 分割されたデータを要素として持つリスト
+
+            TODO:
+                メモリ上に展開すると膨大な量になるため、改善する。
+                リスト化してデータを持たなくても、インデックスだけで良いはず。
         """
 
         print(f"分割前データ数{len(shot_data)}")
 
         batch_size, mod = divmod(len(shot_data), num_of_split)
-        splitted_data_list: list = []
+        # splitted_data_list: list = []
+        data_gen_list: list = []
 
-        for i in range(num_of_split):
+        # 最後のジェネレーターには余り分も含めるため、一つ手前まで生成
+        for i in range(num_of_split - 1):
             start_index: int = i * batch_size
-            splitted_data: list = shot_data[start_index:start_index + batch_size]
-            splitted_data_list.append(splitted_data)
+            end_index: int = start_index + batch_size
+            # ジェネレーター式をリストに積んでいく
+            data_gen_list.append((x for x in shot_data[start_index:end_index]))
+            # splitted_data: list = shot_data[start_index:start_index + batch_size]
+            # splitted_data_list.append(splitted_data)
 
-        # 余りを一番最後のリストに追加
-        mod_start_index: int = num_of_split * batch_size
-        mod_list = shot_data[mod_start_index:]
-        for x in mod_list:
-            splitted_data_list[-1].append(x)
+        # 一番最後のジェネレーター
+        start_index_of_last_gen: int = (num_of_split - 1) * batch_size
+        data_gen_list.append((x for x in shot_data[start_index_of_last_gen:]))
 
-        for i, splitted_data in enumerate(splitted_data_list):
-            print(f"データセット：{i+1}, データ数：{len(splitted_data)}")
+        return data_gen_list
 
-        return splitted_data_list
+        # mod_start_index: int = num_of_split * batch_size
+        # mod_list = shot_data[mod_start_index:]
+        # for x in mod_list:
+        #     splitted_data_list[-1].append(x)
+
+        # for i, splitted_data in enumerate(splitted_data_list):
+        #     print(f"データセット：{i+1}, データ数：{len(splitted_data)}")
+
+        # return splitted_data_list
 
     def __doc_generator_by_shot(
         self,
@@ -307,4 +314,4 @@ if __name__ == '__main__':
     print(os.getcwd())
     data_importer = DataImporter()
     # data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
-    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 0, 4)
+    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)

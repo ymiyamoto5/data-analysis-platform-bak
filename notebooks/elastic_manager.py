@@ -4,7 +4,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 import pandas as pd
 import json
-from typing import Iterable
+from typing import Iterable, Iterator
 import multiprocessing
 
 
@@ -159,11 +159,9 @@ class ElasticManager:
 
     @classmethod
     def parallel_bulk(
-        cls, doc_generator: Iterable, data_to_import: str, index_to_import: str,
-        thread_count: int = 4, chunk_size: int = 500) -> None:
+        cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500) -> None:
         """
          並列処理でbulk insertする。
-         TODO: data_to_importはいらなくなる
         """
 
         for success, info in helpers.parallel_bulk(
@@ -173,17 +171,17 @@ class ElasticManager:
 
     @classmethod
     def multi_process_bulk(
-        cls, data_list: list, index_to_import: str,
+        cls, data_gen_list: list, index_to_import: str,
         num_of_process=4, chunk_size: int = 500) -> None:
         """
          マルチプロセスでbulk insertする。
          TODO: 4プロセス固定になっているので、プロセス数を可変にできるようにする。
         """
 
-        p1 = multiprocessing.Process(target=cls._bulk, args=(data_list[0], index_to_import, chunk_size,))
-        p2 = multiprocessing.Process(target=cls._bulk, args=(data_list[1], index_to_import, chunk_size,))
-        p3 = multiprocessing.Process(target=cls._bulk, args=(data_list[2], index_to_import, chunk_size,))
-        p4 = multiprocessing.Process(target=cls._bulk, args=(data_list[3], index_to_import, chunk_size,))
+        p1 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[0], index_to_import, chunk_size,))
+        p2 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[1], index_to_import, chunk_size,))
+        p3 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[2], index_to_import, chunk_size,))
+        p4 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[3], index_to_import, chunk_size,))
 
         p1.start()
         p2.start()
@@ -196,7 +194,10 @@ class ElasticManager:
         p1.join()
 
     @classmethod
-    def _bulk(cls, data_list: list, index_to_import: str, chunk_size: int) -> None:
+    def _bulk(cls, data_gen: Iterator, index_to_import: str, chunk_size: int) -> None:
+        """
+         マルチプロセスで実行する処理。渡されたジェネレーターをもとにElasticsearchにデータ投入する。
+        """
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
         # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
@@ -204,7 +205,7 @@ class ElasticManager:
 
         actions = []
 
-        for data in data_list:
+        for data in data_gen:
             actions.append({'_index': index_to_import, '_source': data})
 
             if len(actions) > chunk_size:
