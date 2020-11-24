@@ -5,6 +5,7 @@ from elasticsearch import helpers
 import pandas as pd
 import json
 from typing import Iterable
+import multiprocessing
 
 
 class ElasticManager:
@@ -169,6 +170,50 @@ class ElasticManager:
             cls.es, doc_generator, chunk_size=chunk_size, thread_count=thread_count):
             if not success:
                 print('A document failed:', info)
+
+    @classmethod
+    def multi_process_bulk(
+        cls, data_list: list, index_to_import: str,
+        num_of_process=4, chunk_size: int = 500) -> None:
+        """
+         マルチプロセスでbulk insertする。
+         TODO: 4プロセス固定になっているので、プロセス数を可変にできるようにする。
+        """
+
+        p1 = multiprocessing.Process(target=cls._bulk, args=(data_list[0], index_to_import, chunk_size,))
+        p2 = multiprocessing.Process(target=cls._bulk, args=(data_list[1], index_to_import, chunk_size,))
+        p3 = multiprocessing.Process(target=cls._bulk, args=(data_list[2], index_to_import, chunk_size,))
+        p4 = multiprocessing.Process(target=cls._bulk, args=(data_list[3], index_to_import, chunk_size,))
+
+        p1.start()
+        p2.start()
+        p3.start()
+        p4.start()
+
+        p4.join()
+        p3.join()
+        p2.join()
+        p1.join()
+
+    @classmethod
+    def _bulk(cls, data_list: list, index_to_import: str, chunk_size: int) -> None:
+        # プロセスごとにコネクションが必要
+        # https://github.com/elastic/elasticsearch-py/issues/638
+        # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
+        es = Elasticsearch(hosts="localhost:9200", http_auth=('elastic', 'P@ssw0rd12345'), timeout=50000)
+
+        actions = []
+
+        for data in data_list:
+            actions.append({'_index': index_to_import, '_source': data})
+
+            if len(actions) > chunk_size:
+                helpers.bulk(es, actions)
+                actions = []
+
+        # 残っているデータを登録
+        if len(actions) > 0:
+            helpers.bulk(es, actions)
 
     @classmethod
     def scan(cls, index: str) -> Iterable:
