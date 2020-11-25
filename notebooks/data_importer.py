@@ -144,7 +144,8 @@ class DataImporter:
                 "load03": data['_source']['load03'],
                 "load04": data['_source']['load04'],
                 "displacement": displacement,
-                "shot_number": shot_number
+                "shot_number": shot_number,
+                "tags": []
             }
 
             shots.append(shot)
