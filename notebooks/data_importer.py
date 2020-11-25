@@ -30,8 +30,6 @@ class DataImporter:
 
         ElasticManager.parallel_bulk(
             doc_generator=self.__doc_generator(data_to_import, index_to_import),
-            data_to_import=data_to_import,
-            index_to_import=index_to_import,
             thread_count=2,
             chunk_size=5000)
 
@@ -290,5 +288,5 @@ if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
     # print(os.getcwd())
     data_importer = DataImporter()
-    # data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
-    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)
+    data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
+    # data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)
