@@ -47,14 +47,14 @@ class DataImporter:
         raw_data_gen: Iterator = ElasticManager.scan(index=rawdata_index)
 
         # ショット切り出し
-        shot_data_gen: Iterator = self._cut_out_shot(raw_data_gen, start_displacement, end_displacement)
+        shot_data: list = self._cut_out_shot(raw_data_gen, start_displacement, end_displacement)
 
         # データをプロセスの数に分割し、ジェネレーターのリストにする。
-        shot_data_gen_list = self._create_splitted_data_gen(shot_data_gen, num_of_split=num_of_process)
+        # shot_data_list = self._create_splitted_data_gen(shot_data, num_of_split=num_of_process)
 
         # マルチプロセスでデータ投入
         ElasticManager.multi_process_bulk(
-            data_gen_list=shot_data_gen_list,
+            shot_data=shot_data,
             index_to_import=shots_index,
             num_of_process=num_of_process,
             chunk_size=5000
@@ -109,19 +109,21 @@ class DataImporter:
             list: ショットデータのリスト
         """
 
-        # DISPLAY_THROUGHPUT_DOC_NUM = 100000
+        dt_now = datetime.now(JST)
+        print(f"{dt_now} cut_off start.")
 
-        # dt_now = datetime.now(JST)
+        DISPLAY_THROUGHPUT_DOC_NUM = 100000
 
         is_shot_start: bool = False
         sequential_number: int = 0
         sequential_number_by_shot: int = 0
         shot_number: int = 0
-        # inserted_count: int = 0  # Thoughput算出用
+        inserted_count: int = 0  # Thoughput算出用
+        shots: list = []
 
         for data in raw_data:
-            # if inserted_count % DISPLAY_THROUGHPUT_DOC_NUM == 0 and inserted_count != 0:
-            #     self.__throughput_counter(inserted_count, dt_now)
+            if inserted_count % DISPLAY_THROUGHPUT_DOC_NUM == 0 and inserted_count != 0:
+                self.__throughput_counter(inserted_count, dt_now)
 
             displacement = data['_source']['displacement']
 
@@ -145,7 +147,7 @@ class DataImporter:
                 "shot_number": shot_number
             }
 
-            yield shot
+            shots.append(shot)
 
             # shotの終了
             if displacement <= end_displacement:
@@ -154,9 +156,11 @@ class DataImporter:
 
             sequential_number += 1
             sequential_number_by_shot += 1
-            # inserted_count += 1
+            inserted_count += 1
 
-        # return shots
+        print(f"{dt_now} cut_off finished.")
+
+        return shots
 
     def _create_splitted_data_gen(self, shot_data_gen, num_of_split: int) -> list:
         """
@@ -286,4 +290,4 @@ if __name__ == '__main__':
     # print(os.getcwd())
     data_importer = DataImporter()
     # data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
-    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 2)
+    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)

@@ -14,5 +14,5 @@ def time_log(func: Callable[..., RT]) -> Callable[..., RT]:
         func(*args, **kwargs)
         end = datetime.now(JST)
         delta = end - start
-        print(f"{end} end {func.__name__}. elapsed time: {delta}")
+        print(f"{end} {func.__name__} finished. elapsed time: {delta}")
     return wrapper

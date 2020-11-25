@@ -175,14 +175,26 @@ class ElasticManager:
 
     @classmethod
     def multi_process_bulk(
-        cls, data_gen_list: list, index_to_import: str,
+        cls, shot_data: list, index_to_import: str,
         num_of_process=4, chunk_size: int = 500) -> None:
         """ マルチプロセスでbulk insertする。 """
 
-        procs: list = []
+        dt_now = datetime.now(JST)
+        num_of_data = len(shot_data)
+        print(f"{dt_now} data import start. data_count:{num_of_data}, process_count:{num_of_process}")
 
+        batch_size, mod = divmod(num_of_data, num_of_process)
+
+        procs: list = []
         for i in range(num_of_process):
-            proc = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[i], index_to_import, chunk_size,))
+            start_index: int = i * batch_size
+            end_index: int = start_index + batch_size
+            target_data = shot_data[start_index:end_index]
+            # 最後のプロセスには余り分を含めたデータを処理させる
+            if i == num_of_process - 1:
+                target_data = shot_data[start_index:]
+
+            proc = multiprocessing.Process(target=cls._bulk, args=(target_data, index_to_import, chunk_size,))
             proc.start()
             procs.append(proc)
 
@@ -190,9 +202,9 @@ class ElasticManager:
             proc.join()
 
     @classmethod
-    def _bulk(cls, data_gen: Iterator, index_to_import: str, chunk_size: int) -> None:
+    def _bulk(cls, data_list: list, index_to_import: str, chunk_size: int) -> None:
         """
-         マルチプロセスで実行する処理。渡されたジェネレーターをもとにElasticsearchにデータ投入する。
+         マルチプロセスで実行する処理。渡されたデータをもとにElasticsearchにデータ投入する。
         """
 
         # プロセスごとにコネクションが必要
@@ -205,7 +217,7 @@ class ElasticManager:
 
         actions: list = []
 
-        for data in data_gen:
+        for data in data_list:
             actions.append({'_index': index_to_import, '_source': data})
 
             if len(actions) >= chunk_size:
