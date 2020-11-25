@@ -281,17 +281,9 @@ class DataImporter:
         print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
 
 
-# class ReiteratableWrapper(object):
-#     def __init__(self, f):
-#         self._f = f
-
-#     def __iter__(self):
-#         return self._f()
-
-
 if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
-    print(os.getcwd())
+    # print(os.getcwd())
     data_importer = DataImporter()
     # data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
-    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)
+    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 2)

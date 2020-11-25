@@ -101,6 +101,7 @@ class ElasticManager:
     @classmethod
     def delete_data_by_shot_num(cls, index: str, shot_number: int) -> None:
         """ documentを削除する（shot番号指定） """
+
         is_valid_index, message = ElasticManager.__check_index(index)
 
         if not is_valid_index:
@@ -165,9 +166,7 @@ class ElasticManager:
     @classmethod
     def parallel_bulk(
         cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500) -> None:
-        """
-         並列処理でbulk insertする。
-        """
+        """ 指定したスレッド数でbulk insertする。 """
 
         for success, info in helpers.parallel_bulk(
             cls.es, doc_generator, chunk_size=chunk_size, thread_count=thread_count):
@@ -178,25 +177,17 @@ class ElasticManager:
     def multi_process_bulk(
         cls, data_gen_list: list, index_to_import: str,
         num_of_process=4, chunk_size: int = 500) -> None:
-        """
-         マルチプロセスでbulk insertする。
-         TODO: 4プロセス固定になっているので、プロセス数を可変にできるようにする。
-        """
+        """ マルチプロセスでbulk insertする。 """
 
-        p1 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[0], index_to_import, chunk_size,))
-        p2 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[1], index_to_import, chunk_size,))
-        p3 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[2], index_to_import, chunk_size,))
-        p4 = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[3], index_to_import, chunk_size,))
+        procs: list = []
 
-        p1.start()
-        p2.start()
-        p3.start()
-        p4.start()
+        for i in range(num_of_process):
+            proc = multiprocessing.Process(target=cls._bulk, args=(data_gen_list[i], index_to_import, chunk_size,))
+            proc.start()
+            procs.append(proc)
 
-        p4.join()
-        p3.join()
-        p2.join()
-        p1.join()
+        for proc in procs:
+            proc.join()
 
     @classmethod
     def _bulk(cls, data_gen: Iterator, index_to_import: str, chunk_size: int) -> None:
@@ -204,14 +195,14 @@ class ElasticManager:
          マルチプロセスで実行する処理。渡されたジェネレーターをもとにElasticsearchにデータ投入する。
         """
 
-        dt_now = datetime.now(JST)
-
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
         # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
         es = Elasticsearch(hosts="localhost:9200", http_auth=('elastic', 'P@ssw0rd12345'), timeout=50000)
 
         inserted_count: int = 0
+        dt_now = datetime.now(JST)
+
         actions: list = []
 
         for data in data_gen:
@@ -244,8 +235,6 @@ class ElasticManager:
         }
 
         raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query, preserve_order=True)
-        # raw_data: list = [x['_source'] for x in raw_data_gen]
-        # print(f"取得データ数：{len(raw_data)}")
 
         return raw_data_gen
 
