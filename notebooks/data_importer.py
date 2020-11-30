@@ -1,5 +1,5 @@
 import os
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Mapping
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
 from itertools import islice, tee
@@ -38,8 +38,11 @@ class DataImporter:
                             end_displacement: float, num_of_process: int = 4):
         """ shotデータインポート処理 """
 
+        mapping_file = "notebooks/mapping_shots.json"
+        # mapping_file = None
+
         ElasticManager.delete_exists_index(index=shots_index)
-        ElasticManager.create_index(index=shots_index)
+        ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
         # rawデータを取得するジェネレータ
         raw_data_gen: Iterator = ElasticManager.scan(index=rawdata_index)
@@ -145,6 +148,32 @@ class DataImporter:
                 "shot_number": shot_number,
                 "tags": []
             }
+
+            # 検証用のアドホック処理
+            if sequential_number == 7550:
+                shot["is_load_starting_point_01"] = True
+            if sequential_number == 7551:
+                shot["is_load_starting_point_02"] = True
+                shot["is_load_starting_point_03"] = True
+            if sequential_number == 7552:
+                shot["is_load_starting_point_04"] = True
+            if sequential_number == 19800:
+                shot["is_load_starting_point_01"] = True
+                shot["is_load_starting_point_02"] = True
+                shot["is_load_starting_point_03"] = True
+                shot["is_load_starting_point_04"] = True
+
+            if sequential_number == 8600 or sequential_number == 21000:
+                shot["is_load_max_point_01"] = True
+                shot["is_load_max_point_02"] = True
+                shot["is_load_max_point_03"] = True
+                shot["is_load_max_point_04"] = True
+
+            if sequential_number == 7900 or sequential_number == 20400:
+                shot["is_load_break_point_01"] = True
+                shot["is_load_break_point_02"] = True
+                shot["is_load_break_point_03"] = True
+                shot["is_load_break_point_04"] = True
 
             shots.append(shot)
 
@@ -288,5 +317,5 @@ if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
     # print(os.getcwd())
     data_importer = DataImporter()
-    data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
-    # data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)
+    # data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
+    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)

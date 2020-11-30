@@ -1,0 +1,38 @@
+{
+    "properties" : {
+        "displacement" : {
+            "type" : "float"
+        },
+        "load01" : {
+            "type" : "float"
+        },
+        "load02" : {
+            "type" : "float"
+        },
+        "load03" : {
+            "type" : "float"
+        },
+        "load04" : {
+            "type" : "float"
+        },
+        "sequential_number" : {
+            "type" : "long"
+        },
+        "sequential_number_by_shot" : {
+            "type" : "long"
+        },
+        "shot_number" : {
+            "type" : "long"
+        },
+        "tags" : {
+            "type" : "text",
+            "fields" : {
+                "keyword" : {
+                    "type" : "keyword",
+                    "ignore_above" : 256
+                }
+            }
+        }
+    }
+}
+
