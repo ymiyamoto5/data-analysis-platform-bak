@@ -45,10 +45,11 @@ class DataImporter:
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
         # rawデータを取得するジェネレータ
-        raw_data_gen: Iterator = ElasticManager.scan(index=rawdata_index)
+        # raw_data_gen: Iterator = ElasticManager.scan(index=rawdata_index)
+        raw_data = ElasticManager.range_scan(index=rawdata_index, start=0, end=1000000)
 
         # ショット切り出し
-        shot_data: list = self._cut_out_shot(raw_data_gen, start_displacement, end_displacement)
+        shot_data: list = self._cut_out_shot(raw_data, start_displacement, end_displacement)
 
         # データをプロセスの数に分割し、ジェネレーターのリストにする。
         # shot_data_list = self._create_splitted_data_gen(shot_data, num_of_split=num_of_process)
@@ -71,8 +72,8 @@ class DataImporter:
         DISPLAY_THROUGHPUT_DOC_NUM = 100000
 
         with open(csv_file, "rt", encoding="utf-8") as file:
-            reader = DictReader(file, fieldnames=[
-                                "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-V02", "(3)HA-V03", "(3)HA-V04", "(3)HA-C01"])
+            reader = DictReader(file, fieldnames=["#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-V02",
+                                                  "(3)HA-V03", "(3)HA-V04", "(3)HA-C01"])
             _ = next(reader)
 
             dt_now = datetime.now(JST)
@@ -129,7 +130,7 @@ class DataImporter:
             displacement = data['_source']['displacement']
 
             # ショット開始判定
-            if (not is_shot_start) and (displacement >= start_displacement):
+            if (not is_shot_start) and (displacement <= start_displacement):
                 is_shot_start = True
                 shot_number += 1
                 sequential_number_by_shot = 0
@@ -149,36 +150,10 @@ class DataImporter:
                 "tags": []
             }
 
-            # 検証用のアドホック処理
-            if sequential_number == 7550:
-                shot["is_load_starting_point_01"] = True
-            if sequential_number == 7551:
-                shot["is_load_starting_point_02"] = True
-                shot["is_load_starting_point_03"] = True
-            if sequential_number == 7552:
-                shot["is_load_starting_point_04"] = True
-            if sequential_number == 19800:
-                shot["is_load_starting_point_01"] = True
-                shot["is_load_starting_point_02"] = True
-                shot["is_load_starting_point_03"] = True
-                shot["is_load_starting_point_04"] = True
-
-            if sequential_number == 8600 or sequential_number == 21000:
-                shot["is_load_max_point_01"] = True
-                shot["is_load_max_point_02"] = True
-                shot["is_load_max_point_03"] = True
-                shot["is_load_max_point_04"] = True
-
-            if sequential_number == 7900 or sequential_number == 20400:
-                shot["is_load_break_point_01"] = True
-                shot["is_load_break_point_02"] = True
-                shot["is_load_break_point_03"] = True
-                shot["is_load_break_point_04"] = True
-
             shots.append(shot)
 
             # shotの終了
-            if displacement <= end_displacement:
+            if displacement >= end_displacement:
                 is_shot_start = False
                 sequential_number_by_shot = 0
 
@@ -189,118 +164,6 @@ class DataImporter:
         print(f"{dt_now} cut_off finished.")
 
         return shots
-
-    def _create_splitted_data_gen(self, shot_data_gen, num_of_split: int) -> list:
-        """
-            マルチプロセスで実行するために、ショットデータをプロセスの数に分割する
-            ex) [a, b, c, d, e, f, g] を3分割 => [[a, b],[c, d], [e, f, g]]
-            なお、メモリ節約のため、データそのものを返すのではなくジェネレータのリストを返す。
-
-            args:
-                shot_data_gen: ショットデータのジェネレーター
-                num_of_split: 分割数
-
-            returns:
-                list: 分割されたデータのジェネレーターを要素として持つリスト
-        """
-
-        # NOTE: ilenでジェネレーターは一度データを取得してしまう。
-        #       ジェネレーターは再利用できないので、再利用可能なようにteeでジェネレーターを複製しておく。
-        gen, gen_backup = tee(shot_data_gen)
-
-        # NOTE: ジェネレーターから件数を取得するため、ilenを利用
-        num_of_data: int = ilen(gen)
-        print(f"num_of_all：{num_of_data}")
-
-        # 何個ずつのデータに分割するのか計算
-        batch_size, mod = divmod(num_of_data, num_of_split)
-
-        shot_data_gen_list: list = []
-
-        # 最後のジェネレーターには余り分も含めるため、一つ手前まで生成
-        for i in range(num_of_split - 1):
-            start_index: int = i * batch_size
-            end_index: int = start_index + batch_size
-            shot_data_gen_list.append(islice(gen_backup, start_index, end_index))
-
-        # 一番最後のジェネレーター
-        start_index_of_last_gen: int = (num_of_split - 1) * batch_size
-        shot_data_gen_list.append(islice(gen_backup, start_index_of_last_gen, None))
-
-        return shot_data_gen_list
-
-    def _doc_generator_by_shot(
-            self,
-            csv_file: str,
-            index_name: str,
-            start_displacement: float,
-            end_displacement: float,
-            start_seq_num: int) -> dict:
-        '''
-         csvを読み込み、shot切り出し後のデータのみ返却するジェネレーター（廃止予定）
-        '''
-
-        with open('notebooks/wave1-15-5ch-3.csv', "rt", encoding="utf-8") as file:
-            reader = DictReader(file, fieldnames=[
-                                "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-V02", "(3)HA-V03", "(3)HA-V04", "(3)HA-C01"])
-
-            _ = next(reader)
-
-            dt_old = datetime.now(JST)
-
-            is_shot_start = False
-            sequential_number = 0
-            sequential_number_by_shot = 0
-            shot_number = 0
-            inserted_count = 0  # Thoughput算出用
-
-            for row in reader:
-                if inserted_count % 100000 == 0 and inserted_count != 0:
-                    self.__throughput_counter(inserted_count, dt_old)
-
-                displacement = float(row["(3)HA-C01"])
-
-                # ショット開始判定
-                if (not is_shot_start) and (displacement >= start_displacement):
-                    is_shot_start = True
-                    shot_number += 1
-                    sequential_number_by_shot = 0
-
-                if not is_shot_start:
-                    continue
-
-                shot = {
-                    "sequential_number": sequential_number + start_seq_num,
-                    "sequential_number_by_shot": sequential_number_by_shot,
-                    "load01": float(row["(3)HA-V01"]),
-                    "load02": float(row["(3)HA-V02"]),
-                    "load03": float(row["(3)HA-V03"]),
-                    "load04": float(row["(3)HA-V04"]),
-                    "displacement": displacement,
-                    "shot_number": shot_number,
-                    "tags": []
-                }
-
-                # テスト用アドホック処理
-                if 3000 <= sequential_number <= 30000:
-                    shot["tags"].append("プレス機異常")
-                if 20000 <= sequential_number <= 50000:
-                    shot["tags"].append("センサーに異常が発生")
-
-                yield {
-                    "_index": index_name,
-                    "_id": shot["sequential_number"],
-                    "_source": shot
-                }
-
-                # shotの終了
-                if displacement <= end_displacement:
-                    is_shot_start = False
-                    sequential_number_by_shot = 0
-
-                sequential_number += 1
-                sequential_number_by_shot += 1
-                inserted_count += 1
 
     def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
         """ スループットの表示 """
@@ -317,5 +180,148 @@ if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
     # print(os.getcwd())
     data_importer = DataImporter()
-    # data_importer.import_raw_data('notebooks/wave1-15-5ch-3.csv', 'rawdata-test')
-    data_importer.import_data_by_shot('rawdata-test', 'shots-test', -15, -17, 4)
+    # data_importer.import_raw_data('notebooks/No11_3000.csv', 'rawdata-no11-3000')
+    data_importer.import_data_by_shot('rawdata-no11', 'shots-no11', 47, 49, 4)
+
+##############################################
+
+    # def _doc_generator_by_shot(
+    #         self,
+    #         csv_file: str,
+    #         index_name: str,
+    #         start_displacement: float,
+    #         end_displacement: float,
+    #         start_seq_num: int) -> dict:
+    #     '''
+    #      csvを読み込み、shot切り出し後のデータのみ返却するジェネレーター（廃止予定）
+    #     '''
+
+    #     with open('notebooks/wave1-15-5ch-3.csv', "rt", encoding="utf-8") as file:
+    #         reader = DictReader(file, fieldnames=[
+    #                             "#EndHeader", "日時(μs)", "time(μs）", "(3)HA-V01", "(3)HA-V02", "(3)HA-V03", "(3)HA-V04", "(3)HA-C01"])
+
+    #         _ = next(reader)
+
+    #         dt_old = datetime.now(JST)
+
+    #         is_shot_start = False
+    #         sequential_number = 0
+    #         sequential_number_by_shot = 0
+    #         shot_number = 0
+    #         inserted_count = 0  # Thoughput算出用
+
+    #         for row in reader:
+    #             if inserted_count % 100000 == 0 and inserted_count != 0:
+    #                 self.__throughput_counter(inserted_count, dt_old)
+
+    #             displacement = float(row["(3)HA-C01"])
+
+    #             # ショット開始判定
+    #             if (not is_shot_start) and (displacement >= start_displacement):
+    #                 is_shot_start = True
+    #                 shot_number += 1
+    #                 sequential_number_by_shot = 0
+
+    #             if not is_shot_start:
+    #                 continue
+
+    #             shot = {
+    #                 "sequential_number": sequential_number + start_seq_num,
+    #                 "sequential_number_by_shot": sequential_number_by_shot,
+    #                 "load01": float(row["(3)HA-V01"]),
+    #                 "load02": float(row["(3)HA-V02"]),
+    #                 "load03": float(row["(3)HA-V03"]),
+    #                 "load04": float(row["(3)HA-V04"]),
+    #                 "displacement": displacement,
+    #                 "shot_number": shot_number,
+    #                 "tags": []
+    #             }
+
+    #             # テスト用アドホック処理
+    #             if 3000 <= sequential_number <= 30000:
+    #                 shot["tags"].append("プレス機異常")
+    #             if 20000 <= sequential_number <= 50000:
+    #                 shot["tags"].append("センサーに異常が発生")
+
+    #             yield {
+    #                 "_index": index_name,
+    #                 "_id": shot["sequential_number"],
+    #                 "_source": shot
+    #             }
+
+    #             # shotの終了
+    #             if displacement <= end_displacement:
+    #                 is_shot_start = False
+    #                 sequential_number_by_shot = 0
+
+    #             sequential_number += 1
+    #             sequential_number_by_shot += 1
+    #             inserted_count += 1
+
+
+
+    # def _create_splitted_data_gen(self, shot_data_gen, num_of_split: int) -> list:
+    #     """
+    #         マルチプロセスで実行するために、ショットデータをプロセスの数に分割する
+    #         ex) [a, b, c, d, e, f, g] を3分割 => [[a, b],[c, d], [e, f, g]]
+    #         なお、メモリ節約のため、データそのものを返すのではなくジェネレータのリストを返す。
+
+    #         args:
+    #             shot_data_gen: ショットデータのジェネレーター
+    #             num_of_split: 分割数
+
+    #         returns:
+    #             list: 分割されたデータのジェネレーターを要素として持つリスト
+    #     """
+
+    #     # NOTE: ilenでジェネレーターは一度データを取得してしまう。
+    #     #       ジェネレーターは再利用できないので、再利用可能なようにteeでジェネレーターを複製しておく。
+    #     gen, gen_backup = tee(shot_data_gen)
+
+    #     # NOTE: ジェネレーターから件数を取得するため、ilenを利用
+    #     num_of_data: int = ilen(gen)
+    #     print(f"num_of_all：{num_of_data}")
+
+    #     # 何個ずつのデータに分割するのか計算
+    #     batch_size, mod = divmod(num_of_data, num_of_split)
+
+    #     shot_data_gen_list: list = []
+
+    #     # 最後のジェネレーターには余り分も含めるため、一つ手前まで生成
+    #     for i in range(num_of_split - 1):
+    #         start_index: int = i * batch_size
+    #         end_index: int = start_index + batch_size
+    #         shot_data_gen_list.append(islice(gen_backup, start_index, end_index))
+
+    #     # 一番最後のジェネレーター
+    #     start_index_of_last_gen: int = (num_of_split - 1) * batch_size
+    #     shot_data_gen_list.append(islice(gen_backup, start_index_of_last_gen, None))
+
+    #     return shot_data_gen_list
+
+
+            # 検証用のアドホック処理
+            # if sequential_number == 1000:
+            #     shot["is_load_starting_point_01"] = True
+            # if sequential_number == 1001:
+            #     shot["is_load_starting_point_02"] = True
+            #     shot["is_load_starting_point_03"] = True
+            # if sequential_number == 1002:
+            #     shot["is_load_starting_point_04"] = True
+            # if sequential_number == 40000:
+            #     shot["is_load_starting_point_01"] = True
+            #     shot["is_load_starting_point_02"] = True
+            #     shot["is_load_starting_point_03"] = True
+            #     shot["is_load_starting_point_04"] = True
+
+            # if sequential_number == 2000 or sequential_number == 44000:
+            #     shot["is_load_max_point_01"] = True
+            #     shot["is_load_max_point_02"] = True
+            #     shot["is_load_max_point_03"] = True
+            #     shot["is_load_max_point_04"] = True
+
+            # if sequential_number == 1500 or sequential_number == 42000:
+            #     shot["is_load_break_point_01"] = True
+            #     shot["is_load_break_point_02"] = True
+            #     shot["is_load_break_point_03"] = True
+            #     shot["is_load_break_point_04"] = True

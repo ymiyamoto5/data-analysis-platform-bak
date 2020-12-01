@@ -236,7 +236,7 @@ class ElasticManager:
 
     @classmethod
     def scan(cls, index: str) -> Iterable:
-        """ 生データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
+        """ データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
 
         query = {
             "sort": {
@@ -249,6 +249,29 @@ class ElasticManager:
         raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query, preserve_order=True)
 
         return raw_data_gen
+
+    @classmethod
+    def range_scan(cls, index: str, start: int, end: int) -> list:
+        """ データをレンジスキャンした結果を返す """
+
+        body = {
+            "query": {
+                "range": {
+                    "sequential_number": {
+                        "gte": start,
+                        "lte": end
+                    }
+                }
+            }
+        }
+
+        print(f'read start...{datetime.now(JST)}')
+        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
+        data = [x['_source'] for x in data_gen]
+        data.sort(key=lambda x: x['sequential_number'])
+        print(f'read end...{datetime.now(JST)}')
+
+        return data
 
 
 def throughput_counter(processed_count: int, dt_old: datetime) -> None:
