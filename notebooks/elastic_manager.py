@@ -194,7 +194,7 @@ class ElasticManager:
             if i == num_of_process - 1:
                 target_data = shot_data[start_index:]
 
-            proc = multiprocessing.Process(target=cls._bulk, args=(target_data, index_to_import, chunk_size,))
+            proc = multiprocessing.Process(target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size,))
             proc.start()
             procs.append(proc)
 
@@ -202,7 +202,7 @@ class ElasticManager:
             proc.join()
 
     @classmethod
-    def _bulk(cls, data_list: list, index_to_import: str, chunk_size: int) -> None:
+    def bulk_insert(cls, data_list: list, index_to_import: str, chunk_size: int = 500) -> None:
         """
          マルチプロセスで実行する処理。渡されたデータをもとにElasticsearchにデータ投入する。
         """
@@ -251,25 +251,32 @@ class ElasticManager:
         return raw_data_gen
 
     @classmethod
+    def count(cls, index: str) -> int:
+        result = cls.es.count(index=index)
+        return result['count']
+
+    @classmethod
     def range_scan(cls, index: str, start: int, end: int) -> list:
-        """ データをレンジスキャンした結果を返す """
+        """ データをレンジスキャンした結果を返す
+         Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
+        """
 
         body = {
             "query": {
                 "range": {
                     "sequential_number": {
                         "gte": start,
-                        "lte": end
+                        "lte": end - 1
                     }
                 }
             }
         }
 
-        print(f'read start...{datetime.now(JST)}')
+        # print(f'read start...{datetime.now(JST)}')
         data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
         data = [x['_source'] for x in data_gen]
         data.sort(key=lambda x: x['sequential_number'])
-        print(f'read end...{datetime.now(JST)}')
+        # print(f'read end...{datetime.now(JST)}')
 
         return data
 
