@@ -276,9 +276,73 @@ class ElasticManager:
         data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
         data = [x['_source'] for x in data_gen]
         data.sort(key=lambda x: x['sequential_number'])
-        # print(f'read end...{datetime.now(JST)}')
+        # print(f'{len(data)} documents read...{datetime.now(JST)}')
 
         return data
+
+    @classmethod
+    def multi_process_range_scan(cls, index: list, num_of_data: int, start: int, end: int, num_of_process: int = 4) -> list:
+        """ マルチプロセスでbulk insertする。 """
+
+        dt_now = datetime.now(JST)
+        print(f"{dt_now} data read start. data_count:{num_of_data}, process_count:{num_of_process}")
+
+        batch_size, mod = divmod(num_of_data, num_of_process)
+
+        # マルチプロセスの結果格納用
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict()
+
+        procs: list = []
+        for i in range(num_of_process):
+            start_index: int = i * batch_size + start
+            end_index: int = start_index + batch_size
+            # 最後のプロセスには余り分を含めたデータを処理させる
+            if (i == num_of_process - 1) and (mod != 0):
+                end_index = end + 1
+
+            proc = multiprocessing.Process(target=cls.range_scan_2,
+                                           args=(index, i, start_index, end_index, return_dict))
+            proc.start()
+            procs.append(proc)
+
+        for proc in procs:
+            proc.join()
+
+        result = []
+        for i in range(num_of_process):
+            for j in return_dict[i]:
+                result.append(j)
+
+        dt_now = datetime.now(JST)
+        print(f"{dt_now} Got {len(result)} documents.")
+
+        return result
+
+    @classmethod
+    def range_scan_2(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> None:
+        """ データをレンジスキャンした結果を返す
+         Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
+        """
+
+        es = Elasticsearch(hosts="localhost:9200", http_auth=('elastic', 'P@ssw0rd12345'), timeout=50000)
+
+        body = {
+            "query": {
+                "range": {
+                    "sequential_number": {
+                        "gte": start,
+                        "lte": end - 1
+                    }
+                }
+            }
+        }
+
+        data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
+        data = [x['_source'] for x in data_gen]
+        data.sort(key=lambda x: x['sequential_number'])
+
+        return_dict[proc_num] = data
 
 
 def throughput_counter(processed_count: int, dt_old: datetime) -> None:

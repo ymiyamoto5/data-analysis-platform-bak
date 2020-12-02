@@ -97,8 +97,8 @@ class DataImporter:
 
         rawdata_count = ElasticManager.count(index=rawdata_index)
 
-        # rawdataをN分割する。暫定で10。
-        SPLIT_SIZE: int = 10
+        # rawdataをN分割する。暫定で100。
+        SPLIT_SIZE: int = 100
         batch_size, mod = divmod(rawdata_count, SPLIT_SIZE)
 
         is_shot_section: bool = False   # ショット内か否かを判別する
@@ -120,7 +120,8 @@ class DataImporter:
             if i == SPLIT_SIZE:
                 end_index = rawdata_count + 1
 
-            rawdata_list = ElasticManager.range_scan(index=rawdata_index, start=start_index, end=end_index)
+            # rawdata_list = ElasticManager.range_scan(index=rawdata_index, start=start_index, end=end_index)
+            rawdata_list = ElasticManager.multi_process_range_scan(index=rawdata_index, num_of_data=batch_size, start=start_index, end=end_index)
 
             # 分割されたものの中のデータ1件ずつ確認していく
             for rawdata in rawdata_list:
@@ -188,8 +189,8 @@ class DataImporter:
                 }
                 shots.append(shot)
 
-                # ショットデータが一定件数（暫定で100,000）以上溜まったらElasticsearchに書き出す。
-                if len(shots) >= 100_000:
+                # ショットデータが一定件数（暫定で1,000,000）以上溜まったらElasticsearchに書き出す。
+                if len(shots) >= 1_000_000:
                     ElasticManager.multi_process_bulk(shot_data=shots, index_to_import=shots_index, num_of_process=4, chunk_size=5000)
                     inserted_count += len(shots)
                     self.__throughput_counter(inserted_count, dt_now)
@@ -222,9 +223,9 @@ if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
     data_importer = DataImporter()
     # data_importer.import_raw_data('notebooks/No11(25~30spm).CSV', 'rawdata-no11')
-    data_importer.import_raw_data('notebooks/No11_3000.csv', 'rawdata-no11-3000')
+    # data_importer.import_raw_data('notebooks/No11_3000.csv', 'rawdata-no11-3000')
     # data_importer.import_data_by_shot('rawdata-no11', 'shots-no11', 47, 34, 4)
-    # data_importer.import_data_by_shot('rawdata-no11-3000', 'shots-no11-3000', 47, 34, 4)
+    data_importer.import_data_by_shot('rawdata-no11-3000', 'shots-no11-3000', 47, 34, 4)
 
 
 
