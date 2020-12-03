@@ -1,7 +1,7 @@
 from typing import Iterator
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
-from itertools import islice
+import itertools
 from elastic_manager import ElasticManager
 from time_logger import time_log
 import logging
@@ -29,8 +29,13 @@ class DataImporter:
     def import_raw_data(self, data_to_import: str, index_to_import: str) -> None:
         """ rawデータインポート処理 """
 
+        mapping_file = "notebooks/mapping_rawdata.json"
+        # mapping_file = None
+        setting_file = "notebooks/setting_rawdata.json"
+        # setting_file = None
+
         ElasticManager.delete_exists_index(index=index_to_import)
-        ElasticManager.create_index(index=index_to_import)
+        ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
 
         ElasticManager.parallel_bulk(
             doc_generator=self.__doc_generator(data_to_import, index_to_import),
@@ -55,7 +60,7 @@ class DataImporter:
 
         i = 0
         while True:
-            rawdata = [x['_source'] for x in islice(rawdata_gen, 0, BUFFER_SIZE)]
+            rawdata = [x['_source'] for x in itertools.islice(rawdata_gen, 0, BUFFER_SIZE)]
 
             if len(rawdata) == 0:
                 break
@@ -127,9 +132,10 @@ class DataImporter:
         dt_now = datetime.now(JST)
 
         rawdata_count = ElasticManager.count(index=rawdata_index)
+        print(f"rawdata count: {rawdata_count}")
 
         # rawdataをN分割する。暫定値。
-        SPLIT_SIZE: int = 100
+        SPLIT_SIZE: int = 1
         batch_size, mod = divmod(rawdata_count, SPLIT_SIZE)
 
         is_shot_section: bool = False   # ショット内か否かを判別する
@@ -140,25 +146,37 @@ class DataImporter:
         inserted_count: int = 0  # Thoughput算出用
         shots: list = []
 
+        # all_data_generator = ElasticManager.get_all_generator(index=rawdata_index)
+
+        # print(f'{datetime.now(JST)} read start.')
+        # # data = [x['_source'] for x in all_data_generator]
+        # data = [x['_source'] for x in itertools.islice(all_data_generator, 0, 1_325_000)]
+        # print(f'{datetime.now(JST)} {len(data)} documents read.')
+
         # 分割した数だけループ
         for i in range(SPLIT_SIZE + 1):
+        # for i in range(SPLIT_SIZE):
             print(f"start batch number: {i + 1} / {SPLIT_SIZE + 1}")
+            # print(f"start batch number: {i + 1} / {SPLIT_SIZE}")
 
-            # batch_size分のデータをElasticsearchから取得する
+            # # batch_size分のデータをElasticsearchから取得する
             start_index = i * batch_size
             end_index = start_index + batch_size
-            # 最後のループの場合、残った全てのデータを取得する
+            # 最後のループの場合、残った全てのデータを取得する。
             if i == SPLIT_SIZE:
                 end_index = rawdata_count + 1
 
             # rawdata_list = ElasticManager.range_scan(index=rawdata_index, start=start_index, end=end_index)
             rawdata_list = ElasticManager.multi_process_range_scan(index=rawdata_index, num_of_data=batch_size, start=start_index, end=end_index, num_of_process=num_of_process)
-            # rawdata_list = ElasticManager.scan2(index=rawdata_index)
+            # rawdata_list = ElasticManager.scan2(generator=all_data_generator, size=batch_size)
+
+            # if len(rawdata_list) == 0:
+            #     break
+
+            # rawdata_list = ElasticManager.multi_process_scan(generator=all_data_generator, num_of_data=batch_size, start=start_index, end=end_index, num_of_process=num_of_process)
 
             # 分割されたものの中のデータ1件ずつ確認していく
             for i, rawdata in enumerate(rawdata_list):
-                # TODO: キャッシュするとするならば、毎ループごとにキャッシュすると遅い。
-                # previous_rawdata_list = rawdata_list[i - 1000:i]
                 # ショット開始判定
                 if (not is_shot_section) and (rawdata['displacement'] <= start_displacement):
                     is_shot_section = True
@@ -240,6 +258,7 @@ class DataImporter:
             ElasticManager.bulk_insert(shots, shots_index)
             inserted_count += len(shots)
 
+        dt_now = datetime.now(JST)
         print(f"{dt_now} cut_off finished. {inserted_count} documents inserted.")
 
     def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
@@ -259,15 +278,9 @@ if __name__ == '__main__':
     # logging.basicConfig(level=logging.INFO, format=formatter)
 
     data_importer = DataImporter()
-    # data_importer.import_raw_data('notebooks/No11(25~30spm).CSV', 'rawdata-no11')
-    # data_importer.import_raw_data('notebooks/No11_3000.csv', 'rawdata-no11-3000')
-    # data_importer.import_data_by_shot('rawdata-no11', 'shots-no11', 47, 34, 4)
-    # data_importer.import_data_by_shot('rawdata-no11-3000', 'shots-no11-3000', 47, 34, 1)
+    data_importer.multi_process_import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000', 8)
 
-    data_importer.multi_process_import_raw_data('notebooks/No11(25~30spm).CSV', 'rawdata-no11', 1)
-    # data_importer.multi_process_import_raw_data('notebooks/No11_3000.csv', 'rawdata-no11-3000', 8)
-    
-    # data_importer.multi_process_import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000', 8)
+    # data_importer.import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000')
     # data_importer.import_data_by_shot('rawdata-no13-3000', 'shots-no13-3000', 47, 34, 8)
 
 

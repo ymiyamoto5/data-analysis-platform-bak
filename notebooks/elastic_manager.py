@@ -7,6 +7,7 @@ import pandas as pd
 import json
 from typing import Iterable, Iterator
 import multiprocessing
+import itertools
 from datetime import datetime, timezone, timedelta
 import logging
 
@@ -235,7 +236,7 @@ class ElasticManager:
                 helpers.bulk(es, actions)
                 inserted_count += len(actions)
                 # TODO: 標準出力がプロセス間で取り合いになるせいか、改行がされない場合がある。
-                throughput_counter(inserted_count, dt_now)
+                # throughput_counter(inserted_count, dt_now)
                 actions = []
 
         # 残っているデータを登録
@@ -243,7 +244,7 @@ class ElasticManager:
             helpers.bulk(es, actions)
             inserted_count += len(actions)
 
-        print(f"pid:{os.getpid()}, inserted {inserted_count} docs")
+        # print(f"pid:{os.getpid()}, inserted {inserted_count} docs")
 
     @classmethod
     def scan(cls, index: str) -> Iterable:
@@ -258,18 +259,6 @@ class ElasticManager:
         }
 
         raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query, preserve_order=True)
-
-        return raw_data_gen
-
-    @classmethod
-    def scan2(cls, index: str) -> Iterable:
-        """ データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
-
-        query = {
-            "match_all": {}
-        }
-
-        raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query)
 
         return raw_data_gen
 
@@ -322,7 +311,7 @@ class ElasticManager:
             end_index: int = start_index + batch_size
             # 最後のプロセスには余り分を含めたデータを処理させる
             if (i == num_of_process - 1) and (mod != 0):
-                end_index = end + 1
+                end_index = end
 
             proc = multiprocessing.Process(target=cls.range_scan_2,
                                            args=(index, i, start_index, end_index, return_dict))
@@ -343,6 +332,71 @@ class ElasticManager:
         return result
 
     @classmethod
+    def scan2(cls, generator: Iterator, size: int) -> list:
+        """ データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
+
+        print(f'read start...{datetime.now(JST)}')
+        data = [x['_source'] for x in itertools.islice(generator, 0, size)]
+        print(f'{len(data)} documents read...{datetime.now(JST)}')
+
+        return data
+
+    @classmethod
+    def get_all_generator(cls, index: str) -> Iterator:
+        query = {"query": {"match_all": {}}}
+        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query)
+
+        # temp
+        # print(f'read start...{datetime.now(JST)}')
+        # data = [x['_source'] for x in data_gen]
+        # print(f'{len(data)} documents read...{datetime.now(JST)}')
+
+        return data_gen
+
+    @classmethod
+    def multi_process_scan(cls, generator: Iterator, num_of_data: int, start: int, end: int, num_of_process: int = 4) -> list:
+
+        dt_now = datetime.now(JST)
+        print(f"{dt_now} data read start. data_count:{num_of_data}, process_count:{num_of_process}")
+
+        batch_size, mod = divmod(num_of_data, num_of_process)
+
+        # マルチプロセスの結果格納用
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict()
+
+        procs: list = []
+        for i in range(num_of_process):
+            start_index: int = i * batch_size + start
+            end_index: int = start_index + batch_size
+            # 最後のプロセスには余り分を含めたデータを処理させる
+            if (i == num_of_process - 1) and (mod != 0):
+                end_index = end + 1
+
+            proc = multiprocessing.Process(target=cls.read_process,
+                                           args=(generator, i, start_index, end_index, return_dict))
+            proc.start()
+            procs.append(proc)
+
+        for proc in procs:
+            proc.join()
+
+        result = []
+        for i in range(num_of_process):
+            for j in return_dict[i]:
+                result.append(j)
+
+        dt_now = datetime.now(JST)
+        print(f"{dt_now} Got {len(result)} documents.")
+
+        return result
+
+    @classmethod
+    def read_process(generator, proc_num, start, end, return_dict):
+        data = [x['_source'] for x in itertools.islice(generator, start, end)]
+        return_dict[proc_num] = data
+
+    @classmethod
     def range_scan_2(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> None:
         """ データをレンジスキャンした結果を返す
          Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
@@ -360,25 +414,10 @@ class ElasticManager:
                 }
             }
         }
-        # body = {
-        #     "query": {
-        #         "bool": {
-        #             "must": {"match_all": {}},
-        #             "filter": {
-        #                 "range": {
-        #                     "sequential_number": {
-        #                         "gte": start,
-        #                         "lte": end - 1
-        #                     }
-        #                 }
-        #             }
-        #         }
-        #     }
-        # }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
         data = [x['_source'] for x in data_gen]
-        data.sort(key=lambda x: x['sequential_number'])
+        # data.sort(key=lambda x: x['sequential_number'])
 
         # es_res = es.search(index=index, body=body)
         # hits = es_res['hits']['hits']
