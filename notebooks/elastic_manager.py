@@ -268,31 +268,6 @@ class ElasticManager:
         return result['count']
 
     @classmethod
-    def range_scan(cls, index: str, start: int, end: int) -> list:
-        """ データをレンジスキャンした結果を返す
-         Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
-        """
-
-        body = {
-            "query": {
-                "range": {
-                    "sequential_number": {
-                        "gte": start,
-                        "lte": end - 1
-                    }
-                }
-            }
-        }
-
-        # print(f'read start...{datetime.now(JST)}')
-        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
-        data = [x['_source'] for x in data_gen]
-        data.sort(key=lambda x: x['sequential_number'])
-        # print(f'{len(data)} documents read...{datetime.now(JST)}')
-
-        return data
-
-    @classmethod
     def multi_process_range_scan(cls, index: list, num_of_data: int, start: int, end: int, num_of_process: int = 4) -> list:
         """ マルチプロセスでbulk insertする。 """
 
@@ -313,7 +288,7 @@ class ElasticManager:
             if (i == num_of_process - 1) and (mod != 0):
                 end_index = end
 
-            proc = multiprocessing.Process(target=cls.range_scan_2,
+            proc = multiprocessing.Process(target=cls.range_scan,
                                            args=(index, i, start_index, end_index, return_dict))
             proc.start()
             procs.append(proc)
@@ -330,28 +305,6 @@ class ElasticManager:
         print(f"{dt_now} Got {len(result)} documents.")
 
         return result
-
-    @classmethod
-    def scan2(cls, generator: Iterator, size: int) -> list:
-        """ データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
-
-        print(f'read start...{datetime.now(JST)}')
-        data = [x['_source'] for x in itertools.islice(generator, 0, size)]
-        print(f'{len(data)} documents read...{datetime.now(JST)}')
-
-        return data
-
-    @classmethod
-    def get_all_generator(cls, index: str) -> Iterator:
-        query = {"query": {"match_all": {}}}
-        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query)
-
-        # temp
-        # print(f'read start...{datetime.now(JST)}')
-        # data = [x['_source'] for x in data_gen]
-        # print(f'{len(data)} documents read...{datetime.now(JST)}')
-
-        return data_gen
 
     @classmethod
     def multi_process_scan(cls, generator: Iterator, num_of_data: int, start: int, end: int, num_of_process: int = 4) -> list:
@@ -397,11 +350,13 @@ class ElasticManager:
         return_dict[proc_num] = data
 
     @classmethod
-    def range_scan_2(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> None:
+    def range_scan(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> None:
         """ データをレンジスキャンした結果を返す
          Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
         """
 
+        # プロセスごとにコネクションが必要
+        # https://github.com/elastic/elasticsearch-py/issues/638
         es = Elasticsearch(hosts="localhost:9200", http_auth=('elastic', 'P@ssw0rd12345'), timeout=50000)
 
         body = {
@@ -417,12 +372,6 @@ class ElasticManager:
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
         data = [x['_source'] for x in data_gen]
-        # data.sort(key=lambda x: x['sequential_number'])
-
-        # es_res = es.search(index=index, body=body)
-        # hits = es_res['hits']['hits']
-        # data = [x['_source'] for x in hits]
-        # data.sort(key=lambda x: x['sequential_number'])
 
         return_dict[proc_num] = data
 
