@@ -8,6 +8,12 @@ import json
 from typing import Iterable, Iterator
 import multiprocessing
 from datetime import datetime, timezone, timedelta
+import logging
+
+# logger = logging.getLogger(__name__)
+# handler = logging.FileHandler("log/elastic_manager.log")
+# logger.addHandler(handler)
+# logger.setLevel(logging.DEBUG)
 
 # datetime取得時に日本時間を指定する
 JST = timezone(timedelta(hours=+9), 'JST')
@@ -150,10 +156,16 @@ class ElasticManager:
             print(result)
 
     @classmethod
-    def create_index(cls, index: str, mapping_file: str = None) -> None:
+    def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> None:
         """ インデックスを作成する。documentは1度に30,000件まで読める設定とする。 """
 
-        body = {"settings": {"index": {"max_result_window": 30000}}}
+        # body = {"settings": {"index": {"max_result_window": 30000}}}
+        body = {}
+
+        if setting_file:
+            with open(setting_file) as f:
+                d = json.load(f)
+                body["settings"] = d
 
         if mapping_file:
             with open(mapping_file) as f:
@@ -175,12 +187,11 @@ class ElasticManager:
 
     @classmethod
     def multi_process_bulk(
-        cls, shot_data: list, index_to_import: str,
-        num_of_process=4, chunk_size: int = 500) -> None:
+        cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
         """ マルチプロセスでbulk insertする。 """
 
         dt_now = datetime.now(JST)
-        num_of_data = len(shot_data)
+        num_of_data = len(data)
         print(f"{dt_now} data import start. data_count:{num_of_data}, process_count:{num_of_process}")
 
         batch_size, mod = divmod(num_of_data, num_of_process)
@@ -189,10 +200,10 @@ class ElasticManager:
         for i in range(num_of_process):
             start_index: int = i * batch_size
             end_index: int = start_index + batch_size
-            target_data = shot_data[start_index:end_index]
+            target_data = data[start_index:end_index]
             # 最後のプロセスには余り分を含めたデータを処理させる
             if i == num_of_process - 1:
-                target_data = shot_data[start_index:]
+                target_data = data[start_index:]
 
             proc = multiprocessing.Process(target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size,))
             proc.start()
@@ -247,6 +258,18 @@ class ElasticManager:
         }
 
         raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query, preserve_order=True)
+
+        return raw_data_gen
+
+    @classmethod
+    def scan2(cls, index: str) -> Iterable:
+        """ データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
+
+        query = {
+            "match_all": {}
+        }
+
+        raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query)
 
         return raw_data_gen
 
@@ -337,10 +360,30 @@ class ElasticManager:
                 }
             }
         }
+        # body = {
+        #     "query": {
+        #         "bool": {
+        #             "must": {"match_all": {}},
+        #             "filter": {
+        #                 "range": {
+        #                     "sequential_number": {
+        #                         "gte": start,
+        #                         "lte": end - 1
+        #                     }
+        #                 }
+        #             }
+        #         }
+        #     }
+        # }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
         data = [x['_source'] for x in data_gen]
         data.sort(key=lambda x: x['sequential_number'])
+
+        # es_res = es.search(index=index, body=body)
+        # hits = es_res['hits']['hits']
+        # data = [x['_source'] for x in hits]
+        # data.sort(key=lambda x: x['sequential_number'])
 
         return_dict[proc_num] = data
 

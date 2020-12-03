@@ -1,10 +1,15 @@
-from typing import Iterable, Iterator, Mapping
+from typing import Iterator
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
-from itertools import islice, tee
-from more_itertools import ilen
+from itertools import islice
 from elastic_manager import ElasticManager
 from time_logger import time_log
+import logging
+import copy
+
+# logger = logging.getLogger(__name__)
+# handler = logging.FileHandler("log/data_importer.log")
+# logger.addHandler(handler)
 
 # datetime取得時に日本時間を指定する
 JST = timezone(timedelta(hours=+9), 'JST')
@@ -33,6 +38,32 @@ class DataImporter:
             chunk_size=5000)
 
     @time_log
+    def multi_process_import_raw_data(self, data_to_import: str, index_to_import: str, num_of_process: int) -> None:
+        """ 使い捨て?。マルチプロセス読み込み """
+
+        mapping_file = "notebooks/mapping_rawdata.json"
+        # mapping_file = None
+        setting_file = "notebooks/setting_rawdata.json"
+        # setting_file = None
+
+        ElasticManager.delete_exists_index(index=index_to_import)
+        ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
+
+        rawdata_gen = self.__doc_generator(data_to_import, index_to_import)
+
+        BUFFER_SIZE = 10_000_000
+
+        i = 0
+        while True:
+            rawdata = [x['_source'] for x in islice(rawdata_gen, 0, BUFFER_SIZE)]
+
+            if len(rawdata) == 0:
+                break
+
+            ElasticManager.multi_process_bulk(data=rawdata, index_to_import=index_to_import, num_of_process=num_of_process, chunk_size=5000)
+            i += 1
+
+    @time_log
     def import_data_by_shot(self, rawdata_index: str, shots_index: str, start_displacement: float,
                             end_displacement: float, num_of_process: int = 4):
         """ shotデータインポート処理 """
@@ -43,7 +74,7 @@ class DataImporter:
         ElasticManager.delete_exists_index(index=shots_index)
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
-        self._cut_out_shot(rawdata_index, shots_index, start_displacement, end_displacement)
+        self._cut_out_shot(rawdata_index, shots_index, start_displacement, end_displacement, num_of_process)
 
     def __doc_generator(self, csv_file: str, index_name: str) -> Iterator:
         """ csv を読み込んで一行ずつ辞書型で返すジェネレータ
@@ -80,7 +111,7 @@ class DataImporter:
                 }
 
     @time_log
-    def _cut_out_shot(self, rawdata_index: str, shots_index: str, start_displacement: float, end_displacement: float) -> None:
+    def _cut_out_shot(self, rawdata_index: str, shots_index: str, start_displacement: float, end_displacement: float, num_of_process: int) -> None:
         """
         ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。
 
@@ -97,7 +128,7 @@ class DataImporter:
 
         rawdata_count = ElasticManager.count(index=rawdata_index)
 
-        # rawdataをN分割する。暫定で100。
+        # rawdataをN分割する。暫定値。
         SPLIT_SIZE: int = 100
         batch_size, mod = divmod(rawdata_count, SPLIT_SIZE)
 
@@ -121,10 +152,13 @@ class DataImporter:
                 end_index = rawdata_count + 1
 
             # rawdata_list = ElasticManager.range_scan(index=rawdata_index, start=start_index, end=end_index)
-            rawdata_list = ElasticManager.multi_process_range_scan(index=rawdata_index, num_of_data=batch_size, start=start_index, end=end_index)
+            rawdata_list = ElasticManager.multi_process_range_scan(index=rawdata_index, num_of_data=batch_size, start=start_index, end=end_index, num_of_process=num_of_process)
+            # rawdata_list = ElasticManager.scan2(index=rawdata_index)
 
             # 分割されたものの中のデータ1件ずつ確認していく
-            for rawdata in rawdata_list:
+            for i, rawdata in enumerate(rawdata_list):
+                # TODO: キャッシュするとするならば、毎ループごとにキャッシュすると遅い。
+                # previous_rawdata_list = rawdata_list[i - 1000:i]
                 # ショット開始判定
                 if (not is_shot_section) and (rawdata['displacement'] <= start_displacement):
                     is_shot_section = True
@@ -191,7 +225,7 @@ class DataImporter:
 
                 # ショットデータが一定件数（暫定で1,000,000）以上溜まったらElasticsearchに書き出す。
                 if len(shots) >= 1_000_000:
-                    ElasticManager.multi_process_bulk(shot_data=shots, index_to_import=shots_index, num_of_process=4, chunk_size=5000)
+                    ElasticManager.multi_process_bulk(data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000)
                     inserted_count += len(shots)
                     self.__throughput_counter(inserted_count, dt_now)
                     # print(f"Buffer was filled. Write to Elasticsearch {len(shots)} documents.")
@@ -221,11 +255,20 @@ class DataImporter:
 
 if __name__ == '__main__':
     ''' スクリプト直接実行時はテスト用インデックスにインポートする '''
+    # formatter = "%(levelname)s : %(asctime)s : %(message)s"
+    # logging.basicConfig(level=logging.INFO, format=formatter)
+
     data_importer = DataImporter()
     # data_importer.import_raw_data('notebooks/No11(25~30spm).CSV', 'rawdata-no11')
     # data_importer.import_raw_data('notebooks/No11_3000.csv', 'rawdata-no11-3000')
     # data_importer.import_data_by_shot('rawdata-no11', 'shots-no11', 47, 34, 4)
-    data_importer.import_data_by_shot('rawdata-no11-3000', 'shots-no11-3000', 47, 34, 4)
+    # data_importer.import_data_by_shot('rawdata-no11-3000', 'shots-no11-3000', 47, 34, 1)
+
+    data_importer.multi_process_import_raw_data('notebooks/No11(25~30spm).CSV', 'rawdata-no11', 1)
+    # data_importer.multi_process_import_raw_data('notebooks/No11_3000.csv', 'rawdata-no11-3000', 8)
+    
+    # data_importer.multi_process_import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000', 8)
+    # data_importer.import_data_by_shot('rawdata-no13-3000', 'shots-no13-3000', 47, 34, 8)
 
 
 

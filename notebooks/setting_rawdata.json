@@ -1,0 +1,6 @@
+{
+    "index": {
+        "sort.field": "sequential_number", 
+        "sort.order": "asc"
+    }
+}
