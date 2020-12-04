@@ -25,7 +25,7 @@ class DataImporter:
     """
 
     @time_log
-    def import_raw_data(self, data_to_import: str, index_to_import: str) -> None:
+    def import_raw_data(self, data_to_import: str, index_to_import: str, thread_count = 4) -> None:
         """ rawデータインポート処理 """
 
         mapping_file = "notebooks/mapping_rawdata.json"
@@ -38,7 +38,7 @@ class DataImporter:
 
         ElasticManager.parallel_bulk(
             doc_generator=self.__doc_generator(data_to_import, index_to_import),
-            thread_count=4,
+            thread_count=thread_count,
             chunk_size=5000)
 
     @time_log
@@ -137,7 +137,7 @@ class DataImporter:
         print(f"rawdata count: {rawdata_count}")
 
         # rawdataをN分割する。暫定値。
-        SPLIT_SIZE: int = 1
+        SPLIT_SIZE: int = 100
         batch_size, mod = divmod(rawdata_count, SPLIT_SIZE)
 
         is_shot_section: bool = False   # ショット内か否かを判別する
@@ -176,7 +176,7 @@ class DataImporter:
                     # TODO: キャッシュ検討
                     previous_start_index = rawdata['sequential_number'] - 1000 if rawdata['sequential_number'] >= 1000 else 0
                     previous_end_index = rawdata['sequential_number']
-                    previous_rawdata_list = ElasticManager.range_scan(
+                    previous_rawdata_list = ElasticManager.single_process_range_scan(
                         index=rawdata_index, start=previous_start_index, end=previous_end_index)
 
                     for previous_rawdata in previous_rawdata_list:
@@ -269,4 +269,5 @@ if __name__ == '__main__':
 
     data_importer = DataImporter()
     # data_importer.multi_process_import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000', 8)
-    # data_importer.import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000')
+    # data_importer.import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000-2', 8)
+    data_importer.import_data_by_shot('rawdata-no13-3000-2', 'shots-no13-3000', 47, 34, 8)

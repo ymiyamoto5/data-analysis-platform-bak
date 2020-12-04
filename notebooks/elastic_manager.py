@@ -10,6 +10,7 @@ import multiprocessing
 import itertools
 from datetime import datetime, timezone, timedelta
 import logging
+import unittest
 
 # logger = logging.getLogger(__name__)
 # handler = logging.FileHandler("log/elastic_manager.log")
@@ -247,20 +248,26 @@ class ElasticManager:
         # print(f"pid:{os.getpid()}, inserted {inserted_count} docs")
 
     @classmethod
-    def scan(cls, index: str) -> Iterable:
-        """ データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
+    def single_process_range_scan(cls, index: str, start: int, end: int) -> Iterable:
 
-        query = {
-            "sort": {
-                "sequential_number": {
-                    "order": "asc"
+        body = {
+            "query": {
+                "range": {
+                    "sequential_number": {
+                        "gte": start,
+                        "lte": end - 1
+                    }
                 }
+            },
+            "sort": {
+                "sequential_number": "asc"
             }
         }
 
-        raw_data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query, preserve_order=True)
+        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
+        data = [x['_source'] for x in data_gen]
 
-        return raw_data_gen
+        return data
 
     @classmethod
     def count(cls, index: str) -> int:
@@ -296,10 +303,11 @@ class ElasticManager:
         for proc in procs:
             proc.join()
 
+        # マルチプロセスの結果をマージする
         result = []
-        for i in range(num_of_process):
-            for j in return_dict[i]:
-                result.append(j)
+        for proc in range(num_of_process):
+            for data in return_dict[proc]:
+                result.append(data)
 
         dt_now = datetime.now(JST)
         print(f"{dt_now} Got {len(result)} documents.")
@@ -307,50 +315,7 @@ class ElasticManager:
         return result
 
     @classmethod
-    def multi_process_scan(cls, generator: Iterator, num_of_data: int, start: int, end: int, num_of_process: int = 4) -> list:
-
-        dt_now = datetime.now(JST)
-        print(f"{dt_now} data read start. data_count:{num_of_data}, process_count:{num_of_process}")
-
-        batch_size, mod = divmod(num_of_data, num_of_process)
-
-        # マルチプロセスの結果格納用
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict()
-
-        procs: list = []
-        for i in range(num_of_process):
-            start_index: int = i * batch_size + start
-            end_index: int = start_index + batch_size
-            # 最後のプロセスには余り分を含めたデータを処理させる
-            if (i == num_of_process - 1) and (mod != 0):
-                end_index = end + 1
-
-            proc = multiprocessing.Process(target=cls.read_process,
-                                           args=(generator, i, start_index, end_index, return_dict))
-            proc.start()
-            procs.append(proc)
-
-        for proc in procs:
-            proc.join()
-
-        result = []
-        for i in range(num_of_process):
-            for j in return_dict[i]:
-                result.append(j)
-
-        dt_now = datetime.now(JST)
-        print(f"{dt_now} Got {len(result)} documents.")
-
-        return result
-
-    @classmethod
-    def read_process(generator, proc_num, start, end, return_dict):
-        data = [x['_source'] for x in itertools.islice(generator, start, end)]
-        return_dict[proc_num] = data
-
-    @classmethod
-    def range_scan(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> None:
+    def range_scan(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> Iterator:
         """ データをレンジスキャンした結果を返す
          Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
         """
@@ -367,11 +332,28 @@ class ElasticManager:
                         "lte": end - 1
                     }
                 }
+            },
+            "sort": {
+                "sequential_number": "asc"
             }
         }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
+        # NOTE: TypeError: cannot pickle 'generator' object が発生するため、listに展開する必要がある。
         data = [x['_source'] for x in data_gen]
+
+        # DEGUB CODEのため、通常はコメントアウト。 わざわざ自前でソートしなくても、ソート済みのものが得られるはず。
+        data_sequential_numbers = [x['sequential_number'] for x in data]
+        expected = [x['sequential_number'] for x in sorted(data, key=lambda x: x['sequential_number'])]
+        if data_sequential_numbers != expected:
+            file_name1 = "out_result_" + str(proc_num) + ".txt"
+            file_name2 = "out_expected_" + str(proc_num) + ".txt"
+            with open(file_name1, "w") as f:
+                for x in data_sequential_numbers:
+                    f.write(str(x) + '\n')
+            with open(file_name2, "w") as f:
+                for x in expected:
+                    f.write(str(x) + '\n')
 
         return_dict[proc_num] = data
 
