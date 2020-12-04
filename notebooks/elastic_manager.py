@@ -1,16 +1,13 @@
 """ Elasticsearchへの各種処理を行うwrapperモジュール """
 
-import os
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 import pandas as pd
 import json
 from typing import Iterable, Iterator
 import multiprocessing
-import itertools
 from datetime import datetime, timezone, timedelta
 import logging
-import unittest
 
 # logger = logging.getLogger(__name__)
 # handler = logging.FileHandler("log/elastic_manager.log")
@@ -258,17 +255,12 @@ class ElasticManager:
                         "lte": end - 1
                     }
                 }
-            },
-            "sort": {
-                "sequential_number": "asc"
             }
         }
 
-        # data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
-        # data = [x['_source'] for x in data_gen]
-        export_result = cls.es.search(index=index, body=body)
-        tmp_result = export_result['hits']['hits']
-        data = [x['_source'] for x in tmp_result]
+        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
+        data = [x['_source'] for x in data_gen]
+        data.sort(key=lambda x: x['sequential_number'])
 
         return data
 
@@ -342,28 +334,8 @@ class ElasticManager:
         }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
-        # NOTE: TypeError: cannot pickle 'generator' object が発生するため、listに展開する必要がある。
         data = [x['_source'] for x in data_gen]
         data.sort(key=lambda x: x['sequential_number'])
-
-        # snapshot_time = "1m"
-        # export_result = es.search(index=index, body=body, size=10000, scroll=snapshot_time)
-
-        # scroll_id = export_result['_scroll_id']
-        # scroll_size = len(export_result['hits']['total'])
-
-        # # 配列内のキー'_source'に実データがあるため、そこだけ抽出
-        # tmp_result = export_result['hits']['hits']
-        # data = [x['_source'] for x in tmp_result]
-
-        # while scroll_size > 0:
-        #     scroll_result = es.scroll(scroll_id=scroll_id, scroll=snapshot_time)
-        #     scroll_id = scroll_result['_scroll_id']
-        #     scroll_size = len(scroll_result['hits']['hits'])
-
-        #     tmp_result = scroll_result['hits']['hits']
-        #     scrolled_data = [x['_source'] for x in tmp_result]
-        #     data.extend(scrolled_data)
 
         # 読み込んだデータの順番がsequential_number通りになっていることの確認
         # TODO: DEBUG_MODEのときだけ実行

@@ -137,7 +137,7 @@ class DataImporter:
         print(f"rawdata count: {rawdata_count}")
 
         # rawdataをN分割する。暫定値。
-        SPLIT_SIZE: int = 100
+        SPLIT_SIZE: int = 25
         batch_size, mod = divmod(rawdata_count, SPLIT_SIZE)
 
         is_shot_section: bool = False   # ショット内か否かを判別する
@@ -233,10 +233,11 @@ class DataImporter:
 
                 # ショットデータが一定件数（暫定で1,000,000）以上溜まったらElasticsearchに書き出す。
                 if len(shots) >= 1_000_000:
+                    dt_now = datetime.now(JST)
                     ElasticManager.multi_process_bulk(data=shots, index_to_import=shots_index,
                                                       num_of_process=num_of_process, chunk_size=5000)
                     inserted_count += len(shots)
-                    self.__throughput_counter(inserted_count, dt_now)
+                    self.__throughput_counter(len(shots), dt_now)
                     # print(f"Buffer was filled. Write to Elasticsearch {len(shots)} documents.")
                     shots = []
 
