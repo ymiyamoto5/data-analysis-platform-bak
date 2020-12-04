@@ -264,8 +264,11 @@ class ElasticManager:
             }
         }
 
-        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
-        data = [x['_source'] for x in data_gen]
+        # data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
+        # data = [x['_source'] for x in data_gen]
+        export_result = cls.es.search(index=index, body=body)
+        tmp_result = export_result['hits']['hits']
+        data = [x['_source'] for x in tmp_result]
 
         return data
 
@@ -333,27 +336,48 @@ class ElasticManager:
                     }
                 }
             },
-            "sort": {
-                "sequential_number": "asc"
-            }
+            # "sort": {
+            #     "sequential_number": "asc"
+            # }
         }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
         # NOTE: TypeError: cannot pickle 'generator' object が発生するため、listに展開する必要がある。
         data = [x['_source'] for x in data_gen]
+        data.sort(key=lambda x: x['sequential_number'])
 
-        # DEGUB CODEのため、通常はコメントアウト。 わざわざ自前でソートしなくても、ソート済みのものが得られるはず。
-        data_sequential_numbers = [x['sequential_number'] for x in data]
-        expected = [x['sequential_number'] for x in sorted(data, key=lambda x: x['sequential_number'])]
-        if data_sequential_numbers != expected:
-            file_name1 = "out_result_" + str(proc_num) + ".txt"
-            file_name2 = "out_expected_" + str(proc_num) + ".txt"
-            with open(file_name1, "w") as f:
-                for x in data_sequential_numbers:
-                    f.write(str(x) + '\n')
-            with open(file_name2, "w") as f:
-                for x in expected:
-                    f.write(str(x) + '\n')
+        # snapshot_time = "1m"
+        # export_result = es.search(index=index, body=body, size=10000, scroll=snapshot_time)
+
+        # scroll_id = export_result['_scroll_id']
+        # scroll_size = len(export_result['hits']['total'])
+
+        # # 配列内のキー'_source'に実データがあるため、そこだけ抽出
+        # tmp_result = export_result['hits']['hits']
+        # data = [x['_source'] for x in tmp_result]
+
+        # while scroll_size > 0:
+        #     scroll_result = es.scroll(scroll_id=scroll_id, scroll=snapshot_time)
+        #     scroll_id = scroll_result['_scroll_id']
+        #     scroll_size = len(scroll_result['hits']['hits'])
+
+        #     tmp_result = scroll_result['hits']['hits']
+        #     scrolled_data = [x['_source'] for x in tmp_result]
+        #     data.extend(scrolled_data)
+
+        # 読み込んだデータの順番がsequential_number通りになっていることの確認
+        # TODO: DEBUG_MODEのときだけ実行
+        # data_sequential_numbers = [x['sequential_number'] for x in data]
+        # expected = [x['sequential_number'] for x in sorted(data, key=lambda x: x['sequential_number'])]
+        # if data_sequential_numbers != expected:
+        #     file_name1 = "out_result_" + str(proc_num) + ".txt"
+        #     file_name2 = "out_expected_" + str(proc_num) + ".txt"
+        #     with open(file_name1, "w") as f:
+        #         for x in data_sequential_numbers:
+        #             f.write(str(x) + '\n')
+        #     with open(file_name2, "w") as f:
+        #         for x in expected:
+        #             f.write(str(x) + '\n')
 
         return_dict[proc_num] = data
 

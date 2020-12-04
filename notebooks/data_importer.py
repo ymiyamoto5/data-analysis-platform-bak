@@ -171,6 +171,7 @@ class DataImporter:
                     is_target_of_cut_off = True
                     shot_number += 1
                     sequential_number_by_shot = 0
+                    # print(f"shot is detected. shot_number: {shot_number}")
 
                     # N件遡ってshotsに加える。暫定で1000件。
                     # TODO: キャッシュ検討
@@ -270,4 +271,5 @@ if __name__ == '__main__':
     data_importer = DataImporter()
     # data_importer.multi_process_import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000', 8)
     # data_importer.import_raw_data('notebooks/No13_3000.csv', 'rawdata-no13-3000-2', 8)
-    data_importer.import_data_by_shot('rawdata-no13-3000-2', 'shots-no13-3000', 47, 34, 8)
+    data_importer.import_data_by_shot('rawdata-no13-3000', 'shots-no13-3000', 47, 34, 8)
+    # data_importer.import_data_by_shot('rawdata-no13-3000-2', 'shots-no13-3000', 47, 34, 8)
