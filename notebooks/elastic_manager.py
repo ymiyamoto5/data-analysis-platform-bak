@@ -9,6 +9,7 @@ import multiprocessing
 from datetime import datetime, timezone, timedelta
 import logging
 
+# NOTE: Elasticsearchのlogger設定変更
 es_logger = logging.getLogger("elasticsearch")
 es_logger.setLevel(logging.WARNING)
 
@@ -154,7 +155,7 @@ class ElasticManager:
     def create_index(
         cls, index: str, mapping_file: str = None, setting_file: str = None
     ) -> None:
-        """ インデックスを作成する。documentは1度に30,000件まで読める設定とする。 """
+        """ インデックスを作成する。 """
 
         # body = {"settings": {"index": {"max_result_window": 30000}}}
         body = {}
@@ -176,7 +177,7 @@ class ElasticManager:
     def parallel_bulk(
         cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500
     ) -> None:
-        """ 指定したスレッド数でbulk insertする。 """
+        """ 指定したスレッド数でbulk insertする。(廃止予定) """
 
         for success, info in helpers.parallel_bulk(
             cls.es, doc_generator, chunk_size=chunk_size, thread_count=thread_count
@@ -220,9 +221,7 @@ class ElasticManager:
     def bulk_insert(
         cls, data_list: list, index_to_import: str, chunk_size: int = 500
     ) -> None:
-        """
-         マルチプロセスで実行する処理。渡されたデータをもとにElasticsearchにデータ投入する。
-        """
+        """ マルチプロセスで実行する処理。渡されたデータをもとにElasticsearchにデータ投入する。"""
 
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
@@ -234,7 +233,6 @@ class ElasticManager:
         )
 
         inserted_count: int = 0
-        dt_now = datetime.now(JST)
 
         actions: list = []
 
@@ -244,8 +242,6 @@ class ElasticManager:
             if len(actions) >= chunk_size:
                 helpers.bulk(es, actions)
                 inserted_count += len(actions)
-                # TODO: 標準出力がプロセス間で取り合いになるせいか、改行がされない場合がある。
-                # throughput_counter(inserted_count, dt_now)
                 actions = []
 
         # 残っているデータを登録
@@ -257,6 +253,7 @@ class ElasticManager:
 
     @classmethod
     def single_process_range_scan(cls, index: str, start: int, end: int) -> Iterable:
+        """ Elasticsearchからシングルプロセスでrange_scanする (廃止予定) """
 
         body = {
             "query": {"range": {"sequential_number": {"gte": start, "lte": end - 1}}}
@@ -270,6 +267,7 @@ class ElasticManager:
 
     @classmethod
     def count(cls, index: str) -> int:
+        """ インデックスのドキュメント数を取得する """
         result = cls.es.count(index=index)
         return result["count"]
 
@@ -282,7 +280,7 @@ class ElasticManager:
         end: int,
         num_of_process: int = 4,
     ) -> list:
-        """ マルチプロセスでbulk insertする。 """
+        """ マルチプロセスでElasticsearchからrange scanする。（廃止予定） """
 
         dt_now = datetime.now(JST)
         print(
@@ -329,7 +327,7 @@ class ElasticManager:
         cls, index: str, proc_num: int, start: int, end: int, return_dict: list
     ) -> Iterator:
         """ データをレンジスキャンした結果を返す
-         Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
+         Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。（廃止予定）
         """
 
         # プロセスごとにコネクションが必要
@@ -342,9 +340,6 @@ class ElasticManager:
 
         body = {
             "query": {"range": {"sequential_number": {"gte": start, "lte": end - 1}}},
-            # "sort": {
-            #     "sequential_number": "asc"
-            # }
         }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
@@ -366,19 +361,6 @@ class ElasticManager:
         #             f.write(str(x) + '\n')
 
         return_dict[proc_num] = data
-
-
-def throughput_counter(processed_count: int, dt_old: datetime) -> None:
-    """ スループットの表示
-     TODO: 外部モジュール化検討
-    """
-
-    dt_now = datetime.now(JST)
-    dt_delta = dt_now - dt_old
-    total_sec = dt_delta.total_seconds()
-    throughput = processed_count / total_sec
-
-    print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
 
 
 if __name__ == "__main__":
