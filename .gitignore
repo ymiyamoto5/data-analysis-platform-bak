@@ -37,3 +37,4 @@ pnpm-debug.log*
 *.sw?
 
 *.log
+testprogram.py
