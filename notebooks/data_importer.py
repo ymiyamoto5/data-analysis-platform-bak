@@ -65,9 +65,7 @@ class DataImporter:
             index=index_to_import, mapping_file=mapping_file, setting_file=setting_file
         )
 
-        now: datetime = datetime.now(JST)
-
-        CHUNK_SIZE: Final = 1_000_000
+        CHUNK_SIZE: Final = 10_000_000
         cols = (
             "load01",
             "load02",
@@ -76,7 +74,9 @@ class DataImporter:
             "displacement",
         )
 
-        samples = []
+        samples = []  # rawdataのサンプルを貯めるリスト
+        now: datetime = datetime.now(JST)
+
         for loop_count, rawdata_df in enumerate(
             pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)
         ):
@@ -86,10 +86,10 @@ class DataImporter:
             for row in rawdata_df.itertuples():
                 sample = {
                     "sequential_number": row.Index,
-                    "load01": row.load01,
-                    "load02": row.load02,
-                    "load03": row.load03,
-                    "load04": row.load04,
+                    "load01": float(format(row.load01, ".3f")),
+                    "load02": float(format(row.load02, ".3f")),
+                    "load03": float(format(row.load03, ".3f")),
+                    "load04": float(format(row.load04, ".3f")),
                     "displacement": row.displacement,
                 }
                 samples.append(sample)
@@ -100,6 +100,8 @@ class DataImporter:
                 num_of_process=num_of_process,
                 chunk_size=5000,
             )
+
+            samples = []
 
     @time_log
     def import_data_by_shot(
@@ -113,12 +115,10 @@ class DataImporter:
         """ shotデータインポート処理 """
 
         mapping_file = "notebooks/mapping_shots.json"
-        # mapping_file = None
 
         ElasticManager.delete_exists_index(index=shots_index)
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
-        rawdata_filename = "notebooks/No13_3000.csv"
         self._cut_out_shot_from_csv(
             rawdata_filename,
             shots_index,
@@ -300,11 +300,9 @@ class DataImporter:
 
         Args:
             rawdata_filename: 生データcsvのファイル名
+            shots_index: ショットデータの格納先インデックス
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
-
-        Returns:
-            list: ショットデータのリスト
         """
 
         is_shot_section: bool = False  # ショット内か否かを判別する
@@ -315,8 +313,8 @@ class DataImporter:
         inserted_count: int = 0  # Thoughput算出用
         shots: list = []
 
-        CHUNKSIZE: Final = 1_000_000
-        TAIL_SIZE: Final = 1_000
+        CHUNKSIZE: Final = 1_000_000  # csvから一度に読み出す行数
+        TAIL_SIZE: Final = 1_000  # 末尾データ保持数（CHUNK跨ぎの際に利用）
 
         cols = (
             "load01",
@@ -367,15 +365,15 @@ class DataImporter:
                         start_index: int = row_number
                         preceding_df = previous_df_tail[start_index:]
 
-                    for d in preceding_df.itertuples():
+                    for row in preceding_df.itertuples():
                         shot = {
                             "sequential_number": sequential_number,
                             "sequential_number_by_shot": sequential_number_by_shot,
-                            "load01": d.load01,
-                            "load02": d.load02,
-                            "load03": d.load03,
-                            "load04": d.load04,
-                            "displacement": d.displacement,
+                            "load01": float(format(row.load01, ".3f")),
+                            "load02": float(format(row.load02, ".3f")),
+                            "load03": float(format(row.load03, ".3f")),
+                            "load04": float(format(row.load04, ".3f")),
+                            "displacement": row.displacement,
                             "shot_number": shot_number,
                             "tags": [],
                         }
@@ -410,10 +408,10 @@ class DataImporter:
                 shot = {
                     "sequential_number": sequential_number,
                     "sequential_number_by_shot": sequential_number_by_shot,
-                    "load01": rawdata.load01,
-                    "load02": rawdata.load02,
-                    "load03": rawdata.load03,
-                    "load04": rawdata.load04,
+                    "load01": float(format(rawdata.load01, ".3f")),
+                    "load02": float(format(rawdata.load02, ".3f")),
+                    "load03": float(format(rawdata.load03, ".3f")),
+                    "load04": float(format(rawdata.load04, ".3f")),
                     "displacement": rawdata.displacement,
                     "shot_number": shot_number,
                     "tags": [],
@@ -462,6 +460,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format=formatter)
 
     data_importer = DataImporter()
-    data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
+    # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
+    data_importer.multi_process_import_rawdata(
+        "data/No13_3000.csv", "rawdata-no13-3000", 8
+    )
     # data_importer.import_data_by_shot("notebooks/No13(80spm).CSV", "shots-no13", 47, 34, 8)
     # data_importer.import_data_by_shot("rawdata-no13-3000", "shots-no13-3000", 47, 34, 8)
