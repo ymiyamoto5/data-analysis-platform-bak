@@ -1,22 +1,23 @@
 from typing import Final, Tuple
 from datetime import datetime, timezone, timedelta
-
-from pandas.core.frame import DataFrame
 import logging
 import pandas as pd
 
-# import itertools
-# from csv import DictReader
-
 from elastic_manager import ElasticManager
 from time_logger import time_log
+from throughput_counter import throughput_counter
 
-formatter = "%(levelname)s : %(asctime)s : %(message)s"
-logging.basicConfig(level=logging.INFO, format=formatter)
-
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.FileHandler("log/data_importer.log"), logging.StreamHandler()],
+)
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler("log/data_importer.log")
-logger.addHandler(handler)
+
+# MAX_LOG_SIZE: Final = 1024 * 1024 * 100  # 100MB
+# handler = logging.handlers.RotatingFileHandler(
+#     "log/data_importer.log", maxBytes=MAX_LOG_SIZE, backupCount=7
+# )
 
 
 # datetime取得時に日本時間を指定する
@@ -84,16 +85,16 @@ class DataImporter:
         for loop_count, rawdata_df in enumerate(
             pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)
         ):
-            processed_count: int = loop_count * CHUNK_SIZE
-            self.__throughput_counter(processed_count, now)
+            processed_count: int = loop_count * CHUNK_SIZE if loop_count != 0 else CHUNK_SIZE
+            throughput_counter(processed_count, now)
 
             for row in rawdata_df.itertuples():
                 sample = {
                     "sequential_number": row.Index,
-                    "load01": float(format(row.load01, ".3f")),
-                    "load02": float(format(row.load02, ".3f")),
-                    "load03": float(format(row.load03, ".3f")),
-                    "load04": float(format(row.load04, ".3f")),
+                    "load01": row.load01,
+                    "load02": row.load02,
+                    "load03": row.load03,
+                    "load04": row.load04,
                     "displacement": row.displacement,
                 }
                 samples.append(sample)
@@ -120,10 +121,10 @@ class DataImporter:
 
         ElasticManager.delete_exists_index(index=shots_index)
 
-        mapping_file = "notebooks/mapping_shots.json"
+        mapping_file = "mappings/mapping_shots.json"
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
-        self._cut_out_shot_from_csv(
+        self.__cut_out_shot_from_csv(
             rawdata_filename=rawdata_filename,
             shots_index=shots_index,
             start_displacement=start_displacement,
@@ -131,6 +132,7 @@ class DataImporter:
             num_of_process=num_of_process,
         )
 
+    # 廃止予定
     @time_log
     def _cut_out_shot(
         self,
@@ -275,7 +277,7 @@ class DataImporter:
                         chunk_size=5000,
                     )
                     inserted_count += len(shots)
-                    self.__throughput_counter(len(shots), dt_now)
+                    throughput_counter(len(shots), dt_now)
                     shots = []
 
             # end of splitted rawdata loop
@@ -291,7 +293,7 @@ class DataImporter:
         print(f"{dt_now} cut_off finished. {len(shots)} documents inserted.")
 
     @time_log
-    def _cut_out_shot_from_csv(
+    def __cut_out_shot_from_csv(
         self,
         rawdata_filename: str,
         shots_index: str,
@@ -333,14 +335,14 @@ class DataImporter:
         current_df_tail = pd.DataFrame(index=[], columns=cols)  # 現在のCHUNKの末尾N件を保持
         previous_df_tail = pd.DataFrame(index=[], columns=cols)  # 1つ前のCHUNKの末尾N件を保持
 
-        now: datetime = datetime.now(JST)
+        start_time: datetime = datetime.now(JST)
 
         # CHUNK_SIZE分を一度に読み出し、全件読み終わるまで繰り返し
         for loop_count, rawdata_df in enumerate(
             pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)
         ):
-            processed_count: int = loop_count * CHUNK_SIZE
-            self.__throughput_counter(processed_count, now)
+            processed_count: int = loop_count * CHUNK_SIZE if loop_count != 0 else CHUNK_SIZE
+            logger.info(f"Processing...{processed_count} samples")
 
             # chunk開始直後にショットを検知した場合、N件遡るためのデータを保持しておく必要がある。
             # TODO: メソッド化
@@ -362,6 +364,7 @@ class DataImporter:
                     is_target_of_cut_off = True
                     shot_number += 1
                     sequential_number_by_shot = 0
+                    logger.info(f"Detect shot. Shot number is {shot_number}")
 
                     # N件遡ってshotsに加える。
                     # 遡って取得するデータが現在のDataFrameに含まれる場合
@@ -382,10 +385,10 @@ class DataImporter:
                         shot = {
                             "sequential_number": sequential_number,
                             "sequential_number_by_shot": sequential_number_by_shot,
-                            "load01": float(format(row.load01, ".3f")),
-                            "load02": float(format(row.load02, ".3f")),
-                            "load03": float(format(row.load03, ".3f")),
-                            "load04": float(format(row.load04, ".3f")),
+                            "load01": row.load01,
+                            "load02": row.load02,
+                            "load03": row.load03,
+                            "load04": row.load04,
                             "displacement": row.displacement,
                             "shot_number": shot_number,
                             "tags": [],
@@ -433,6 +436,9 @@ class DataImporter:
 
                 # ショットデータが一定件数以上溜まったらElasticsearchに書き出す。
                 if len(shots) >= BUFFER_SIZE:
+                    logger.info(
+                        f"Shots Buffer is filled. Bulk insert {len(shots)} documents."
+                    )
                     bulk_started: datetime = datetime.now(JST)
                     ElasticManager.multi_process_bulk(
                         data=shots,
@@ -440,40 +446,41 @@ class DataImporter:
                         num_of_process=num_of_process,
                         chunk_size=5000,
                     )
+                    logger.info(
+                        f"Bulk insert finished. {len(shots)} documents inserted."
+                    )
                     inserted_count += len(shots)
-                    self.__throughput_counter(len(shots), bulk_started)
+                    throughput_counter(len(shots), bulk_started)
                     shots = []
 
             # end of splitted rawdata loop
+            throughput_counter(processed_count, start_time)
+
         # end of all rawdata loop
 
         # Elasticsearchに書き出されていないデータが残っていれば書き出す
         if len(shots) > 0:
+            logger.info(f"Bulk insert {len(shots)} documents.")
             # 余りは少数のデータ、かつ分割プロセス数を下回る可能性があるので、シングルプロセスで実行
             ElasticManager.bulk_insert(shots, shots_index)
             inserted_count += len(shots)
 
-        now: datetime = datetime.now(JST)
-        print(f"{now} cut_off finished. {len(shots)} documents inserted.")
-
-    def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
-        """ スループットの表示 """
-
-        now: datetime = datetime.now(JST)
-        dt_delta: timedelta = now - dt_old
-        total_sec: float = dt_delta.total_seconds()
-        throughput: float = processed_count / total_sec
-
-        print(f"{now}, processed_count: {processed_count}, throughput: {throughput}")
+        logger.info(f"Cut_off finished. {len(shots)} documents inserted.")
 
 
 if __name__ == "__main__":
     """ スクリプト直接実行時はテスト用インデックスにインポートする """
 
     data_importer = DataImporter()
-    # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
-    data_importer.multi_process_import_rawdata(
-        "data/No13_3000.csv", "rawdata-no13-3000", 8
-    )
-    # data_importer.import_data_by_shot("notebooks/No13(80spm).CSV", "shots-no13", 47, 34, 8)
-    # data_importer.import_data_by_shot("rawdata-no13-3000", "shots-no13-3000", 47, 34, 8)
+    # small data
+    # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 7)
+    data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
+
+    # big data
+    # data_importer.multi_process_import_rawdata(
+    #     "data/No13_3000.csv", "rawdata-no13-3000", 8
+    # )
+    # data_importer.import_data_by_shot(
+    #     "data/No13_3000.csv", "shots-no13-3000", 47, 34, 8
+    # )
+

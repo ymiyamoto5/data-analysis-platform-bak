@@ -8,6 +8,8 @@ from typing import Iterable, Iterator
 import multiprocessing
 from datetime import datetime, timezone, timedelta
 import logging
+import concurrent.futures
+from itertools import repeat
 
 # NOTE: Elasticsearchのlogger設定変更
 es_logger = logging.getLogger("elasticsearch")
@@ -216,6 +218,36 @@ class ElasticManager:
 
         for proc in procs:
             proc.join()
+
+    @classmethod
+    def multi_process_bulk2(
+        cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500
+    ) -> None:
+        """ マルチプロセスでbulk insertする。検証版（廃止予定） """
+
+        dt_now = datetime.now(JST)
+        num_of_data = len(data)
+        print(
+            f"{dt_now} data import start. data_count:{num_of_data}, process_count:{num_of_process}"
+        )
+
+        # with concurrent.futures.ProcessPoolExecutor(
+        #     max_workers=num_of_process
+        # ) as executor:
+        #     executor.map(
+        #         cls.bulk_insert,
+        #         data,
+        #         repeat(index_to_import),
+        #         # repeat(chunk_size),  # Elasticsearchへのbulkのchunksize
+        #         chunksize=5_000,  # ProcessPoolExecutorのchunksize
+        #     )
+
+        # with multiprocessing.Pool(num_of_process) as p:
+        #     p.starmap(
+        #         func=cls.bulk_insert,
+        #         iterable=zip(data, repeat(index_to_import), repeat(chunk_size)),
+        #         chunksize=500_000,
+        #     )
 
     @classmethod
     def bulk_insert(
