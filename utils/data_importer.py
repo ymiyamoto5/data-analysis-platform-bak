@@ -1,23 +1,25 @@
 from typing import Final, Tuple
 from datetime import datetime, timezone, timedelta
 import logging
+import logging.handlers
 import pandas as pd
 
 from elastic_manager import ElasticManager
 from time_logger import time_log
 from throughput_counter import throughput_counter
 
+LOG_FILE: Final = "log/data_importer.log"
+MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.FileHandler("log/data_importer.log"), logging.StreamHandler()],
+    handlers=[
+        logging.handlers.RotatingFileHandler("log/data_importer.log", maxBytes=MAX_LOG_SIZE, backupCount=7),
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
-
-# MAX_LOG_SIZE: Final = 1024 * 1024 * 100  # 100MB
-# handler = logging.handlers.RotatingFileHandler(
-#     "log/data_importer.log", maxBytes=MAX_LOG_SIZE, backupCount=7
-# )
 
 
 # datetime取得時に日本時間を指定する
@@ -31,22 +33,17 @@ class DataImporter:
      TODO:
            from elasticsearch(生データ) to elasticsearch処理追加
            meta_index作成
-           並列処理化
     """
 
     @time_log
-    def import_raw_data(
-        self, data_to_import: str, index_to_import: str, thread_count=4
-    ) -> None:
+    def import_raw_data(self, data_to_import: str, index_to_import: str, thread_count=4) -> None:
         """ rawデータインポート処理（廃止予定） """
 
         mapping_file = "mappings/mapping_rawdata.json"
         setting_file = "mappings/setting_rawdata.json"
 
         ElasticManager.delete_exists_index(index=index_to_import)
-        ElasticManager.create_index(
-            index=index_to_import, mapping_file=mapping_file, setting_file=setting_file
-        )
+        ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
 
         ElasticManager.parallel_bulk(
             doc_generator=self.__doc_generator(data_to_import, index_to_import),
@@ -55,9 +52,7 @@ class DataImporter:
         )
 
     @time_log
-    def multi_process_import_rawdata(
-        self, rawdata_filename: str, index_to_import: str, num_of_process: int
-    ) -> None:
+    def multi_process_import_rawdata(self, rawdata_filename: str, index_to_import: str, num_of_process: int) -> None:
         """ rawdata csvのマルチプロセス読み込み
          本番ではバイナリファイル読み込みのため、本メソッドはテスト用途。
         """
@@ -66,9 +61,7 @@ class DataImporter:
 
         mapping_file = "mappings/mapping_rawdata.json"
         setting_file = "mappings/setting_rawdata.json"
-        ElasticManager.create_index(
-            index=index_to_import, mapping_file=mapping_file, setting_file=setting_file
-        )
+        ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
 
         CHUNK_SIZE: Final = 10_000_000
         cols = (
@@ -82,9 +75,7 @@ class DataImporter:
         samples = []  # rawdataのサンプルを貯めるリスト
         now: datetime = datetime.now(JST)
 
-        for loop_count, rawdata_df in enumerate(
-            pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)
-        ):
+        for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)):
             processed_count: int = loop_count * CHUNK_SIZE if loop_count != 0 else CHUNK_SIZE
             throughput_counter(processed_count, now)
 
@@ -100,10 +91,7 @@ class DataImporter:
                 samples.append(sample)
 
             ElasticManager.multi_process_bulk(
-                data=samples,
-                index_to_import=index_to_import,
-                num_of_process=num_of_process,
-                chunk_size=5000,
+                data=samples, index_to_import=index_to_import, num_of_process=num_of_process, chunk_size=5000,
             )
 
             samples = []
@@ -193,9 +181,7 @@ class DataImporter:
             # 分割されたものの中のデータ1件ずつ確認していく
             for i, rawdata in enumerate(rawdata_list):
                 # ショット開始判定
-                if (not is_shot_section) and (
-                    rawdata["displacement"] <= start_displacement
-                ):
+                if (not is_shot_section) and (rawdata["displacement"] <= start_displacement):
                     is_shot_section = True
                     is_target_of_cut_off = True
                     shot_number += 1
@@ -205,15 +191,11 @@ class DataImporter:
                     # N件遡ってshotsに加える。暫定で1000件。
                     # TODO: キャッシュ検討
                     previous_start_index = (
-                        rawdata["sequential_number"] - 1000
-                        if rawdata["sequential_number"] >= 1000
-                        else 0
+                        rawdata["sequential_number"] - 1000 if rawdata["sequential_number"] >= 1000 else 0
                     )
                     previous_end_index = rawdata["sequential_number"]
                     previous_rawdata_list = ElasticManager.single_process_range_scan(
-                        index=rawdata_index,
-                        start=previous_start_index,
-                        end=previous_end_index,
+                        index=rawdata_index, start=previous_start_index, end=previous_end_index,
                     )
 
                     for previous_rawdata in previous_rawdata_list:
@@ -271,10 +253,7 @@ class DataImporter:
                 if len(shots) >= 1_000_000:
                     dt_now = datetime.now(JST)
                     ElasticManager.multi_process_bulk(
-                        data=shots,
-                        index_to_import=shots_index,
-                        num_of_process=num_of_process,
-                        chunk_size=5000,
+                        data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
                     )
                     inserted_count += len(shots)
                     throughput_counter(len(shots), dt_now)
@@ -338,9 +317,7 @@ class DataImporter:
         start_time: datetime = datetime.now(JST)
 
         # CHUNK_SIZE分を一度に読み出し、全件読み終わるまで繰り返し
-        for loop_count, rawdata_df in enumerate(
-            pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)
-        ):
+        for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)):
             processed_count: int = loop_count * CHUNK_SIZE if loop_count != 0 else CHUNK_SIZE
             logger.info(f"Processing...{processed_count} samples")
 
@@ -357,9 +334,7 @@ class DataImporter:
             for row_number, rawdata in enumerate(rawdata_df.itertuples()):
                 # ショット開始判定
                 # TODO: メソッド化
-                if (not is_shot_section) and (
-                    rawdata.displacement <= start_displacement
-                ):
+                if (not is_shot_section) and (rawdata.displacement <= start_displacement):
                     is_shot_section = True
                     is_target_of_cut_off = True
                     shot_number += 1
@@ -399,9 +374,7 @@ class DataImporter:
 
                 # ショット区間の終了判定
                 # 0.1（暫定値）はノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
-                if is_shot_section and (
-                    rawdata.displacement > start_displacement + 0.1
-                ):
+                if is_shot_section and (rawdata.displacement > start_displacement + 0.1):
                     is_shot_section = False
 
                 # ショット未開始ならば後続は何もしない
@@ -436,19 +409,12 @@ class DataImporter:
 
                 # ショットデータが一定件数以上溜まったらElasticsearchに書き出す。
                 if len(shots) >= BUFFER_SIZE:
-                    logger.info(
-                        f"Shots Buffer is filled. Bulk insert {len(shots)} documents."
-                    )
+                    logger.info(f"Shots Buffer is filled. Bulk insert {len(shots)} documents.")
                     bulk_started: datetime = datetime.now(JST)
                     ElasticManager.multi_process_bulk(
-                        data=shots,
-                        index_to_import=shots_index,
-                        num_of_process=num_of_process,
-                        chunk_size=5000,
+                        data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
                     )
-                    logger.info(
-                        f"Bulk insert finished. {len(shots)} documents inserted."
-                    )
+                    logger.info(f"Bulk insert finished. {len(shots)} documents inserted.")
                     inserted_count += len(shots)
                     throughput_counter(len(shots), bulk_started)
                     shots = []

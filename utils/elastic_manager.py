@@ -8,8 +8,6 @@ from typing import Iterable, Iterator
 import multiprocessing
 from datetime import datetime, timezone, timedelta
 import logging
-import concurrent.futures
-from itertools import repeat
 
 # NOTE: Elasticsearchのlogger設定変更
 es_logger = logging.getLogger("elasticsearch")

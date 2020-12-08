@@ -36,5 +36,5 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
-*.log
+log
 testprogram.py
