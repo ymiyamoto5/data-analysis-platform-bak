@@ -1,4 +1,4 @@
-from typing import Final, Tuple
+from typing import Final
 from datetime import datetime
 import logging
 import logging.handlers
@@ -16,7 +16,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=MAX_LOG_SIZE, backupCount=5),
+        # logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=MAX_LOG_SIZE, backupCount=5),
         logging.StreamHandler(),
     ],
 )
@@ -299,14 +299,9 @@ class DataImporter:
         sequential_number_by_shot: int = 0
         shot_number: int = 0
         shots: list = []
+        total_processed_count = 0
 
-        cols: Tuple = (
-            "load01",
-            "load02",
-            "load03",
-            "load04",
-            "displacement",
-        )
+        cols = ("load01", "load02", "load03", "load04", "displacement")
 
         current_df_tail = pd.DataFrame(index=[], columns=cols)  # 現在のCHUNKの末尾N件を保持
 
@@ -314,6 +309,9 @@ class DataImporter:
         for rawdata_df in pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols):
             start_time: datetime = datetime.now()
 
+            logger.info(f"total_processed_count: {total_processed_count}")
+
+            total_processed_count += CHUNK_SIZE
             # chunk開始直後にショットを検知した場合、N件遡るための過去データを保持しておく必要がある。
             previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df, TAIL_SIZE)
 
@@ -356,6 +354,7 @@ class DataImporter:
                 if not is_target_of_cut_off:
                     continue
 
+                # ショット記録
                 sequential_number += 1
                 sequential_number_by_shot += 1
 
@@ -363,12 +362,10 @@ class DataImporter:
                 shot = self._create_shot_dict(sequential_number, sequential_number_by_shot, rawdata, shot_number)
                 shots.append(shot)
 
-                # ショットデータが一定件数以上溜まったらElasticsearchに書き出す。
+                # ショットデータが一定件数以上溜まったらElasticsearchに書き出す
                 if len(shots) >= BUFFER_SIZE:
                     logger.info(f"Shots Buffer is filled. (BUFFER_SIZE: {BUFFER_SIZE})")
-                    ElasticManager.multi_process_bulk(
-                        data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
-                    )
+                    ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, 5000)
                     shots = []
 
             # end of splitted rawdata loop
@@ -385,6 +382,7 @@ class DataImporter:
 
     def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame, n: int) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
+
         previous_df_tail = current_df_tail
         current_df_tail = df[-n:]
 
@@ -392,11 +390,13 @@ class DataImporter:
 
     def _has_started_shot(self, is_shot_section: bool, displacement: float, threshold: float) -> bool:
         """ ショット開始判定 """
+
         return (not is_shot_section) and (displacement <= threshold)
 
     def _has_finished_shot(self, is_shot_section: bool, displacement: float, threshold: float) -> bool:
         """ ショット終了判定 """
-        # MAGIN（暫定0.1）はノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
+
+        # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
         MARGIN: Final = 0.1
         return is_shot_section and (displacement > threshold + MARGIN)
 
@@ -404,17 +404,20 @@ class DataImporter:
         """ ショット開始点からN件遡ったデータを取得する """
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
+        # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
         if row_number >= N:
             # ショットを検知したところからN件遡ってデータを取得
             start_index: int = row_number - N
             end_index: int = row_number
-            preceding_df = rawdata_df[start_index:end_index]
+            preceding_df: DataFrame = rawdata_df[start_index:end_index]
 
         # 遡って取得するデータが現在のDataFrameに含まれない場合
+        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:800]
         else:
             # 含まれない範囲のデータを過去のDataFrameから取得
             start_index: int = row_number
-            preceding_df = previous_df_tail[start_index:]
+            end_index: int = N - row_number
+            preceding_df: DataFrame = pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
 
         return preceding_df
 
@@ -433,14 +436,16 @@ class DataImporter:
         }
 
 
-if __name__ == "__main__":
-    """ スクリプト直接実行時はテスト用インデックスにインポートする """
-
+def main():
     data_importer = DataImporter()
-    ## small data
+    # small data
     # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 7)
-    data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
+    # data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
 
-    ## big data
+    # big data
     # data_importer.multi_process_import_rawdata("data/No13_3000.csv", "rawdata-no13-3000", 8)
-    # data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+    data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+
+
+if __name__ == "__main__":
+    main()
