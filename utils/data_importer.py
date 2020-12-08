@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 import logging
 import logging.handlers
 import pandas as pd
+from pandas.core.frame import DataFrame
 
 from elastic_manager import ElasticManager
 from time_logger import time_log
@@ -112,7 +113,7 @@ class DataImporter:
         mapping_file = "mappings/mapping_shots.json"
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
-        self.__cut_out_shot_from_csv(
+        self._cut_out_shot_from_csv(
             rawdata_filename=rawdata_filename,
             shots_index=shots_index,
             start_displacement=start_displacement,
@@ -272,7 +273,7 @@ class DataImporter:
         print(f"{dt_now} cut_off finished. {len(shots)} documents inserted.")
 
     @time_log
-    def __cut_out_shot_from_csv(
+    def _cut_out_shot_from_csv(
         self,
         rawdata_filename: str,
         shots_index: str,
@@ -291,7 +292,8 @@ class DataImporter:
             num_of_process: 並列処理のプロセス数
         """
 
-        CHUNK_SIZE: Final = 1_000_000  # csvから一度に読み出す行数
+        # CHUNK_SIZE: Final = 1_000_000  # csvから一度に読み出す行数
+        CHUNK_SIZE: Final = 10_000  # csvから一度に読み出す行数
         TAIL_SIZE: Final = 1_000  # 末尾データ保持数（chunk跨ぎの際に利用）
         BUFFER_SIZE: Final = 1_000_000  # ショットをESに書き出す前のバッファサイズ
 
@@ -312,7 +314,6 @@ class DataImporter:
         )
 
         current_df_tail = pd.DataFrame(index=[], columns=cols)  # 現在のCHUNKの末尾N件を保持
-        previous_df_tail = pd.DataFrame(index=[], columns=cols)  # 1つ前のCHUNKの末尾N件を保持
 
         start_time: datetime = datetime.now(JST)
 
@@ -321,20 +322,14 @@ class DataImporter:
             processed_count: int = loop_count * CHUNK_SIZE if loop_count != 0 else CHUNK_SIZE
             logger.info(f"Processing...{processed_count} samples")
 
-            # chunk開始直後にショットを検知した場合、N件遡るためのデータを保持しておく必要がある。
-            # TODO: メソッド化
-            if loop_count == 0:
-                current_df_tail = rawdata_df[-TAIL_SIZE:]
-            else:
-                previous_df_tail = current_df_tail
-                current_df_tail = rawdata_df[-TAIL_SIZE:]
+            # chunk開始直後にショットを検知した場合、N件遡るための過去データを保持しておく必要がある。
+            previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df, TAIL_SIZE)
 
             # chunk内のDataFrameを1件ずつ走査し、ショット判別する
             # TODO: メソッド化
             for row_number, rawdata in enumerate(rawdata_df.itertuples()):
                 # ショット開始判定
-                # TODO: メソッド化
-                if (not is_shot_section) and (rawdata.displacement <= start_displacement):
+                if self._has_started_shot(is_shot_section, rawdata.displacement, start_displacement):
                     is_shot_section = True
                     is_target_of_cut_off = True
                     shot_number += 1
@@ -432,6 +427,17 @@ class DataImporter:
             inserted_count += len(shots)
 
         logger.info(f"Cut_off finished. {len(shots)} documents inserted.")
+
+    def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame, n: int) -> DataFrame:
+        """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
+        previous_df_tail = current_df_tail
+        current_df_tail = df[-n:]
+
+        return previous_df_tail, current_df_tail
+
+    def _has_started_shot(self, is_shot_section: bool, displacement: float, threshold: float) -> bool:
+        """ ショット開始判定 """
+        return (not is_shot_section) and (displacement <= threshold)
 
 
 if __name__ == "__main__":
