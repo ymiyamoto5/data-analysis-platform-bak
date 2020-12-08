@@ -1,5 +1,6 @@
 """ Elasticsearchへの各種処理を行うwrapperモジュール """
 
+from throughput_counter import throughput_counter
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 import pandas as pd
@@ -141,7 +142,7 @@ class ElasticManager:
 
         if cls.es.indices.exists(index=index):
             result = cls.es.indices.delete(index=index)
-            print(result)
+            logger.info(f"delete index '{index}' finished. result: {result}")
 
     @classmethod
     def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> None:
@@ -161,7 +162,7 @@ class ElasticManager:
                 body["mappings"] = d
 
         result = cls.es.indices.create(index=index, body=body)
-        print(result)
+        logger.info(f"create index '{index}' finished. result: {result}")
 
     @classmethod
     def parallel_bulk(cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500) -> None:
@@ -177,9 +178,10 @@ class ElasticManager:
     def multi_process_bulk(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
         """ マルチプロセスでbulk insertする。 """
 
-        dt_now = datetime.now(JST)
+        start: datetime = datetime.now()
+
         num_of_data = len(data)
-        print(f"{dt_now} data import start. data_count:{num_of_data}, process_count:{num_of_process}")
+        logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
 
         batch_size, mod = divmod(num_of_data, num_of_process)
 
@@ -198,6 +200,9 @@ class ElasticManager:
 
         for proc in procs:
             proc.join()
+
+        logger.info(f"Finished. {num_of_data} have been written.")
+        # throughput_counter(num_of_data, start)
 
     @classmethod
     def multi_process_bulk2(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
@@ -250,8 +255,6 @@ class ElasticManager:
         if len(actions) > 0:
             helpers.bulk(es, actions)
             inserted_count += len(actions)
-
-        # print(f"pid:{os.getpid()}, inserted {inserted_count} docs")
 
     @classmethod
     def single_process_range_scan(cls, index: str, start: int, end: int) -> Iterable:

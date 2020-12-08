@@ -1,5 +1,5 @@
 from typing import Final, Tuple
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 import logging
 import logging.handlers
 import pandas as pd
@@ -9,22 +9,18 @@ from elastic_manager import ElasticManager
 from time_logger import time_log
 from throughput_counter import throughput_counter
 
-LOG_FILE: Final = "log/data_importer.log"
+LOG_FILE: Final = "log/data_importer/data_importer.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.handlers.RotatingFileHandler("log/data_importer.log", maxBytes=MAX_LOG_SIZE, backupCount=7),
+        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=MAX_LOG_SIZE, backupCount=5),
         logging.StreamHandler(),
     ],
 )
 logger = logging.getLogger(__name__)
-
-
-# datetime取得時に日本時間を指定する
-JST = timezone(timedelta(hours=+9), "JST")
 
 
 class DataImporter:
@@ -74,7 +70,7 @@ class DataImporter:
         )
 
         samples = []  # rawdataのサンプルを貯めるリスト
-        now: datetime = datetime.now(JST)
+        now: datetime = datetime.now()
 
         for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)):
             processed_count: int = loop_count * CHUNK_SIZE if loop_count != 0 else CHUNK_SIZE
@@ -143,7 +139,8 @@ class DataImporter:
             list: ショットデータのリスト
         """
 
-        dt_now = datetime.now(JST)
+        # dt_now = datetime.now()
+        dt_now = datetime.now()
 
         rawdata_count = ElasticManager.count(index=rawdata_index)
         print(f"rawdata count: {rawdata_count}")
@@ -252,7 +249,7 @@ class DataImporter:
 
                 # ショットデータが一定件数（暫定で1,000,000）以上溜まったらElasticsearchに書き出す。
                 if len(shots) >= 1_000_000:
-                    dt_now = datetime.now(JST)
+                    dt_now = datetime.now()
                     ElasticManager.multi_process_bulk(
                         data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
                     )
@@ -269,7 +266,7 @@ class DataImporter:
             ElasticManager.bulk_insert(shots, shots_index)
             inserted_count += len(shots)
 
-        dt_now = datetime.now(JST)
+        dt_now = datetime.now()
         print(f"{dt_now} cut_off finished. {len(shots)} documents inserted.")
 
     @time_log
@@ -292,8 +289,7 @@ class DataImporter:
             num_of_process: 並列処理のプロセス数
         """
 
-        # CHUNK_SIZE: Final = 1_000_000  # csvから一度に読み出す行数
-        CHUNK_SIZE: Final = 10_000  # csvから一度に読み出す行数
+        CHUNK_SIZE: Final = 10_000_000  # csvから一度に読み出す行数
         TAIL_SIZE: Final = 1_000  # 末尾データ保持数（chunk跨ぎの際に利用）
         BUFFER_SIZE: Final = 1_000_000  # ショットをESに書き出す前のバッファサイズ
 
@@ -302,7 +298,6 @@ class DataImporter:
         sequential_number: int = 0
         sequential_number_by_shot: int = 0
         shot_number: int = 0
-        inserted_count: int = 0  # Thoughput算出用
         shots: list = []
 
         cols: Tuple = (
@@ -315,61 +310,39 @@ class DataImporter:
 
         current_df_tail = pd.DataFrame(index=[], columns=cols)  # 現在のCHUNKの末尾N件を保持
 
-        start_time: datetime = datetime.now(JST)
-
         # CHUNK_SIZE分を一度に読み出し、全件読み終わるまで繰り返し
-        for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)):
-            processed_count: int = loop_count * CHUNK_SIZE if loop_count != 0 else CHUNK_SIZE
-            logger.info(f"Processing...{processed_count} samples")
+        for rawdata_df in pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols):
+            start_time: datetime = datetime.now()
 
             # chunk開始直後にショットを検知した場合、N件遡るための過去データを保持しておく必要がある。
             previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df, TAIL_SIZE)
 
             # chunk内のDataFrameを1件ずつ走査し、ショット判別する
-            # TODO: メソッド化
             for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-                # ショット開始判定
+                # ショット開始
                 if self._has_started_shot(is_shot_section, rawdata.displacement, start_displacement):
                     is_shot_section = True
                     is_target_of_cut_off = True
                     shot_number += 1
                     sequential_number_by_shot = 0
-                    logger.info(f"Detect shot. Shot number is {shot_number}")
+                    logger.debug(f"Detect shot. Shot number is {shot_number}")
 
-                    # N件遡ってshotsに加える。
-                    # 遡って取得するデータが現在のDataFrameに含まれる場合
-                    if row_number >= TAIL_SIZE:
-                        # ショットを検知したところから1,000件遡ってデータを取得
-                        start_index: int = row_number - TAIL_SIZE
-                        end_index: int = row_number
-                        preceding_df = rawdata_df[start_index:end_index]
-
-                    # 遡って取得するデータが現在のDataFrameに含まれない場合
-                    else:
-                        # 含まれない範囲のデータを過去のDataFrameから取得
-                        start_index: int = row_number
-                        preceding_df = previous_df_tail[start_index:]
+                    # ショット開始点からN件遡ったDataFrameを取得する
+                    preceding_df: DataFrame = self._get_previous_df(
+                        row_number, TAIL_SIZE, rawdata_df, previous_df_tail
+                    )
 
                     # 遡るデータをショットに含める
                     for row in preceding_df.itertuples():
-                        shot = {
-                            "sequential_number": sequential_number,
-                            "sequential_number_by_shot": sequential_number_by_shot,
-                            "load01": row.load01,
-                            "load02": row.load02,
-                            "load03": row.load03,
-                            "load04": row.load04,
-                            "displacement": row.displacement,
-                            "shot_number": shot_number,
-                            "tags": [],
-                        }
+                        shot = self._create_shot_dict(sequential_number, sequential_number_by_shot, row, shot_number)
                         shots.append(shot)
                         sequential_number += 1
                         sequential_number_by_shot += 1
 
                 # ショット区間の終了判定
-                # 0.1（暫定値）はノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
-                if is_shot_section and (rawdata.displacement > start_displacement + 0.1):
+                # MAGIN（暫定0.1）はノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
+                MARGIN: Final = 0.1
+                if is_shot_section and (rawdata.displacement > start_displacement + MARGIN):
                     is_shot_section = False
 
                 # ショット未開始ならば後続は何もしない
@@ -389,44 +362,28 @@ class DataImporter:
                 sequential_number_by_shot += 1
 
                 # 切り出し対象としてリストに加える
-                shot = {
-                    "sequential_number": sequential_number,
-                    "sequential_number_by_shot": sequential_number_by_shot,
-                    "load01": float(format(rawdata.load01, ".3f")),
-                    "load02": float(format(rawdata.load02, ".3f")),
-                    "load03": float(format(rawdata.load03, ".3f")),
-                    "load04": float(format(rawdata.load04, ".3f")),
-                    "displacement": rawdata.displacement,
-                    "shot_number": shot_number,
-                    "tags": [],
-                }
+                shot = self._create_shot_dict(sequential_number, sequential_number_by_shot, rawdata, shot_number)
                 shots.append(shot)
 
                 # ショットデータが一定件数以上溜まったらElasticsearchに書き出す。
                 if len(shots) >= BUFFER_SIZE:
-                    logger.info(f"Shots Buffer is filled. Bulk insert {len(shots)} documents.")
-                    bulk_started: datetime = datetime.now(JST)
+                    logger.info(f"Shots Buffer is filled. (BUFFER_SIZE: {BUFFER_SIZE})")
                     ElasticManager.multi_process_bulk(
                         data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
                     )
-                    logger.info(f"Bulk insert finished. {len(shots)} documents inserted.")
-                    inserted_count += len(shots)
-                    throughput_counter(len(shots), bulk_started)
                     shots = []
 
             # end of splitted rawdata loop
-            throughput_counter(processed_count, start_time)
-
+            throughput_counter(CHUNK_SIZE, start_time)
         # end of all rawdata loop
 
         # Elasticsearchに書き出されていないデータが残っていれば書き出す
         if len(shots) > 0:
-            logger.info(f"Bulk insert {len(shots)} documents.")
+            logger.info(f"Insert surplus data. data_count: {len(shots)}")
             # 余りは少数のデータ、かつ分割プロセス数を下回る可能性があるので、シングルプロセスで実行
             ElasticManager.bulk_insert(shots, shots_index)
-            inserted_count += len(shots)
 
-        logger.info(f"Cut_off finished. {len(shots)} documents inserted.")
+        logger.info("Cut_off finished.")
 
     def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame, n: int) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
@@ -439,6 +396,38 @@ class DataImporter:
         """ ショット開始判定 """
         return (not is_shot_section) and (displacement <= threshold)
 
+    def _get_previous_df(self, row_number: int, N: int, rawdata_df: DataFrame, previous_df_tail: DataFrame):
+        """ ショット開始点からN件遡ったデータを取得する """
+
+        # 遡って取得するデータが現在のDataFrameに含まれる場合
+        if row_number >= N:
+            # ショットを検知したところからN件遡ってデータを取得
+            start_index: int = row_number - N
+            end_index: int = row_number
+            preceding_df = rawdata_df[start_index:end_index]
+
+        # 遡って取得するデータが現在のDataFrameに含まれない場合
+        else:
+            # 含まれない範囲のデータを過去のDataFrameから取得
+            start_index: int = row_number
+            preceding_df = previous_df_tail[start_index:]
+
+        return preceding_df
+
+    def _create_shot_dict(self, sequential_number: int, sequential_number_by_shot: int, row, shot_number: int):
+        """ 辞書形式のショットデータを作成する """
+        return {
+            "sequential_number": sequential_number,
+            "sequential_number_by_shot": sequential_number_by_shot,
+            "load01": row.load01,
+            "load02": row.load02,
+            "load03": row.load03,
+            "load04": row.load04,
+            "displacement": row.displacement,
+            "shot_number": shot_number,
+            "tags": [],
+        }
+
 
 if __name__ == "__main__":
     """ スクリプト直接実行時はテスト用インデックスにインポートする """
@@ -446,13 +435,10 @@ if __name__ == "__main__":
     data_importer = DataImporter()
     # small data
     # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 7)
-    data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
+    # data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
 
     # big data
     # data_importer.multi_process_import_rawdata(
     #     "data/No13_3000.csv", "rawdata-no13-3000", 8
     # )
-    # data_importer.import_data_by_shot(
-    #     "data/No13_3000.csv", "shots-no13-3000", 47, 34, 8
-    # )
-
+    data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
