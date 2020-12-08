@@ -9,6 +9,7 @@ from typing import Iterable, Iterator
 import multiprocessing
 from datetime import datetime, timezone, timedelta
 import logging
+from itertools import repeat
 
 # NOTE: Elasticsearchのlogger設定変更
 es_logger = logging.getLogger("elasticsearch")
@@ -178,10 +179,10 @@ class ElasticManager:
     def multi_process_bulk(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
         """ マルチプロセスでbulk insertする。 """
 
-        start: datetime = datetime.now()
+        # start: datetime = datetime.now()
 
         num_of_data = len(data)
-        logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
+        logger.debug(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
 
         batch_size, mod = divmod(num_of_data, num_of_process)
 
@@ -201,16 +202,20 @@ class ElasticManager:
         for proc in procs:
             proc.join()
 
-        logger.info(f"Finished. {num_of_data} have been written.")
+        logger.debug(f"Finished. {num_of_data} have been written.")
         # throughput_counter(num_of_data, start)
 
     @classmethod
     def multi_process_bulk2(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
         """ マルチプロセスでbulk insertする。検証版（廃止予定） """
 
-        dt_now = datetime.now(JST)
         num_of_data = len(data)
-        print(f"{dt_now} data import start. data_count:{num_of_data}, process_count:{num_of_process}")
+        logger.debug(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
+
+        with multiprocessing.Pool(num_of_process - 1) as p:
+            p.starmap_async(cls.bulk_insert, list(zip(data, repeat(index_to_import), repeat(chunk_size))))
+
+        logger.debug("write async...")
 
         # with concurrent.futures.ProcessPoolExecutor(
         #     max_workers=num_of_process

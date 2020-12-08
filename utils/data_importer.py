@@ -319,7 +319,7 @@ class DataImporter:
 
             # chunk内のDataFrameを1件ずつ走査し、ショット判別する
             for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-                # ショット開始
+                # ショット開始検知
                 if self._has_started_shot(is_shot_section, rawdata.displacement, start_displacement):
                     is_shot_section = True
                     is_target_of_cut_off = True
@@ -340,9 +340,7 @@ class DataImporter:
                         sequential_number_by_shot += 1
 
                 # ショット区間の終了判定
-                # MAGIN（暫定0.1）はノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
-                MARGIN: Final = 0.1
-                if is_shot_section and (rawdata.displacement > start_displacement + MARGIN):
+                if self._has_finished_shot(is_shot_section, rawdata.displacement, start_displacement):
                     is_shot_section = False
 
                 # ショット未開始ならば後続は何もしない
@@ -396,6 +394,12 @@ class DataImporter:
         """ ショット開始判定 """
         return (not is_shot_section) and (displacement <= threshold)
 
+    def _has_finished_shot(self, is_shot_section: bool, displacement: float, threshold: float) -> bool:
+        """ ショット終了判定 """
+        # MAGIN（暫定0.1）はノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
+        MARGIN: Final = 0.1
+        return is_shot_section and (displacement > threshold + MARGIN)
+
     def _get_previous_df(self, row_number: int, N: int, rawdata_df: DataFrame, previous_df_tail: DataFrame):
         """ ショット開始点からN件遡ったデータを取得する """
 
@@ -433,12 +437,10 @@ if __name__ == "__main__":
     """ スクリプト直接実行時はテスト用インデックスにインポートする """
 
     data_importer = DataImporter()
-    # small data
+    ## small data
     # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 7)
-    # data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
+    data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
 
-    # big data
-    # data_importer.multi_process_import_rawdata(
-    #     "data/No13_3000.csv", "rawdata-no13-3000", 8
-    # )
-    data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+    ## big data
+    # data_importer.multi_process_import_rawdata("data/No13_3000.csv", "rawdata-no13-3000", 8)
+    # data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
