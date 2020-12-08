@@ -32,6 +32,68 @@ class DataImporter:
            meta_index作成
     """
 
+    CHUNK_SIZE: Final = 100_000  # csvから一度に読み出す行数
+    TAIL_SIZE: Final = 1_000  # 末尾データ保持数（chunk跨ぎの際に利用）
+    BUFFER_SIZE: Final = 1_000_000  # ショットをESに書き出す前のバッファサイズ
+
+    def __init__(self):
+        self.__is_shot_section: bool = False  # ショット内か否かを判別する
+        self.__is_target_of_cut_off: bool = False  # ショットの内、切り出し対象かを判別する
+        self.__sequential_number: int = 0
+        self.__sequential_number_by_shot: int = 0
+        self.__shot_number: int = 0
+        self.__shots: list = []
+        self.__total_processed_count = 0
+
+    # テスト用の公開プロパティ
+    @property
+    def is_shot_section(self):
+        return self.__is_shot_section
+
+    @is_shot_section.setter
+    def is_shot_section(self, is_shot_section):
+        self.__is_shot_section = is_shot_section
+
+    @property
+    def is_target_of_cut_off(self):
+        return self.__is_target_of_cut_off
+
+    @is_target_of_cut_off.setter
+    def is_target_of_cut_off(self, is_target_of_cut_off):
+        self.__is_target_of_cut_off = is_target_of_cut_off
+
+    @property
+    def sequential_number(self):
+        return self.__sequential_number
+
+    @sequential_number.setter
+    def sequential_number(self, sequential_number):
+        self.__sequential_number = sequential_number
+
+    @property
+    def sequential_number_by_shot(self):
+        return self.__sequential_number_by_shot
+
+    @sequential_number_by_shot.setter
+    def sequential_number_by_shot(self, sequential_number_by_shot):
+        self.__sequential_number_by_shot = sequential_number_by_shot
+
+    @property
+    def shot_number(self):
+        return self.__sequential_number
+
+    @shot_number.setter
+    def shot_number(self, shot_number):
+        self.__shot_number = shot_number
+
+    @property
+    def total_processed_count(self):
+        return self.__total_processed_count
+
+    @total_processed_count.setter
+    def total_processed_count(self, total_processed_count):
+        self.__total_processed_count = total_processed_count
+
     @time_log
     def import_raw_data(self, data_to_import: str, index_to_import: str, thread_count=4) -> None:
         """ rawデータインポート処理（廃止予定） """
@@ -208,7 +270,7 @@ class DataImporter:
                             "shot_number": shot_number,
                             "tags": [],
                         }
-                        shots.append(shot)
+                        self.__shots.append(shot)
                         sequential_number += 1
                         sequential_number_by_shot += 1
 
@@ -245,29 +307,29 @@ class DataImporter:
                     "shot_number": shot_number,
                     "tags": [],
                 }
-                shots.append(shot)
+                self.__shots.append(shot)
 
                 # ショットデータが一定件数（暫定で1,000,000）以上溜まったらElasticsearchに書き出す。
-                if len(shots) >= 1_000_000:
+                if len(self.__shots) >= 1_000_000:
                     dt_now = datetime.now()
                     ElasticManager.multi_process_bulk(
-                        data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
+                        data=self.__shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
                     )
-                    inserted_count += len(shots)
-                    throughput_counter(len(shots), dt_now)
-                    shots = []
+                    inserted_count += len(self.__shots)
+                    throughput_counter(len(self.__shots), dt_now)
+                    self.__shots = []
 
             # end of splitted rawdata loop
         # end of all rawdata loop
 
         # Elasticsearchに書き出されていないデータが残っていれば書き出す
-        if len(shots) > 0:
+        if len(self.__shots) > 0:
             # 余りは少数のデータ、かつ分割プロセス数を下回る可能性があるので、シングルプロセスで実行
-            ElasticManager.bulk_insert(shots, shots_index)
-            inserted_count += len(shots)
+            ElasticManager.bulk_insert(self.__shots, shots_index)
+            inserted_count += len(self.__shots)
 
         dt_now = datetime.now()
-        print(f"{dt_now} cut_off finished. {len(shots)} documents inserted.")
+        print(f"{dt_now} cut_off finished. {len(self.__shots)} documents inserted.")
 
     @time_log
     def _cut_out_shot_from_csv(
@@ -289,124 +351,112 @@ class DataImporter:
             num_of_process: 並列処理のプロセス数
         """
 
-        CHUNK_SIZE: Final = 10_000_000  # csvから一度に読み出す行数
-        TAIL_SIZE: Final = 1_000  # 末尾データ保持数（chunk跨ぎの際に利用）
-        BUFFER_SIZE: Final = 1_000_000  # ショットをESに書き出す前のバッファサイズ
-
-        is_shot_section: bool = False  # ショット内か否かを判別する
-        is_target_of_cut_off: bool = False  # ショットの内、切り出し対象かを判別する
-        sequential_number: int = 0
-        sequential_number_by_shot: int = 0
-        shot_number: int = 0
-        shots: list = []
-        total_processed_count = 0
-
         cols = ("load01", "load02", "load03", "load04", "displacement")
 
         current_df_tail = pd.DataFrame(index=[], columns=cols)  # 現在のCHUNKの末尾N件を保持
 
         # CHUNK_SIZE分を一度に読み出し、全件読み終わるまで繰り返し
-        for rawdata_df in pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols):
+        for rawdata_df in pd.read_csv(rawdata_filename, chunksize=DataImporter.CHUNK_SIZE, names=cols):
             start_time: datetime = datetime.now()
 
-            logger.info(f"total_processed_count: {total_processed_count}")
+            logger.info(f"total_processed_count: {self.__total_processed_count}")
 
-            total_processed_count += CHUNK_SIZE
+            self.__total_processed_count += DataImporter.CHUNK_SIZE
             # chunk開始直後にショットを検知した場合、N件遡るための過去データを保持しておく必要がある。
-            previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df, TAIL_SIZE)
+            previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df)
 
             # chunk内のDataFrameを1件ずつ走査し、ショット判別する
             for row_number, rawdata in enumerate(rawdata_df.itertuples()):
                 # ショット開始検知
-                if self._has_started_shot(is_shot_section, rawdata.displacement, start_displacement):
-                    is_shot_section = True
-                    is_target_of_cut_off = True
-                    shot_number += 1
-                    sequential_number_by_shot = 0
-                    logger.debug(f"Detect shot. Shot number is {shot_number}")
+                if self._has_started_shot(rawdata.displacement, start_displacement):
+                    self.__is_shot_section = True
+                    self.__is_target_of_cut_off = True
+                    self.__shot_number += 1
+                    self.__sequential_number_by_shot = 0
+                    logger.debug(f"Detect shot. Shot number is {self.__shot_number}")
 
                     # ショット開始点からN件遡ったDataFrameを取得する
-                    preceding_df: DataFrame = self._get_previous_df(
-                        row_number, TAIL_SIZE, rawdata_df, previous_df_tail
-                    )
+                    preceding_df: DataFrame = self._get_previous_df(row_number, rawdata_df, previous_df_tail)
 
                     # 遡るデータをショットに含める
                     for row in preceding_df.itertuples():
-                        shot = self._create_shot_dict(sequential_number, sequential_number_by_shot, row, shot_number)
-                        shots.append(shot)
-                        sequential_number += 1
-                        sequential_number_by_shot += 1
+                        shot = self._create_shot_dict(row)
+                        self.__shots.append(shot)
+                        self.__sequential_number += 1
+                        self.__sequential_number_by_shot += 1
 
                 # ショット区間の終了判定
-                if self._has_finished_shot(is_shot_section, rawdata.displacement, start_displacement):
-                    is_shot_section = False
+                if self._has_finished_shot(rawdata.displacement, start_displacement):
+                    self.__is_shot_section = False
 
                 # ショット未開始ならば後続は何もしない
-                if not is_shot_section:
+                if not self.__is_shot_section:
                     continue
 
                 # 切り出し区間の終了判定
                 if rawdata.displacement <= end_displacement:
-                    is_target_of_cut_off = False
-                    sequential_number_by_shot = 0
+                    self.__is_target_of_cut_off = False
+                    self.__sequential_number_by_shot = 0
 
-                # 切り出し区間に到達していなければ後続は何もしない
-                if not is_target_of_cut_off:
+                # 切り出し区間でなければ後続は何もしない
+                if not self.__is_target_of_cut_off:
                     continue
 
                 # ショット記録
-                sequential_number += 1
-                sequential_number_by_shot += 1
-
+                self.__sequential_number += 1
+                self.__sequential_number_by_shot += 1
                 # 切り出し対象としてリストに加える
-                shot = self._create_shot_dict(sequential_number, sequential_number_by_shot, rawdata, shot_number)
-                shots.append(shot)
+                shot = self._create_shot_dict(rawdata)
+                self.__shots.append(shot)
 
                 # ショットデータが一定件数以上溜まったらElasticsearchに書き出す
-                if len(shots) >= BUFFER_SIZE:
-                    logger.info(f"Shots Buffer is filled. (BUFFER_SIZE: {BUFFER_SIZE})")
-                    ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, 5000)
-                    shots = []
+                if len(self.__shots) >= DataImporter.BUFFER_SIZE:
+                    logger.info(f"Shots Buffer is filled. (BUFFER_SIZE: {DataImporter.BUFFER_SIZE})")
+                    ElasticManager.multi_process_bulk(self.__shots, shots_index, num_of_process, 5000)
+                    self.__shots = []
 
             # end of splitted rawdata loop
-            throughput_counter(CHUNK_SIZE, start_time)
+            throughput_counter(DataImporter.CHUNK_SIZE, start_time)
         # end of all rawdata loop
 
         # Elasticsearchに書き出されていないデータが残っていれば書き出す
-        if len(shots) > 0:
-            logger.info(f"Insert surplus data. data_count: {len(shots)}")
+        if len(self.__shots) > 0:
+            logger.info(f"Insert surplus data. data_count: {len(self.__shots)}")
             # 余りは少数のデータ、かつ分割プロセス数を下回る可能性があるので、シングルプロセスで実行
-            ElasticManager.bulk_insert(shots, shots_index)
+            ElasticManager.bulk_insert(self.__shots, shots_index)
 
         logger.info("Cut_off finished.")
 
-    def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame, n: int) -> DataFrame:
+    def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
 
+        N = DataImporter.TAIL_SIZE
+
         previous_df_tail = current_df_tail
-        current_df_tail = df[-n:]
+        current_df_tail = df[-N:]
 
         return previous_df_tail, current_df_tail
 
-    def _has_started_shot(self, is_shot_section: bool, displacement: float, threshold: float) -> bool:
+    def _has_started_shot(self, displacement: float, threshold: float) -> bool:
         """ ショット開始判定 """
 
-        return (not is_shot_section) and (displacement <= threshold)
+        return (not self.__is_shot_section) and (displacement <= threshold)
 
-    def _has_finished_shot(self, is_shot_section: bool, displacement: float, threshold: float) -> bool:
+    def _has_finished_shot(self, displacement: float, threshold: float) -> bool:
         """ ショット終了判定 """
 
         # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
         MARGIN: Final = 0.1
-        return is_shot_section and (displacement > threshold + MARGIN)
+        return self.__is_shot_section and (displacement > threshold + MARGIN)
 
-    def _get_previous_df(self, row_number: int, N: int, rawdata_df: DataFrame, previous_df_tail: DataFrame):
+    def _get_previous_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame):
         """ ショット開始点からN件遡ったデータを取得する """
+
+        N = DataImporter.TAIL_SIZE
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
         # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
         if row_number >= N:
-            # ショットを検知したところからN件遡ってデータを取得
             start_index: int = row_number - N
             end_index: int = row_number
             preceding_df: DataFrame = rawdata_df[start_index:end_index]
@@ -414,24 +464,23 @@ class DataImporter:
         # 遡って取得するデータが現在のDataFrameに含まれない場合
         # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:800]
         else:
-            # 含まれない範囲のデータを過去のDataFrameから取得
             start_index: int = row_number
             end_index: int = N - row_number
             preceding_df: DataFrame = pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
 
         return preceding_df
 
-    def _create_shot_dict(self, sequential_number: int, sequential_number_by_shot: int, row, shot_number: int):
+    def _create_shot_dict(self, row):
         """ 辞書形式のショットデータを作成する """
         return {
-            "sequential_number": sequential_number,
-            "sequential_number_by_shot": sequential_number_by_shot,
+            "sequential_number": self.__sequential_number,
+            "sequential_number_by_shot": self.__sequential_number_by_shot,
             "load01": row.load01,
             "load02": row.load02,
             "load03": row.load03,
             "load04": row.load04,
             "displacement": row.displacement,
-            "shot_number": shot_number,
+            "shot_number": self.__shot_number,
             "tags": [],
         }
 
