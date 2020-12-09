@@ -1,6 +1,7 @@
 from typing import Final
 from datetime import datetime
 from pandas.core.frame import DataFrame
+import cProfile
 
 import logging
 import logging.handlers
@@ -92,12 +93,15 @@ class DataImporter:
             processed_count: int = loop_count * CHUNKSIZE
             throughput_counter(processed_count, dt_now)
 
-            # chunk開始直後にショットを検知した場合、N件遡るためのデータを保持しておく必要がある。
+            # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る
+            # そのためのデータを保持しておく必要がある。
             if loop_count == 0:
-                current_df_tail = rawdata_df[-TAIL_SIZE:]
+                current_df_tail = rawdata_df[-TAIL_SIZE:].copy()
             else:
-                previous_df_tail = current_df_tail
-                current_df_tail = rawdata_df[-TAIL_SIZE:]
+                previous_df_tail = current_df_tail.copy()
+                current_df_tail = rawdata_df[-TAIL_SIZE:].copy()
+
+            # previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df, TAIL_SIZE)
 
             for row_number, rawdata in enumerate(rawdata_df.itertuples()):
                 # ショット開始判定
@@ -107,20 +111,9 @@ class DataImporter:
                     shot_number += 1
                     sequential_number_by_shot = 0
 
-                    # N件遡ってshotsに加える。
-                    # 遡って取得するデータが現在のDataFrameに含まれる場合
-                    if row_number >= TAIL_SIZE:
-                        # ショットを検知したところから1,000件遡ってデータを取得
-                        start_index: int = row_number - TAIL_SIZE
-                        end_index: int = row_number
-                        preceding_df = rawdata_df[start_index:end_index]
-
-                    # 遡って取得するデータが現在のDataFrameに含まれない場合
-                    else:
-                        # 含まれない範囲のデータを過去のDataFrameから取得
-                        start_index: int = row_number
-                        end_index: int = TAIL_SIZE - row_number
-                        preceding_df = pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
+                    preceding_df: DataFrame = self._get_previous_df(
+                        row_number, rawdata_df, previous_df_tail, TAIL_SIZE
+                    )
 
                     for d in preceding_df.itertuples():
                         shot = {
@@ -182,11 +175,41 @@ class DataImporter:
         dt_now = datetime.now()
         logger.info("Cut_off finished.")
 
+    def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame, N: int) -> DataFrame:
+        """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
+
+        previous_df_tail = current_df_tail.copy()
+        current_df_tail = df[-N:].copy()
+
+        return previous_df_tail, current_df_tail
+
+    def _get_previous_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame, N: int):
+        """ ショット開始点からN件遡ったデータを取得する """
+
+        # 遡って取得するデータが現在のDataFrameに含まれる場合
+        # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
+        if row_number >= N:
+            start_index: int = row_number - N
+            end_index: int = row_number
+            preceding_df: DataFrame = rawdata_df[start_index:end_index]
+
+        # 遡って取得するデータが現在のDataFrameに含まれない場合
+        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:800]
+        else:
+            start_index: int = row_number
+            end_index: int = N - row_number
+            preceding_df: DataFrame = pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
+
+        return preceding_df
+
 
 def main():
     data_importer = DataImporter()
-    data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+    data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
+    # data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
 
 
 if __name__ == "__main__":
+    # cProfile.run("main()")
     main()
+

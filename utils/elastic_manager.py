@@ -174,7 +174,7 @@ class ElasticManager:
         """ マルチプロセスでbulk insertする。 """
 
         num_of_data = len(data)
-        # logger.debug(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
+        # logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
 
         batch_size, mod = divmod(num_of_data, num_of_process)
 
@@ -194,7 +194,7 @@ class ElasticManager:
         for proc in procs:
             proc.join()
 
-        # logger.debug(f"Finished. {num_of_data} have been written.")
+        # logger.info(f"Finished. {num_of_data} have been written.")
 
     @classmethod
     def bulk_insert(cls, data_list: list, index_to_import: str, chunk_size: int = 500) -> None:
