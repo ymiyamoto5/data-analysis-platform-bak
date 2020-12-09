@@ -33,7 +33,6 @@ class DataImporter:
      TODO:
            from elasticsearch(生データ) to elasticsearch処理追加
            meta_index作成
-           並列処理化
     """
 
     @time_log
@@ -141,7 +140,6 @@ class DataImporter:
         sequential_number: int = 0
         sequential_number_by_shot: int = 0
         shot_number: int = 0
-        inserted_count: int = 0  # Thoughput算出用
         shots: list = []
 
         CHUNKSIZE: Final = 10_000_000
@@ -204,8 +202,9 @@ class DataImporter:
                         sequential_number_by_shot += 1
 
                 # ショット区間の終了判定
-                # 0.1（暫定値）はノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
-                if is_shot_section and (rawdata.displacement > start_displacement + 0.1):
+
+                MARGIN: Final = 0.1  # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
+                if is_shot_section and (rawdata.displacement > start_displacement + MARGIN):
                     is_shot_section = False
 
                 # ショット未開始ならば後続は何もしない
@@ -240,10 +239,7 @@ class DataImporter:
 
             # Elasticsearchに書き出し
             if len(shots) > 0:
-                dt_import_started = datetime.now()
                 ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, 5000)
-                inserted_count += len(shots)
-                self.__throughput_counter(len(shots), dt_import_started)
                 shots = []
         # end of all rawdata loop
 
