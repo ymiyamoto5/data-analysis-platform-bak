@@ -34,67 +34,6 @@ class DataImporter:
     """
 
     @time_log
-    def import_raw_data(self, data_to_import: str, index_to_import: str, thread_count=4) -> None:
-        """ rawデータインポート処理 """
-
-        mapping_file = "notebooks/mapping_rawdata.json"
-        # mapping_file = None
-        setting_file = "notebooks/setting_rawdata.json"
-        # setting_file = None
-
-        ElasticManager.delete_exists_index(index=index_to_import)
-        ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
-
-        ElasticManager.parallel_bulk(
-            doc_generator=self.__doc_generator(data_to_import, index_to_import),
-            thread_count=thread_count,
-            chunk_size=5000,
-        )
-
-    @time_log
-    def multi_process_import_rawdata(self, rawdata_filename: str, index_to_import: str, num_of_process: int) -> None:
-        """ rawdata csvのマルチプロセス読み込み
-         本番ではバイナリファイル読み込みのため、本メソッドはテスト用途。
-        """
-
-        ElasticManager.delete_exists_index(index=index_to_import)
-
-        mapping_file = "notebooks/mapping_rawdata.json"
-        setting_file = "notebooks/setting_rawdata.json"
-        ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
-
-        now: datetime = datetime.now()
-
-        CHUNK_SIZE: Final = 10_000_000
-        cols = (
-            "load01",
-            "load02",
-            "load03",
-            "load04",
-            "displacement",
-        )
-
-        samples = []
-        for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)):
-            processed_count: int = loop_count * CHUNK_SIZE
-            throughput_counter(processed_count, now)
-
-            for row in rawdata_df.itertuples():
-                sample = {
-                    "sequential_number": row.Index,
-                    "load01": row.load01,
-                    "load02": row.load02,
-                    "load03": row.load03,
-                    "load04": row.load04,
-                    "displacement": row.displacement,
-                }
-                samples.append(sample)
-
-            ElasticManager.multi_process_bulk(
-                data=samples, index_to_import=index_to_import, num_of_process=num_of_process, chunk_size=5000,
-            )
-
-    @time_log
     def import_data_by_shot(
         self,
         rawdata_filename: str,
@@ -245,12 +184,10 @@ class DataImporter:
         logger.info("Cut_off finished.")
 
 
-if __name__ == "__main__":
-    """ スクリプト直接実行時はテスト用インデックスにインポートする """
-    formatter = "%(levelname)s : %(asctime)s : %(message)s"
-    logging.basicConfig(level=logging.INFO, format=formatter)
-
+def main():
     data_importer = DataImporter()
-    # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
-    # data_importer.import_data_by_shot("notebooks/No13(80spm).CSV", "shots-no13", 47, 34, 8)
     data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+
+
+if __name__ == "__main__":
+    main()
