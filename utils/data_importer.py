@@ -1,7 +1,5 @@
-from typing import Iterator, Final
-from csv import DictReader
-from datetime import datetime, timezone, timedelta
-import itertools
+from typing import Final
+from datetime import datetime
 from pandas.core.frame import DataFrame
 
 import logging
@@ -79,7 +77,7 @@ class DataImporter:
         samples = []
         for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNK_SIZE, names=cols)):
             processed_count: int = loop_count * CHUNK_SIZE
-            self.__throughput_counter(processed_count, now)
+            throughput_counter(processed_count, now)
 
             for row in rawdata_df.itertuples():
                 sample = {
@@ -153,7 +151,7 @@ class DataImporter:
 
         for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNKSIZE, names=cols)):
             processed_count: int = loop_count * CHUNKSIZE
-            self.__throughput_counter(processed_count, dt_now)
+            throughput_counter(processed_count, dt_now)
 
             # chunk開始直後にショットを検知した場合、N件遡るためのデータを保持しておく必要がある。
             if loop_count == 0:
@@ -245,26 +243,6 @@ class DataImporter:
 
         dt_now = datetime.now()
         logger.info("Cut_off finished.")
-
-    def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
-        """ スループットの表示 """
-
-        dt_now = datetime.now()
-        dt_delta = dt_now - dt_old
-        total_sec = dt_delta.total_seconds()
-        throughput = processed_count / total_sec
-
-        print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
-
-    # def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
-    #     """ スループットの表示 """
-
-    #     dt_now = datetime.now()
-    #     dt_delta = dt_now - dt_old
-    #     total_sec = dt_delta.total_seconds()
-    #     throughput = processed_count / total_sec
-
-    #     logger.info(f"Thoughput: {throughput} doc/sec, processed_count: {processed_count}")
 
 
 if __name__ == "__main__":
