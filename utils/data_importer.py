@@ -139,7 +139,6 @@ class DataImporter:
                         sequential_number_by_shot += 1
 
                 # ショット区間の終了判定
-
                 MARGIN: Final = 0.1  # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
                 if is_shot_section and (rawdata.displacement > start_displacement + MARGIN):
                     is_shot_section = False
@@ -174,12 +173,12 @@ class DataImporter:
                 }
                 shots.append(shot)
 
-            # Elasticsearchに書き出し
+            # 1チャンク分処理が終わったら、Elasticsearchに書き出し
             if len(shots) > 0:
                 ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, 5000)
                 shots = []
-        # end of all rawdata loop
 
+        # end of all rawdata loop
         dt_now = datetime.now()
         logger.info("Cut_off finished.")
 
