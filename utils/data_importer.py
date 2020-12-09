@@ -1,20 +1,29 @@
-from typing import Iterator, Final, Tuple
+from typing import Iterator, Final
 from csv import DictReader
 from datetime import datetime, timezone, timedelta
 import itertools
-
 from pandas.core.frame import DataFrame
-from elastic_manager import ElasticManager
-from time_logger import time_log
+
 import logging
+import logging.handlers
 import pandas as pd
 
-logger = logging.getLogger(__name__)
-handler = logging.FileHandler("log/data_importer.log")
-logger.addHandler(handler)
+from elastic_manager import ElasticManager
+from time_logger import time_log
+from throughput_counter import throughput_counter
 
-# datetime取得時に日本時間を指定する
-JST = timezone(timedelta(hours=+9), "JST")
+LOG_FILE: Final = "log/data_importer/data_importer.log"
+MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=MAX_LOG_SIZE, backupCount=5),
+        logging.StreamHandler(),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 
 class DataImporter:
@@ -57,7 +66,7 @@ class DataImporter:
         setting_file = "notebooks/setting_rawdata.json"
         ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
 
-        now: datetime = datetime.now(JST)
+        now: datetime = datetime.now()
 
         CHUNK_SIZE: Final = 10_000_000
         cols = (
@@ -105,7 +114,7 @@ class DataImporter:
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
         self._cut_out_shot_from_csv(
-            rawdata_filename, shots_index, start_displacement, end_displacement, num_of_process,
+            rawdata_filename, shots_index, start_displacement, end_displacement, num_of_process
         )
 
     @time_log
@@ -125,8 +134,6 @@ class DataImporter:
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
 
-        Returns:
-            list: ショットデータのリスト
         """
 
         is_shot_section: bool = False  # ショット内か否かを判別する
@@ -140,17 +147,11 @@ class DataImporter:
         CHUNKSIZE: Final = 10_000_000
         TAIL_SIZE: Final = 1_000
 
-        cols = (
-            "load01",
-            "load02",
-            "load03",
-            "load04",
-            "displacement",
-        )
+        cols = ("load01", "load02", "load03", "load04", "displacement")
         current_df_tail: DataFrame = pd.DataFrame(index=[], columns=cols)
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=cols)
 
-        dt_now = datetime.now(JST)
+        dt_now = datetime.now()
 
         for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNKSIZE, names=cols)):
             processed_count: int = loop_count * CHUNKSIZE
@@ -171,7 +172,7 @@ class DataImporter:
                     shot_number += 1
                     sequential_number_by_shot = 0
 
-                    # N件遡ってshotsに加える。暫定で1,000件。
+                    # N件遡ってshotsに加える。
                     # 遡って取得するデータが現在のDataFrameに含まれる場合
                     if row_number >= TAIL_SIZE:
                         # ショットを検知したところから1,000件遡ってデータを取得
@@ -237,37 +238,37 @@ class DataImporter:
                 }
                 shots.append(shot)
 
-                # ショットデータが一定件数（暫定で1,000,000）以上溜まったらElasticsearchに書き出す。
-                if len(shots) >= 1_000_000:
-                    dt_import_started = datetime.now(JST)
-                    ElasticManager.multi_process_bulk(
-                        data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000,
-                    )
-                    inserted_count += len(shots)
-                    self.__throughput_counter(len(shots), dt_import_started)
-                    shots = []
-
-            # end of splitted rawdata loop
+            # Elasticsearchに書き出し
+            if len(shots) > 0:
+                dt_import_started = datetime.now()
+                ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, 5000)
+                inserted_count += len(shots)
+                self.__throughput_counter(len(shots), dt_import_started)
+                shots = []
         # end of all rawdata loop
 
-        # Elasticsearchに書き出されていないデータが残っていれば書き出す
-        if len(shots) > 0:
-            # 余りは少数のデータ、かつ分割プロセス数を下回る可能性があるので、シングルプロセスで実行
-            ElasticManager.bulk_insert(shots, shots_index)
-            inserted_count += len(shots)
-
-        dt_now = datetime.now(JST)
-        print(f"{dt_now} cut_off finished. {len(shots)} documents inserted.")
+        dt_now = datetime.now()
+        logger.info("Cut_off finished.")
 
     def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
         """ スループットの表示 """
 
-        dt_now = datetime.now(JST)
+        dt_now = datetime.now()
         dt_delta = dt_now - dt_old
         total_sec = dt_delta.total_seconds()
         throughput = processed_count / total_sec
 
         print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
+
+    # def __throughput_counter(self, processed_count: int, dt_old: datetime) -> None:
+    #     """ スループットの表示 """
+
+    #     dt_now = datetime.now()
+    #     dt_delta = dt_now - dt_old
+    #     total_sec = dt_delta.total_seconds()
+    #     throughput = processed_count / total_sec
+
+    #     logger.info(f"Thoughput: {throughput} doc/sec, processed_count: {processed_count}")
 
 
 if __name__ == "__main__":

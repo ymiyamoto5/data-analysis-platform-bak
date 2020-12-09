@@ -6,19 +6,13 @@ import pandas as pd
 import json
 from typing import Iterable, Iterator
 import multiprocessing
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 import logging
 
 es_logger = logging.getLogger("elasticsearch")
 es_logger.setLevel(logging.WARNING)
 
-# logger = logging.getLogger(__name__)
-# handler = logging.FileHandler("log/elastic_manager.log")
-# logger.addHandler(handler)
-# logger.setLevel(logging.DEBUG)
-
-# datetime取得時に日本時間を指定する
-JST = timezone(timedelta(hours=+9), "JST")
+logger = logging.getLogger(__name__)
 
 
 class ElasticManager:
@@ -143,7 +137,7 @@ class ElasticManager:
 
         if cls.es.indices.exists(index=index):
             result = cls.es.indices.delete(index=index)
-            print(result)
+            logger.info(f"delete index '{index}' finished. result: {result}")
 
     @classmethod
     def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> None:
@@ -163,7 +157,7 @@ class ElasticManager:
                 body["mappings"] = d
 
         result = cls.es.indices.create(index=index, body=body)
-        print(result)
+        logger.info(f"create index '{index}' finished. result: {result}")
 
     @classmethod
     def parallel_bulk(cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500) -> None:
@@ -179,9 +173,8 @@ class ElasticManager:
     def multi_process_bulk(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
         """ マルチプロセスでbulk insertする。 """
 
-        dt_now = datetime.now(JST)
         num_of_data = len(data)
-        print(f"{dt_now} data import start. data_count:{num_of_data}, process_count:{num_of_process}")
+        # logger.debug(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
 
         batch_size, mod = divmod(num_of_data, num_of_process)
 
@@ -201,6 +194,8 @@ class ElasticManager:
         for proc in procs:
             proc.join()
 
+        # logger.debug(f"Finished. {num_of_data} have been written.")
+
     @classmethod
     def bulk_insert(cls, data_list: list, index_to_import: str, chunk_size: int = 500) -> None:
         """
@@ -213,8 +208,6 @@ class ElasticManager:
         es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000,)
 
         inserted_count: int = 0
-        dt_now = datetime.now(JST)
-
         actions: list = []
 
         for data in data_list:
@@ -223,16 +216,12 @@ class ElasticManager:
             if len(actions) >= chunk_size:
                 helpers.bulk(es, actions)
                 inserted_count += len(actions)
-                # TODO: 標準出力がプロセス間で取り合いになるせいか、改行がされない場合がある。
-                # throughput_counter(inserted_count, dt_now)
                 actions = []
 
         # 残っているデータを登録
         if len(actions) > 0:
             helpers.bulk(es, actions)
             inserted_count += len(actions)
-
-        # print(f"pid:{os.getpid()}, inserted {inserted_count} docs")
 
     @classmethod
     def single_process_range_scan(cls, index: str, start: int, end: int) -> Iterable:
@@ -256,7 +245,7 @@ class ElasticManager:
     ) -> list:
         """ マルチプロセスでbulk insertする。 """
 
-        dt_now = datetime.now(JST)
+        dt_now = datetime.now()
         print(f"{dt_now} data read start. data_count:{num_of_data}, process_count:{num_of_process}")
 
         batch_size, mod = divmod(num_of_data, num_of_process)
@@ -288,7 +277,7 @@ class ElasticManager:
             for data in return_dict[proc]:
                 result.append(data)
 
-        dt_now = datetime.now(JST)
+        dt_now = datetime.now()
         print(f"{dt_now} Got {len(result)} documents.")
 
         return result
@@ -329,19 +318,6 @@ class ElasticManager:
         #             f.write(str(x) + '\n')
 
         return_dict[proc_num] = data
-
-
-def throughput_counter(processed_count: int, dt_old: datetime) -> None:
-    """ スループットの表示
-     TODO: 外部モジュール化検討
-    """
-
-    dt_now = datetime.now(JST)
-    dt_delta = dt_now - dt_old
-    total_sec = dt_delta.total_seconds()
-    throughput = processed_count / total_sec
-
-    print(f"{dt_now}, processed_count: {processed_count}, throughput: {throughput}")
 
 
 if __name__ == "__main__":
