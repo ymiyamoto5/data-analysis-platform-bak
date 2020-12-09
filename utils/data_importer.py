@@ -160,7 +160,7 @@ class DataImporter:
                 self.__sequential_number_by_shot = 0
 
                 # 荷重立ち上がり点取りこぼし防止
-                preceding_df: DataFrame = self._get_previous_df(row_number, rawdata_df, previous_df_tail)
+                preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
 
                 for d in preceding_df.itertuples():
                     shot = {
@@ -225,7 +225,7 @@ class DataImporter:
 
         return previous_df_tail, current_df_tail
 
-    def _get_previous_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
+    def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
 
         N = DataImporter.TAIL_SIZE
@@ -235,16 +235,18 @@ class DataImporter:
         if row_number >= N:
             start_index: int = row_number - N
             end_index: int = row_number
-            preceding_df: DataFrame = rawdata_df[start_index:end_index]
+            return rawdata_df[start_index:end_index]
+
+        # 初めのchunkでショットを検出し、遡って取得するデータが現在のDataFrameに含まれない場合
+        # ex) N=1000で、初めのchunkにおいてrow_number=100でショットを検知した場合、rawdata_df[:100]を取得
+        if len(previous_df_tail) == 0:
+            return rawdata_df[:row_number]
 
         # 遡って取得するデータが現在のDataFrameに含まれない場合
-        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:800]を取得
-        else:
-            start_index: int = row_number
-            end_index: int = N - row_number
-            preceding_df: DataFrame = pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
-
-        return preceding_df
+        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
+        start_index: int = row_number
+        end_index: int = row_number
+        return pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
 
 
 def main():
