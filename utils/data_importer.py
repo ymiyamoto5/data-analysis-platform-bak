@@ -1,7 +1,6 @@
 from typing import Final
 from datetime import datetime
 from pandas.core.frame import DataFrame
-import cProfile
 
 import logging
 import logging.handlers
@@ -28,10 +27,6 @@ logger = logging.getLogger(__name__)
 class DataImporter:
     """
      データインポートクラス
-
-     TODO:
-           from elasticsearch(生データ) to elasticsearch処理追加
-           meta_index作成
     """
 
     @time_log
@@ -41,21 +36,19 @@ class DataImporter:
         shots_index: str,
         start_displacement: float,
         end_displacement: float,
-        num_of_process: int = 4,
+        num_of_process: int = 8,
     ):
         """ shotデータインポート処理 """
 
-        mapping_file = "mappings/mapping_shots.json"
-
         ElasticManager.delete_exists_index(index=shots_index)
+
+        mapping_file = "mappings/mapping_shots.json"
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
-        self._cut_out_shot_from_csv(
-            rawdata_filename, shots_index, start_displacement, end_displacement, num_of_process
-        )
+        self._main_process(rawdata_filename, shots_index, start_displacement, end_displacement, num_of_process)
 
     @time_log
-    def _cut_out_shot_from_csv(
+    def _main_process(
         self,
         rawdata_filename: str,
         shots_index: str,
@@ -64,13 +57,15 @@ class DataImporter:
         num_of_process: int,
     ) -> None:
         """
+        csvファイルを一定行数に読み取り、ショット切り出しおよび保存を行う。
         ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。
 
         Args:
             rawdata_filename: 生データcsvのファイル名
+            shots_index: 切り出したショットの格納先となるElasticsearchのインデックス名
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
-
+            num_of_process: 並列処理のプロセス数
         """
 
         is_shot_section: bool = False  # ショット内か否かを判別する
@@ -85,24 +80,20 @@ class DataImporter:
 
         cols = ("load01", "load02", "load03", "load04", "displacement")
         current_df_tail: DataFrame = pd.DataFrame(index=[], columns=cols)
-        previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=cols)
 
         dt_now = datetime.now()
 
         for loop_count, rawdata_df in enumerate(pd.read_csv(rawdata_filename, chunksize=CHUNKSIZE, names=cols)):
-            processed_count: int = loop_count * CHUNKSIZE
-            throughput_counter(processed_count, dt_now)
+            # スループット表示
+            if loop_count != 0:
+                processed_count: int = loop_count * CHUNKSIZE
+                throughput_counter(processed_count, dt_now)
 
-            # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る
-            # そのためのデータを保持しておく必要がある。
-            if loop_count == 0:
-                current_df_tail = rawdata_df[-TAIL_SIZE:].copy()
-            else:
-                previous_df_tail = current_df_tail.copy()
-                current_df_tail = rawdata_df[-TAIL_SIZE:].copy()
+            # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。
+            # そのためのデータをprevious_df_tail（1つ前のchunkの末尾）とcurrent_df_tail（現在のchunkの末尾）に保持しておく。
+            previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df, TAIL_SIZE)
 
-            # previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df, TAIL_SIZE)
-
+            # chunk内のサンプルをイテレートしてショット切り出し
             for row_number, rawdata in enumerate(rawdata_df.itertuples()):
                 # ショット開始判定
                 if (not is_shot_section) and (rawdata.displacement <= start_displacement):
@@ -132,7 +123,7 @@ class DataImporter:
                         sequential_number_by_shot += 1
 
                 # ショット区間の終了判定
-                MARGIN: Final = 0.1  # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのバッファ
+                MARGIN: Final = 0.1  # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
                 if is_shot_section and (rawdata.displacement > start_displacement + MARGIN):
                     is_shot_section = False
 
@@ -166,7 +157,7 @@ class DataImporter:
                 }
                 shots.append(shot)
 
-            # 1チャンク分処理が終わったら、Elasticsearchに書き出し
+            # 1chunk分の処理が終わったら、検出したショットをElasticsearchに書き出し
             if len(shots) > 0:
                 ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, 5000)
                 shots = []
@@ -183,7 +174,9 @@ class DataImporter:
 
         return previous_df_tail, current_df_tail
 
-    def _get_previous_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame, N: int):
+    def _get_previous_df(
+        self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame, N: int
+    ) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
@@ -194,7 +187,7 @@ class DataImporter:
             preceding_df: DataFrame = rawdata_df[start_index:end_index]
 
         # 遡って取得するデータが現在のDataFrameに含まれない場合
-        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:800]
+        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:800]を取得
         else:
             start_index: int = row_number
             end_index: int = N - row_number
@@ -205,11 +198,9 @@ class DataImporter:
 
 def main():
     data_importer = DataImporter()
-    data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
-    # data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+    # data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
+    data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
 
 
 if __name__ == "__main__":
-    # cProfile.run("main()")
     main()
-
