@@ -9,12 +9,21 @@
 <body>
     <div>
         <h1>データ収集 管理画面</h1>
+        {% if not is_started %}
         <form action="{{ url_for('start') }}" method=post>
-            <button type="button" class="btn btn-primary">生データ送信開始</button>
+            <button type="submit" class="btn btn-primary">生データ送信開始</button>
         </form>
         <div>
             <label>測定していません</label>
         </div>
+        {% else %}
+        <form action="{{ url_for('start') }}" method=post>
+            <button type="button" class="btn btn-primary">測定開始(再開)</button>
+        </form>
+        <div>
+            <label>中断中です（生データ送信中）</label>
+        </div>
+        {% endif %}
         <div>
             <form action="{{ url_for('record_tag')}}" method=post>
                 <input type="text" name="tag">
