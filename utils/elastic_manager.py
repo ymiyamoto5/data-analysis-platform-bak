@@ -243,7 +243,7 @@ class ElasticManager:
     def multi_process_range_scan(
         cls, index: list, num_of_data: int, start: int, end: int, num_of_process: int = 4,
     ) -> list:
-        """ マルチプロセスでbulk insertする。 """
+        """ マルチプロセスでrange scanする。 """
 
         dt_now = datetime.now()
         print(f"{dt_now} data read start. data_count:{num_of_data}, process_count:{num_of_process}")
@@ -260,7 +260,7 @@ class ElasticManager:
             end_index: int = start_index + batch_size
             # 最後のプロセスには余り分を含めたデータを処理させる
             if (i == num_of_process - 1) and (mod != 0):
-                end_index = end
+                end_index = end + 1
 
             proc = multiprocessing.Process(
                 target=cls.range_scan, args=(index, i, start_index, end_index, return_dict),

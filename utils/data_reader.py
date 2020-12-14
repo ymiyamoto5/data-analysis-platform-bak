@@ -1,58 +1,65 @@
+from typing import Final
+from datetime import datetime
+from pandas.core.frame import DataFrame
+
+import logging
+import logging.handlers
+import pandas as pd
+
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
+from elastic_manager import ElasticManager
+from time_logger import time_log
+from throughput_counter import throughput_counter
 
 
 class DataReader:
-
     def __init__(self):
-        self.es = Elasticsearch(hosts="localhost:9200", http_auth=(
-            'elastic', 'P@ssw0rd12345'), timeout=50000)
+        self.es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
 
     def read(self, src_index: str, shot_number: int = 1) -> list:
-        ''' 特定ショットのデータを取得し、連番の昇順にソートして返却する '''
-        query = {
-            "query": {
-                "term": {
-                    "shot_number": {
-                        "value": shot_number
-                    }
-                }
-            }
-        }
+        """ 特定ショットのデータを取得し、連番の昇順にソートして返却する """
+        query = {"query": {"term": {"shot_number": {"value": shot_number}}}}
 
         result = helpers.scan(client=self.es, index=src_index, query=query)
-        shot_data = [x['_source'] for x in result]
-        shot_data.sort(key=lambda x: x['sequential_number'])
+        shot_data = [x["_source"] for x in result]
+        shot_data.sort(key=lambda x: x["sequential_number"])
 
         print(f"取得データ数：{len(shot_data)}")
 
         return shot_data
 
     def read_raw_data(self, src_index: str) -> list:
-        ''' 生データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する '''
-        query = {
-            "sort": {
-                "sequential_number": {
-                    "order": "asc"
-                }
-            }
-        }
+        """ 生データを全件取得し、連番の昇順ソート結果を返すジェネレータを生成する """
+        query = {}
 
-        raw_data = helpers.scan(client=self.es, index=src_index, query=query, preserve_order=True)
+        result = helpers.scan(client=self.es, index=src_index, query=query)
+        raw_data = [x["_source"] for x in result]
+        raw_data.sort(key=lambda x: x["sequential_number"])
 
-        # result = helpers.scan(client=self.es, index=src_index, query=query)
-        # raw_data = [x['_source'] for x in result]
-        # raw_data.sort(key=lambda x: x['sequential_number'])
-
-        # print(f"取得データ数：{len(raw_data)}")
+        print(f"取得データ数：{len(raw_data)}")
 
         return raw_data
 
+    @time_log
+    def read_shots_data(self, src_index: str, num_of_process: int = 8) -> list:
 
-if __name__ == '__main__':
+        num_of_data: int = ElasticManager.count(src_index)
+
+        shots_data = ElasticManager.multi_process_range_scan(src_index, num_of_data, 0, num_of_data, num_of_process)
+
+        print(f"取得データ数: {len(shots_data)}")
+
+
+def main():
     data_reader = DataReader()
     # data_reader.read("shots", 1)
-    data_reader.read_raw_data("raw_data")
+    # data_reader.read_raw_data("raw_data")
+    data_reader.read_shots_data("shots-no13-3000")
+
+
+if __name__ == "__main__":
+    main()
 
 # #scroll版(scanがscrollのwrapperになっているので、特に使わなくてよいと思われる。)
 # snapshot_time = "1m"
