@@ -38,4 +38,4 @@ pnpm-debug.log*
 
 log
 testprogram.py
-profile.txt
+data_collect_manager/node_modules
