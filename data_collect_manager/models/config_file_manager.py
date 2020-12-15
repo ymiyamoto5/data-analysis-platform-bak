@@ -1,5 +1,6 @@
 import os
 import json
+from data_collect_manager import app
 
 
 class ConfigFileManager:
@@ -12,6 +13,7 @@ class ConfigFileManager:
 
     def is_running(self) -> bool:
         """ configファイルがあればステータスを確認し、runningであればTrueを返す """
+
         if os.path.isfile(self.file_path):
             with open(self.file_path, "r") as f:
                 try:
@@ -23,6 +25,7 @@ class ConfigFileManager:
 
     def init_config(self, params: dict = None) -> bool:
         """ configファイルがすでにあればupdate、なければcreate """
+
         if os.path.isfile(self.file_path):
             is_success: bool = self.update(params)
             return is_success
@@ -31,6 +34,10 @@ class ConfigFileManager:
             return is_success
 
     def create(self) -> bool:
+        """ configファイル作成 """
+
+        app.logger.info("Creating config file.")
+
         initial_config: dict = {
             "sequence_number": 1,
             "gateway_result": 0,
@@ -50,10 +57,14 @@ class ConfigFileManager:
         config_json_str: str = self.__create_json_str(initial_config)
         is_success: bool = self.__dump_config_file(config_json_str)
 
+        app.logger.info("Finished creating config file.")
+
         return is_success
 
     def update(self, params) -> bool:
         """ 既存のconfigファイルを更新 """
+
+        app.logger.info("Updating config file.")
 
         with open(self.file_path, "r") as f:
             try:
@@ -69,9 +80,13 @@ class ConfigFileManager:
         new_config_json: str = self.__create_json_str(new_config)
         is_success: bool = self.__dump_config_file(new_config_json)
 
+        app.logger.info("Finished updating config file.")
+
         return is_success
 
     def __create_json_str(self, config) -> str:
+        """ JSONフォーマットのstringに変換 """
+
         return json.dumps(config, indent=2, ensure_ascii=False)
 
     def __dump_config_file(self, config) -> bool:
@@ -88,6 +103,6 @@ class ConfigFileManager:
         try:
             os.rename(tmp_file_path, file_path)
             return True
-        except OSError:
-            print("OS Error...")
+        except OSError as e:
+            app.logger.error(str(e))
             return False

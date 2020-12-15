@@ -1,3 +1,15 @@
-ELASTICSEARCH_HOSTS = "localhost:9200"
-ELASTICSEARCH_USER_NAME = "elastic"
-ELASTICSEARCH_PASSWORD = "P@ssw0rd12345"
+class Config(object):
+    DEBUG = False
+    TESTING = False
+
+
+class Development(Config):
+    DEBUG = True
+
+
+class Testing(Config):
+    TESTING = True
+
+
+class Production(Config):
+    pass
