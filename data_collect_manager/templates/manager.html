@@ -3,7 +3,6 @@
 
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
-
 </head>
 
 <body>
@@ -19,18 +18,29 @@
         <div>
             <p id="status-message">測定していません</p>
         </div>
-        {% else %}
-        <button id="collect" class="btn btn-primary">測定開始(再開)</button>
-        <div>
-            <p id="status-message">中断中です（生データ送信中）</p>
-        </div>
-        {% endif %}
         <div>
             <form action="{{ url_for('record_tag')}}" method=post>
                 <input id="tag" type="text" disabled>
                 <button id="record-tag" disabled>事象記録</button>
             </form>
         </div>
+        {% else %}
+        <div>
+            <button id="setup" class="btn btn-primary" style="display: none;">生データ送信開始</button>
+            <button id="start" class="btn btn-primary" style="display: none;">測定開始(再開)</button>
+            <button id="stop" class="btn btn-danger">測定終了</button>
+            <button id="pause" class="btn btn-primary">中断</button>
+        </div>
+        <div>
+            <p id="status-message">中断中です（生データ送信中）</p>
+        </div>
+        <div>
+            <form action="{{ url_for('record_tag')}}" method=post>
+                <input id="tag" type="text">
+                <button id="record-tag">事象記録</button>
+            </form>
+        </div>
+        {% endif %}
     </div>
     <script src="{{ url_for('static', filename='bootstrap/js/jquery-3.5.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='bootstrap/js/popper.min.js') }}"></script>

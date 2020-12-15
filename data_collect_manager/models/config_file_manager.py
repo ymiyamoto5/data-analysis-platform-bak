@@ -3,8 +3,12 @@ import json
 
 
 class ConfigFileManager:
-    def __init__(self, file_path):
-        self.file_path = file_path
+    def __init__(self, file_path: str = None):
+        if file_path is None:
+            # TODO: ファイルパス設定
+            self.file_path = "/home/ymiyamoto5/shared/conf_Gw-00.cnf"
+        else:
+            self.file_path = file_path
 
     def is_running(self) -> bool:
         """ configファイルがあればステータスを確認し、runningであればTrueを返す """
@@ -16,6 +20,15 @@ class ConfigFileManager:
                     return False
             is_started: bool = current_config["status"] == "running"
             return is_started
+
+    def init_config(self, params: dict = None) -> bool:
+        """ configファイルがすでにあればupdate、なければcreate """
+        if os.path.isfile(self.file_path):
+            is_success: bool = self.update(params)
+            return is_success
+        else:
+            is_success: bool = self.create()
+            return is_success
 
     def create(self) -> bool:
         initial_config: dict = {
@@ -35,38 +48,46 @@ class ConfigFileManager:
         }
 
         config_json_str: str = self.__create_json_str(initial_config)
+        is_success: bool = self.__dump_config_file(config_json_str)
+
+        return is_success
+
+    def update(self, params) -> bool:
+        """ 既存のconfigファイルを更新 """
+
+        with open(self.file_path, "r") as f:
+            try:
+                current_config = json.load(f)
+            except json.decoder.JSONDecodeError:
+                return False
+
+        new_config: dict = current_config
+
+        new_config["sequence_number"] = int(current_config["sequence_number"]) + 1
+        new_config["status"] = params["status"]
+
+        new_config_json: str = self.__create_json_str(new_config)
+        is_success: bool = self.__dump_config_file(new_config_json)
+
+        return is_success
+
+    def __create_json_str(self, config) -> str:
+        return json.dumps(config, indent=2, ensure_ascii=False)
+
+    def __dump_config_file(self, config) -> bool:
+        """ configファイルに吐き出す """
 
         path_ext_pair = os.path.splitext(self.file_path)
         tmp_file_path = path_ext_pair[0] + ".tmp"
 
         # ファイル生成途中で読み込まれないよう、tmpファイルに出力した後にリネーム
         with open(tmp_file_path, mode="w") as f:
-            f.write(config_json_str)
+            f.write(config)
 
-        file_path = path_ext_pair[0] + ".json"
-        os.rename(tmp_file_path, file_path)
-
-    def update(self, update_params):
-        with open(self.file_path, "r") as f:
-            current_config = json.load(f)
-
-        new_config: dict = {
-            "sequence_number": int(current_config["sequence_number"]) + 1,
-            "gateway_result": update_params["gateway_result"],
-            "status": update_params["status"],
-            "gateway_id": update_params["gateway_id"],
-            "Log_Level": update_params["Log_Level"],
-        }
-        # "ADC_0": {
-        #     "handler_id": "AD-00",
-        #     "handler_type": "USB_1608HS",
-        #     "ADC_SerialNum": "01234567",
-        #     "sampling_frequency": 100000,
-        #     "sampling_chnum": 5,
-        #     "filewrite_time": 3600,
-        # },
-
-        self.__create_json_str(new_config)
-
-    def __create_json_str(self, config) -> str:
-        return json.dumps(config, indent=2, ensure_ascii=False)
+        file_path = path_ext_pair[0] + ".cnf"
+        try:
+            os.rename(tmp_file_path, file_path)
+            return True
+        except OSError:
+            print("OS Error...")
+            return False
