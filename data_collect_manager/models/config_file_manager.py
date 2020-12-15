@@ -6,8 +6,16 @@ class ConfigFileManager:
     def __init__(self, file_path):
         self.file_path = file_path
 
-    def check_file_exists(self) -> bool:
-        return os.path.isfile(self.file_path)
+    def is_running(self) -> bool:
+        """ configファイルがあればステータスを確認し、runningであればTrueを返す """
+        if os.path.isfile(self.file_path):
+            with open(self.file_path, "r") as f:
+                try:
+                    current_config = json.load(f)
+                except json.decoder.JSONDecodeError:
+                    return False
+            is_started: bool = current_config["status"] == "running"
+            return is_started
 
     def create(self) -> bool:
         initial_config: dict = {
@@ -28,14 +36,14 @@ class ConfigFileManager:
 
         config_json_str: str = self.__create_json_str(initial_config)
 
-        file_dir = "~/shared/"
-        tmp_file_path = file_dir + self.file_path + ".tmp"
+        path_ext_pair = os.path.splitext(self.file_path)
+        tmp_file_path = path_ext_pair[0] + ".tmp"
 
         # ファイル生成途中で読み込まれないよう、tmpファイルに出力した後にリネーム
         with open(tmp_file_path, mode="w") as f:
             f.write(config_json_str)
 
-        file_path = file_dir + self.file_path + ".json"
+        file_path = path_ext_pair[0] + ".json"
         os.rename(tmp_file_path, file_path)
 
     def update(self, update_params):
