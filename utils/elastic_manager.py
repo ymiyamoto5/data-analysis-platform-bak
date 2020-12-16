@@ -36,7 +36,10 @@ class ElasticManager:
             ).splitlines()
         else:
             indices = cls.es.cat.indices(
-                index=["rawdata-*", "shots-*", "meta-*"], v=True, h=["index", "docs.count", "store.size"], bytes="kb",
+                index=["rawdata-*", "shots-*", "meta-*", "analyzed-*"],
+                v=True,
+                h=["index", "docs.count", "store.size"],
+                bytes="kb",
             ).splitlines()
 
         indices_list = [x.split() for x in indices]
@@ -140,8 +143,8 @@ class ElasticManager:
             logger.info(f"delete index '{index}' finished. result: {result}")
 
     @classmethod
-    def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> None:
-        """ インデックスを作成する。documentは1度に30,000件まで読める設定とする。 """
+    def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> bool:
+        """ インデックスを作成する """
 
         # body = {"settings": {"index": {"max_result_window": 30000}}}
         body = {}
@@ -157,7 +160,13 @@ class ElasticManager:
                 body["mappings"] = d
 
         result = cls.es.indices.create(index=index, body=body)
+
+        if not result["acknowledged"]:
+            logger.error(f"create index '{index}' failed. result: {result}")
+            return False
+
         logger.info(f"create index '{index}' finished. result: {result}")
+        return True
 
     @classmethod
     def parallel_bulk(cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500) -> None:

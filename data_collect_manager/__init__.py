@@ -29,4 +29,5 @@ config_type = {
 
 app.config.from_object(config_type.get(os.getenv("FLASK_APP_ENV", "production")))
 
+
 import data_collect_manager.views

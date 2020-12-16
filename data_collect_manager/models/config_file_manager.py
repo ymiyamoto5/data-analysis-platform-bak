@@ -1,5 +1,7 @@
 import os
 import json
+from typing import Tuple
+
 from data_collect_manager import app
 
 
@@ -27,13 +29,13 @@ class ConfigFileManager:
         """ configファイルがすでにあればupdate、なければcreate """
 
         if os.path.isfile(self.file_path):
-            is_success: bool = self.update(params)
-            return is_success
+            successful: bool = self.update(params)
+            return successful
         else:
-            is_success: bool = self.create()
-            return is_success
+            successful: bool = self.create(params)
+            return successful
 
-    def create(self) -> bool:
+    def create(self, params: dict) -> bool:
         """ configファイル作成 """
 
         app.logger.info("Creating config file.")
@@ -41,7 +43,7 @@ class ConfigFileManager:
         initial_config: dict = {
             "sequence_number": 1,
             "gateway_result": 0,
-            "status": "running",
+            "status": params["status"],
             "gateway_id": "Gw-00",
             "Log_Level": 5,
             "ADC_0": {
@@ -52,37 +54,48 @@ class ConfigFileManager:
                 "sampling_chnum": 5,
                 "filewrite_time": 3600,
             },
+            "meta_index": params["meta_index"],
         }
 
         config_json_str: str = self.__create_json_str(initial_config)
-        is_success: bool = self.__dump_config_file(config_json_str)
+        successful: bool = self.__dump_config_file(config_json_str)
+
+        if not successful:
+            return successful
 
         app.logger.info("Finished creating config file.")
 
-        return is_success
+        return successful
 
     def update(self, params) -> bool:
         """ 既存のconfigファイルを更新 """
 
         app.logger.info("Updating config file.")
 
-        with open(self.file_path, "r") as f:
-            try:
-                current_config = json.load(f)
-            except json.decoder.JSONDecodeError:
-                return False
+        new_config: dict = self.read_config()
 
-        new_config: dict = current_config
+        # TODO: すべてのパラメータを再設定
+        new_config["sequence_number"] = int(new_config["sequence_number"]) + 1
 
-        new_config["sequence_number"] = int(current_config["sequence_number"]) + 1
-        new_config["status"] = params["status"]
+        if "status" in params:
+            new_config["status"] = params["status"]
+        if "meta_index" in params:
+            new_config["meta_index"] = params["meta_index"]
 
         new_config_json: str = self.__create_json_str(new_config)
-        is_success: bool = self.__dump_config_file(new_config_json)
+        successful: bool = self.__dump_config_file(new_config_json)
 
         app.logger.info("Finished updating config file.")
 
-        return is_success
+        return successful
+
+    def read_config(self):
+        with open(self.file_path, "r") as f:
+            try:
+                current_config: dict = json.load(f)
+                return current_config
+            except json.decoder.JSONDecodeError as e:
+                app.logger.error(str(e))
 
     def __create_json_str(self, config) -> str:
         """ JSONフォーマットのstringに変換 """
@@ -92,14 +105,14 @@ class ConfigFileManager:
     def __dump_config_file(self, config) -> bool:
         """ configファイルに吐き出す """
 
-        path_ext_pair = os.path.splitext(self.file_path)
-        tmp_file_path = path_ext_pair[0] + ".tmp"
+        path_ext_pair: Tuple = os.path.splitext(self.file_path)
+        tmp_file_path: str = path_ext_pair[0] + ".tmp"
 
         # ファイル生成途中で読み込まれないよう、tmpファイルに出力した後にリネーム
         with open(tmp_file_path, mode="w") as f:
             f.write(config)
 
-        file_path = path_ext_pair[0] + ".cnf"
+        file_path: str = path_ext_pair[0] + ".cnf"
         try:
             os.rename(tmp_file_path, file_path)
             return True

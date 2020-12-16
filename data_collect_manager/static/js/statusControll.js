@@ -8,7 +8,7 @@ $("#setup").click(function () {
         const json_str = JSON.stringify(data)
         const json = JSON.parse(json_str)
 
-        if (!json.is_success) {
+        if (!json.successful) {
             console.log("setup failed.")
         }
 
@@ -31,7 +31,7 @@ $("#start").click(function () {
         const json_str = JSON.stringify(data)
         const json = JSON.parse(json_str)
 
-        if (!json.is_success) {
+        if (!json.successful) {
             console.log("start failed.")
         }
 
@@ -57,7 +57,7 @@ $("#stop").click(function () {
         const json_str = JSON.stringify(data)
         const json = JSON.parse(json_str)
 
-        if (!json.is_success) {
+        if (!json.successful) {
             console.log("stop failed.")
         }
 
@@ -83,7 +83,7 @@ $("#pause").click(function () {
         const json_str = JSON.stringify(data)
         const json = JSON.parse(json_str)
 
-        if (!json.is_success) {
+        if (!json.successful) {
             console.log("pause failed.")
         }
 

@@ -1,6 +1,12 @@
-from data_collect_manager.models.config_file_manager import ConfigFileManager
-from flask import render_template
+from flask import render_template, Response
+from datetime import datetime, timezone, timedelta
+import json
+
 from data_collect_manager import app
+from data_collect_manager.models.metadata_recorder import MetaDataRecorder
+from data_collect_manager.models.config_file_manager import ConfigFileManager
+
+JST = timezone(timedelta(hours=+9), "JST")
 
 
 @app.route("/")
@@ -18,40 +24,65 @@ def show_manager():
 def setup():
     """ 段取り開始(rawdata取得開始) """
 
-    params = {"status": "running"}
+    # meta_index名をconfigに保持する
+    now: datetime = datetime.now(JST)
+    meta_index: str = "metadata-" + now.strftime("%Y%m%d%H%M%S")
+
+    params = {"status": "running", "meta_index": meta_index}
 
     cfm = ConfigFileManager()
-    is_success: bool = cfm.init_config(params)
+    # configファイルがなければ作成、あれば更新
+    successful: bool = cfm.init_config(params)
 
-    return {"is_success": is_success}
+    if not successful:
+        return Response(response=json.dumps(successful), status=500)
+
+    return Response(response=json.dumps(successful), status=200)
 
 
 @app.route("/start", methods=["POST"])
 def start():
     """ 開始(metadataに開始時間を記録) """
 
-    return {"is_success": True}
+    cfm = ConfigFileManager()
+    config: dict = cfm.read_config()
+
+    mdr = MetaDataRecorder()
+    successful: bool = mdr.create_index(config["meta_index"])
+
+    if not successful:
+        return Response(response=json.dumps(successful), status=500)
+
+    return Response(response=json.dumps(successful), status=200)
 
 
 @app.route("/pause", methods=["POST"])
 def pause():
     """ 中断(metadataに中断の開始時間を記録) """
 
-    return {"is_success": True}
+    return {"successful": True}
 
 
 @app.route("/resume", methods=["POST"])
 def resume():
     """ 再開(metadataに再開した時間を記録) """
 
-    return {"is_success": True}
+    return {"successful": True}
 
 
 @app.route("/stop", methods=["POST"])
 def stop():
     """ 停止(rawdata取得終了) """
 
-    return {"is_success": True}
+    params = {"status": "stop"}
+
+    cfm = ConfigFileManager()
+    successful: bool = cfm.update(params)
+
+    if not successful:
+        return Response(response=json.dumps(successful), status=500)
+
+    return Response(response=json.dumps(successful), status=200)
 
 
 @app.route("/record_tag")
