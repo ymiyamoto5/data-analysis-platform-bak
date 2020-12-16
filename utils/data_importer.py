@@ -252,7 +252,8 @@ class DataImporter:
 def main():
     data_importer = DataImporter()
     # data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
-    data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+    # data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+    data_importer.import_data_by_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
 
 
 if __name__ == "__main__":

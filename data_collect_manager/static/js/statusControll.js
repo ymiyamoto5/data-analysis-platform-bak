@@ -5,33 +5,27 @@ $("#setup").click(function () {
         type: 'POST',
         dataType: 'json'
     }).done(function (data) {
-        const json_str = JSON.stringify(data)
-        const json = JSON.parse(json_str)
-
-        if (!json.successful) {
+        if (!data.successful) {
             console.log("setup failed.")
         }
 
         $("#setup").hide()
         $("#start").show()
-        $("#status-message").text("中断中です（生データ送信中）")
+        $("#status-message").text("開始待ちです（生データ送信中）")
 
     }).fail(function (data) {
         console.log("setup failed.")
     })
 });
 
-// [測定開始(再開)] ボタン押下時の動作
+// [測定開始] ボタン押下時の動作
 $("#start").click(function () {
     $.ajax({
         url: '/start',
         type: 'POST',
         dataType: 'json'
     }).done(function (data) {
-        const json_str = JSON.stringify(data)
-        const json = JSON.parse(json_str)
-
-        if (!json.successful) {
+        if (!data.successful) {
             console.log("start failed.")
         }
 
@@ -54,10 +48,7 @@ $("#stop").click(function () {
         type: 'POST',
         dataType: 'json'
     }).done(function (data) {
-        const json_str = JSON.stringify(data)
-        const json = JSON.parse(json_str)
-
-        if (!json.successful) {
+        if (!data.successful) {
             console.log("stop failed.")
         }
 
@@ -80,21 +71,41 @@ $("#pause").click(function () {
         type: 'POST',
         dataType: 'json'
     }).done(function (data) {
-        const json_str = JSON.stringify(data)
-        const json = JSON.parse(json_str)
-
-        if (!json.successful) {
+        if (!data.successful) {
             console.log("pause failed.")
         }
 
         $("#pause").hide()
         $("#stop").hide()
-        $("#start").show()
+        $("#resume").show()
         $("#status-message").text("中断中です（生データ送信中）")
-        $("#tag").prop('disabled', false)
-        $("#record-tag").prop('disabled', false)
+        $("#tag").prop('disabled', true)
+        $("#record-tag").prop('disabled', true)
 
     }).fail(function (data) {
         console.log("pause failed.")
+    })
+});
+
+// [再開] ボタン押下時の動作
+$("#resume").click(function () {
+    $.ajax({
+        url: '/resume',
+        type: 'POST',
+        dataType: 'json'
+    }).done(function (data) {
+        if (!data.successful) {
+            console.log("resume failed.")
+        }
+
+        $("#resume").hide()
+        $("#pause").show()
+        $("#stop").show()
+        $("#status-message").text("測定中です")
+        $("#tag").prop('disabled', true)
+        $("#record-tag").prop('disabled', true)
+
+    }).fail(function (data) {
+        console.log("resume failed.")
     })
 });

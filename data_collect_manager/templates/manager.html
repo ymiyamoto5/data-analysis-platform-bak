@@ -4,21 +4,23 @@
 <head>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manager.css') }}">
 </head>
 
 <body>
-    <div>
-        <h1>データ収集 管理画面</h1>
+    <div id="main">
+        <div class="title-label">
+            データ収集 管理画面
+        </div>
         {% if not is_started %}
-        <div>
+        <div class="buttons">
             <button id="setup" class="btn btn-primary">生データ送信開始</button>
-            <button id="start" class="btn btn-primary" style="display: none;">測定開始(再開)</button>
+            <button id="start" class="btn btn-success" style="display: none;">測定開始</button>
             <button id="stop" class="btn btn-danger" style="display: none;">測定終了</button>
-            <button id="pause" class="btn btn-primary" style="display: none;">中断</button>
+            <button id="pause" class="btn btn-warning" style="display: none;">中断</button>
+            <button id="resume" class="btn btn-info" style="display: none;">再開</button>
         </div>
-        <div>
-            <p id="status-message">測定していません</p>
-        </div>
+        <p id="status-message">測定していません</p>
         <div>
             <form action="{{ url_for('record_tag')}}" method=post>
                 <input id="tag" type="text" disabled>
@@ -26,23 +28,22 @@
             </form>
         </div>
         {% else %}
-        <div>
+        <div class="buttons">
             <button id="setup" class="btn btn-primary" style="display: none;">生データ送信開始</button>
-            <button id="start" class="btn btn-primary" style="display: none;">測定開始(再開)</button>
+            <button id="start" class="btn btn-success" style="display: none;">測定開始(再開)</button>
             <button id="stop" class="btn btn-danger">測定終了</button>
-            <button id="pause" class="btn btn-primary">中断</button>
+            <button id="pause" class="btn btn-warning">中断</button>
+            <button id="resume" class="btn btn-info" style="display: none;">再開</button>
         </div>
-        <div>
-            <p id="status-message">中断中です（生データ送信中）</p>
-        </div>
+        <p id="status-message">中断中です（生データ送信中）</p>
         <div>
             <form action="{{ url_for('record_tag')}}" method=post>
                 <input id="tag" type="text">
                 <button id="record-tag">事象記録</button>
             </form>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
     <script src="{{ url_for('static', filename='bootstrap/js/jquery-3.5.1.min.js') }}"></script>
     <script src="{{ url_for('static', filename='bootstrap/js/popper.min.js') }}"></script>
     <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"></script>

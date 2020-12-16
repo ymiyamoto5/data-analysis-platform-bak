@@ -30,8 +30,8 @@ class DataRecorder:
 
         ElasticManager.delete_exists_index(index=index_to_import)
 
-        mapping_file = "notebooks/mapping_rawdata.json"
-        setting_file = "notebooks/setting_rawdata.json"
+        mapping_file = "mappings/mapping_rawdata.json"
+        setting_file = "mappings/setting_rawdata.json"
         ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
 
         ElasticManager.parallel_bulk(
@@ -48,8 +48,8 @@ class DataRecorder:
 
         ElasticManager.delete_exists_index(index=index_to_import)
 
-        mapping_file = "notebooks/mapping_rawdata.json"
-        setting_file = "notebooks/setting_rawdata.json"
+        mapping_file = "mappings/mapping_rawdata.json"
+        setting_file = "mappings/setting_rawdata.json"
         ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
 
         now: datetime = datetime.now()
@@ -80,7 +80,8 @@ class DataRecorder:
 
 def main():
     data_importer = DataRecorder()
-    data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
+    # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
+    data_importer.multi_process_import_rawdata("data/No04.CSV", "rawdata-no04", 8)
 
 
 if __name__ == "__main__":

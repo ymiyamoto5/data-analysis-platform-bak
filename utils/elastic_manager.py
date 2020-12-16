@@ -1,6 +1,7 @@
 """ Elasticsearchへの各種処理を行うwrapperモジュール """
 
 from elasticsearch import Elasticsearch
+from elasticsearch import exceptions
 from elasticsearch import helpers
 import pandas as pd
 import json
@@ -128,7 +129,7 @@ class ElasticManager:
             message = "エラー：インデックスを指定してください。"
             return False, message
 
-        if not cls.es.indices.exists(index=index):
+        if not cls.exists_index(index):
             message = f"エラー：{index}が存在しません。"
             return False, message
 
@@ -138,13 +139,17 @@ class ElasticManager:
     def delete_exists_index(cls, index: str) -> None:
         """ 既存のインデックスを削除する """
 
-        if cls.es.indices.exists(index=index):
+        if cls.exists_index(index):
             result = cls.es.indices.delete(index=index)
             logger.info(f"delete index '{index}' finished. result: {result}")
 
     @classmethod
+    def exists_index(cls, index: str):
+        return cls.es.indices.exists(index=index)
+
+    @classmethod
     def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> bool:
-        """ インデックスを作成する """
+        """ インデックスを作成する。 """
 
         # body = {"settings": {"index": {"max_result_window": 30000}}}
         body = {}
@@ -159,7 +164,7 @@ class ElasticManager:
                 d = json.load(f)
                 body["mappings"] = d
 
-        result = cls.es.indices.create(index=index, body=body)
+        result: dict = cls.es.indices.create(index=index, body=body)
 
         if not result["acknowledged"]:
             logger.error(f"create index '{index}' failed. result: {result}")
@@ -167,6 +172,42 @@ class ElasticManager:
 
         logger.info(f"create index '{index}' finished. result: {result}")
         return True
+
+    @classmethod
+    def create_doc(cls, index: str, doc_id: str, query: dict) -> bool:
+        """ documentの作成 """
+
+        if not cls.exists_index(index):
+            logger.error(f"'{index} is not exists.")
+            return False
+
+        try:
+            cls.es.create(index=index, id=doc_id, body=query, refresh=True)
+            logger.info("create document finished.")
+            return True
+
+        except exceptions.RequestError as e:
+            logger.error(str(e))
+            return False
+
+    @classmethod
+    def update_doc(cls, index: str, doc_id: str, query: dict) -> bool:
+        """ documentの更新 """
+
+        if not cls.exists_index(index):
+            logger.error(f"'{index} is not exists.")
+            return False
+
+        body: dict = {"doc": query}
+
+        try:
+            cls.es.update(index=index, id=doc_id, body=body, refresh=True)
+            logger.info("update document finished.")
+            return True
+
+        except exceptions.RequestError as e:
+            logger.error(str(e))
+            return False
 
     @classmethod
     def parallel_bulk(cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500) -> None:
