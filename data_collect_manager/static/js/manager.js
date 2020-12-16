@@ -33,7 +33,7 @@ $("#start").click(function () {
         $("#stop").show()
         $("#pause").show()
         $("#status-message").text("測定中です")
-        $("#tag").prop('disabled', false)
+        $("#tag-text").prop('disabled', false)
         $("#record-tag").prop('disabled', false)
 
     }).fail(function (data) {
@@ -56,7 +56,7 @@ $("#stop").click(function () {
         $("#pause").hide()
         $("#setup").show()
         $("#status-message").text("測定していません")
-        $("#tag").prop('disabled', true)
+        $("#tag-text").prop('disabled', true)
         $("#record-tag").prop('disabled', true)
 
     }).fail(function (data) {
@@ -79,7 +79,7 @@ $("#pause").click(function () {
         $("#stop").hide()
         $("#resume").show()
         $("#status-message").text("中断中です（生データ送信中）")
-        $("#tag").prop('disabled', true)
+        $("#tag-text").prop('disabled', true)
         $("#record-tag").prop('disabled', true)
 
     }).fail(function (data) {
@@ -102,10 +102,31 @@ $("#resume").click(function () {
         $("#pause").show()
         $("#stop").show()
         $("#status-message").text("測定中です")
-        $("#tag").prop('disabled', true)
-        $("#record-tag").prop('disabled', true)
+        $("#tag-text").prop('disabled', false)
+        $("#record-tag").prop('disabled', false)
 
     }).fail(function (data) {
         console.log("resume failed.")
+    })
+});
+
+// [事象記録] ボタン押下時の動作
+$("#tag").submit(function (e) {
+    const count = $("#tag-text").val().length;
+    if (!count) {
+        return false;
+    }
+
+    $.ajax({
+        url: '/record_tag',
+        type: 'POST',
+        data: { 'tag': $("#tag-text").val() },
+        dataType: 'json'
+    }).done(function (data) {
+        if (!data.successful) {
+            console.log(data.message)
+        }
+    }).fail(function (data) {
+        console.log("record tag failed.")
     })
 });

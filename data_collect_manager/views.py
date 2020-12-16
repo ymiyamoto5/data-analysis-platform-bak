@@ -1,11 +1,12 @@
 import os
 import sys
-from flask import render_template, Response, session
+from flask import render_template, request, Response, session
 from datetime import datetime, timezone, timedelta
 import json
 
+from werkzeug import exceptions
+
 from data_collect_manager import app
-from data_collect_manager.models.metadata_recorder import MetaDataRecorder
 from data_collect_manager.models.config_file_manager import ConfigFileManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
@@ -145,7 +146,6 @@ def stop():
     query = {"event_type": "stop", "stop_time": datetime.now()}
     successful = ElasticManager.create_doc(meta_index, doc_id, query)
 
-    # 念のためsessionクリア
     session["event_id"] = 0
 
     if not successful:
@@ -154,7 +154,27 @@ def stop():
     return Response(response=json.dumps({"successful": successful}), status=200)
 
 
-@app.route("/record_tag")
+@app.route("/record_tag", methods=["POST"])
 def record_tag():
     """ 事象記録 """
-    pass
+
+    try:
+        tag: str = request.form["tag"]
+    except exceptions.BadRequestKeyError as e:
+        app.logger.error(str(e))
+        return Response(response=json.dumps({"successful": False, "message": str(e)}), status=500)
+
+    cfm = ConfigFileManager()
+    config: dict = cfm.read_config()
+    meta_index: str = config["meta_index"]
+
+    # meta_indexに事象記録
+    session["event_id"] += 1
+    doc_id = session["event_id"]
+    query = {"event_type": "tag", "tag": tag, "start_time": datetime.now()}
+    successful: bool = ElasticManager.create_doc(meta_index, doc_id, query)
+
+    if not successful:
+        return Response(response=json.dumps({"successful": successful, "message": "record_tag: create_doc failed."}))
+
+    return Response(response=json.dumps({"successful": successful}), status=200)
