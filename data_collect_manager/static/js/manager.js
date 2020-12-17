@@ -41,8 +41,50 @@ $("#start").click(function () {
     })
 });
 
-// [測定終了] ボタン押下時の動作
+// [測定終了] ボタン押下時の動作（ダイアログ表示）
 $("#stop").click(function () {
+    showConfirmDialog("測定を終了します。よろしいですか？", stopCommit)
+});
+
+// ダイアログ表示
+function showConfirmDialog(message, okFunction, cancelFunction) {
+    // Dialogを破棄する関数
+    const _destroyDialog = function (dialogElement) {
+        dialogElement.dialog('destroy'); // ※destroyなので、closeイベントは発生しない
+        dialogElement.remove(); // ※動的に生成された要素を削除する必要がある
+    };
+
+    const $dialog = $('<div></div>').text(message);
+
+    // 各ボタンに対応する関数を宣言
+    // ※Dialogを破棄後、コールバック関数を実行する
+    const _funcOk = function () { _destroyDialog($dialog); if (okFunction) { okFunction(); } };
+    const _funcCancel = function () { _destroyDialog($dialog); if (cancelFunction) { cancelFunction(); } };
+
+    $dialog.dialog({
+        modal: true,
+        title: '確認',
+        width: 350,
+        position: {
+            "of": "#main"
+        },
+        closeText: 'Cancel',
+        closeOnEscape: true,
+        close: _funcCancel,
+        buttons: [
+            { text: 'OK', click: _funcOk },
+            { text: 'Cancel', click: function () { $(this).dialog('close'); } } // Dialogのcloseのみ
+        ]
+    });
+    // NOTE: 右上のcloseボタンがbootstrapとの相性で正常に表示されないため、非表示とする。
+    $dialog.dialog('widget').find(".ui-dialog-titlebar-close").hide();
+    $dialog.dialog('widget').find('.ui-icon ui-icon-closethick').hide();
+}
+
+
+// [測定終了] ボタン押下時の動作
+// $("#stop-commit").click(function () {
+function stopCommit() {
     $.ajax({
         url: '/stop',
         type: 'POST',
@@ -62,7 +104,7 @@ $("#stop").click(function () {
     }).fail(function (data) {
         console.log("stop failed.")
     })
-});
+}
 
 // [中断] ボタン押下時の動作
 $("#pause").click(function () {
