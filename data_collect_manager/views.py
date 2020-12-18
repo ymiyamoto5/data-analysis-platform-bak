@@ -28,16 +28,30 @@ def show_manager():
         cfm.create({"status": "stop"})
         return render_template("manager.html", status="stop")
 
-    # configファイルがある場合、最新のevents_indexから状態判定
-    get_latest_events_index_doc: dict = ElasticManager.get_latest_events_index_doc()
-    print(get_latest_events_index_doc)
+    # configファイルがある場合、直近のevents_indexから状態判定
+    latest_event_index: str = ElasticManager.get_latest_events_index()
 
-    # configファイルがあるのにevents_indexがない例外パターン
-    if get_latest_events_index_doc is None:
+    # configファイルがあるのにevents_indexがない例外パターン。
+    if latest_event_index is None:
+        app.logger.error("config file exists, but events_index not found.")
+        # stop状態にして収集を止め、初期画面に戻す
+        session["events_index"] = ""
         cfm.update({"status": "stop"})
         return render_template("manager.html", status="stop")
 
-    return render_template("manager.html", status=cfm.is_running())
+    session["events_index"] = latest_event_index
+
+    # events_indexの最新documentから状態判定
+    latest_events_index_doc: dict = ElasticManager.get_latest_events_index_doc(latest_event_index)
+
+    event_type: str = latest_events_index_doc["event_type"]
+    # pause状態の場合、pauseのままなのか再開されたかによって状態変更
+    if event_type == "pause":
+        if latest_events_index_doc.get("end_time") is not None:
+            event_type == "start"
+
+    # 状態に応じて画面を戻す
+    return render_template("manager.html", status=event_type)
 
 
 @app.route("/setup", methods=["POST"])
@@ -65,7 +79,7 @@ def setup():
     start_time: str = now.strftime("%Y%m%d%H%M%S%f")
     params = {"status": "running", "start_time": start_time}
     cfm = ConfigFileManager()
-    successful: bool = cfm.update(params)
+    successful: bool = cfm.update(params, should_change_sequence=True)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
@@ -154,7 +168,7 @@ def stop():
     end_time: str = now.strftime("%Y%m%d%H%M%S%f")
     params = {"status": "stop", "end_time": end_time}
     cfm = ConfigFileManager()
-    successful: bool = cfm.update(params)
+    successful: bool = cfm.update(params, should_change_sequence=True)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)

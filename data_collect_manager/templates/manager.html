@@ -28,7 +28,22 @@
                 <button id="record-tag" disabled>事象記録</button>
             </form>
         </div>
-        {% else %}
+        {% elif status == "setup" %}
+        <div class="buttons">
+            <button id="setup" class="btn btn-primary" style="display: none;">生データ送信開始</button>
+            <button id="start" class="btn btn-success">測定開始</button>
+            <button id="stop" class="btn btn-danger" style="display: none;">測定終了</button>
+            <button id="pause" class="btn btn-warning" style="display: none;">中断</button>
+            <button id="resume" class="btn btn-info" style="display: none;">再開</button>
+        </div>
+        <p id="status-message">開始待ちです（生データ送信中）</p>
+        <div>
+            <form id="tag">
+                <input id="tag-text" type="text" disabled>
+                <button id="record-tag" disabled>事象記録</button>
+            </form>
+        </div>
+        {% elif status == "start" or status == "tag" %}
         <div class="buttons">
             <button id="setup" class="btn btn-primary" style="display: none;">生データ送信開始</button>
             <button id="start" class="btn btn-success" style="display: none;">測定開始(再開)</button>
@@ -41,6 +56,21 @@
             <form id="tag">
                 <input id="tag-text" type="text">
                 <button id="record-tag">事象記録</button>
+            </form>
+        </div>
+        {% elif status == "pause" %}
+        <div class="buttons">
+            <button id="setup" class="btn btn-primary" style="display: none;">生データ送信開始</button>
+            <button id="start" class="btn btn-success" style="display: none;">測定開始(再開)</button>
+            <button id="stop" class="btn btn-danger" style="display: none;">測定終了</button>
+            <button id="pause" class="btn btn-warning" style="display: none;">中断</button>
+            <button id="resume" class="btn btn-info">再開</button>
+        </div>
+        <p id="status-message">中断中です（生データ送信中）</p>
+        <div>
+            <form id="tag">
+                <input id="tag-text" type="text" disabled>
+                <button id="record-tag" disabled>事象記録</button>
             </form>
         </div>
     </div>

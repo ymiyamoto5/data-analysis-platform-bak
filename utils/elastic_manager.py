@@ -51,24 +51,24 @@ class ElasticManager:
         return df
 
     @classmethod
-    def __get_latest_events_index_name(cls) -> str:
+    def get_latest_events_index(cls) -> str:
         """ 最新のevents_indexの名前を返す """
 
         _indices = cls.es.cat.indices(index="events-*", s="index", h="index").splitlines()
         if len(_indices) == 0:
             logger.error("events index not found.")
-            return ""
+            return None
         return _indices[-1]
 
     @classmethod
-    def get_latest_events_index_doc(cls) -> dict:
+    def get_latest_events_index_doc(cls, latest_events_index: str) -> dict:
         """ 最新のevents_indexの一番最後に記録されたdocumentを返す。
             events_indexが存在しない場合やevents_indexにdocumentが無い場合はNoneを返す。
         """
 
-        latest_events_index: str = cls.__get_latest_events_index_name()
+        # latest_events_index: str = cls.get_latest_events_index_name()
 
-        if latest_events_index == "":
+        if latest_events_index is None:
             return None
 
         if cls.count(latest_events_index) == 0:
@@ -77,7 +77,7 @@ class ElasticManager:
         body = {"sort": {"event_id": {"order": "desc"}}}
 
         result = cls.es.search(index=latest_events_index, body=body, size=1)
-        return result["hits"]["hits"]["_source"]
+        return result["hits"]["hits"][0]["_source"]
 
     @classmethod
     def delete_index(cls, index: str) -> None:

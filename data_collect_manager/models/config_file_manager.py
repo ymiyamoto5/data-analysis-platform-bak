@@ -70,16 +70,17 @@ class ConfigFileManager:
 
         return successful
 
-    def update(self, params) -> bool:
+    def update(self, params: dict, should_change_sequence: bool = False) -> bool:
         """ 既存のconfigファイルを更新 """
 
         app.logger.info("Updating config file.")
 
         new_config: dict = self.read_config()
 
-        # TODO: すべてのパラメータを再設定
-        new_config["sequence_number"] = int(new_config["sequence_number"]) + 1
+        if should_change_sequence:
+            new_config["sequence_number"] = int(new_config["sequence_number"]) + 1
 
+        # TODO: すべてのパラメータを再設定
         if "status" in params:
             new_config["status"] = params["status"]
         if "start_time" in params:
