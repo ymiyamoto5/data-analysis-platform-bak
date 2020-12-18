@@ -18,12 +18,11 @@ from elastic_manager import ElasticManager
 def show_manager():
     """ TOP画面表示。configファイルのstatusによって画面切り替え """
 
-    # TODO: ファイルの配置場所設定
-    # running_file_path = "/home/ymiyamoto5/shared/conf_Gw-00.cnf"
     cfm = ConfigFileManager()
 
-    if not cfm.config_exists:
-        successful: bool = cfm.create({"status": "stop"})
+    # conifgファイルがない場合、初期configを生成
+    if not cfm.config_exists():
+        successful: bool = cfm.create()
         if not successful:
             return Response(response=json.dumps({"successful": successful}), status=500)
         return render_template("manager.html", status="stop")
@@ -58,7 +57,7 @@ def show_manager():
 def setup():
     """ 段取り開始(rawdata取得開始) """
 
-    # 基本的にUTCを使うが、events_index名のサフィックスだけはJSTを使う
+    # 基本的にUTCを使うが、events_index名のサフィックスのみJSTを使う
     utc_now: datetime = datetime.now(timezone("UTC"))
     jst_now = utc_now.astimezone(timezone("Asia/Tokyo"))
 

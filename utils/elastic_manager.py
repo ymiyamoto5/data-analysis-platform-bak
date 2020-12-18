@@ -63,13 +63,8 @@ class ElasticManager:
     @classmethod
     def get_latest_events_index_doc(cls, latest_events_index: str) -> dict:
         """ 最新のevents_indexの一番最後に記録されたdocumentを返す。
-            events_indexが存在しない場合やevents_indexにdocumentが無い場合はNoneを返す。
+            events_indexにdocumentが無い場合はNoneを返す。
         """
-
-        # latest_events_index: str = cls.get_latest_events_index_name()
-
-        if latest_events_index is None:
-            return None
 
         if cls.count(latest_events_index) == 0:
             return None
