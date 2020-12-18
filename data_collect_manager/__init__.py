@@ -30,10 +30,4 @@ config_type = {
 
 app.config.from_object(config_type.get(os.getenv("FLASK_APP_ENV", "production")))
 
-# session
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["JSON_AS_ASCII"] = False
-
-Session(app)
-
 import data_collect_manager.views

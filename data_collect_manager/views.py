@@ -1,6 +1,6 @@
 import os
 import sys
-from flask import render_template, request, Response, session
+from flask import render_template, request, Response
 from datetime import datetime
 from pytz import timezone
 import json
