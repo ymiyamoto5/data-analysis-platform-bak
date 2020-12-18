@@ -13,6 +13,10 @@ class ConfigFileManager:
         else:
             self.file_path = file_path
 
+    def config_exists(self) -> bool:
+        """ configファイルの存在確認 """
+        return os.path.isfile(self.file_path)
+
     def is_running(self) -> bool:
         """ configファイルがあればステータスを確認し、runningであればTrueを返す """
 
@@ -54,7 +58,6 @@ class ConfigFileManager:
                 "sampling_chnum": 5,
                 "filewrite_time": 3600,
             },
-            "meta_index": params["meta_index"],
         }
 
         config_json_str: str = self.__create_json_str(initial_config)
@@ -79,8 +82,10 @@ class ConfigFileManager:
 
         if "status" in params:
             new_config["status"] = params["status"]
-        if "meta_index" in params:
-            new_config["meta_index"] = params["meta_index"]
+        if "start_time" in params:
+            new_config["start_time"] = params["start_time"]
+        if "end_time" in params:
+            new_config["end_time"] = params["end_time"]
 
         new_config_json: str = self.__create_json_str(new_config)
         successful: bool = self.__dump_config_file(new_config_json)

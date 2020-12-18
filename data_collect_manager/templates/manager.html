@@ -13,7 +13,7 @@
         <div class="title-label">
             データ収集 管理画面
         </div>
-        {% if not is_started %}
+        {% if status == "stop" %}
         <div class="buttons">
             <button id="setup" class="btn btn-primary">生データ送信開始</button>
             <button id="start" class="btn btn-success" style="display: none;">測定開始</button>

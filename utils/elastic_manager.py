@@ -3,6 +3,7 @@
 from elasticsearch import Elasticsearch
 from elasticsearch import exceptions
 from elasticsearch import helpers
+from elasticsearch.client import indices
 import pandas as pd
 import json
 from typing import Iterable, Iterator
@@ -32,22 +33,51 @@ class ElasticManager:
         """
 
         if show_all_index:
-            indices = cls.es.cat.indices(
+            _indices = cls.es.cat.indices(
                 index="*", v=True, h=["index", "docs.count", "store.size"], bytes="kb"
             ).splitlines()
         else:
-            indices = cls.es.cat.indices(
-                index=["rawdata-*", "shots-*", "meta-*", "analyzed-*"],
+            _indices = cls.es.cat.indices(
+                index=["rawdata-*", "shots-*", "events-*", "analyzed-*"],
                 v=True,
                 h=["index", "docs.count", "store.size"],
                 bytes="kb",
             ).splitlines()
 
-        indices_list = [x.split() for x in indices]
+        indices_list = [x.split() for x in _indices]
 
         df = pd.DataFrame(indices_list[1:], columns=indices_list[0])
 
         return df
+
+    @classmethod
+    def __get_latest_events_index_name(cls) -> str:
+        """ 最新のevents_indexの名前を返す """
+
+        _indices = cls.es.cat.indices(index="events-*", s="index", h="index").splitlines()
+        if len(_indices) == 0:
+            logger.error("events index not found.")
+            return ""
+        return _indices[-1]
+
+    @classmethod
+    def get_latest_events_index_doc(cls) -> dict:
+        """ 最新のevents_indexの一番最後に記録されたdocumentを返す。
+            events_indexが存在しない場合やevents_indexにdocumentが無い場合はNoneを返す。
+        """
+
+        latest_events_index: str = cls.__get_latest_events_index_name()
+
+        if latest_events_index == "":
+            return None
+
+        if cls.count(latest_events_index) == 0:
+            return None
+
+        body = {"sort": {"event_id": {"order": "desc"}}}
+
+        result = cls.es.search(index=latest_events_index, body=body, size=1)
+        return result["hits"]["hits"]["_source"]
 
     @classmethod
     def delete_index(cls, index: str) -> None:
@@ -145,6 +175,7 @@ class ElasticManager:
 
     @classmethod
     def exists_index(cls, index: str):
+        """ インデックスの存在確認 """
         return cls.es.indices.exists(index=index)
 
     @classmethod

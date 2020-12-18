@@ -24,38 +24,48 @@ def show_manager():
     # running_file_path = "/home/ymiyamoto5/shared/conf_Gw-00.cnf"
     cfm = ConfigFileManager()
 
-    return render_template("manager.html", is_started=cfm.is_running())
+    if not cfm.config_exists:
+        cfm.create({"status": "stop"})
+        return render_template("manager.html", status="stop")
+
+    # configファイルがある場合、最新のevents_indexから状態判定
+    get_latest_events_index_doc: dict = ElasticManager.get_latest_events_index_doc()
+    print(get_latest_events_index_doc)
+
+    # configファイルがあるのにevents_indexがない例外パターン
+    if get_latest_events_index_doc is None:
+        cfm.update({"status": "stop"})
+        return render_template("manager.html", status="stop")
+
+    return render_template("manager.html", status=cfm.is_running())
 
 
 @app.route("/setup", methods=["POST"])
 def setup():
     """ 段取り開始(rawdata取得開始) """
 
-    # meta_index名をconfigに保持する
     now: datetime = datetime.now(JST)
-    meta_index: str = "metadata-" + now.strftime("%Y%m%d%H%M%S")
 
-    params = {"status": "running", "meta_index": meta_index}
+    # events_index作成
+    events_index: str = "events-" + now.strftime("%Y%m%d%H%M%S")
+    ElasticManager.create_index(events_index)
 
-    cfm = ConfigFileManager()
-    # configファイルがなければ作成、あれば更新
-    successful: bool = cfm.init_config(params)
+    session["events_index"] = events_index
 
-    if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
-
-    # metaインデックスがなければ作成
-    if not ElasticManager.exists_index(meta_index):
-        successful = ElasticManager.create_index(meta_index)
-
-    if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
-
-    # metaインデックスに段取り開始を記録
+    # events_indexに段取り開始(setup)を記録
     session["event_id"] = 0
     doc_id = session["event_id"]
-    query = {"event_type": "setup", "setup_time": datetime.now()}
-    successful: bool = ElasticManager.create_doc(meta_index, doc_id, query)
+    query = {"event_id": session["event_id"], "event_type": "setup", "start_time": now}
+    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+
+    if not successful:
+        return Response(response=json.dumps({"successful": successful}), status=500)
+
+    # configファイル更新
+    start_time: str = now.strftime("%Y%m%d%H%M%S%f")
+    params = {"status": "running", "start_time": start_time}
+    cfm = ConfigFileManager()
+    successful: bool = cfm.update(params)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
@@ -65,18 +75,21 @@ def setup():
 
 @app.route("/start", methods=["POST"])
 def start():
-    """ 開始(metadataに開始時間を記録) """
+    """ 開始(eventsに開始時間を記録) """
 
-    # configファイルを読み込み、meta_index名を特定
-    cfm = ConfigFileManager()
-    config: dict = cfm.read_config()
-    meta_index: str = config["meta_index"]
+    # configファイルを読み込み、events_index名を特定
+    # cfm = ConfigFileManager()
+    # config: dict = cfm.read_config()
+    # events_index: str = config["events_index"]
 
-    # meta_indexに開始イベントを記録
+    now: datetime = datetime.now()
+
+    # events_indexに開始イベントを記録
     session["event_id"] += 1
     doc_id = session["event_id"]
-    query = {"event_type": "start", "start_time": datetime.now()}
-    successful: bool = ElasticManager.create_doc(meta_index, doc_id, query)
+    query = {"event_type": "start", "start_time": now}
+    events_index: str = session["events_index"]
+    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
@@ -86,18 +99,21 @@ def start():
 
 @app.route("/pause", methods=["POST"])
 def pause():
-    """ 中断(metadataに中断の開始時間を記録) """
+    """ 中断(eventsに中断の開始時間を記録) """
 
-    # configファイルを読み込み、meta_index名を特定
-    cfm = ConfigFileManager()
-    config: dict = cfm.read_config()
-    meta_index: str = config["meta_index"]
+    # configファイルを読み込み、events_index名を特定
+    # cfm = ConfigFileManager()
+    # config: dict = cfm.read_config()
+    # events_index: str = config["events_index"]
+
+    now: datetime = datetime.now()
 
     # 中断イベントの記録。中断終了時刻は現在時刻を仮置き。
     session["event_id"] += 1
     doc_id = session["event_id"]
-    query = {"event_type": "pause", "start_time": datetime.now(), "end_time": datetime.now()}
-    successful: bool = ElasticManager.create_doc(meta_index, doc_id, query)
+    query = {"event_type": "pause", "start_time": now, "end_time": now}
+    events_index: str = session["events_index"]
+    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
@@ -107,17 +123,20 @@ def pause():
 
 @app.route("/resume", methods=["POST"])
 def resume():
-    """ 再開(metadataに再開した時間を記録) """
+    """ 再開(eventsに再開した時間を記録) """
 
-    # configファイルを読み込み、meta_index名を特定
-    cfm = ConfigFileManager()
-    config: dict = cfm.read_config()
-    meta_index: str = config["meta_index"]
+    # configファイルを読み込み、events_index名を特定
+    # cfm = ConfigFileManager()
+    # config: dict = cfm.read_config()
+    # events_index: str = config["events_index"]
+
+    now: datetime = datetime.now()
 
     # 再開時は中断時に記録されたイベントを更新
     doc_id = session["event_id"]
-    query = {"end_time": datetime.now()}
-    successful: bool = ElasticManager.update_doc(meta_index, doc_id, query)
+    query = {"end_time": now}
+    events_index: str = session["events_index"]
+    successful: bool = ElasticManager.update_doc(events_index, doc_id, query)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
@@ -129,24 +148,29 @@ def resume():
 def stop():
     """ 停止(rawdata取得終了) """
 
-    params = {"status": "stop"}
+    now: datetime = datetime.now()
 
+    # configファイル更新
+    end_time: str = now.strftime("%Y%m%d%H%M%S%f")
+    params = {"status": "stop", "end_time": end_time}
     cfm = ConfigFileManager()
     successful: bool = cfm.update(params)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
 
-    config: dict = cfm.read_config()
-    meta_index: str = config["meta_index"]
+    # config: dict = cfm.read_config()
+    # events_index: str = config["events_index"]
 
-    # meta_indexに停止イベントを記録
+    # events_indexに停止イベントを記録
     session["event_id"] += 1
     doc_id = session["event_id"]
-    query = {"event_type": "stop", "stop_time": datetime.now()}
-    successful = ElasticManager.create_doc(meta_index, doc_id, query)
+    query = {"event_type": "stop", "end_time": now}
+    events_index = session["events_index"]
+    successful = ElasticManager.create_doc(events_index, doc_id, query)
 
     session["event_id"] = 0
+    session["events_index"] = None
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
@@ -164,15 +188,18 @@ def record_tag():
         app.logger.error(str(e))
         return Response(response=json.dumps({"successful": False, "message": str(e)}), status=500)
 
-    cfm = ConfigFileManager()
-    config: dict = cfm.read_config()
-    meta_index: str = config["meta_index"]
+    # cfm = ConfigFileManager()
+    # config: dict = cfm.read_config()
+    # events_index: str = config["events_index"]
 
-    # meta_indexに事象記録
+    now: datetime = datetime.now()
+
+    # events_indexに事象記録
     session["event_id"] += 1
     doc_id = session["event_id"]
-    query = {"event_type": "tag", "tag": tag, "start_time": datetime.now()}
-    successful: bool = ElasticManager.create_doc(meta_index, doc_id, query)
+    query = {"event_type": "tag", "tag": tag, "start_time": now}
+    events_index = session["events_index"]
+    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful, "message": "record_tag: create_doc failed."}))
