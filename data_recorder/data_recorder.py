@@ -5,6 +5,7 @@ import json
 import glob
 import re
 import shutil
+import struct
 import logging
 import logging.handlers
 from typing import Final, NamedTuple
@@ -37,8 +38,16 @@ class FileInfo(NamedTuple):
 #     end_time: datetime
 
 
-def record() -> None:
-    """ """
+def create_file_timestamp(filename: str) -> dict:
+    """ ファイル名から日時データを作成する """
+
+    parts: list = re.findall(r"\d+", filename)
+    timestamp_str: str = parts[1] + parts[2] + parts[3]
+    timestamp: datetime = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f")
+    return timestamp
+
+
+def main() -> None:
     shared_dir = "data/pseudo_data/"
 
     file_list: list = glob.glob(shared_dir + "*.dat")
@@ -74,8 +83,8 @@ def record() -> None:
 
     # 対象となるファイルに絞り込む
     target_files: list = list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
-    for x in target_files:
-        print(x)
+    # for x in target_files:
+    #     print(x)
 
     # 含まれないファイルは削除する
 
@@ -84,34 +93,52 @@ def record() -> None:
         logger.info(f"No files in target inteverl {start_time} - {end_time}.")
         return
 
-    # starttimeを名前とするディレクトリを作成し、そこにファイルを退避
+    # 処理済みのファイル格納用ディレクトリ作成。starttimeを名前とする。
     processed_dir_path = os.path.join(shared_dir, datetime.strftime(start_time, "%Y%m%d%H%M%S%f"))
     os.makedirs(processed_dir_path, exist_ok=True)
 
+    # 出力csv
+    csv_file: str = os.path.join(processed_dir_path, "output.csv")
+
+    ROW_BYTE_SIZE = 8 * 5  # 8 byte * 5 column
+    dataset_number = 0
     for file in target_files:
+        dataset_timestamp: datetime = file.timestamp
+
         # バイナリ読み込み
+        with open(file.file_path, "rb") as f:
+            binary = f.read()
 
-        # csv, es出力
+            while True:
+                # バイナリファイルから5ch分を1setとして取得し、処理
+                start_index = dataset_number * ROW_BYTE_SIZE
+                end_index = start_index + ROW_BYTE_SIZE
+                binary_dataset = binary[start_index:end_index]
 
-        # 処理済みディレクトリに退避
-        # shutil.move(file, processed_dir_path)
+                if len(binary_dataset) == 0:
+                    break
 
+                dataset = struct.unpack("<ddddd", binary_dataset)
+                dataset_number += 1
+                # print(dataset)
 
-def create_file_timestamp(filename: str) -> dict:
-    """ ファイル名から日時データを作成する """
+                # csv出力
+                with open(csv_file, "a") as fw:
+                    fw.write(dataset_timestamp.isoformat() + ",")
+                    fw.write(str(dataset[0]) + ",")
+                    fw.write(str(dataset[1]) + ",")
+                    fw.write(str(dataset[2]) + ",")
+                    fw.write(str(dataset[3]) + ",")
+                    fw.write(str(dataset[4]))
+                    fw.write("\n")
 
-    parts: list = re.findall(r"\d+", filename)
-    timestamp_str: str = parts[1] + parts[2] + parts[3]
-    timestamp: datetime = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f")
-    return timestamp
+                # elasticsearch出力
 
+                # 100k sample
+                dataset_timestamp = dataset_timestamp + timedelta(microseconds=10)
 
-# def extract_files_in_target(file_info: dict, interval):
-#     if file_info.timestamp
-
-
-def main():
-    record()
+            # 処理済みディレクトリに退避
+            # shutil.move(file, processed_dir_path)
 
 
 if __name__ == "__main__":
