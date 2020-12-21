@@ -9,7 +9,7 @@ from elastic_manager import ElasticManager
 from time_logger import time_log
 from throughput_counter import throughput_counter
 
-LOG_FILE: Final = "log/data_importer/data_importer.log"
+LOG_FILE: Final = "log/rawdata_importer/rawdata_importer.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
 
 logging.basicConfig(
@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class DataRecorder:
+class RawdataImporter:
     @time_log
     def import_raw_data(self, data_to_import: str, index_to_import: str, thread_count=4) -> None:
         """ rawデータインポート処理 """
@@ -79,9 +79,9 @@ class DataRecorder:
 
 
 def main():
-    data_importer = DataRecorder()
-    # data_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
-    data_importer.multi_process_import_rawdata("data/No04.CSV", "rawdata-no04", 8)
+    rawdata_importer = RawdataImporter()
+    # rawdata_importer.multi_process_import_rawdata("data/No13.csv", "rawdata-no13", 8)
+    rawdata_importer.multi_process_import_rawdata("data/No04.CSV", "rawdata-no04", 8)
 
 
 if __name__ == "__main__":

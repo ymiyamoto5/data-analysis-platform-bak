@@ -10,7 +10,7 @@ from elastic_manager import ElasticManager
 from time_logger import time_log
 from throughput_counter import throughput_counter
 
-LOG_FILE: Final = "log/data_importer/data_importer.log"
+LOG_FILE: Final = "log/cut_out_shot/cut_out_shot.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
 
 logging.basicConfig(
@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class DataImporter:
+class CutOutShot:
     """ データインポートクラス """
 
     CHUNK_SIZE: Final = 10_000_000  # csvから一度に読み出す行数
@@ -32,7 +32,7 @@ class DataImporter:
 
     def __init__(self):
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
-        self.__is_target_of_cut_off: bool = False  # ショットの内、切り出し対象かを判別する
+        self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
@@ -48,12 +48,12 @@ class DataImporter:
     #     self.__is_shot_section = is_shot_section
 
     # @property
-    # def is_target_of_cut_off(self):
-    #     return self.__is_target_of_cut_off
+    # def is_target_of_cut_out(self):
+    #     return self.__is_target_of_cut_out
 
-    # @is_target_of_cut_off.setter
-    # def is_target_of_cut_off(self, is_target_of_cut_off):
-    #     self.__is_target_of_cut_off = is_target_of_cut_off
+    # @is_target_of_cut_out.setter
+    # def is_target_of_cut_out(self, is_target_of_cut_out):
+    #     self.__is_target_of_cut_out = is_target_of_cut_out
 
     # @property
     # def sequential_number(self):
@@ -124,11 +124,11 @@ class DataImporter:
 
         # chunksize毎に処理
         for loop_count, rawdata_df in enumerate(
-            pd.read_csv(rawdata_filename, chunksize=DataImporter.CHUNK_SIZE, names=cols)
+            pd.read_csv(rawdata_filename, chunksize=CutOutShot.CHUNK_SIZE, names=cols)
         ):
             # スループット表示
             if loop_count != 0:
-                processed_count: int = loop_count * DataImporter.CHUNK_SIZE
+                processed_count: int = loop_count * CutOutShot.CHUNK_SIZE
                 throughput_counter(processed_count, now)
 
             # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。
@@ -144,7 +144,7 @@ class DataImporter:
                 ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, BULK_CHUNK_SIZE)
                 self.__shots = []
 
-        logger.info("Cut_off finished.")
+        logger.info("Cut_out finished.")
 
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
@@ -155,7 +155,7 @@ class DataImporter:
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
                 self.__is_shot_section = True
-                self.__is_target_of_cut_off = True
+                self.__is_target_of_cut_out = True
                 self.__shot_number += 1
                 self.__sequential_number_by_shot = 0
 
@@ -189,11 +189,11 @@ class DataImporter:
 
             # 切り出し区間の終了判定
             if rawdata.displacement <= end_displacement:
-                self.__is_target_of_cut_off = False
+                self.__is_target_of_cut_out = False
                 self.__sequential_number_by_shot = 0
 
             # 切り出し区間に到達していなければ後続は何もしない
-            if not self.__is_target_of_cut_off:
+            if not self.__is_target_of_cut_out:
                 continue
 
             self.__sequential_number += 1
@@ -218,7 +218,7 @@ class DataImporter:
     def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
 
-        N: Final = DataImporter.TAIL_SIZE
+        N: Final = CutOutShot.TAIL_SIZE
 
         previous_df_tail = current_df_tail.copy()
         current_df_tail = df[-N:].copy()
@@ -228,7 +228,7 @@ class DataImporter:
     def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
 
-        N = DataImporter.TAIL_SIZE
+        N = CutOutShot.TAIL_SIZE
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
         # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
@@ -250,10 +250,10 @@ class DataImporter:
 
 
 def main():
-    data_importer = DataImporter()
-    # data_importer.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
-    # data_importer.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
-    data_importer.import_data_by_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+    cut_out_shot = CutOutShot()
+    # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
+    # cut_out_shot.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
+    cut_out_shot.import_data_by_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
 
 
 if __name__ == "__main__":
