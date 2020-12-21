@@ -1,6 +1,6 @@
-from datetime import datetime, time, timedelta
 import os
 import sys
+import csv
 import json
 import glob
 import re
@@ -8,8 +8,9 @@ import shutil
 import struct
 import logging
 import logging.handlers
+from datetime import datetime, timedelta
+from pytz import timezone
 from typing import Final, NamedTuple
-from collections import namedtuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -33,11 +34,6 @@ class FileInfo(NamedTuple):
     timestamp: datetime
 
 
-# class Interval(NamedTuple):
-#     start_time: datetime
-#     end_time: datetime
-
-
 def create_file_timestamp(filename: str) -> dict:
     """ ファイル名から日時データを作成する """
 
@@ -55,7 +51,7 @@ def main() -> None:
         return
     file_list.sort()
 
-    # configファイルからstart-endtimeを取得。
+    # configファイルからstart-endtimeを取得
     settings_file_path = os.path.dirname(__file__) + "/../common/settings.json"
     with open(settings_file_path, "r") as f:
         settings: dict = json.load(f)
@@ -74,7 +70,7 @@ def main() -> None:
     else:
         end_time: datetime = config["end_time"]
 
-    logger.info(f"target section: {start_time} - {end_time}")
+    logger.info(f"target interval: {start_time} - {end_time}")
 
     # ファイルリストから時刻データを生成
     files_timestamp = map(create_file_timestamp, file_list)
@@ -97,18 +93,26 @@ def main() -> None:
     processed_dir_path = os.path.join(shared_dir, datetime.strftime(start_time, "%Y%m%d%H%M%S%f"))
     os.makedirs(processed_dir_path, exist_ok=True)
 
-    # 出力csv
-    csv_file: str = os.path.join(processed_dir_path, "output.csv")
+    # 出力csvパス
+    csv_file: str = os.path.join(processed_dir_path, datetime.strftime(start_time, "%Y%m%d%H%M%S%f") + ".csv")
+    # Elasticsearch rawdataインデックス名
+    jst = start_time.astimezone(timezone("Asia/Tokyo"))
+    rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
 
-    ROW_BYTE_SIZE = 8 * 5  # 8 byte * 5 column
-    dataset_number = 0
+    if not ElasticManager.exists_index(rawdata_index):
+        ElasticManager.create_index(rawdata_index)
+
+    dataset_number: int = ElasticManager.count(rawdata_index)
+
+    ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
+
     for file in target_files:
         dataset_timestamp: datetime = file.timestamp
+        samples: list = []
 
         # バイナリ読み込み
         with open(file.file_path, "rb") as f:
             binary = f.read()
-
             while True:
                 # バイナリファイルから5ch分を1setとして取得し、処理
                 start_index = dataset_number * ROW_BYTE_SIZE
@@ -119,26 +123,36 @@ def main() -> None:
                     break
 
                 dataset = struct.unpack("<ddddd", binary_dataset)
-                dataset_number += 1
                 # print(dataset)
 
-                # csv出力
-                with open(csv_file, "a") as fw:
-                    fw.write(dataset_timestamp.isoformat() + ",")
-                    fw.write(str(dataset[0]) + ",")
-                    fw.write(str(dataset[1]) + ",")
-                    fw.write(str(dataset[2]) + ",")
-                    fw.write(str(dataset[3]) + ",")
-                    fw.write(str(dataset[4]))
-                    fw.write("\n")
+                data = {
+                    "sequential_number": dataset_number,
+                    "timestamp": dataset_timestamp.isoformat(),
+                    "displacement": dataset[0],
+                    "load01": dataset[1],
+                    "load02": dataset[2],
+                    "load03": dataset[3],
+                    "load04": dataset[4],
+                }
+                samples.append(data)
 
-                # elasticsearch出力
+                dataset_number += 1
+                dataset_timestamp += timedelta(microseconds=10)  # 100k sample
 
-                # 100k sample
-                dataset_timestamp = dataset_timestamp + timedelta(microseconds=10)
+        # elasticsearch出力
+        NUM_OF_PROCESS: Final = 8
+        BULK_CHUNK_SIZE: Final = 5000
+        ElasticManager.multi_process_bulk(samples, rawdata_index, NUM_OF_PROCESS, BULK_CHUNK_SIZE)
 
-            # 処理済みディレクトリに退避
-            # shutil.move(file, processed_dir_path)
+        # csv出力
+        with open(csv_file, "a") as f:
+            writer = csv.DictWriter(
+                f, ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
+            )
+            writer.writerows(samples)
+
+        # 処理済みディレクトリに退避
+        shutil.move(file.file_path, processed_dir_path)
 
 
 if __name__ == "__main__":

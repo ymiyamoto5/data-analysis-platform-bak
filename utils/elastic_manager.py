@@ -209,7 +209,7 @@ class ElasticManager:
 
         try:
             cls.es.create(index=index, id=doc_id, body=query, refresh=True)
-            logger.info("create document finished.")
+            # logger.info("create document finished.")
             return True
 
         except exceptions.RequestError as e:
@@ -228,7 +228,7 @@ class ElasticManager:
 
         try:
             cls.es.update(index=index, id=doc_id, body=body, refresh=True)
-            logger.info("update document finished.")
+            # logger.info("update document finished.")
             return True
 
         except exceptions.RequestError as e:
