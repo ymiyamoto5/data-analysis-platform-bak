@@ -10,7 +10,7 @@ import logging
 import logging.handlers
 from datetime import datetime, timedelta
 from pytz import timezone
-from typing import Final, NamedTuple
+from typing import Final, NamedTuple, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -34,8 +34,10 @@ class FileInfo(NamedTuple):
     timestamp: datetime
 
 
-def _create_file_timestamp(filename: str) -> datetime:
+def _create_file_timestamp(filepath: str) -> datetime:
     """ ファイル名から日時データを作成する """
+
+    filename: str = os.path.basename(filepath)
 
     parts: list = re.findall(r"\d+", filename)
     timestamp_str: str = parts[1] + parts[2] + parts[3]
@@ -85,10 +87,8 @@ def _read_binary_files(file: str, sequential_number: int) -> list:
 
     dataset_number = 0  # ファイル内での連番
     dataset_timestamp: datetime = file.timestamp
-
     samples: list = []
 
-    # バイナリ読み込み
     with open(file.file_path, "rb") as f:
         binary = f.read()
         while True:
@@ -100,7 +100,7 @@ def _read_binary_files(file: str, sequential_number: int) -> list:
             if len(binary_dataset) == 0:
                 break
 
-            dataset = struct.unpack("<ddddd", binary_dataset)
+            dataset: Tuple = struct.unpack("<ddddd", binary_dataset)
             logger.debug(dataset)
 
             data = {
@@ -121,18 +121,29 @@ def _read_binary_files(file: str, sequential_number: int) -> list:
     return samples
 
 
-def main() -> None:
-    # バイナリファイルリストを生成
-    shared_dir = "data/pseudo_data/"
-    file_list: list = glob.glob(shared_dir + "*.dat")
+def _create_files_info(shared_dir: str) -> list:
+    # バイナリファイルの情報（パスとファイル名から抽出した日時）リストを生成
+
+    file_list: list = glob.glob(os.path.join(shared_dir, "*.dat"))
     if len(file_list) == 0:
-        return
+        return None
     file_list.sort()
 
     # ファイルリストから時刻データを生成
     files_timestamp = map(_create_file_timestamp, file_list)
     # リストを作成 [{"file_path": "xxx", "timestamp": "yyy"},...]
     files_info: list = [FileInfo._make(row) for row in zip(file_list, files_timestamp)]
+
+    return files_info
+
+
+def main() -> None:
+    shared_dir = "data/pseudo_data/"
+    files_info: list = _create_files_info(shared_dir)
+
+    if files_info is None:
+        logger.info(f"No files in {shared_dir}")
+        return
 
     # configファイルからstart-endtimeを取得
     settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"

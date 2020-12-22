@@ -1,3 +1,4 @@
+from sys import exec_prefix
 import pytest
 import json
 from datetime import datetime, timedelta
@@ -6,9 +7,9 @@ from .. import data_recorder
 
 
 def test_create_file_timestamp():
-    filename = "AD-00_20201216-080058.620753.dat"
+    filepath = "tmp00/AD-00_20201216-080058.620753.dat"
 
-    actual = data_recorder._create_file_timestamp(filename)
+    actual = data_recorder._create_file_timestamp(filepath)
     expected = datetime(2020, 12, 16, 8, 0, 58, 620753)
 
     assert actual == expected
@@ -87,3 +88,21 @@ def test_get_target_interval_start_bigger_than_end(tmp_path):
     with pytest.raises(ValueError):
         data_recorder._get_target_interval(tmp_settings_file)
 
+
+def test_create_files_info_file_exists(tmp_path):
+    tmp_dat_1 = tmp_path / "AD-00_20201216-080058.620753.dat"
+    tmp_dat_2 = tmp_path / "AD-00_20201216-080059.620753.dat"
+    tmp_dat_3 = tmp_path / "AD-00_20201216-080100.620753.dat"
+
+    tmp_dat_1.write_text("")
+    tmp_dat_2.write_text("")
+    tmp_dat_3.write_text("")
+    actual = data_recorder._create_files_info(tmp_path._str)
+
+    expected = [
+        data_recorder.FileInfo(tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753)),
+        data_recorder.FileInfo(tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 59, 620753)),
+        data_recorder.FileInfo(tmp_dat_3._str, datetime(2020, 12, 16, 8, 1, 0, 620753)),
+    ]
+
+    assert actual == expected
