@@ -63,6 +63,10 @@ def _get_target_interval(settings_file_path: str):
     else:
         end_time: datetime = datetime.strptime(config["end_time"], "%Y%m%d%H%M%S%f")
 
+    if start_time > end_time:
+        logger.exception(f"start_time({start_time}) > end_time({end_time}). This is abnormal condition.")
+        raise ValueError
+
     logger.info(f"target interval: {start_time} - {end_time}")
 
     return start_time, end_time
