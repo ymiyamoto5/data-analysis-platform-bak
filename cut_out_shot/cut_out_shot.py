@@ -1,11 +1,13 @@
+import os
+import sys
+import logging
+import logging.handlers
+import pandas as pd
 from typing import Final
 from datetime import datetime
 from pandas.core.frame import DataFrame
 
-import logging
-import logging.handlers
-import pandas as pd
-
+sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
 from time_logger import time_log
 from throughput_counter import throughput_counter
@@ -27,7 +29,8 @@ logger = logging.getLogger(__name__)
 class CutOutShot:
     """ データインポートクラス """
 
-    CHUNK_SIZE: Final = 10_000_000  # csvから一度に読み出す行数
+    # CHUNK_SIZE: Final = 10_000_000  # csvから一度に読み出す行数
+    CHUNK_SIZE: Final = 10_000  # csvから一度に読み出す行数
     TAIL_SIZE: Final = 1_000  # 末尾データ保持数（chunk跨ぎの際に利用）
 
     def __init__(self):
@@ -87,7 +90,7 @@ class CutOutShot:
         start_displacement: float,
         end_displacement: float,
         num_of_process: int = 8,
-    ):
+    ) -> None:
         """ shotデータインポート処理 """
 
         ElasticManager.delete_exists_index(index=shots_index)
@@ -107,7 +110,12 @@ class CutOutShot:
         num_of_process: int,
     ) -> None:
         """
-        csvファイルを一定行数に読み取り、ショット切り出しおよび保存を行う。
+        csvファイルをチャンクサイズ単位に読み取り、以下の処理を行う。
+        * 中断区間のデータ除外
+        * ショット切り出し
+        * 物理変換
+        * 事象記録のタグ付け
+        * Elasticsearchへの保存
 
         Args:
             rawdata_filename: 生データcsvのファイル名
@@ -117,26 +125,24 @@ class CutOutShot:
             num_of_process: 並列処理のプロセス数
         """
 
-        cols = ("load01", "load02", "load03", "load04", "displacement")
-        current_df_tail: DataFrame = pd.DataFrame(index=[], columns=cols)
-
-        now = datetime.now()
+        NOW: Final = datetime.now()
+        COLS: Final = ("load01", "load02", "load03", "load04", "displacement")
+        previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
 
         # chunksize毎に処理
         for loop_count, rawdata_df in enumerate(
-            pd.read_csv(rawdata_filename, chunksize=CutOutShot.CHUNK_SIZE, names=cols)
+            pd.read_csv(rawdata_filename, chunksize=CutOutShot.CHUNK_SIZE, names=COLS)
         ):
             # スループット表示
             if loop_count != 0:
                 processed_count: int = loop_count * CutOutShot.CHUNK_SIZE
-                throughput_counter(processed_count, now)
-
-            # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。
-            # そのためのデータをprevious_df_tail（1つ前のchunkの末尾）とcurrent_df_tail（現在のchunkの末尾）に保持しておく。
-            previous_df_tail, current_df_tail = self._backup_df_tail(current_df_tail, rawdata_df)
+                throughput_counter(processed_count, NOW)
 
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
             shots: list = self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
+
+            # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。そのためのchunk末尾バックアップ。
+            previous_df_tail = self._backup_df_tail(rawdata_df)
 
             # 切り出されたショットデータをElasticsearchに書き出し
             if len(shots) > 0:
@@ -144,7 +150,7 @@ class CutOutShot:
                 ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, BULK_CHUNK_SIZE)
                 self.__shots = []
 
-        logger.info("Cut_out finished.")
+        logger.info("Cut out finished.")
 
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
@@ -215,20 +221,16 @@ class CutOutShot:
 
         return self.__shots
 
-    def _backup_df_tail(self, current_df_tail: DataFrame, df: DataFrame) -> DataFrame:
+    def _backup_df_tail(self, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
 
         N: Final = CutOutShot.TAIL_SIZE
-
-        previous_df_tail = current_df_tail.copy()
-        current_df_tail = df[-N:].copy()
-
-        return previous_df_tail, current_df_tail
+        return df[-N:].copy()
 
     def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
 
-        N = CutOutShot.TAIL_SIZE
+        N: Final = CutOutShot.TAIL_SIZE
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
         # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得

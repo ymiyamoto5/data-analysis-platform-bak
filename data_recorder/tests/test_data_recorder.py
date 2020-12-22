@@ -1,4 +1,3 @@
-from sys import exec_prefix
 import pytest
 import json
 from datetime import datetime, timedelta
@@ -97,6 +96,7 @@ def test_create_files_info_file_exists(tmp_path):
     tmp_dat_1.write_text("")
     tmp_dat_2.write_text("")
     tmp_dat_3.write_text("")
+
     actual = data_recorder._create_files_info(tmp_path._str)
 
     expected = [
