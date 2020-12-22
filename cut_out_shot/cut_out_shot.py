@@ -29,11 +29,10 @@ logger = logging.getLogger(__name__)
 class CutOutShot:
     """ データインポートクラス """
 
-    # CHUNK_SIZE: Final = 10_000_000  # csvから一度に読み出す行数
-    CHUNK_SIZE: Final = 10_000  # csvから一度に読み出す行数
-    TAIL_SIZE: Final = 1_000  # 末尾データ保持数（chunk跨ぎの際に利用）
+    def __init__(self, chunk_size=10_000_000, tail_size=1_000):
+        self.__chunk_size = chunk_size
+        self.__tail_size = tail_size
 
-    def __init__(self):
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
@@ -83,37 +82,21 @@ class CutOutShot:
     #     self.__shot_number = shot_number
 
     @time_log
-    def import_data_by_shot(
+    def cut_out_shot(
         self,
         rawdata_filename: str,
         shots_index: str,
         start_displacement: float,
         end_displacement: float,
+        back_seconds_for_tagging: int = 120,
         num_of_process: int = 8,
-    ) -> None:
-        """ shotデータインポート処理 """
-
-        ElasticManager.delete_exists_index(index=shots_index)
-
-        mapping_file = "mappings/mapping_shots.json"
-        ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
-
-        self._main_process(rawdata_filename, shots_index, start_displacement, end_displacement, num_of_process)
-
-    @time_log
-    def _main_process(
-        self,
-        rawdata_filename: str,
-        shots_index: str,
-        start_displacement: float,
-        end_displacement: float,
-        num_of_process: int,
     ) -> None:
         """
         csvファイルをチャンクサイズ単位に読み取り、以下の処理を行う。
         * 中断区間のデータ除外
         * ショット切り出し
         * 物理変換
+        * SPM計算
         * 事象記録のタグ付け
         * Elasticsearchへの保存
 
@@ -122,8 +105,15 @@ class CutOutShot:
             shots_index: 切り出したショットの格納先となるElasticsearchのインデックス名
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
+            back_seconds_for_tagging: タグ付けにおいて、何秒前まで遡るか
             num_of_process: 並列処理のプロセス数
         """
+
+        # 同名のindexがあれば削除
+        ElasticManager.delete_exists_index(index=shots_index)
+        # index作成
+        mapping_file = "mappings/mapping_shots.json"
+        ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
         NOW: Final = datetime.now()
         COLS: Final = ("load01", "load02", "load03", "load04", "displacement")
@@ -131,24 +121,33 @@ class CutOutShot:
 
         # chunksize毎に処理
         for loop_count, rawdata_df in enumerate(
-            pd.read_csv(rawdata_filename, chunksize=CutOutShot.CHUNK_SIZE, names=COLS)
+            pd.read_csv(rawdata_filename, chunksize=self.__chunk_size, names=COLS)
         ):
             # スループット表示
             if loop_count != 0:
-                processed_count: int = loop_count * CutOutShot.CHUNK_SIZE
+                processed_count: int = loop_count * self.__chunk_size
                 throughput_counter(processed_count, NOW)
+
+            # chunkに中断区間が含まれていれば、データを除外する
 
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
             shots: list = self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
 
+            # タグ付け
+
+            # 物理変換
+
+            # spm計算
+
+            # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
+            if len(shots) > 0:
+                ElasticManager.multi_process_bulk(
+                    data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
+                )
+                self.__shots = []
+
             # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。そのためのchunk末尾バックアップ。
             previous_df_tail = self._backup_df_tail(rawdata_df)
-
-            # 切り出されたショットデータをElasticsearchに書き出し
-            if len(shots) > 0:
-                BULK_CHUNK_SIZE: Final = 5000
-                ElasticManager.multi_process_bulk(shots, shots_index, num_of_process, BULK_CHUNK_SIZE)
-                self.__shots = []
 
         logger.info("Cut out finished.")
 
@@ -224,13 +223,13 @@ class CutOutShot:
     def _backup_df_tail(self, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
 
-        N: Final = CutOutShot.TAIL_SIZE
+        N: Final = self.__tail_size
         return df[-N:].copy()
 
     def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
 
-        N: Final = CutOutShot.TAIL_SIZE
+        N: Final = self.__tail_size
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
         # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
@@ -255,7 +254,7 @@ def main():
     cut_out_shot = CutOutShot()
     # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
     # cut_out_shot.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
-    cut_out_shot.import_data_by_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+    cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
 
 
 if __name__ == "__main__":
