@@ -44,8 +44,8 @@ def create_file_timestamp(filename: str) -> dict:
 
 
 def main() -> None:
+    # バイナリファイルリストを生成
     shared_dir = "data/pseudo_data/"
-
     file_list: list = glob.glob(shared_dir + "*.dat")
     if len(file_list) == 0:
         return
@@ -68,7 +68,7 @@ def main() -> None:
     if config.get("end_time") is None:
         end_time: datetime = datetime.max
     else:
-        end_time: datetime = config["end_time"]
+        end_time: datetime = datetime.strptime(config["end_time"], "%Y%m%d%H%M%S%f")
 
     logger.info(f"target interval: {start_time} - {end_time}")
 
@@ -79,10 +79,9 @@ def main() -> None:
 
     # 対象となるファイルに絞り込む
     target_files: list = list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
-    # for x in target_files:
-    #     print(x)
+    # [print(x.file_path) for x in target_files]
 
-    # 含まれないファイルは削除する
+    # TODO: 含まれないファイルは削除する
 
     # 区間に含まれるファイルがなければreturn
     if len(target_files) == 0:
@@ -102,11 +101,12 @@ def main() -> None:
     if not ElasticManager.exists_index(rawdata_index):
         ElasticManager.create_index(rawdata_index)
 
-    dataset_number: int = ElasticManager.count(rawdata_index)
+    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
 
     for file in target_files:
+        dataset_number = 0  # ファイル内での連番
         dataset_timestamp: datetime = file.timestamp
         samples: list = []
 
@@ -123,10 +123,10 @@ def main() -> None:
                     break
 
                 dataset = struct.unpack("<ddddd", binary_dataset)
-                # print(dataset)
+                logger.debug(dataset)
 
                 data = {
-                    "sequential_number": dataset_number,
+                    "sequential_number": sequential_number,
                     "timestamp": dataset_timestamp.isoformat(),
                     "displacement": dataset[0],
                     "load01": dataset[1],
@@ -137,6 +137,7 @@ def main() -> None:
                 samples.append(data)
 
                 dataset_number += 1
+                sequential_number += 1
                 dataset_timestamp += timedelta(microseconds=10)  # 100k sample
 
         # elasticsearch出力
