@@ -115,10 +115,16 @@ class CutOutShot:
         mapping_file = "mappings/mapping_shots.json"
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
-        NOW: Final = datetime.now()
+        # 対応するevents_indexのデータ取得
+        rawdata_suffix: str = os.path.splitext(os.path.basename(rawdata_filename))[0]
+        events_index: str = "events-" + rawdata_suffix
+        query = {"sort": {"event_id": {"order": "asc"}}}
+        events: list = ElasticManager.get_all_doc(events_index, query)
+
         COLS: Final = ("load01", "load02", "load03", "load04", "displacement")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
 
+        NOW: Final = datetime.now()
         # chunksize毎に処理
         for loop_count, rawdata_df in enumerate(
             pd.read_csv(rawdata_filename, chunksize=self.__chunk_size, names=COLS)
@@ -129,6 +135,7 @@ class CutOutShot:
                 throughput_counter(processed_count, NOW)
 
             # chunkに中断区間が含まれていれば、データを除外する
+            extracted_df: DataFrame = self._exclude_pause_interval(rawdata_df)
 
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
             shots: list = self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
@@ -254,7 +261,8 @@ def main():
     cut_out_shot = CutOutShot()
     # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
     # cut_out_shot.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
-    cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+    cut_out_shot.cut_out_shot("data/pseudo_data/20201216075900/20201216165900.csv", "shots-20201216165900", 47, 34, 8)
 
 
 if __name__ == "__main__":

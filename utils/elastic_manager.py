@@ -75,6 +75,15 @@ class ElasticManager:
         return result["hits"]["hits"][0]["_source"]
 
     @classmethod
+    def get_all_doc(cls, index: str, query: dict) -> list:
+        """ 対象インデックスの全documentを返す """
+
+        body = query
+        result = cls.es.search(index=index, body=body, size=10_000)
+
+        return [x["_source"] for x in result["hits"]["hits"]]
+
+    @classmethod
     def delete_index(cls, index: str) -> None:
         """ インデックスを削除する """
 

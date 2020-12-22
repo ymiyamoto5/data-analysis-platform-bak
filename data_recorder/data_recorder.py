@@ -80,7 +80,7 @@ def _get_target_files(files_info: list, start_time: datetime, end_time: datetime
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
 
 
-def _read_binary_files(file: str, sequential_number: int) -> list:
+def _read_binary_files(file: str, sequential_number: int):
     """ バイナリファイルを読んで、そのデータをリストにして返す """
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
@@ -118,7 +118,7 @@ def _read_binary_files(file: str, sequential_number: int) -> list:
             sequential_number += 1
             dataset_timestamp += timedelta(microseconds=10)  # 100k sample
 
-    return samples
+    return samples, sequential_number
 
 
 def _create_files_info(shared_dir: str) -> list:
@@ -162,14 +162,15 @@ def main() -> None:
         logger.info(f"No files in target inteverl {start_time} - {end_time}.")
         return
 
-    # 処理済みのファイル格納用ディレクトリ作成。starttimeを名前とする。
-    processed_dir_path = os.path.join(shared_dir, datetime.strftime(start_time, "%Y%m%d%H%M%S%f"))
+    jst = start_time.astimezone(timezone("Asia/Tokyo"))
+
+    # 処理済みのファイル格納用ディレクトリ作成
+    processed_dir_path = os.path.join(shared_dir, datetime.strftime(jst, "%Y%m%d%H%M%S"))
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # 出力csvパス
-    csv_file: str = os.path.join(processed_dir_path, datetime.strftime(start_time, "%Y%m%d%H%M%S%f") + ".csv")
+    csv_file: str = os.path.join(processed_dir_path, datetime.strftime(jst, "%Y%m%d%H%M%S") + ".csv")
     # Elasticsearch rawdataインデックス名
-    jst = start_time.astimezone(timezone("Asia/Tokyo"))
     rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
 
     if not ElasticManager.exists_index(rawdata_index):
@@ -177,23 +178,51 @@ def main() -> None:
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
+    buffer: list = []
     for file in target_files:
         # バイナリファイルを読み取り、データリストを取得
-        samples: list = _read_binary_files(file, sequential_number)
+        samples, sequential_number = _read_binary_files(file, sequential_number)
 
-        # elasticsearch出力
+        buffer += samples
+
+        if len(buffer) >= 10_000_000:
+            # elasticsearch出力
+            logger.info("es bulk start")
+            ElasticManager.multi_process_bulk(
+                data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            )
+            logger.info("es bulk end")
+
+            # csv出力
+            logger.info("csv export start")
+            fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
+            with open(csv_file, "a") as f:
+                writer = csv.DictWriter(f, fieldnames)
+                writer.writerows(buffer)
+            logger.info("csv export end")
+
+            buffer = []
+
+        # 処理済みディレクトリに退避
+        # shutil.move(file.file_path, processed_dir_path)
+        logger.info(f"processed: {file.file_path}")
+
+    if len(buffer) >= 0:
+        logger.info("flush remainig data.")
+        logger.info("es bulk start")
         ElasticManager.multi_process_bulk(
-            data=samples, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
         )
+        logger.info("es bulk end")
 
-        # csv出力
+        logger.info("csv export start")
         fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
         with open(csv_file, "a") as f:
             writer = csv.DictWriter(f, fieldnames)
-            writer.writerows(samples)
+            writer.writerows(buffer)
+        logger.info("csv export end")
 
-        # 処理済みディレクトリに退避
-        shutil.move(file.file_path, processed_dir_path)
+    logger.info("all file processed.")
 
 
 if __name__ == "__main__":
