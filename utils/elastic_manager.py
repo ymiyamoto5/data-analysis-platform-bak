@@ -3,7 +3,7 @@
 from elasticsearch import Elasticsearch
 from elasticsearch import exceptions
 from elasticsearch import helpers
-from elasticsearch.client import indices
+from elasticsearch import AsyncElasticsearch
 import pandas as pd
 import json
 from typing import Iterable, Iterator
@@ -21,6 +21,7 @@ class ElasticManager:
     """ Elasticsearchへの各種処理を行うwrapperクラス """
 
     es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
+    async_es = AsyncElasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
 
     @classmethod
     def show_indices(cls, show_all_index: bool = False) -> pd.DataFrame:
@@ -243,6 +244,14 @@ class ElasticManager:
         except exceptions.RequestError as e:
             logger.error(str(e))
             return False
+
+    @classmethod
+    async def async_bulk(cls, data: list):
+        await helpers.async_bulk(cls.async_es, data)
+
+    @classmethod
+    async def async_multi_process_bulk(cls, data: list):
+        pass
 
     @classmethod
     def parallel_bulk(cls, doc_generator: Iterable, thread_count: int = 4, chunk_size: int = 500) -> None:

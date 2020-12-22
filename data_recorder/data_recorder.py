@@ -5,12 +5,13 @@ import json
 import glob
 import re
 import shutil
+import asyncio
 import struct
 import logging
 import logging.handlers
 from datetime import datetime, timedelta
 from pytz import timezone
-from typing import Final, NamedTuple, Tuple
+from typing import Final, NamedTuple, Tuple, Coroutine
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -80,7 +81,7 @@ def _get_target_files(files_info: list, start_time: datetime, end_time: datetime
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
 
 
-def _read_binary_files(file: str, sequential_number: int):
+def _read_binary_files(file: str, sequential_number: int, rawdata_index: str):
     """ バイナリファイルを読んで、そのデータをリストにして返す """
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
@@ -111,7 +112,9 @@ def _read_binary_files(file: str, sequential_number: int):
                 "load02": dataset[2],
                 "load03": dataset[3],
                 "load04": dataset[4],
+                "_index": rawdata_index,
             }
+
             samples.append(data)
 
             dataset_number += 1
@@ -137,7 +140,7 @@ def _create_files_info(shared_dir: str) -> list:
     return files_info
 
 
-def main() -> None:
+async def main() -> None:
     shared_dir = "data/pseudo_data/"
     files_info: list = _create_files_info(shared_dir)
 
@@ -170,36 +173,45 @@ def main() -> None:
 
     # 出力csvパス
     csv_file: str = os.path.join(processed_dir_path, datetime.strftime(jst, "%Y%m%d%H%M%S") + ".csv")
+    if os.path.isfile(csv_file):
+        os.remove(csv_file)
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
 
-    if not ElasticManager.exists_index(rawdata_index):
-        ElasticManager.create_index(rawdata_index)
+    # if not ElasticManager.exists_index(rawdata_index):
+    #     ElasticManager.create_index(rawdata_index)
+    if ElasticManager.exists_index(rawdata_index):
+        ElasticManager.delete_index(rawdata_index)
+    ElasticManager.create_index(rawdata_index)
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     buffer: list = []
     for file in target_files:
         # バイナリファイルを読み取り、データリストを取得
-        samples, sequential_number = _read_binary_files(file, sequential_number)
-
+        samples, sequential_number = _read_binary_files(file, sequential_number, rawdata_index)
         buffer += samples
 
-        if len(buffer) >= 10_000_000:
+        if len(buffer) >= 100_000:
             # elasticsearch出力
             logger.info("es bulk start")
-            ElasticManager.multi_process_bulk(
-                data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
-            )
-            logger.info("es bulk end")
+            # ElasticManager.multi_process_bulk(
+            #     data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            # )
+
+            ret: Coroutine = ElasticManager.async_bulk(buffer)
 
             # csv出力
             logger.info("csv export start")
+
             fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
             with open(csv_file, "a") as f:
-                writer = csv.DictWriter(f, fieldnames)
+                writer = csv.DictWriter(f, fieldnames, extrasaction="ignore")
                 writer.writerows(buffer)
             logger.info("csv export end")
+
+            await ret
+            logger.info("es bulk end")
 
             buffer = []
 
@@ -210,20 +222,26 @@ def main() -> None:
     if len(buffer) >= 0:
         logger.info("flush remainig data.")
         logger.info("es bulk start")
-        ElasticManager.multi_process_bulk(
-            data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
-        )
-        logger.info("es bulk end")
+        # ElasticManager.multi_process_bulk(
+        #     data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+        # )
+        ret: Coroutine = ElasticManager.async_bulk(buffer)
 
         logger.info("csv export start")
         fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
         with open(csv_file, "a") as f:
-            writer = csv.DictWriter(f, fieldnames)
+            writer = csv.DictWriter(f, fieldnames, extrasaction="ignore")
             writer.writerows(buffer)
         logger.info("csv export end")
+
+        await ret
+        logger.info("es bulk end")
 
     logger.info("all file processed.")
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+    loop.close()
