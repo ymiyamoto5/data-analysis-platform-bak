@@ -81,7 +81,7 @@ def _get_target_files(files_info: list, start_time: datetime, end_time: datetime
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
 
 
-def _read_binary_files(file: str, sequential_number: int, rawdata_index: str):
+def _read_binary_files(file: str, sequential_number: int):
     """ バイナリファイルを読んで、そのデータをリストにして返す """
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
@@ -112,7 +112,6 @@ def _read_binary_files(file: str, sequential_number: int, rawdata_index: str):
                 "load02": dataset[2],
                 "load03": dataset[3],
                 "load04": dataset[4],
-                "_index": rawdata_index,
             }
 
             samples.append(data)
@@ -175,31 +174,28 @@ async def main() -> None:
     csv_file: str = os.path.join(processed_dir_path, datetime.strftime(jst, "%Y%m%d%H%M%S") + ".csv")
     if os.path.isfile(csv_file):
         os.remove(csv_file)
+
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
-
-    # if not ElasticManager.exists_index(rawdata_index):
-    #     ElasticManager.create_index(rawdata_index)
     if ElasticManager.exists_index(rawdata_index):
         ElasticManager.delete_index(rawdata_index)
-    ElasticManager.create_index(rawdata_index)
+    mapping_file = "mappings/mapping_rawdata.json"
+    ElasticManager.create_index(rawdata_index, mapping_file)
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     buffer: list = []
     for file in target_files:
         # バイナリファイルを読み取り、データリストを取得
-        samples, sequential_number = _read_binary_files(file, sequential_number, rawdata_index)
+        samples, sequential_number = _read_binary_files(file, sequential_number)
         buffer += samples
 
-        if len(buffer) >= 100_000:
+        if len(buffer) >= 1_000_000:
             # elasticsearch出力
             logger.info("es bulk start")
-            # ElasticManager.multi_process_bulk(
-            #     data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
-            # )
-
-            ret: Coroutine = ElasticManager.async_bulk(buffer)
+            procs = ElasticManager.multi_process_bulk2(
+                data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            )
 
             # csv出力
             logger.info("csv export start")
@@ -210,7 +206,9 @@ async def main() -> None:
                 writer.writerows(buffer)
             logger.info("csv export end")
 
-            await ret
+            for p in procs:
+                p.join()
+
             logger.info("es bulk end")
 
             buffer = []
@@ -222,10 +220,9 @@ async def main() -> None:
     if len(buffer) >= 0:
         logger.info("flush remainig data.")
         logger.info("es bulk start")
-        # ElasticManager.multi_process_bulk(
-        #     data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
-        # )
-        ret: Coroutine = ElasticManager.async_bulk(buffer)
+        procs = ElasticManager.multi_process_bulk(
+            data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+        )
 
         logger.info("csv export start")
         fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
@@ -234,7 +231,9 @@ async def main() -> None:
             writer.writerows(buffer)
         logger.info("csv export end")
 
-        await ret
+        for p in procs:
+            p.join()
+
         logger.info("es bulk end")
 
     logger.info("all file processed.")

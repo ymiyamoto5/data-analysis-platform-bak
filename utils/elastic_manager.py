@@ -10,6 +10,8 @@ from typing import Iterable, Iterator
 import multiprocessing
 from datetime import datetime
 import logging
+from itertools import repeat
+from functools import partial
 
 es_logger = logging.getLogger("elasticsearch")
 es_logger.setLevel(logging.WARNING)
@@ -247,10 +249,17 @@ class ElasticManager:
 
     @classmethod
     async def async_bulk(cls, data: list):
-        await helpers.async_bulk(cls.async_es, data)
+        await helpers.async_bulk(cls.async_es, data, chunk_size=10000)
 
     @classmethod
     async def async_multi_process_bulk(cls, data: list):
+        # args = list(zip(repeat(cls.async_es), data))
+        # with multiprocessing.Pool(8) as p:
+        #     # p.map_async(cls.async_bulk, data)
+        #     # async_es = AsyncElasticsearch(
+        #     #     hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000
+        #     # )
+        #     p.starmap_async(helpers.async_bulk, args)
         pass
 
     @classmethod
@@ -262,6 +271,29 @@ class ElasticManager:
         ):
             if not success:
                 print("A document failed:", info)
+
+    @classmethod
+    def multi_process_bulk2(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
+        """ マルチプロセスでbulk insertする。map版試作 """
+        num_of_data = len(data)
+        # logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
+
+        batch_size, mod = divmod(num_of_data, num_of_process)
+
+        procs: list = []
+        for i in range(num_of_process):
+            start_index: int = i * batch_size
+            end_index: int = start_index + batch_size
+            target_data = data[start_index:end_index]
+            # 最後のプロセスには余り分を含めたデータを処理させる
+            if i == num_of_process - 1:
+                target_data = data[start_index:]
+
+            proc = multiprocessing.Process(target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size,))
+            proc.start()
+            procs.append(proc)
+
+        return procs
 
     @classmethod
     def multi_process_bulk(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
