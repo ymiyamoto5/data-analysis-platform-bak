@@ -135,6 +135,8 @@ class CutOutShot:
         COLS: Final = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
 
+        procs: list = []
+
         NOW: Final = datetime.now()
         # chunksize毎に処理
         for loop_count, rawdata_df in enumerate(
@@ -156,10 +158,15 @@ class CutOutShot:
 
             # spm計算
 
+            # 子プロセスのjoin
+            if len(procs) > 0:
+                for p in procs:
+                    p.join()
+
             # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
             if len(shots) > 0:
                 logger.info(f"{len(shots)} shots detected in chunk {loop_count+1}.")
-                ElasticManager.multi_process_bulk(
+                procs: list = ElasticManager.multi_process_bulk_lazy_join(
                     data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
                 )
                 shots = []
@@ -236,7 +243,7 @@ class CutOutShot:
                 continue
 
             # 切り出し区間の終了判定
-            if rawdata.displacement <= end_displacement:
+            if self.__is_target_of_cut_out and (rawdata.displacement <= end_displacement):
                 self.__is_target_of_cut_out = False
                 self.__sequential_number_by_shot = 0
 
