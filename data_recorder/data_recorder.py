@@ -190,40 +190,13 @@ async def main() -> None:
         samples, sequential_number = _read_binary_files(file, sequential_number)
         buffer += samples
 
-        if len(buffer) >= 1_000_000:
-            # elasticsearch出力
-            logger.info("es bulk start")
-            procs = ElasticManager.multi_process_bulk2(
-                data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
-            )
-
-            # csv出力
-            logger.info("csv export start")
-
-            fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
-            with open(csv_file, "a") as f:
-                writer = csv.DictWriter(f, fieldnames, extrasaction="ignore")
-                writer.writerows(buffer)
-            logger.info("csv export end")
-
-            for p in procs:
-                p.join()
-
-            logger.info("es bulk end")
-
-            buffer = []
-
-        # 処理済みディレクトリに退避
-        # shutil.move(file.file_path, processed_dir_path)
-        logger.info(f"processed: {file.file_path}")
-
-    if len(buffer) >= 0:
-        logger.info("flush remainig data.")
+        # elasticsearch出力
         logger.info("es bulk start")
-        procs = ElasticManager.multi_process_bulk2(
+        procs = ElasticManager.multi_process_bulk_lazy_join(
             data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
         )
 
+        # csv出力
         logger.info("csv export start")
         fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
         with open(csv_file, "a") as f:
@@ -236,11 +209,16 @@ async def main() -> None:
 
         logger.info("es bulk end")
 
+        buffer = []
+
+        # 処理済みディレクトリに退避
+        # shutil.move(file.file_path, processed_dir_path)
+        logger.info(f"processed: {file.file_path}")
+
     logger.info("all file processed.")
 
 
 if __name__ == "__main__":
-    # main()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
     loop.close()

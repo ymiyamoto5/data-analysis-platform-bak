@@ -273,7 +273,9 @@ class ElasticManager:
                 print("A document failed:", info)
 
     @classmethod
-    def multi_process_bulk2(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
+    def multi_process_bulk_lazy_join(
+        cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500
+    ) -> list:
         """ マルチプロセスでbulk insertする。map版試作 """
         num_of_data = len(data)
         # logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
