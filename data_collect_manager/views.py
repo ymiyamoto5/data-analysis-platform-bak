@@ -58,9 +58,8 @@ def setup():
     """ 段取り開始(rawdata取得開始) """
 
     # 基本的にUTCを使うが、events_index名のサフィックスのみJSTを使う
-    utc_now: datetime = datetime.now(timezone("UTC"))
+    utc_now: datetime = datetime.utcnow()
     jst_now = utc_now.astimezone(timezone("Asia/Tokyo"))
-    utc_now.replace(tzinfo=None)
 
     # events_index作成
     events_index: str = "events-" + jst_now.strftime("%Y%m%d%H%M%S")
@@ -90,7 +89,7 @@ def setup():
 def start():
     """ 開始(eventsに開始時間を記録) """
 
-    utc_now: datetime = datetime.now(timezone("UTC"))
+    utc_now: datetime = datetime.utcnow()
 
     # events_indexに開始イベントを記録
     events_index: str = ElasticManager.get_latest_events_index()
@@ -108,7 +107,7 @@ def start():
 def pause():
     """ 中断(eventsに中断の開始時間を記録) """
 
-    utc_now: datetime = datetime.now(timezone("UTC"))
+    utc_now: datetime = datetime.utcnow()
 
     # 中断イベントの記録。中断終了時刻は現在時刻を仮置き。
     events_index: str = ElasticManager.get_latest_events_index()
@@ -126,7 +125,7 @@ def pause():
 def resume():
     """ 再開(eventsに再開した時間を記録) """
 
-    utc_now: datetime = datetime.now(timezone("UTC"))
+    utc_now: datetime = datetime.utcnow()
 
     # 再開時は中断時に記録されたイベントを更新
     events_index: str = ElasticManager.get_latest_events_index()
@@ -144,7 +143,7 @@ def resume():
 def stop():
     """ 停止(rawdata取得終了) """
 
-    utc_now: datetime = datetime.now(timezone("UTC"))
+    utc_now: datetime = datetime.utcnow()
 
     # configファイル更新
     end_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
@@ -177,7 +176,7 @@ def record_tag():
         app.logger.error(str(e))
         return Response(response=json.dumps({"successful": False, "message": str(e)}), status=500)
 
-    utc_now: datetime = datetime.now(timezone("UTC"))
+    utc_now: datetime = datetime.utcnow()
 
     # events_indexに事象記録
     query = {"event_type": "tag", "tag": tag, "occurred_time": utc_now}
