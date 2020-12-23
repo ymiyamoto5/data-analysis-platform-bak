@@ -220,7 +220,7 @@ async def main() -> None:
     if len(buffer) >= 0:
         logger.info("flush remainig data.")
         logger.info("es bulk start")
-        procs = ElasticManager.multi_process_bulk(
+        procs = ElasticManager.multi_process_bulk2(
             data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
         )
 
