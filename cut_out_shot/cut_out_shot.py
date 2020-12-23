@@ -38,7 +38,7 @@ class CutOutShot:
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
-        self.__shots: list = []
+        # self.__shots: list = []
 
     # # テスト用の公開プロパティ
     # @property
@@ -121,24 +121,34 @@ class CutOutShot:
         query = {"sort": {"event_id": {"order": "asc"}}}
         events: list = ElasticManager.get_all_doc(events_index, query)
 
-        COLS: Final = ("load01", "load02", "load03", "load04", "displacement")
+        # events_indexから中断区間を取得
+        pause_events = [x for x in events if x["event_type"] == "pause"]
+        # print(pause_events)
+        if len(pause_events) > 0:
+            for pause_event in pause_events:
+                if pause_event.get("end_time") is None:
+                    logger.exception("Pause event does not finished. Please retry after finish pause.")
+                    raise ValueError
+
+        # events_indexからタグ付け区間を取得
+
+        COLS: Final = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
 
         NOW: Final = datetime.now()
         # chunksize毎に処理
         for loop_count, rawdata_df in enumerate(
-            pd.read_csv(rawdata_filename, chunksize=self.__chunk_size, names=COLS)
+            pd.read_csv(rawdata_filename, chunksize=self.__chunk_size, names=COLS, usecols=[1, 2, 3, 4, 5, 6])
         ):
             # スループット表示
             if loop_count != 0:
                 processed_count: int = loop_count * self.__chunk_size
                 throughput_counter(processed_count, NOW)
 
-            # chunkに中断区間が含まれていれば、データを除外する
-            extracted_df: DataFrame = self._exclude_pause_interval(rawdata_df)
-
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
-            shots: list = self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
+            shots: list = self._cut_out_shot(
+                previous_df_tail, rawdata_df, start_displacement, end_displacement, pause_events
+            )
 
             # タグ付け
 
@@ -148,22 +158,48 @@ class CutOutShot:
 
             # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
             if len(shots) > 0:
+                logger.info(f"{len(shots)} shots detected in chunk {loop_count+1}.")
                 ElasticManager.multi_process_bulk(
                     data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
                 )
-                self.__shots = []
+                shots = []
 
             # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。そのためのchunk末尾バックアップ。
             previous_df_tail = self._backup_df_tail(rawdata_df)
 
         logger.info("Cut out finished.")
 
+    def _is_include_in_pause_interval(self, rawdata_timestamp: datetime, pause_events: list) -> bool:
+        """ 対象のサンプルが中断区間にあるか判定する """
+
+        for pause_event in pause_events:
+            start_time: datetime = datetime.fromisoformat(pause_event.get("start_time"))
+            end_time: datetime = datetime.fromisoformat(pause_event.get("end_time"))
+
+            if start_time <= rawdata_timestamp <= end_time:
+                return True
+
+        return False
+
     def _cut_out_shot(
-        self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
+        self,
+        previous_df_tail: DataFrame,
+        rawdata_df: DataFrame,
+        start_displacement: float,
+        end_displacement: float,
+        pause_events: list = [],
     ) -> list:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
+        shots: list = []
+
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
+            # 中断区間であれば何もしない
+            if len(pause_events) > 0:
+                rawdata_timestamp: datetime = datetime.fromisoformat(rawdata.timestamp)
+                if self._is_include_in_pause_interval(rawdata_timestamp, pause_events):
+                    continue
+
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
                 self.__is_shot_section = True
@@ -186,7 +222,7 @@ class CutOutShot:
                         "shot_number": self.__shot_number,
                         "tags": [],
                     }
-                    self.__shots.append(shot)
+                    shots.append(shot)
                     self.__sequential_number += 1
                     self.__sequential_number_by_shot += 1
 
@@ -223,9 +259,9 @@ class CutOutShot:
                 "shot_number": self.__shot_number,
                 "tags": [],
             }
-            self.__shots.append(shot)
+            shots.append(shot)
 
-        return self.__shots
+        return shots
 
     def _backup_df_tail(self, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
@@ -258,11 +294,14 @@ class CutOutShot:
 
 
 def main():
-    cut_out_shot = CutOutShot()
+    # cut_out_shot = CutOutShot()
     # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
     # cut_out_shot.import_data_by_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)
     # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
-    cut_out_shot.cut_out_shot("data/pseudo_data/20201216075900/20201216165900.csv", "shots-20201216165900", 47, 34, 8)
+    cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    cut_out_shot.cut_out_shot(
+        "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 8
+    )
 
 
 if __name__ == "__main__":

@@ -106,12 +106,12 @@ def _read_binary_files(file: str, sequential_number: int):
 
             data = {
                 "sequential_number": sequential_number,
-                "timestamp": dataset_timestamp.isoformat(),
-                "displacement": dataset[0],
-                "load01": dataset[1],
-                "load02": dataset[2],
-                "load03": dataset[3],
-                "load04": dataset[4],
+                "timestamp": dataset_timestamp.replace(tzinfo=None).isoformat(),
+                "displacement": round(dataset[0], 3),
+                "load01": round(dataset[1], 3),
+                "load02": round(dataset[2], 3),
+                "load03": round(dataset[3], 3),
+                "load04": round(dataset[4], 3),
             }
 
             samples.append(data)

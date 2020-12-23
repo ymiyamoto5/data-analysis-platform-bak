@@ -60,6 +60,7 @@ def setup():
     # 基本的にUTCを使うが、events_index名のサフィックスのみJSTを使う
     utc_now: datetime = datetime.now(timezone("UTC"))
     jst_now = utc_now.astimezone(timezone("Asia/Tokyo"))
+    utc_now.replace(tzinfo=None)
 
     # events_index作成
     events_index: str = "events-" + jst_now.strftime("%Y%m%d%H%M%S")
@@ -179,7 +180,7 @@ def record_tag():
     utc_now: datetime = datetime.now(timezone("UTC"))
 
     # events_indexに事象記録
-    query = {"event_type": "tag", "tag": tag, "start_time": utc_now}
+    query = {"event_type": "tag", "tag": tag, "occurred_time": utc_now}
     events_index: str = ElasticManager.get_latest_events_index()
     doc_id = ElasticManager.count(events_index)
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
