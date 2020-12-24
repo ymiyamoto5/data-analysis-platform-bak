@@ -6,6 +6,8 @@ import pandas as pd
 from typing import Final
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
+from pandas.io import pickle
+import glob
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -135,7 +137,7 @@ class CutOutShot:
 
         # events_indexからタグ付け区間を取得
         tag_events = [x for x in events if x["event_type"] == "tag"]
-        logger.info(tag_events)
+        # logger.info(tag_events)
         if len(tag_events) > 0:
             for tag_event in tag_events:
                 tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
@@ -149,16 +151,13 @@ class CutOutShot:
 
         NOW: Final = datetime.now()
 
-        # chunksize毎に処理
-        for loop_count, rawdata_df in enumerate(
-            pd.read_csv(
-                rawdata_filename,
-                chunksize=self.__chunk_size,
-                names=COLS,
-                parse_dates=["timestamp"],
-                usecols=[1, 2, 3, 4, 5, 6],
-            )
-        ):
+        data_dir = "data/"
+        pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
+        pickle_file_list.sort()
+
+        for loop_count, pickle_file in enumerate(pickle_file_list):
+            rawdata_df = pd.read_pickle(pickle_file)
+
             # スループット表示
             if loop_count != 0:
                 processed_count: int = loop_count * self.__chunk_size
@@ -332,14 +331,16 @@ class CutOutShot:
 
 
 def main():
-    # cut_out_shot = CutOutShot()
+    cut_out_shot = CutOutShot()
     # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
-    # cut_out_shot.cut_out_shot("data/No13_3000.csv", "shots-no13-3000", 47, 34, 8)  # result: 9,356,063 samples
-    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
-    cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
     cut_out_shot.cut_out_shot(
-        "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 20, 8
-    )
+        "data/20201201010000.csv", "shots-20201201010000", 47, 34, 8
+    )  # result: 9,356,063 samples
+    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+    # cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    # cut_out_shot.cut_out_shot(
+    #     "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 20, 8
+    # )
 
 
 if __name__ == "__main__":
