@@ -1,6 +1,7 @@
 import os
 import sys
-import csv
+
+# import csv
 import json
 import glob
 import re
@@ -12,6 +13,7 @@ import logging.handlers
 from datetime import datetime, timedelta
 from pytz import timezone
 from typing import Final, NamedTuple, Tuple, Coroutine
+import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -87,7 +89,7 @@ def _read_binary_files(file: str, sequential_number: int):
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
 
     dataset_number = 0  # ファイル内での連番
-    dataset_timestamp: datetime = file.timestamp
+    # dataset_timestamp: datetime = file.timestamp
     samples: list = []
 
     with open(file.file_path, "rb") as f:
@@ -106,7 +108,7 @@ def _read_binary_files(file: str, sequential_number: int):
 
             data = {
                 "sequential_number": sequential_number,
-                "timestamp": dataset_timestamp.replace(tzinfo=None).isoformat(),
+                # "timestamp": dataset_timestamp.replace(tzinfo=None).isoformat(),
                 "displacement": round(dataset[0], 3),
                 "load01": round(dataset[1], 3),
                 "load02": round(dataset[2], 3),
@@ -118,7 +120,7 @@ def _read_binary_files(file: str, sequential_number: int):
 
             dataset_number += 1
             sequential_number += 1
-            dataset_timestamp += timedelta(microseconds=10)  # 100k sample
+            # dataset_timestamp += timedelta(microseconds=10)  # 100k sample
 
     return samples, sequential_number
 
@@ -171,9 +173,9 @@ async def main() -> None:
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # 出力csvパス
-    csv_file: str = os.path.join(processed_dir_path, datetime.strftime(jst, "%Y%m%d%H%M%S") + ".csv")
-    if os.path.isfile(csv_file):
-        os.remove(csv_file)
+    # csv_file: str = os.path.join(processed_dir_path, datetime.strftime(jst, "%Y%m%d%H%M%S") + ".csv")
+    # if os.path.isfile(csv_file):
+    #     os.remove(csv_file)
 
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
@@ -184,32 +186,28 @@ async def main() -> None:
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
-    buffer: list = []
-    for file in target_files:
+    pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
+
+    for file_number, file in enumerate(target_files):
         # バイナリファイルを読み取り、データリストを取得
         samples, sequential_number = _read_binary_files(file, sequential_number)
-        buffer += samples
 
         # elasticsearch出力
         logger.info("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            data=samples, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
         )
 
-        # csv出力
-        logger.info("csv export start")
-        fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
-        with open(csv_file, "a") as f:
-            writer = csv.DictWriter(f, fieldnames, extrasaction="ignore")
-            writer.writerows(buffer)
-        logger.info("csv export end")
+        logger.info("pickle dump start")
+        df = pd.DataFrame(samples)
+        pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
+        df.to_pickle(pickle_filename)
+        logger.info("pickle dump end")
 
         for p in procs:
             p.join()
 
         logger.info("es bulk end")
-
-        buffer = []
 
         # 処理済みディレクトリに退避
         # shutil.move(file.file_path, processed_dir_path)

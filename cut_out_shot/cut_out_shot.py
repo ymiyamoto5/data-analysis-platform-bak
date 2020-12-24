@@ -32,7 +32,6 @@ class CutOutShot:
     """ データインポートクラス """
 
     def __init__(self, chunk_size=10_000_000, tail_size=1_000):
-        self.__chunk_size = chunk_size
         self.__tail_size = tail_size
 
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
@@ -40,7 +39,6 @@ class CutOutShot:
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
-        # self.__shots: list = []
 
     # # テスト用の公開プロパティ
     # @property
@@ -159,18 +157,21 @@ class CutOutShot:
 
         NOW: Final = datetime.now()
 
-        data_dir = "data/"
+        data_dir = "data/pseudo_data/20201216165900"
         pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
         pickle_file_list.sort()
 
-        first_timestamp_of_chunk: datetime = setup_time
+        first_timestamp_of_file: datetime = setup_time
+        processed_count: int = 0
 
         for loop_count, pickle_file in enumerate(pickle_file_list):
             rawdata_df = pd.read_pickle(pickle_file)
 
+            data_count: int = len(rawdata_df)
+
             # スループット表示
             if loop_count != 0:
-                processed_count: int = loop_count * self.__chunk_size
+                processed_count += data_count
                 throughput_counter(processed_count, NOW)
 
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
@@ -179,13 +180,13 @@ class CutOutShot:
                 rawdata_df,
                 start_displacement,
                 end_displacement,
-                first_timestamp_of_chunk,
+                first_timestamp_of_file,
                 pause_events,
                 tag_events,
             )
 
             # chunkの最初のsample時刻を更新
-            first_timestamp_of_chunk: datetime = setup_time + timedelta(microseconds=10) * self.__chunk_size
+            first_timestamp_of_file: datetime = setup_time + timedelta(microseconds=10) * data_count
 
             # 物理変換
 
@@ -351,20 +352,20 @@ class CutOutShot:
         # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
         start_index: int = row_number
         end_index: int = row_number
-        return pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
+        return pd.concat([previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
 
 
 def main():
-    cut_out_shot = CutOutShot()
+    # cut_out_shot = CutOutShot()
     # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
-    cut_out_shot.cut_out_shot(
-        "data/20201201010000.csv", "shots-20201201010000", 47, 34, 8
-    )  # result: 9,356,063 samples
-    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
-    # cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
     # cut_out_shot.cut_out_shot(
-    #     "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 20, 8
-    # )
+    #     "data/20201201010000.csv", "shots-20201201010000", 47, 34, 8
+    # )  # result: 9,356,063 samples
+    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+    cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    cut_out_shot.cut_out_shot(
+        "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 20, 8
+    )
 
 
 if __name__ == "__main__":
