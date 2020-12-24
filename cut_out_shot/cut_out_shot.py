@@ -224,6 +224,7 @@ class CutOutShot:
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # 中断区間であれば何もしない
+            # TODO: ループ外で判定
             if len(pause_events) > 0:
                 if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
                     continue
