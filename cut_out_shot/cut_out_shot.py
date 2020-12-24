@@ -151,7 +151,7 @@ class CutOutShot:
 
         NOW: Final = datetime.now()
 
-        data_dir = "data/"
+        data_dir = "data/20201201010000"
         pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
         pickle_file_list.sort()
 
@@ -225,9 +225,9 @@ class CutOutShot:
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # 中断区間であれば何もしない
             # TODO: ループ外で判定
-            if len(pause_events) > 0:
-                if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
-                    continue
+            # if len(pause_events) > 0:
+            #     if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
+            #         continue
 
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
@@ -241,8 +241,8 @@ class CutOutShot:
 
                 for d in preceding_df.itertuples():
                     tags: list = []
-                    if len(tag_events) > 0:
-                        tags = self._get_tags(d.timestamp, tag_events)
+                    # if len(tag_events) > 0:
+                    #     tags = self._get_tags(d.timestamp, tag_events)
 
                     shot = {
                         "sequential_number": self.__sequential_number,
@@ -282,8 +282,8 @@ class CutOutShot:
 
             # タグ付け
             tags: list = []
-            if len(tag_events) > 0:
-                tags = self._get_tags(rawdata.timestamp, tag_events)
+            # if len(tag_events) > 0:
+            #     tags = self._get_tags(rawdata.timestamp, tag_events)
 
             # 切り出し対象としてリストに加える
             shot = {
