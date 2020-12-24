@@ -123,6 +123,14 @@ class CutOutShot:
         query = {"sort": {"event_id": {"order": "asc"}}}
         events: list = ElasticManager.get_all_doc(events_index, query)
 
+        # events_indexから段取り開始時間を取得
+        setup_events = [x for x in events if x["event_type"] == "setup"]
+        if len(setup_events) != 1:
+            logger.exception("Invalid status. Check events_index.")
+            raise ValueError
+
+        setup_time: datetime = datetime.fromisoformat(setup_events[0]["occurred_time"])
+
         # events_indexから中断区間を取得
         pause_events = [x for x in events if x["event_type"] == "pause"]
         # logger.info(pause_events)
@@ -155,6 +163,8 @@ class CutOutShot:
         pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
         pickle_file_list.sort()
 
+        first_timestamp_of_chunk: datetime = setup_time
+
         for loop_count, pickle_file in enumerate(pickle_file_list):
             rawdata_df = pd.read_pickle(pickle_file)
 
@@ -165,8 +175,17 @@ class CutOutShot:
 
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
             shots: list = self._cut_out_shot(
-                previous_df_tail, rawdata_df, start_displacement, end_displacement, pause_events, tag_events
+                previous_df_tail,
+                rawdata_df,
+                start_displacement,
+                end_displacement,
+                first_timestamp_of_chunk,
+                pause_events,
+                tag_events,
             )
+
+            # chunkの最初のsample時刻を更新
+            first_timestamp_of_chunk: datetime = setup_time + timedelta(microseconds=10) * self.__chunk_size
 
             # 物理変換
 
@@ -215,6 +234,7 @@ class CutOutShot:
         rawdata_df: DataFrame,
         start_displacement: float,
         end_displacement: float,
+        first_timestamp: datetime,
         pause_events: list = [],
         tag_events: list = [],
     ) -> list:
@@ -223,10 +243,13 @@ class CutOutShot:
         shots: list = []
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
+
+            timestamp: datetime = first_timestamp + timedelta(microseconds=10) * row_number
+
             # 中断区間であれば何もしない
             # TODO: ループ外で判定
             if len(pause_events) > 0:
-                if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
+                if self._is_include_in_pause_interval(timestamp, pause_events):
                     continue
 
             # ショット開始判定
@@ -241,8 +264,8 @@ class CutOutShot:
 
                 for d in preceding_df.itertuples():
                     tags: list = []
-                    if len(tag_events) > 0:
-                        tags = self._get_tags(d.timestamp, tag_events)
+                    # if len(tag_events) > 0:
+                    #     tags = self._get_tags(d.timestamp, tag_events)
 
                     shot = {
                         "sequential_number": self.__sequential_number,
@@ -282,8 +305,8 @@ class CutOutShot:
 
             # タグ付け
             tags: list = []
-            if len(tag_events) > 0:
-                tags = self._get_tags(rawdata.timestamp, tag_events)
+            # if len(tag_events) > 0:
+            #     tags = self._get_tags(rawdata.timestamp, tag_events)
 
             # 切り出し対象としてリストに加える
             shot = {
