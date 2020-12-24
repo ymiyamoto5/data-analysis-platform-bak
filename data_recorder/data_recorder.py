@@ -172,11 +172,6 @@ async def main() -> None:
     processed_dir_path = os.path.join(shared_dir, datetime.strftime(jst, "%Y%m%d%H%M%S"))
     os.makedirs(processed_dir_path, exist_ok=True)
 
-    # 出力csvパス
-    # csv_file: str = os.path.join(processed_dir_path, datetime.strftime(jst, "%Y%m%d%H%M%S") + ".csv")
-    # if os.path.isfile(csv_file):
-    #     os.remove(csv_file)
-
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
     if ElasticManager.exists_index(rawdata_index):

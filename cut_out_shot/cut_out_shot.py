@@ -157,7 +157,8 @@ class CutOutShot:
 
         NOW: Final = datetime.now()
 
-        data_dir = "data/pseudo_data/20201216165900"
+        shared_dir = "data"
+        data_dir = os.path.join(shared_dir, rawdata_suffix)
         pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
         pickle_file_list.sort()
 
@@ -174,6 +175,15 @@ class CutOutShot:
                 processed_count += data_count
                 throughput_counter(processed_count, NOW)
 
+            # DataFrameにtimestamp列を追加
+            # logger.info("start add timestamp")
+            # timestamp_list = []
+            # for i in range(data_count):
+            #     timestamp: datetime = first_timestamp_of_file + timedelta(microseconds=10) * i
+            #     timestamp_list.append(timestamp)
+            # rawdata_df["timestamp"] = timestamp_list
+            # logger.info("end add timestamp")
+
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
             shots: list = self._cut_out_shot(
                 previous_df_tail,
@@ -185,7 +195,7 @@ class CutOutShot:
                 tag_events,
             )
 
-            # chunkの最初のsample時刻を更新
+            # ファイル先頭データの時刻を更新
             first_timestamp_of_file: datetime = setup_time + timedelta(microseconds=10) * data_count
 
             # 物理変換
@@ -235,7 +245,7 @@ class CutOutShot:
         rawdata_df: DataFrame,
         start_displacement: float,
         end_displacement: float,
-        first_timestamp: datetime,
+        first_timestamp_of_file: datetime,
         pause_events: list = [],
         tag_events: list = [],
     ) -> list:
@@ -244,14 +254,13 @@ class CutOutShot:
         shots: list = []
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-
-            timestamp: datetime = first_timestamp + timedelta(microseconds=10) * row_number
+            # timestamp: datetime = first_timestamp_of_file + timedelta(microseconds=10) * row_number
 
             # 中断区間であれば何もしない
             # TODO: ループ外で判定
-            if len(pause_events) > 0:
-                if self._is_include_in_pause_interval(timestamp, pause_events):
-                    continue
+            # if len(pause_events) > 0:
+            #     if self._is_include_in_pause_interval(timestamp, pause_events):
+            #         continue
 
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
@@ -356,16 +365,16 @@ class CutOutShot:
 
 
 def main():
-    # cut_out_shot = CutOutShot()
-    # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
-    # cut_out_shot.cut_out_shot(
-    #     "data/20201201010000.csv", "shots-20201201010000", 47, 34, 8
-    # )  # result: 9,356,063 samples
-    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
-    cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    cut_out_shot = CutOutShot()
     cut_out_shot.cut_out_shot(
-        "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 20, 8
-    )
+        "data/20201201010000.csv", "shots-20201201010000", 47, 34, 8
+    )  # result: 9,356,063 samples
+
+    # 任意波形生成 dummydata
+    # cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    # cut_out_shot.cut_out_shot(
+    #     "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 20, 8
+    # )
 
 
 if __name__ == "__main__":
