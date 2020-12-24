@@ -135,6 +135,9 @@ class CutOutShot:
                 pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
                 pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
 
+                pause_event["start_time"] = pause_event["start_time"].timestamp()
+                pause_event["end_time"] = pause_event["end_time"].timestamp()
+
         # events_indexからタグ付け区間を取得
         tag_events = [x for x in events if x["event_type"] == "tag"]
         # logger.info(tag_events)
@@ -144,6 +147,9 @@ class CutOutShot:
                 # 記録された時刻（end_time）からN分前に遡り、start_timeとする
                 tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
 
+                tag_event["start_time"] = tag_event["start_time"].timestamp()
+                tag_event["end_time"] = tag_event["end_time"].timestamp()
+
         COLS: Final = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
 
@@ -151,12 +157,17 @@ class CutOutShot:
 
         NOW: Final = datetime.now()
 
-        data_dir = "data/20201201010000"
+        # data_dir = "data/20201201010000" # timestamp含まず. tagなし 700,000 doc/sec
+        data_dir = "data"  # timestamp含む. str_timestamp,tagなし 570,000 doc/sec. datetime変換,tagなし 100,000 doc/sec
         pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
         pickle_file_list.sort()
 
         for loop_count, pickle_file in enumerate(pickle_file_list):
             rawdata_df = pd.read_pickle(pickle_file)
+
+            # logger.info("start convert timestamp")
+            # rawdata_df["timestamp"] = rawdata_df["timestamp"].apply(lambda x: datetime.fromisoformat(x))
+            # logger.info("end convert timestamp")
 
             # スループット表示
             if loop_count != 0:
@@ -225,9 +236,9 @@ class CutOutShot:
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # 中断区間であれば何もしない
             # TODO: ループ外で判定
-            # if len(pause_events) > 0:
-            #     if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
-            #         continue
+            if len(pause_events) > 0:
+                if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
+                    continue
 
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
@@ -241,8 +252,8 @@ class CutOutShot:
 
                 for d in preceding_df.itertuples():
                     tags: list = []
-                    # if len(tag_events) > 0:
-                    #     tags = self._get_tags(d.timestamp, tag_events)
+                    if len(tag_events) > 0:
+                        tags = self._get_tags(d.timestamp, tag_events)
 
                     shot = {
                         "sequential_number": self.__sequential_number,
@@ -282,8 +293,8 @@ class CutOutShot:
 
             # タグ付け
             tags: list = []
-            # if len(tag_events) > 0:
-            #     tags = self._get_tags(rawdata.timestamp, tag_events)
+            if len(tag_events) > 0:
+                tags = self._get_tags(rawdata.timestamp, tag_events)
 
             # 切り出し対象としてリストに加える
             shot = {
@@ -335,7 +346,7 @@ def main():
     cut_out_shot = CutOutShot()
     # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
     cut_out_shot.cut_out_shot(
-        "data/20201201010000.csv", "shots-20201201010000", 47, 34, 8
+        "data/20201201010000.csv", "shots-20201201010000", 47, 34, 20, 8
     )  # result: 9,356,063 samples
     # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
     # cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
