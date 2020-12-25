@@ -6,6 +6,7 @@ import pandas as pd
 from typing import Final
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
+from pandas.core.series import Series
 from pandas.io import pickle
 import glob
 
@@ -197,14 +198,23 @@ class CutOutShot:
                 previous_df_tail, rawdata_df, start_displacement, end_displacement, tag_events
             )
 
-            # 物理変換
-
-            # spm計算
-
             # 子プロセスのjoin
             if len(procs) > 0:
                 for p in procs:
                     p.join()
+
+            if len(shots) == 0:
+                continue
+
+            # shots_df: DataFrame = pd.DataFrame(shots, columns=shots[0].keys())
+
+            # spm計算
+            # shot_number: n の開始点と shot_number: n+1 の開始点について、時刻差分を求める
+            # 1 shot / 時刻差分 = spm
+            # shots_start_points: DataFrame = shots_df.groupby("shot_number")[["shot_number", "timestamp"]].min()
+            # shots_start_points["diff"] = shots_start_points["timestamp"] - shots_start_points["timestamp"].shift(1)
+            # shots_start_points["spm"] = shots_start_points["diff"].apply(lambda x: 1 / x)
+            # 物理変換
 
             # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
             if len(shots) > 0:
@@ -249,10 +259,20 @@ class CutOutShot:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
         shots: list = []
+        shot_start_time: float = None  # spm計算用
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
+                # 次のショットを検知した際、spm計算に利用するため、現在検知したショットのtimestampを保持しておく
+                previous_shot_start_time: float = rawdata.timestamp if shot_start_time is None else shot_start_time
+                shot_start_time: float = rawdata.timestamp
+
+                # spm計算
+                if self.__shot_number != 0:
+                    spm: float = 1.0 * 60 / (shot_start_time - previous_shot_start_time)
+                    logger.info(f"shot_number: {self.__shot_number}, spm: {spm}")
+
                 self.__is_shot_section = True
                 self.__is_target_of_cut_out = True
                 self.__shot_number += 1
@@ -267,13 +287,14 @@ class CutOutShot:
                         tags = self._get_tags(d.timestamp, tag_events)
 
                     shot = {
+                        "timestamp": d.timestamp,
                         "sequential_number": self.__sequential_number,
                         "sequential_number_by_shot": self.__sequential_number_by_shot,
+                        "displacement": d.displacement,
                         "load01": d.load01,
                         "load02": d.load02,
                         "load03": d.load03,
                         "load04": d.load04,
-                        "displacement": d.displacement,
                         "shot_number": self.__shot_number,
                         "tags": tags,
                     }
@@ -309,13 +330,14 @@ class CutOutShot:
 
             # 切り出し対象としてリストに加える
             shot = {
+                "timestamp": rawdata.timestamp,
                 "sequential_number": self.__sequential_number,
                 "sequential_number_by_shot": self.__sequential_number_by_shot,
+                "displacement": rawdata.displacement,
                 "load01": rawdata.load01,
                 "load02": rawdata.load02,
                 "load03": rawdata.load03,
                 "load04": rawdata.load04,
-                "displacement": rawdata.displacement,
                 "shot_number": self.__shot_number,
                 "tags": tags,
             }
