@@ -16,6 +16,7 @@ from typing import Final, NamedTuple, Tuple, Coroutine
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
+import common
 
 LOG_FILE: Final = "log/data_recorder/data_recorder.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
@@ -45,18 +46,6 @@ def _create_file_timestamp(filepath: str) -> datetime:
     timestamp_str: str = parts[1] + parts[2] + parts[3]
     timestamp: datetime = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f")
     return timestamp
-
-
-def _get_settings_value(settings_file_path: str, key: str):
-    with open(settings_file_path, "r") as f:
-        settings: dict = json.load(f)
-    value = settings.get(key)
-
-    if value is None:
-        logger.error(f"Key {key} is not found in setting_file")
-        raise KeyError
-
-    return value
 
 
 def _get_target_interval(config_file_path: str):
@@ -154,7 +143,7 @@ async def main() -> None:
     settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
 
     # データディレクトリを確認し、ファイルリストを作成
-    data_dir = _get_settings_value(settings_file_path, "data_dir")
+    data_dir = common.get_settings_value(settings_file_path, "data_dir")
     files_info: list = _create_files_info(data_dir)
 
     if files_info is None:
@@ -162,7 +151,7 @@ async def main() -> None:
         return
 
     # configファイルからstart-endtimeを取得
-    config_file = _get_settings_value(settings_file_path, "config_file_path")
+    config_file = common.get_settings_value(settings_file_path, "config_file_path")
     start_time, end_time = _get_target_interval(config_file)
 
     if start_time is None:

@@ -13,6 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
 from time_logger import time_log
 from throughput_counter import throughput_counter
+import common
 
 LOG_FILE: Final = "log/cut_out_shot/cut_out_shot.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
@@ -118,7 +119,6 @@ class CutOutShot:
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
         # 対応するevents_indexのデータ取得
-        # rawdata_suffix: str = os.path.splitext(os.path.basename(rawdata_filename))[0]
         events_index: str = "events-" + rawdata_dir_name
         query = {"sort": {"event_id": {"order": "asc"}}}
         events: list = ElasticManager.get_all_doc(events_index, query)
@@ -131,10 +131,11 @@ class CutOutShot:
                 if pause_event.get("end_time") is None:
                     logger.exception("Pause event does not finished. Please retry after finish pause.")
                     raise ValueError
-                # datetimeに変換しておく
+                # datetimeに変換
                 pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
                 pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
 
+                # unixtimeに変換
                 pause_event["start_time"] = pause_event["start_time"].timestamp()
                 pause_event["end_time"] = pause_event["end_time"].timestamp()
 
@@ -147,6 +148,7 @@ class CutOutShot:
                 # 記録された時刻（end_time）からN分前に遡り、start_timeとする
                 tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
 
+                # unixtimeに変換
                 tag_event["start_time"] = tag_event["start_time"].timestamp()
                 tag_event["end_time"] = tag_event["end_time"].timestamp()
 
@@ -157,17 +159,15 @@ class CutOutShot:
 
         NOW: Final = datetime.now()
 
-        data_dir = os.path.join("shared/data/pseudo_data", rawdata_dir_name)
-
-        pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
+        # 設定ファイルから取り込みデータを特定
+        settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
+        data_dir = common.get_settings_value(settings_file_path, "data_dir")
+        rawdata_dir_path = os.path.join(data_dir, rawdata_dir_name)
+        pickle_file_list: list = glob.glob(os.path.join(rawdata_dir_path, "tmp*.pkl"))
         pickle_file_list.sort()
 
         for loop_count, pickle_file in enumerate(pickle_file_list):
             rawdata_df = pd.read_pickle(pickle_file)
-
-            # logger.info("start convert timestamp")
-            # rawdata_df["timestamp"] = rawdata_df["timestamp"].apply(lambda x: datetime.fromisoformat(x))
-            # logger.info("end convert timestamp")
 
             # スループット表示
             if loop_count != 0:
@@ -235,7 +235,6 @@ class CutOutShot:
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # 中断区間であれば何もしない
-            # TODO: ループ外で判定
             if len(pause_events) > 0:
                 if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
                     continue
