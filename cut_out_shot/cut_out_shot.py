@@ -33,16 +33,14 @@ logger = logging.getLogger(__name__)
 class CutOutShot:
     """ データインポートクラス """
 
-    def __init__(self, chunk_size=10_000_000, tail_size=1_000):
-        self.__chunk_size = chunk_size
+    def __init__(self, tail_size=1_000):
         self.__tail_size = tail_size
-
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
-        # self.__shots: list = []
+        self.__previous_shot_start_time: float = None
 
     # # テスト用の公開プロパティ
     # @property
@@ -174,13 +172,9 @@ class CutOutShot:
         pickle_file_list: list = glob.glob(os.path.join(rawdata_dir_path, "tmp*.pkl"))
         pickle_file_list.sort()
 
+        processed_count = 0
         for loop_count, pickle_file in enumerate(pickle_file_list):
             rawdata_df = pd.read_pickle(pickle_file)
-
-            # スループット表示
-            if loop_count != 0:
-                processed_count: int = loop_count * self.__chunk_size
-                throughput_counter(processed_count, NOW)
 
             # 収集開始前のデータを除外
             rawdata_df = rawdata_df[rawdata_df["timestamp"] >= collect_start_time]
@@ -203,17 +197,14 @@ class CutOutShot:
                 for p in procs:
                     p.join()
 
+            # スループット表示
+            if loop_count != 0:
+                processed_count += len(rawdata_df)
+                throughput_counter(processed_count, NOW)
+
             if len(shots) == 0:
                 continue
 
-            # shots_df: DataFrame = pd.DataFrame(shots, columns=shots[0].keys())
-
-            # spm計算
-            # shot_number: n の開始点と shot_number: n+1 の開始点について、時刻差分を求める
-            # 1 shot / 時刻差分 = spm
-            # shots_start_points: DataFrame = shots_df.groupby("shot_number")[["shot_number", "timestamp"]].min()
-            # shots_start_points["diff"] = shots_start_points["timestamp"] - shots_start_points["timestamp"].shift(1)
-            # shots_start_points["spm"] = shots_start_points["diff"].apply(lambda x: 1 / x)
             # 物理変換
 
             # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
@@ -259,19 +250,19 @@ class CutOutShot:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
         shots: list = []
-        shot_start_time: float = None  # spm計算用
+        # shot_start_time: float = None  # spm計算用
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
-                # 次のショットを検知した際、spm計算に利用するため、現在検知したショットのtimestampを保持しておく
-                previous_shot_start_time: float = rawdata.timestamp if shot_start_time is None else shot_start_time
-                shot_start_time: float = rawdata.timestamp
+                # spm計算。最初のショット検知時はspm計算できないため、timestampだけ保持しておく
+                if self.__shot_number == 0:
+                    self.__previous_shot_start_time: float = rawdata.timestamp
 
-                # spm計算
-                if self.__shot_number != 0:
-                    spm: float = 1.0 * 60 / (shot_start_time - previous_shot_start_time)
-                    logger.info(f"shot_number: {self.__shot_number}, spm: {spm}")
+                else:
+                    spm: float = 1.0 * 60 / (rawdata.timestamp - self.__previous_shot_start_time)
+                    # logger.info(f"shot_number: {self.__shot_number}, spm: {spm}")
+                    self.__previous_shot_start_time = rawdata.timestamp
 
                 self.__is_shot_section = True
                 self.__is_target_of_cut_out = True

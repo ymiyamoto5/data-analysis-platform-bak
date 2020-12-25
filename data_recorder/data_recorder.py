@@ -139,7 +139,8 @@ def _create_files_info(shared_dir: str) -> list:
     return files_info
 
 
-async def main() -> None:
+# async def main() -> None:
+def main() -> None:
     settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
 
     # データディレクトリを確認し、ファイルリストを作成
@@ -191,11 +192,12 @@ async def main() -> None:
         # elasticsearch出力
         logger.info("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=samples, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
 
         # テンポラリファイル出力
         logger.info("pickle dump start")
+
         # sequential_numberは不要なので除去
         samples = [
             {
@@ -227,6 +229,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-    loop.close()
+    main()
