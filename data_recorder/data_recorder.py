@@ -9,6 +9,7 @@ import asyncio
 import struct
 import logging
 import logging.handlers
+import pandas as pd
 from datetime import datetime, timedelta
 from pytz import timezone
 from typing import Final, NamedTuple, Tuple, Coroutine
@@ -46,12 +47,21 @@ def _create_file_timestamp(filepath: str) -> datetime:
     return timestamp
 
 
-def _get_target_interval(settings_file_path: str):
-    """ 処理対象となる区間（開始/終了時刻）を取得する """
-
+def _get_settings_value(settings_file_path: str, key: str):
     with open(settings_file_path, "r") as f:
         settings: dict = json.load(f)
-        config_file_path = settings["config_file_path"]
+    value = settings.get(key)
+
+    if value is None:
+        logger.error(f"Key {key} is not found in setting_file")
+        raise KeyError
+
+    return value
+
+
+def _get_target_interval(config_file_path: str):
+    """ 処理対象となる区間（開始/終了時刻）を取得する """
+
     with open(config_file_path, "r") as f:
         config: dict = json.load(f)
 
@@ -106,7 +116,8 @@ def _read_binary_files(file: str, sequential_number: int):
 
             data = {
                 "sequential_number": sequential_number,
-                "timestamp": dataset_timestamp.replace(tzinfo=None).isoformat(),
+                # "timestamp": dataset_timestamp.replace(tzinfo=None).isoformat(),
+                "timestamp": dataset_timestamp.timestamp(),
                 "displacement": round(dataset[0], 3),
                 "load01": round(dataset[1], 3),
                 "load02": round(dataset[2], 3),
@@ -140,16 +151,19 @@ def _create_files_info(shared_dir: str) -> list:
 
 
 async def main() -> None:
-    shared_dir = "data/pseudo_data/"
-    files_info: list = _create_files_info(shared_dir)
+    settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
+
+    # データディレクトリを確認し、ファイルリストを作成
+    data_dir = _get_settings_value(settings_file_path, "data_dir")
+    files_info: list = _create_files_info(data_dir)
 
     if files_info is None:
-        logger.info(f"No files in {shared_dir}")
+        logger.info(f"No files in {data_dir}")
         return
 
     # configファイルからstart-endtimeを取得
-    settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
-    start_time, end_time = _get_target_interval(settings_file_path)
+    config_file = _get_settings_value(settings_file_path, "config_file_path")
+    start_time, end_time = _get_target_interval(config_file)
 
     if start_time is None:
         return
@@ -164,16 +178,10 @@ async def main() -> None:
         logger.info(f"No files in target inteverl {start_time} - {end_time}.")
         return
 
+    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成
     jst = start_time.astimezone(timezone("Asia/Tokyo"))
-
-    # 処理済みのファイル格納用ディレクトリ作成
-    processed_dir_path = os.path.join(shared_dir, datetime.strftime(jst, "%Y%m%d%H%M%S"))
+    processed_dir_path = os.path.join(data_dir, datetime.strftime(jst, "%Y%m%d%H%M%S"))
     os.makedirs(processed_dir_path, exist_ok=True)
-
-    # 出力csvパス
-    csv_file: str = os.path.join(processed_dir_path, datetime.strftime(jst, "%Y%m%d%H%M%S") + ".csv")
-    if os.path.isfile(csv_file):
-        os.remove(csv_file)
 
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
@@ -182,10 +190,13 @@ async def main() -> None:
     mapping_file = "mappings/mapping_rawdata.json"
     ElasticManager.create_index(rawdata_index, mapping_file)
 
+    # テンポラリファイル名のプレフィックス
+    pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
+
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     buffer: list = []
-    for file in target_files:
+    for file_number, file in enumerate(target_files):
         # バイナリファイルを読み取り、データリストを取得
         samples, sequential_number = _read_binary_files(file, sequential_number)
         buffer += samples
@@ -196,13 +207,12 @@ async def main() -> None:
             data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
         )
 
-        # csv出力
-        logger.info("csv export start")
-        fieldnames = ["sequential_number", "timestamp", "displacement", "load01", "load02", "load03", "load04"]
-        with open(csv_file, "a") as f:
-            writer = csv.DictWriter(f, fieldnames, extrasaction="ignore")
-            writer.writerows(buffer)
-        logger.info("csv export end")
+        # テンポラリファイル出力
+        logger.info("pickle dump start")
+        df = pd.DataFrame(samples)
+        pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
+        df.to_pickle(pickle_filename)
+        logger.info("pickle dump end")
 
         for p in procs:
             p.join()

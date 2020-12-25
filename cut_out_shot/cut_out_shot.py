@@ -86,7 +86,7 @@ class CutOutShot:
     @time_log
     def cut_out_shot(
         self,
-        rawdata_filename: str,
+        rawdata_dir_name: str,
         shots_index: str,
         start_displacement: float,
         end_displacement: float,
@@ -118,8 +118,8 @@ class CutOutShot:
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
         # 対応するevents_indexのデータ取得
-        rawdata_suffix: str = os.path.splitext(os.path.basename(rawdata_filename))[0]
-        events_index: str = "events-" + rawdata_suffix
+        # rawdata_suffix: str = os.path.splitext(os.path.basename(rawdata_filename))[0]
+        events_index: str = "events-" + rawdata_dir_name
         query = {"sort": {"event_id": {"order": "asc"}}}
         events: list = ElasticManager.get_all_doc(events_index, query)
 
@@ -157,8 +157,8 @@ class CutOutShot:
 
         NOW: Final = datetime.now()
 
-        # data_dir = "data/20201201010000" # timestamp含まず. tagなし 700,000 doc/sec
-        data_dir = "data"  # timestamp含む. str_timestamp,tagなし 570,000 doc/sec. datetime変換,tagなし 100,000 doc/sec
+        data_dir = os.path.join("shared/data/pseudo_data", rawdata_dir_name)
+
         pickle_file_list: list = glob.glob(os.path.join(data_dir, "tmp*.pkl"))
         pickle_file_list.sort()
 
@@ -343,16 +343,14 @@ class CutOutShot:
 
 
 def main():
-    cut_out_shot = CutOutShot()
-    # cut_out_shot.import_data_by_shot("data/No13.csv", "shots-no13", 47, 34, 8)
-    cut_out_shot.cut_out_shot(
-        "data/20201201010000.csv", "shots-20201201010000", 47, 34, 20, 8
-    )  # result: 9,356,063 samples
-    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
-    # cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    # cut_out_shot = CutOutShot()
     # cut_out_shot.cut_out_shot(
-    #     "data/pseudo_data/20201216165900/20201216165900.csv", "shots-20201216165900", 4.8, 3.4, 20, 8
-    # )
+    #     "data/20201201010000.csv", "shots-20201201010000", 47, 34, 20, 8
+    # )  # result: 9,356,063 samples
+    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+
+    cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    cut_out_shot.cut_out_shot("20201216165900", "shots-20201216165900", 4.8, 3.4, 20, 8)
 
 
 if __name__ == "__main__":
