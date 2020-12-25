@@ -10,6 +10,7 @@ import asyncio
 import struct
 import logging
 import logging.handlers
+import pandas as pd
 from datetime import datetime, timedelta
 from pytz import timezone
 from typing import Final, NamedTuple, Tuple, Coroutine
@@ -17,6 +18,7 @@ import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
+import common
 
 LOG_FILE: Final = "log/data_recorder/data_recorder.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
@@ -48,12 +50,9 @@ def _create_file_timestamp(filepath: str) -> datetime:
     return timestamp
 
 
-def _get_target_interval(settings_file_path: str):
+def _get_target_interval(config_file_path: str):
     """ 処理対象となる区間（開始/終了時刻）を取得する """
 
-    with open(settings_file_path, "r") as f:
-        settings: dict = json.load(f)
-        config_file_path = settings["config_file_path"]
     with open(config_file_path, "r") as f:
         config: dict = json.load(f)
 
@@ -89,7 +88,7 @@ def _read_binary_files(file: str, sequential_number: int):
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
 
     dataset_number = 0  # ファイル内での連番
-    # dataset_timestamp: datetime = file.timestamp
+    dataset_timestamp: datetime = file.timestamp
     samples: list = []
 
     with open(file.file_path, "rb") as f:
@@ -109,6 +108,7 @@ def _read_binary_files(file: str, sequential_number: int):
             data = {
                 "sequential_number": sequential_number,
                 # "timestamp": dataset_timestamp.replace(tzinfo=None).isoformat(),
+                "timestamp": dataset_timestamp.timestamp(),
                 "displacement": round(dataset[0], 3),
                 "load01": round(dataset[1], 3),
                 "load02": round(dataset[2], 3),
@@ -120,7 +120,7 @@ def _read_binary_files(file: str, sequential_number: int):
 
             dataset_number += 1
             sequential_number += 1
-            # dataset_timestamp += timedelta(microseconds=10)  # 100k sample
+            dataset_timestamp += timedelta(microseconds=10)  # 100k sample
 
     return samples, sequential_number
 
@@ -141,17 +141,21 @@ def _create_files_info(shared_dir: str) -> list:
     return files_info
 
 
-async def main() -> None:
-    shared_dir = "data/pseudo_data/"
-    files_info: list = _create_files_info(shared_dir)
+# async def main() -> None:
+def main() -> None:
+    settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
+
+    # データディレクトリを確認し、ファイルリストを作成
+    data_dir = common.get_settings_value(settings_file_path, "data_dir")
+    files_info: list = _create_files_info(data_dir)
 
     if files_info is None:
-        logger.info(f"No files in {shared_dir}")
+        logger.info(f"No files in {data_dir}")
         return
 
     # configファイルからstart-endtimeを取得
-    settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
-    start_time, end_time = _get_target_interval(settings_file_path)
+    config_file = common.get_settings_value(settings_file_path, "config_file_path")
+    start_time, end_time = _get_target_interval(config_file)
 
     if start_time is None:
         return
@@ -166,10 +170,9 @@ async def main() -> None:
         logger.info(f"No files in target inteverl {start_time} - {end_time}.")
         return
 
+    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成
     jst = start_time.astimezone(timezone("Asia/Tokyo"))
-
-    # 処理済みのファイル格納用ディレクトリ作成
-    processed_dir_path = os.path.join(shared_dir, datetime.strftime(jst, "%Y%m%d%H%M%S"))
+    processed_dir_path = os.path.join(data_dir, datetime.strftime(jst, "%Y%m%d%H%M%S"))
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # Elasticsearch rawdataインデックス名
@@ -179,9 +182,10 @@ async def main() -> None:
     mapping_file = "mappings/mapping_rawdata.json"
     ElasticManager.create_index(rawdata_index, mapping_file)
 
-    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
-
+    # テンポラリファイル名のプレフィックス
     pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
+
+    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     for file_number, file in enumerate(target_files):
         # バイナリファイルを読み取り、データリストを取得
@@ -190,11 +194,26 @@ async def main() -> None:
         # elasticsearch出力
         logger.info("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=samples, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
 
+        # テンポラリファイル出力
         logger.info("pickle dump start")
+
+        # sequential_numberは不要なので除去
+        samples = [
+            {
+                "timestamp": x["timestamp"],
+                "displacement": x["displacement"],
+                "load01": x["load01"],
+                "load02": x["load02"],
+                "load03": x["load03"],
+                "load04": x["load04"],
+            }
+            for x in samples
+        ]
         df = pd.DataFrame(samples)
+        df.set_index("timestamp", inplace=True)
         pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
         df.to_pickle(pickle_filename)
         logger.info("pickle dump end")
@@ -212,6 +231,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-    loop.close()
+    main()

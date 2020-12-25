@@ -1,3 +1,4 @@
 {
-    "config_file_path": "/home/ymiyamoto5/h-one-experimental-system/shared/conf_Gw-00.cnf"
+    "config_file_path": "/home/ymiyamoto5/h-one-experimental-system/shared/conf_Gw-00.cnf",
+    "data_dir": "/home/ymiyamoto5/h-one-experimental-system/shared/data/"
 }
