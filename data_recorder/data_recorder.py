@@ -184,21 +184,32 @@ async def main() -> None:
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
-    buffer: list = []
     for file_number, file in enumerate(target_files):
         # バイナリファイルを読み取り、データリストを取得
         samples, sequential_number = _read_binary_files(file, sequential_number)
-        buffer += samples
 
         # elasticsearch出力
         logger.info("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=buffer, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
+            data=samples, index_to_import=rawdata_index, num_of_process=8, chunk_size=5000
         )
 
         # テンポラリファイル出力
         logger.info("pickle dump start")
+        # sequential_numberは不要なので除去
+        samples = [
+            {
+                "timestamp": x["timestamp"],
+                "displacement": x["displacement"],
+                "load01": x["load01"],
+                "load02": x["load02"],
+                "load03": x["load03"],
+                "load04": x["load04"],
+            }
+            for x in samples
+        ]
         df = pd.DataFrame(samples)
+        df.set_index("timestamp", inplace=True)
         pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
         df.to_pickle(pickle_filename)
         logger.info("pickle dump end")
@@ -207,8 +218,6 @@ async def main() -> None:
             p.join()
 
         logger.info("es bulk end")
-
-        buffer = []
 
         # 処理済みディレクトリに退避
         # shutil.move(file.file_path, processed_dir_path)

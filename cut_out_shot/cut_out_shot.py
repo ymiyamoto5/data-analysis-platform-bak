@@ -88,7 +88,6 @@ class CutOutShot:
     def cut_out_shot(
         self,
         rawdata_dir_name: str,
-        shots_index: str,
         start_displacement: float,
         end_displacement: float,
         back_seconds_for_tagging: int = 120,
@@ -105,7 +104,6 @@ class CutOutShot:
 
         Args:
             rawdata_filename: 生データcsvのファイル名
-            shots_index: 切り出したショットの格納先となるElasticsearchのインデックス名
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
             back_seconds_for_tagging: タグ付けにおいて、何秒前まで遡るか
@@ -113,6 +111,7 @@ class CutOutShot:
         """
 
         # 同名のindexがあれば削除
+        shots_index = "shots-" + rawdata_dir_name
         ElasticManager.delete_exists_index(index=shots_index)
         # index作成
         mapping_file = "mappings/mapping_shots.json"
@@ -122,6 +121,14 @@ class CutOutShot:
         events_index: str = "events-" + rawdata_dir_name
         query = {"sort": {"event_id": {"order": "asc"}}}
         events: list = ElasticManager.get_all_doc(events_index, query)
+
+        # events_indexから収集開始時間を取得
+        start_events = [x for x in events if x["event_type"] == "start"]
+        if len(start_events) == 0:
+            logger.exception("Data collection has not started yet.")
+            raise ValueError
+        start_event: dict = start_events[0]
+        collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
 
         # events_indexから中断区間を取得
         pause_events = [x for x in events if x["event_type"] == "pause"]
@@ -174,9 +181,20 @@ class CutOutShot:
                 processed_count: int = loop_count * self.__chunk_size
                 throughput_counter(processed_count, NOW)
 
+            # 収集開始前のデータを除外
+            rawdata_df = rawdata_df[rawdata_df["timestamp"] >= collect_start_time]
+
+            # 中断区間のデータを除外
+            if len(pause_events) > 0:
+                for pause_event in pause_events:
+                    rawdata_df = rawdata_df[
+                        (rawdata_df["timestamp"] < pause_event["start_time"])
+                        | (pause_event["end_time"] < rawdata_df["timestamp"])
+                    ]
+
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
             shots: list = self._cut_out_shot(
-                previous_df_tail, rawdata_df, start_displacement, end_displacement, pause_events, tag_events
+                previous_df_tail, rawdata_df, start_displacement, end_displacement, tag_events
             )
 
             # 物理変換
@@ -190,7 +208,7 @@ class CutOutShot:
 
             # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
             if len(shots) > 0:
-                logger.info(f"{len(shots)} shots detected in chunk {loop_count+1}.")
+                logger.info(f"{len(shots)} shots detected in {pickle_file}.")
                 procs: list = ElasticManager.multi_process_bulk_lazy_join(
                     data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
                 )
@@ -226,7 +244,6 @@ class CutOutShot:
         rawdata_df: DataFrame,
         start_displacement: float,
         end_displacement: float,
-        pause_events: list = [],
         tag_events: list = [],
     ) -> list:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
@@ -234,11 +251,6 @@ class CutOutShot:
         shots: list = []
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-            # 中断区間であれば何もしない
-            if len(pause_events) > 0:
-                if self._is_include_in_pause_interval(rawdata.timestamp, pause_events):
-                    continue
-
             # ショット開始判定
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
                 self.__is_shot_section = True
@@ -338,18 +350,16 @@ class CutOutShot:
         # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
         start_index: int = row_number
         end_index: int = row_number
-        return pd.concat(previous_df_tail[start_index:], rawdata_df[:end_index])
+        return pd.concat([previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
 
 
 def main():
-    # cut_out_shot = CutOutShot()
-    # cut_out_shot.cut_out_shot(
-    #     "data/20201201010000.csv", "shots-20201201010000", 47, 34, 20, 8
-    # )  # result: 9,356,063 samples
+    cut_out_shot = CutOutShot()
+    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 8)  # result: 9,356,063 samples
     # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
 
-    cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
-    cut_out_shot.cut_out_shot("20201216165900", "shots-20201216165900", 4.8, 3.4, 20, 8)
+    # cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
+    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 8)
 
 
 if __name__ == "__main__":
