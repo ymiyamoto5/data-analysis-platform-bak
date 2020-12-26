@@ -88,7 +88,7 @@ def _read_binary_files(file: str, sequential_number: int):
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
 
     dataset_number = 0  # ファイル内での連番
-    dataset_timestamp: datetime = file.timestamp
+    timestamp: float = file.timestamp.timestamp()
     samples: list = []
 
     with open(file.file_path, "rb") as f:
@@ -107,8 +107,7 @@ def _read_binary_files(file: str, sequential_number: int):
 
             data = {
                 "sequential_number": sequential_number,
-                # "timestamp": dataset_timestamp.replace(tzinfo=None).isoformat(),
-                "timestamp": dataset_timestamp.timestamp(),
+                "timestamp": timestamp,
                 "displacement": round(dataset[0], 3),
                 "load01": round(dataset[1], 3),
                 "load02": round(dataset[2], 3),
@@ -120,7 +119,7 @@ def _read_binary_files(file: str, sequential_number: int):
 
             dataset_number += 1
             sequential_number += 1
-            dataset_timestamp += timedelta(microseconds=10)  # 100k sample
+            timestamp += 0.000010  # 100k sample
 
     return samples, sequential_number
 
@@ -141,7 +140,6 @@ def _create_files_info(shared_dir: str) -> list:
     return files_info
 
 
-# async def main() -> None:
 def main() -> None:
     settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
 
