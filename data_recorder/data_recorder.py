@@ -178,7 +178,9 @@ def main() -> None:
     if ElasticManager.exists_index(rawdata_index):
         ElasticManager.delete_index(rawdata_index)
     mapping_file = "mappings/mapping_rawdata.json"
-    ElasticManager.create_index(rawdata_index, mapping_file)
+    setting_file = "mappings/setting_rawdata.json"
+    ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+    # ElasticManager.create_index(rawdata_index, mapping_file)
 
     # テンポラリファイル名のプレフィックス
     pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
@@ -195,8 +197,12 @@ def main() -> None:
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
 
+        # procs = ElasticManager.multi_process_parallel_bulk_lazy_join(
+        #     data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000, thread_count=4
+        # )
+
         # テンポラリファイル出力
-        logger.info("pickle dump start")
+        # logger.info("pickle dump start")
 
         # sequential_numberは不要なので除去
         samples = [
@@ -214,7 +220,7 @@ def main() -> None:
         df.set_index("timestamp", inplace=True)
         pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
         df.to_pickle(pickle_filename)
-        logger.info("pickle dump end")
+        # logger.info("pickle dump end")
 
         for p in procs:
             p.join()

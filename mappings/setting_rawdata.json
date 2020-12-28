@@ -1,6 +1,6 @@
 {
     "index": {
-        "sort.field": "sequential_number", 
-        "sort.order": "asc"
+        "refresh_interval": "30s",
+        "number_of_replicas": 0
     }
 }

@@ -1,25 +1,31 @@
 {
     "properties": {
         "displacement": {
-            "type": "float"
+            "type": "float",
+            "index": "false"
         },
         "load01": {
-            "type": "float"
+            "type": "float",
+            "index": "false"
         },
         "load02": {
-            "type": "float"
+            "type": "float",
+            "index": "false"
         },
         "load03": {
-            "type": "float"
+            "type": "float",
+            "index": "false"
         },
         "load04": {
-            "type": "float"
+            "type": "float",
+            "index": "false"
         },
         "sequential_number": {
             "type": "long"
         },
         "timestamp": {
-            "type": "float"
+            "type": "float",
+            "index": "false"
         }
     }
 }
