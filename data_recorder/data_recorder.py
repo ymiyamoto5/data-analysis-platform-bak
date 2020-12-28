@@ -93,33 +93,33 @@ def _read_binary_files(file: str, sequential_number: int):
 
     with open(file.file_path, "rb") as f:
         binary = f.read()
-        while True:
-            # バイナリファイルから5ch分を1setとして取得し、処理
-            start_index = dataset_number * ROW_BYTE_SIZE
-            end_index = start_index + ROW_BYTE_SIZE
-            binary_dataset = binary[start_index:end_index]
+    while True:
+        # バイナリファイルから5ch分を1setとして取得し、処理
+        start_index = dataset_number * ROW_BYTE_SIZE
+        end_index = start_index + ROW_BYTE_SIZE
+        binary_dataset = binary[start_index:end_index]
 
-            if len(binary_dataset) == 0:
-                break
+        if len(binary_dataset) == 0:
+            break
 
-            dataset: Tuple = struct.unpack("<ddddd", binary_dataset)
-            logger.debug(dataset)
+        dataset: Tuple = struct.unpack("<ddddd", binary_dataset)
+        logger.debug(dataset)
 
-            data = {
-                "sequential_number": sequential_number,
-                "timestamp": timestamp,
-                "displacement": round(dataset[0], 3),
-                "load01": round(dataset[1], 3),
-                "load02": round(dataset[2], 3),
-                "load03": round(dataset[3], 3),
-                "load04": round(dataset[4], 3),
-            }
+        data = {
+            "sequential_number": sequential_number,
+            "timestamp": timestamp,
+            "displacement": round(dataset[0], 3),
+            "load01": round(dataset[1], 3),
+            "load02": round(dataset[2], 3),
+            "load03": round(dataset[3], 3),
+            "load04": round(dataset[4], 3),
+        }
 
-            samples.append(data)
+        samples.append(data)
 
-            dataset_number += 1
-            sequential_number += 1
-            timestamp += 0.000010  # 100k sample
+        dataset_number += 1
+        sequential_number += 1
+        timestamp += 0.000010  # 100k sample
 
     return samples, sequential_number
 
@@ -187,19 +187,20 @@ def main() -> None:
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
+    procs = []
     for file_number, file in enumerate(target_files):
         # バイナリファイルを読み取り、データリストを取得
         samples, sequential_number = _read_binary_files(file, sequential_number)
 
+        if len(procs) > 0:
+            for p in procs:
+                p.join()
+
         # elasticsearch出力
-        logger.info("es bulk start")
+        # logger.info("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
-
-        # procs = ElasticManager.multi_process_parallel_bulk_lazy_join(
-        #     data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000, thread_count=4
-        # )
 
         # テンポラリファイル出力
         # logger.info("pickle dump start")
@@ -222,14 +223,15 @@ def main() -> None:
         df.to_pickle(pickle_filename)
         # logger.info("pickle dump end")
 
-        for p in procs:
-            p.join()
-
-        logger.info("es bulk end")
+        # logger.info("es bulk end")
 
         # 処理済みディレクトリに退避
         # shutil.move(file.file_path, processed_dir_path)
         logger.info(f"processed: {file.file_path}")
+
+    if len(procs) > 0:
+        for p in procs:
+            p.join()
 
     logger.info("all file processed.")
 
