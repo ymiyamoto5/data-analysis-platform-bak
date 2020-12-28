@@ -82,7 +82,7 @@ def _get_target_files(files_info: list, start_time: datetime, end_time: datetime
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
 
 
-def _read_binary_files(file: str, sequential_number: int):
+def _read_binary_files(file, sequential_number: int):
     """ バイナリファイルを読んで、そのデータをリストにして返す """
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
@@ -180,15 +180,14 @@ def main() -> None:
     mapping_file = "mappings/mapping_rawdata.json"
     setting_file = "mappings/setting_rawdata.json"
     ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
-    # ElasticManager.create_index(rawdata_index, mapping_file)
 
     # テンポラリファイル名のプレフィックス
-    pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
+    # pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     procs = []
-    for file_number, file in enumerate(target_files):
+    for file in target_files:
         # バイナリファイルを読み取り、データリストを取得
         samples, sequential_number = _read_binary_files(file, sequential_number)
 
@@ -219,11 +218,11 @@ def main() -> None:
         ]
         df = pd.DataFrame(samples)
         df.set_index("timestamp", inplace=True)
-        pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
-        df.to_pickle(pickle_filename)
+        # pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
+        pickle_filename = os.path.splitext(os.path.basename(file.file_path))[0]
+        pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
+        df.to_pickle(pickle_filepath)
         # logger.info("pickle dump end")
-
-        # logger.info("es bulk end")
 
         # 処理済みディレクトリに退避
         # shutil.move(file.file_path, processed_dir_path)
