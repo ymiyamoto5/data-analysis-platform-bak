@@ -19,7 +19,7 @@
             "type": "long"
         },
         "timestamp": {
-            "type": "float"
+            "type": "date"
         }
     }
 }

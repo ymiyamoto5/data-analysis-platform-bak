@@ -164,6 +164,7 @@ def _binary_to_storage(target_files: list, index_to_import: str, processed_dir_p
         with open(file.file_path, "rb") as f:
             binary = f.read()
             dataset_number = 0  # ファイル内での連番
+            timestamp = file.timestamp
 
             while True:
                 # バイナリファイルから5ch分を1setとして取得し、処理
@@ -178,8 +179,8 @@ def _binary_to_storage(target_files: list, index_to_import: str, processed_dir_p
                 logger.debug(dataset)
 
                 data = {
-                    # "sequential_number": sequential_number,
-                    # "timestamp": timestamp,
+                    # "sequential_number": timestamp,
+                    "timestamp": timestamp,
                     "displacement": round(dataset[0], 3),
                     "load01": round(dataset[1], 3),
                     "load02": round(dataset[2], 3),
@@ -188,6 +189,8 @@ def _binary_to_storage(target_files: list, index_to_import: str, processed_dir_p
                 }
                 samples.append(data)
                 dataset_number += 1
+                # timestamp += 0.000010
+                timestamp += timedelta(microseconds=10)
 
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=index_to_import, num_of_process=12, chunk_size=5000
@@ -259,10 +262,19 @@ def main() -> None:
 
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
+
+    # テスト用の実装
     if ElasticManager.exists_index(rawdata_index):
         ElasticManager.delete_index(rawdata_index)
     mapping_file = "mappings/mapping_rawdata.json"
     ElasticManager.create_index(rawdata_index, mapping_file)
+
+    # 本来の実装
+    # if not ElasticManager.exists_index(rawdata_index):
+    #     mapping_file = "mappings/mapping_rawdata.json"
+    #     ElasticManager.create_index(rawdata_index, mapping_file)
+
+    # TODO: sequential_numberの初期値を決めるため、ESからcountを取る
 
     # テンポラリファイル名のプレフィックス
     # pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
