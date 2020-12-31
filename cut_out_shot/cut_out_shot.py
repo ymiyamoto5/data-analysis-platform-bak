@@ -166,7 +166,7 @@ class CutOutShot:
         NOW: Final = datetime.now()
 
         # 設定ファイルから取り込みデータを特定
-        settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
+        settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
         data_dir = common.get_settings_value(settings_file_path, "data_dir")
         rawdata_dir_path = os.path.join(data_dir, rawdata_dir_name)
         pickle_file_list: list = glob.glob(os.path.join(rawdata_dir_path, "tmp*.pkl"))

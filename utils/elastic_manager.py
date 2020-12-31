@@ -248,120 +248,30 @@ class ElasticManager:
             return False
 
     @classmethod
-    async def async_bulk(cls, data: list):
-        await helpers.async_bulk(cls.async_es, data, chunk_size=10000)
-
-    @classmethod
-    async def async_multi_process_bulk(cls, data: list):
-        # args = list(zip(repeat(cls.async_es), data))
-        # with multiprocessing.Pool(8) as p:
-        #     # p.map_async(cls.async_bulk, data)
-        #     # async_es = AsyncElasticsearch(
-        #     #     hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000
-        #     # )
-        #     p.starmap_async(helpers.async_bulk, args)
-        pass
-
-    # @classmethod
-    # def parallel_bulk(
-    #     cls, doc_generator: Iterable, index_to_import: str, thread_count: int = 4, chunk_size: int = 500
-    # ) -> None:
-    #     """ 指定したスレッド数でbulk insertする。 """
-
-    #     # for success, info in helpers.parallel_bulk(
-    #     #     cls.es, doc_generator, chunk_size=chunk_size, thread_count=thread_count
-    #     # ):
-    #     #     if not success:
-    #     #         print("A document failed:", info)
-
-    #     es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000,)
-
-    #     actions: list = []
-
-    #     for data in doc_generator:
-    #         actions.append({"_index": index_to_import, "_source": data})
-
-    #     for success, info in helpers.parallel_bulk(es, actions, thread_count, chunk_size):
-    #         if not success:
-    #             logger.error(f"A document failed: {info}")
-
-    @classmethod
-    def multi_process_parallel_bulk_lazy_join(
-        cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500, thread_count=4
-    ):
-        num_of_data = len(data)
-        # logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
-
-        batch_size, mod = divmod(num_of_data, num_of_process)
-
-        procs: list = []
-        for i in range(num_of_process):
-            start_index: int = i * batch_size
-            end_index: int = start_index + batch_size
-            target_data = data[start_index:end_index]
-            # 最後のプロセスには余り分を含めたデータを処理させる
-            if i == num_of_process - 1:
-                target_data = data[start_index:]
-
-            proc = multiprocessing.Process(
-                target=cls.parallel_bulk, args=(target_data, index_to_import, thread_count, chunk_size)
-            )
-            proc.start()
-            procs.append(proc)
-
-        return procs
-
-    @classmethod
     def multi_process_bulk_lazy_join(
         cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500
     ) -> list:
-        """ マルチプロセスでbulk insertする。map版試作 """
-        num_of_data = len(data)
-        # logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
+        """ マルチプロセスでbulk insertする。processリストを返却し、返却先でjoinする。 """
 
-        batch_size, mod = divmod(num_of_data, num_of_process)
+        num_of_data = len(data)
+
+        # データをプロセッサの数に均等分配
+        data_num_by_proc: list = [(num_of_data + i) // num_of_process for i in range(num_of_process)]
 
         procs: list = []
-        for i in range(num_of_process):
-            start_index: int = i * batch_size
-            end_index: int = start_index + batch_size
-            target_data = data[start_index:end_index]
-            # 最後のプロセスには余り分を含めたデータを処理させる
-            if i == num_of_process - 1:
-                target_data = data[start_index:]
+        start_index: int = 0
+        for proc_number, data_num in enumerate(data_num_by_proc):
+            end_index: int = start_index + data_num
+            target_data: list = data[start_index:end_index]
+            start_index += data_num
 
-            proc = multiprocessing.Process(target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size,))
+            logger.debug(f"process {proc_number} will execute {len(target_data)} data.")
+
+            proc = multiprocessing.Process(target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size))
             proc.start()
             procs.append(proc)
 
         return procs
-
-    @classmethod
-    def multi_process_bulk(cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500) -> None:
-        """ マルチプロセスでbulk insertする。 """
-
-        num_of_data = len(data)
-        # logger.info(f"Start writing to Elasticsearch. data_count:{num_of_data}, process_count:{num_of_process}")
-
-        batch_size, mod = divmod(num_of_data, num_of_process)
-
-        procs: list = []
-        for i in range(num_of_process):
-            start_index: int = i * batch_size
-            end_index: int = start_index + batch_size
-            target_data = data[start_index:end_index]
-            # 最後のプロセスには余り分を含めたデータを処理させる
-            if i == num_of_process - 1:
-                target_data = data[start_index:]
-
-            proc = multiprocessing.Process(target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size,))
-            proc.start()
-            procs.append(proc)
-
-        for proc in procs:
-            proc.join()
-
-        # logger.info(f"Finished. {num_of_data} have been written.")
 
     @classmethod
     def bulk_insert(cls, data_list: list, index_to_import: str, chunk_size: int = 500) -> None:
@@ -374,27 +284,8 @@ class ElasticManager:
         # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
         es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000,)
 
-        # inserted_count: int = 0
-        # actions: list = []
-
-        # for data in data_list:
-        #     actions.append({"_index": index_to_import, "_source": data})
         actions = ({"_index": index_to_import, "_source": x} for x in data_list)
-
         helpers.bulk(es, actions, chunk_size=chunk_size, stats_only=True, raise_on_error=False)
-        # for success, info in helpers.parallel_bulk(es, actions, thread_count=4, chunk_size=chunk_size):
-        #     if not success:
-        #         logger.error(f"A document failed: {info}")
-
-        #     if len(actions) >= chunk_size:
-        #         helpers.bulk(es, actions, stats_only=True, raise_on_error=False)
-        #         inserted_count += len(actions)
-        #         actions = []
-
-        # # 残っているデータを登録
-        # if len(actions) > 0:
-        #     helpers.bulk(es, actions, stats_only=True, raise_on_error=False)
-        #     inserted_count += len(actions)
 
     @classmethod
     def single_process_range_scan(cls, index: str, start: int, end: int) -> Iterable:

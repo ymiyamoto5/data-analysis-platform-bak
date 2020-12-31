@@ -8,7 +8,7 @@ from data_collect_manager import app
 class ConfigFileManager:
     def __init__(self, file_path: str = None):
         if file_path is None:
-            settings_file_path = os.path.dirname(__file__) + "/../../common/settings.json"
+            settings_file_path = os.path.dirname(__file__) + "/../../common/app_config.json"
             with open(settings_file_path, "r") as f:
                 settings: dict = json.load(f)
                 self.file_path = settings["config_file_path"]

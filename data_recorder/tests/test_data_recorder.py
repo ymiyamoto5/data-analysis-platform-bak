@@ -5,7 +5,20 @@ from datetime import datetime, timedelta
 from .. import data_recorder
 
 
+@pytest.fixture(autouse=True)
+def app_config(tmp_path):
+    """ app_configの生成Fixture。app_configにはconfigファイルのパスとdataディレクトリのパスを持つ。 """
+
+    app_config = tmp_path / "app_config.json"
+    config_params = {"config_file_path": str(tmp_path) + "/tmp.cnf", "data_dir": str(tmp_path) + "/data"}
+    app_config.write_text(json.dumps(config_params))
+
+    yield
+
+
 def test_create_file_timestamp():
+    """ ファイル名からdatetime型のタイムスタンプを生成出来ること """
+
     filepath = "tmp00/AD-00_20201216-080058.620753.dat"
 
     actual = data_recorder._create_file_timestamp(filepath)
@@ -15,9 +28,7 @@ def test_create_file_timestamp():
 
 
 def test_get_target_interval_start_end_are_set(tmp_path):
-    tmp_settings_file = tmp_path / "settings.json"
-    settings = {"config_file_path": str(tmp_path) + "/tmp.cnf"}
-    tmp_settings_file.write_text(json.dumps(settings))
+    """ start_timeとend_timeの設定が正しく行われること """
 
     start_time: datetime = datetime.now()
     start_time_str: str = datetime.strftime(start_time, "%Y%m%d%H%M%S%f")
@@ -28,7 +39,7 @@ def test_get_target_interval_start_end_are_set(tmp_path):
     config = {"start_time": start_time_str, "end_time": end_time_str}
     tmp_config_file.write_text(json.dumps(config))
 
-    actual = data_recorder._get_target_interval(tmp_settings_file)
+    actual = data_recorder._get_target_interval(tmp_config_file)
 
     expected = (start_time, end_time)
 
@@ -36,9 +47,7 @@ def test_get_target_interval_start_end_are_set(tmp_path):
 
 
 def test_get_target_interval_end_is_not_set(tmp_path):
-    tmp_settings_file = tmp_path / "settings.json"
-    settings = {"config_file_path": str(tmp_path) + "/tmp.cnf"}
-    tmp_settings_file.write_text(json.dumps(settings))
+    """ start_timeのみが設定されている場合、end_timeはmaxとして設定される """
 
     start_time: datetime = datetime.now()
     start_time_str: str = datetime.strftime(start_time, "%Y%m%d%H%M%S%f")
@@ -47,7 +56,7 @@ def test_get_target_interval_end_is_not_set(tmp_path):
     config = {"start_time": start_time_str}
     tmp_config_file.write_text(json.dumps(config))
 
-    actual = data_recorder._get_target_interval(tmp_settings_file)
+    actual = data_recorder._get_target_interval(tmp_config_file)
 
     expected = (start_time, datetime.max)
 
@@ -55,15 +64,13 @@ def test_get_target_interval_end_is_not_set(tmp_path):
 
 
 def test_get_target_interval_is_not_started(tmp_path):
-    tmp_settings_file = tmp_path / "settings.json"
-    settings = {"config_file_path": str(tmp_path) + "/tmp.cnf"}
-    tmp_settings_file.write_text(json.dumps(settings))
+    """ start_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
     tmp_config_file = tmp_path / "tmp.cnf"
     config = {}
     tmp_config_file.write_text(json.dumps(config))
 
-    actual = data_recorder._get_target_interval(tmp_settings_file)
+    actual = data_recorder._get_target_interval(tmp_config_file)
 
     expected = (None, None)
 
@@ -71,9 +78,7 @@ def test_get_target_interval_is_not_started(tmp_path):
 
 
 def test_get_target_interval_start_bigger_than_end(tmp_path):
-    tmp_settings_file = tmp_path / "settings.json"
-    settings = {"config_file_path": str(tmp_path) + "/tmp.cnf"}
-    tmp_settings_file.write_text(json.dumps(settings))
+    """ start_time > end_timeの場合、不正な値 """
 
     start_time: datetime = datetime.now()
     start_time_str: str = datetime.strftime(start_time, "%Y%m%d%H%M%S%f")
@@ -84,11 +89,15 @@ def test_get_target_interval_start_bigger_than_end(tmp_path):
     config = {"start_time": start_time_str, "end_time": end_time_str}
     tmp_config_file.write_text(json.dumps(config))
 
-    with pytest.raises(ValueError):
-        data_recorder._get_target_interval(tmp_settings_file)
+    with pytest.raises(ValueError) as excinfo:
+        data_recorder._get_target_interval(tmp_config_file)
+        exception_message = excinfo.value.args[0]
+        assert exception_message == "start_time({start_time}) > end_time({end_time}). This is abnormal condition."
 
 
 def test_create_files_info_file_exists(tmp_path):
+    """ datファイル生成 """
+
     tmp_dat_1 = tmp_path / "AD-00_20201216-080058.620753.dat"
     tmp_dat_2 = tmp_path / "AD-00_20201216-080059.620753.dat"
     tmp_dat_3 = tmp_path / "AD-00_20201216-080100.620753.dat"

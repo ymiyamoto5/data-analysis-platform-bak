@@ -11,11 +11,10 @@ import struct
 import logging
 import logging.handlers
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from pytz import timezone
-from typing import Final, NamedTuple, Tuple, Coroutine
+from typing import Final, NamedTuple, Tuple
 import pandas as pd
-import multiprocessing
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -70,7 +69,7 @@ def _get_target_interval(config_file_path: str):
 
     if start_time > end_time:
         logger.exception(f"start_time({start_time}) > end_time({end_time}). This is abnormal condition.")
-        raise ValueError
+        raise ValueError(f"start_time({start_time}) > end_time({end_time}). This is abnormal condition.")
 
     logger.info(f"target interval: {start_time} - {end_time}")
 
@@ -94,8 +93,9 @@ def _read_binary_files(file, sequential_number: int):
 
     with open(file.file_path, "rb") as f:
         binary = f.read()
+
+    # バイナリファイルから5ch分を1setとして取得し、処理
     while True:
-        # バイナリファイルから5ch分を1setとして取得し、処理
         start_index = dataset_number * ROW_BYTE_SIZE
         end_index = start_index + ROW_BYTE_SIZE
         binary_dataset = binary[start_index:end_index]
@@ -125,98 +125,14 @@ def _read_binary_files(file, sequential_number: int):
     return samples, sequential_number
 
 
-def _multi_process(files: list, index_to_import: str, processed_dir_path: str, num_of_process: int = 8):
-    num_of_files = len(files)
-
-    # batch_size, mod = divmod(num_of_files, num_of_process)
-
-    procs: list = []
-
-    # 均等配分
-    # ex) num_of_files: 39, num_of_process: 8  = [4, 5, 5, 5, 5, 5, 5, 5]
-    file_num_by_proc: list = [(num_of_files + i) // num_of_process for i in range(num_of_process)]
-
-    start_index: int = 0
-    for proc_number, file_num in enumerate(file_num_by_proc):
-        end_index: int = start_index + file_num
-        target_files: list = files[start_index:end_index]
-        start_index += file_num
-
-        logger.info(f"process {proc_number} will execute {len(target_files)} files.")
-
-        proc = multiprocessing.Process(
-            target=_binary_to_storage, args=(target_files, index_to_import, processed_dir_path)
-        )
-        proc.start()
-        procs.append(proc)
-
-    for p in procs:
-        p.join()
-
-
-def _binary_to_storage(target_files: list, index_to_import: str, processed_dir_path: str):
-    ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
-
-    # timestamp: float = file.timestamp.timestamp()
-    samples: list = []
-
-    for file_number, file in enumerate(target_files):
-        with open(file.file_path, "rb") as f:
-            binary = f.read()
-            dataset_number = 0  # ファイル内での連番
-            timestamp = file.timestamp
-
-            while True:
-                # バイナリファイルから5ch分を1setとして取得し、処理
-                start_index = dataset_number * ROW_BYTE_SIZE
-                end_index = start_index + ROW_BYTE_SIZE
-                binary_dataset = binary[start_index:end_index]
-
-                if len(binary_dataset) == 0:
-                    break
-
-                dataset: Tuple = struct.unpack("<ddddd", binary_dataset)
-                logger.debug(dataset)
-
-                data = {
-                    # "sequential_number": timestamp,
-                    "timestamp": timestamp,
-                    "displacement": round(dataset[0], 3),
-                    "load01": round(dataset[1], 3),
-                    "load02": round(dataset[2], 3),
-                    "load03": round(dataset[3], 3),
-                    "load04": round(dataset[4], 3),
-                }
-                samples.append(data)
-                dataset_number += 1
-                # timestamp += 0.000010
-                timestamp += timedelta(microseconds=10)
-
-        procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=samples, index_to_import=index_to_import, num_of_process=12, chunk_size=5000
-        )
-
-        # テンポラリファイル出力
-        df = pd.DataFrame(samples)
-        # df.set_index("timestamp", inplace=True)
-
-        pickle_filename = os.path.splitext(os.path.basename(file.file_path))[0] + ".pkl"
-        pickle_filepath = os.path.join(processed_dir_path, pickle_filename)
-        df.to_pickle(pickle_filepath)
-
-        for p in procs:
-            p.join()
-
-        logger.info(f"pid: {os.getpid()}, {len(samples)} sample processed. {pickle_filename}")
-        samples = []
-
-
 def _create_files_info(shared_dir: str) -> list:
-    # バイナリファイルの情報（パスとファイル名から抽出した日時）リストを生成
+    """ バイナリファイルの情報（パスとファイル名から抽出した日時）リストを生成 """
 
     file_list: list = glob.glob(os.path.join(shared_dir, "*.dat"))
+
     if len(file_list) == 0:
         return None
+
     file_list.sort()
 
     # ファイルリストから時刻データを生成
@@ -228,7 +144,7 @@ def _create_files_info(shared_dir: str) -> list:
 
 
 def main() -> None:
-    settings_file_path: str = os.path.dirname(__file__) + "/../common/settings.json"
+    settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
 
     # データディレクトリを確認し、ファイルリストを作成
     data_dir = common.get_settings_value(settings_file_path, "data_dir")
@@ -270,8 +186,11 @@ def main() -> None:
     setting_file = "mappings/setting_rawdata.json"
     ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
-    # テンポラリファイル名のプレフィックス
-    # pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
+    # 本来の実装
+    # if not ElasticManager.exists_index(rawdata_index):
+    #     mapping_file = "mappings/mapping_rawdata.json"
+    #     setting_file = "mappings/setting_rawdata.json"
+    #     ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
@@ -284,16 +203,13 @@ def main() -> None:
             for p in procs:
                 p.join()
 
-        # elasticsearch出力
         # logger.info("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
 
         # テンポラリファイル出力
-        # logger.info("pickle dump start")
-
-        # sequential_numberは不要なので除去
+        # テンポラリファイルにsequential_numberは不要なので除去
         samples = [
             {
                 "timestamp": x["timestamp"],
@@ -307,15 +223,13 @@ def main() -> None:
         ]
         df = pd.DataFrame(samples)
         df.set_index("timestamp", inplace=True)
-        # pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
         pickle_filename = os.path.splitext(os.path.basename(file.file_path))[0]
         pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
-        # logger.info("pickle dump end")
 
-    # 処理済みディレクトリに退避
-    # shutil.move(file.file_path, processed_dir_path)
-    # logger.info(f"processed: {file.file_path}")
+        # 処理済みディレクトリに退避
+        # shutil.move(file.file_path, processed_dir_path)
+        logger.info(f"processed: {file.file_path}")
 
     if len(procs) > 0:
         for p in procs:
