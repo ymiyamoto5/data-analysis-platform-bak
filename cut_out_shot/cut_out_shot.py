@@ -82,6 +82,106 @@ class CutOutShot:
     # def shot_number(self, shot_number):
     #     self.__shot_number = shot_number
 
+    def _create_shots_index(self, shots_index: str) -> None:
+        """ shots_indexの作成。既存のインデックスは削除。 """
+
+        ElasticManager.delete_exists_index(index=shots_index)
+
+        mapping_file: str = "mappings/mapping_shots.json"
+        ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
+
+    def _get_events(self, suffix: str) -> List[dict]:
+        """ 対応するevents_indexのデータ取得 """
+
+        events_index: str = "events-" + suffix
+        query: dict = {"sort": {"event_id": {"order": "asc"}}}
+        events: List[dict] = ElasticManager.get_all_doc(events_index, query)
+
+        return events
+
+    def _get_collect_start_time(self, events: List[dict]) -> float:
+        """ events_indexから収集開始時間を取得 """
+
+        start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
+        if len(start_events) == 0:
+            logger.exception("Data collection has not started yet.")
+            raise ValueError
+        start_event: dict = start_events[0]
+        collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
+
+        return collect_start_time
+
+    def _get_pause_events(self, events: List[dict]) -> List[dict]:
+        """ events_indexから中断イベントを取得。時刻はunixtimeに変換する。 """
+
+        pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
+        logger.debug(pause_events)
+
+        if len(pause_events) > 0:
+            for pause_event in pause_events:
+                if pause_event.get("end_time") is None:
+                    logger.exception("Pause event does not finished. Please retry after finish pause.")
+                    raise ValueError
+                # str to datetime
+                try:
+                    pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
+                    pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
+                except KeyError as e:
+                    logger.exception(str(e))
+
+                # datetime to unixtime
+                pause_event["start_time"] = pause_event["start_time"].timestamp()
+                pause_event["end_time"] = pause_event["end_time"].timestamp()
+
+        return pause_events
+
+    def _get_tag_events(self, events: List[dict], back_seconds_for_tagging) -> List[dict]:
+        """ events_indexからタグ付け区間を取得。
+            記録された時刻（end_time）からN秒前(back_seconds_for_tagging)に遡り、start_timeとする。
+        """
+
+        tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
+        logger.debug(tag_events)
+
+        if len(tag_events) > 0:
+            for tag_event in tag_events:
+                try:
+                    tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
+                except KeyError as e:
+                    logger.exception(str(e))
+
+                tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
+                # datetime to unixtime
+                tag_event["start_time"] = tag_event["start_time"].timestamp()
+                tag_event["end_time"] = tag_event["end_time"].timestamp()
+
+        return tag_events
+
+    def _get_pickle_list(self, rawdata_dir_name: str) -> List[str]:
+        """ 設定ファイルから取り込みデータ(pickleファイル)が存在するディレクトリを特定し、そのファイルリストを取得する """
+
+        settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
+        data_dir = common.get_settings_value(settings_file_path, "data_dir")
+        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
+        pickle_file_list: List[str] = glob.glob(os.path.join(rawdata_dir_path, "*.pkl"))
+        pickle_file_list.sort()
+
+        return pickle_file_list
+
+    def _exclude_setup_interval(self, df: DataFrame, collect_start_time: float) -> DataFrame:
+        """ 収集開始前(段取中)のデータを除外 """
+
+        return df[df["timestamp"] >= collect_start_time]
+
+    def _exclude_pause_interval(self, df: DataFrame, pause_events: List[dict]) -> DataFrame:
+        """ 中断区間のデータを除外 """
+
+        if len(pause_events) > 0:
+            for pause_event in pause_events:
+                df = df[(df["timestamp"] < pause_event["start_time"]) | (pause_event["end_time"] < df["timestamp"])]
+
+        return df
+
     @time_log
     def cut_out_shot(
         self,
@@ -108,88 +208,33 @@ class CutOutShot:
             num_of_process: 並列処理のプロセス数
         """
 
-        # 同名のindexがあれば削除
         shots_index: str = "shots-" + rawdata_dir_name
-        ElasticManager.delete_exists_index(index=shots_index)
-        # index作成
-        mapping_file: str = "mappings/mapping_shots.json"
-        ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
+        self._create_shots_index(shots_index)
 
-        # 対応するevents_indexのデータ取得
-        events_index: str = "events-" + rawdata_dir_name
-        query: dict = {"sort": {"event_id": {"order": "asc"}}}
-        events: List[dict] = ElasticManager.get_all_doc(events_index, query)
+        events: List[dict] = self._get_events(suffix=rawdata_dir_name)
 
-        # events_indexから収集開始時間を取得
-        start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
-        if len(start_events) == 0:
-            logger.exception("Data collection has not started yet.")
-            raise ValueError
-        start_event: dict = start_events[0]
-        collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
-
-        # events_indexから中断区間を取得
-        pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
-        logger.debug(pause_events)
-        if len(pause_events) > 0:
-            for pause_event in pause_events:
-                if pause_event.get("end_time") is None:
-                    logger.exception("Pause event does not finished. Please retry after finish pause.")
-                    raise ValueError
-                # datetimeに変換
-                pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
-                pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
-
-                # unixtimeに変換
-                pause_event["start_time"] = pause_event["start_time"].timestamp()
-                pause_event["end_time"] = pause_event["end_time"].timestamp()
-
-        # events_indexからタグ付け区間を取得
-        tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
-        logger.debug(tag_events)
-        if len(tag_events) > 0:
-            for tag_event in tag_events:
-                tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
-                # 記録された時刻（end_time）からN分前に遡り、start_timeとする
-                tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
-
-                # unixtimeに変換
-                tag_event["start_time"] = tag_event["start_time"].timestamp()
-                tag_event["end_time"] = tag_event["end_time"].timestamp()
+        collect_start_time: float = self._get_collect_start_time(events)
+        pause_events: List[dict] = self._get_pause_events(events)
+        tag_events: List[dict] = self._get_tag_events(events, back_seconds_for_tagging)
 
         COLS: Final = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
-
         procs: List[multiprocessing.context.Process] = []
+        processed_count: int = 0
 
         NOW: Final = datetime.now()
 
-        # 設定ファイルから取り込みデータを特定
-        settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
-        data_dir = common.get_settings_value(settings_file_path, "data_dir")
-        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
-        pickle_file_list: List[str] = glob.glob(os.path.join(rawdata_dir_path, "*.pkl"))
-        pickle_file_list.sort()
+        pickle_files: List[str] = self._get_pickle_list(rawdata_dir_name)
 
-        processed_count: int = 0
-        for loop_count, pickle_file in enumerate(pickle_file_list):
-            rawdata_df = pd.read_pickle(pickle_file)
+        for loop_count, pickle_file in enumerate(pickle_files):
+            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
 
-            # 収集開始前のデータを除外
-            rawdata_df = rawdata_df[rawdata_df["timestamp"] >= collect_start_time]
+            rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
-            # 中断区間のデータを除外
-            if len(pause_events) > 0:
-                for pause_event in pause_events:
-                    rawdata_df = rawdata_df[
-                        (rawdata_df["timestamp"] < pause_event["start_time"])
-                        | (pause_event["end_time"] < rawdata_df["timestamp"])
-                    ]
+            rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
-            shots: List[dict] = self._cut_out_shot(
-                previous_df_tail, rawdata_df, start_displacement, end_displacement, tag_events
-            )
+            shots: List[dict] = self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
 
             # タグ付け
             tags: List[str] = []
@@ -248,10 +293,10 @@ class CutOutShot:
 
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
-    ) -> list:
+    ) -> List[dict]:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
-        shots: list = []
+        shots: List[dict] = []
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # ショット開始判定
@@ -274,7 +319,7 @@ class CutOutShot:
                 preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
 
                 for d in preceding_df.itertuples():
-                    shot = {
+                    shot: dict = {
                         "timestamp": d.timestamp,
                         "sequential_number": self.__sequential_number,
                         "sequential_number_by_shot": self.__sequential_number_by_shot,
@@ -312,7 +357,7 @@ class CutOutShot:
             self.__sequential_number_by_shot += 1
 
             # 切り出し対象としてリストに加える
-            shot = {
+            shot: dict = {
                 "timestamp": rawdata.timestamp,
                 "sequential_number": self.__sequential_number,
                 "sequential_number_by_shot": self.__sequential_number_by_shot,
@@ -331,13 +376,13 @@ class CutOutShot:
     def _backup_df_tail(self, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
 
-        N: Final = self.__tail_size
+        N: Final[int] = self.__tail_size
         return df[-N:].copy()
 
     def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
 
-        N: Final = self.__tail_size
+        N: Final[int] = self.__tail_size
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
         # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
