@@ -6,7 +6,7 @@ from .. import data_recorder
 
 
 class TestCreateFileTimestamp:
-    def test_create_file_timestamp(self):
+    def test_normal(self):
         """ ファイル名からdatetime型のタイムスタンプを生成出来ること """
 
         filepath = "tmp00/AD-00_20201216-080058.620753.dat"
@@ -28,7 +28,7 @@ class TestGetTargetInterval:
 
         yield
 
-    def test_get_target_interval_start_end_are_set(self, tmp_path):
+    def test_start_end_are_set(self, tmp_path):
         """ start_timeとend_timeの設定が正しく行われること """
 
         start_time: datetime = datetime.now()
@@ -46,7 +46,7 @@ class TestGetTargetInterval:
 
         assert actual == expected
 
-    def test_get_target_interval_end_is_not_set(self, tmp_path):
+    def test_end_is_not_set(self, tmp_path):
         """ start_timeのみが設定されている場合、end_timeはmaxとして設定される """
 
         start_time: datetime = datetime.now()
@@ -62,7 +62,7 @@ class TestGetTargetInterval:
 
         assert actual == expected
 
-    def test_get_target_interval_is_not_started(self, tmp_path):
+    def test_is_not_started(self, tmp_path):
         """ start_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
         tmp_config_file = tmp_path / "tmp.cnf"
@@ -75,7 +75,7 @@ class TestGetTargetInterval:
 
         assert actual == expected
 
-    def test_get_target_interval_start_bigger_than_end(self, tmp_path):
+    def test_start_bigger_than_end(self, tmp_path):
         """ start_time > end_timeの場合、不正な値 """
 
         start_time: datetime = datetime.now()
@@ -94,7 +94,7 @@ class TestGetTargetInterval:
 
 
 class TestCreateFilesInfo:
-    def test_create_files_info_file_exists(self, tmp_path):
+    def test_file_exists(self, tmp_path):
         """ datファイル生成 """
 
         tmp_dat_1 = tmp_path / "AD-00_20201216-080058.620753.dat"

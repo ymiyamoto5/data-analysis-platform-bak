@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import sys
 
@@ -10,9 +11,11 @@ import logging
 import logging.handlers
 import pandas as pd
 from datetime import datetime
+from pandas.core.frame import DataFrame
 from pytz import timezone
-from typing import Final, NamedTuple, Tuple
+from typing import Final, Tuple, List, Mapping
 import pandas as pd
+import dataclasses
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -32,23 +35,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class FileInfo(NamedTuple):
+@dataclasses.dataclass
+class FileInfo:
+    __slots__ = (
+        "file_path",
+        "timestamp",
+    )
     file_path: str
     timestamp: datetime
 
 
 def _create_file_timestamp(filepath: str) -> datetime:
-    """ ファイル名から日時データを作成する """
+    """ ファイル名から日時データを作成する。
+        ファイル名は AD-XX_YYYYmmddHHMMSS.ffffff 形式が前提となる。
+    """
 
     filename: str = os.path.basename(filepath)
 
-    parts: list = re.findall(r"\d+", filename)
-    timestamp_str: str = parts[1] + parts[2] + parts[3]
+    parts: List[str] = re.findall(r"\d+", filename)
+    timestamp_str: str = parts[-3] + parts[-2] + parts[-1]
     timestamp: datetime = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f")
     return timestamp
 
 
-def _get_target_interval(config_file_path: str):
+def _get_target_interval(config_file_path: str) -> Tuple[datetime, datetime]:
     """ 処理対象となる区間（開始/終了時刻）を取得する """
 
     with open(config_file_path, "r") as f:
@@ -74,37 +84,37 @@ def _get_target_interval(config_file_path: str):
     return start_time, end_time
 
 
-def _get_target_files(files_info: list, start_time: datetime, end_time: datetime) -> list:
+def _get_target_files(files_info: List[FileInfo], start_time: datetime, end_time: datetime) -> List[FileInfo]:
     """ 処理対象(開始/終了区間に含まれる）ファイルリストを返す """
 
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
 
 
-def _read_binary_files(file, sequential_number: int):
+def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dict], int]:
     """ バイナリファイルを読んで、そのデータをリストにして返す """
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
 
-    dataset_number = 0  # ファイル内での連番
+    dataset_number: int = 0  # ファイル内での連番
     timestamp: float = file.timestamp.timestamp()
-    samples: list = []
+    samples: List[dict] = []
 
     with open(file.file_path, "rb") as f:
-        binary = f.read()
+        binary: bytes = f.read()
 
     # バイナリファイルから5ch分を1setとして取得し、処理
     while True:
-        start_index = dataset_number * ROW_BYTE_SIZE
-        end_index = start_index + ROW_BYTE_SIZE
-        binary_dataset = binary[start_index:end_index]
+        start_index: int = dataset_number * ROW_BYTE_SIZE
+        end_index: int = start_index + ROW_BYTE_SIZE
+        binary_dataset: bytes = binary[start_index:end_index]
 
         if len(binary_dataset) == 0:
             break
 
-        dataset: Tuple = struct.unpack("<ddddd", binary_dataset)
+        dataset: Tuple[float, float, float, float, float] = struct.unpack("<ddddd", binary_dataset)
         logger.debug(dataset)
 
-        data = {
+        sample: dict = {
             "sequential_number": sequential_number,
             "timestamp": timestamp,
             "displacement": round(dataset[0], 3),
@@ -114,7 +124,7 @@ def _read_binary_files(file, sequential_number: int):
             "load04": round(dataset[4], 3),
         }
 
-        samples.append(data)
+        samples.append(sample)
 
         dataset_number += 1
         sequential_number += 1
@@ -123,10 +133,10 @@ def _read_binary_files(file, sequential_number: int):
     return samples, sequential_number
 
 
-def _create_files_info(shared_dir: str) -> list:
+def _create_files_info(shared_dir: str) -> List[FileInfo]:
     """ バイナリファイルの情報（パスとファイル名から抽出した日時）リストを生成 """
 
-    file_list: list = glob.glob(os.path.join(shared_dir, "*.dat"))
+    file_list: List[str] = glob.glob(os.path.join(shared_dir, "*.dat"))
 
     if len(file_list) == 0:
         return None
@@ -134,17 +144,41 @@ def _create_files_info(shared_dir: str) -> list:
     file_list.sort()
 
     # ファイルリストから時刻データを生成
-    files_timestamp = map(_create_file_timestamp, file_list)
+    files_timestamp: Mapping = map(_create_file_timestamp, file_list)
     # リストを作成 [{"file_path": "xxx", "timestamp": "yyy"},...]
-    files_info: list = [FileInfo._make(row) for row in zip(file_list, files_timestamp)]
+    files_info: List[FileInfo] = [
+        FileInfo(file_path=row[0], timestamp=row[1]) for row in zip(file_list, files_timestamp)
+    ]
 
     return files_info
+
+
+def _export_to_pickle(samples: list, file: FileInfo, processed_dir_path: str) -> None:
+    """ pickleファイルに出力する """
+
+    # テンポラリファイルにsequential_numberは不要なので除去
+    samples: List[dict] = [
+        {
+            "timestamp": x["timestamp"],
+            "displacement": x["displacement"],
+            "load01": x["load01"],
+            "load02": x["load02"],
+            "load03": x["load03"],
+            "load04": x["load04"],
+        }
+        for x in samples
+    ]
+    df: DataFrame = pd.DataFrame(samples)
+    df.set_index("timestamp", inplace=True)
+    pickle_filename: str = os.path.splitext(os.path.basename(file.file_path))[0]
+    pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
+    df.to_pickle(pickle_filepath)
 
 
 def main(settings_file_path: str, mode=None) -> None:
 
     # データディレクトリを確認し、ファイルリストを作成
-    data_dir = common.get_settings_value(settings_file_path, "data_dir")
+    data_dir: str = common.get_settings_value(settings_file_path, "data_dir")
     files_info: list = _create_files_info(data_dir)
 
     if len(files_info) == 0:
@@ -152,7 +186,9 @@ def main(settings_file_path: str, mode=None) -> None:
         return
 
     # configファイルからstart-endtimeを取得
-    config_file = common.get_settings_value(settings_file_path, "config_file_path")
+    config_file: str = common.get_settings_value(settings_file_path, "config_file_path")
+    start_time: datetime
+    end_time: datetime
     start_time, end_time = _get_target_interval(config_file)
 
     if start_time is None:
@@ -170,8 +206,8 @@ def main(settings_file_path: str, mode=None) -> None:
     logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
     # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。ディレクトリ名はconfigのstart_timeを基準とする。
-    start_time_jst = start_time.astimezone(timezone("Asia/Tokyo"))
-    processed_dir_path = os.path.join(data_dir, datetime.strftime(start_time_jst, "%Y%m%d%H%M%S"))
+    start_time_jst: datetime = start_time.astimezone(timezone("Asia/Tokyo"))
+    processed_dir_path: str = os.path.join(data_dir, datetime.strftime(start_time_jst, "%Y%m%d%H%M%S"))
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # Elasticsearch rawdataインデックス名
@@ -181,49 +217,34 @@ def main(settings_file_path: str, mode=None) -> None:
     if mode == "TEST":
         if ElasticManager.exists_index(rawdata_index):
             ElasticManager.delete_index(rawdata_index)
-        mapping_file = "mappings/mapping_rawdata.json"
-        setting_file = "mappings/setting_rawdata.json"
+        mapping_file: str = "mappings/mapping_rawdata.json"
+        setting_file: str = "mappings/setting_rawdata.json"
         ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
-    # 通常はconfigのstart_timeが変わらない（格納先が変わらない）限り、データを追記していく
+    # 通常はconfigのstart_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
     else:
         if not ElasticManager.exists_index(rawdata_index):
-            mapping_file = "mappings/mapping_rawdata.json"
-            setting_file = "mappings/setting_rawdata.json"
+            mapping_file: str = "mappings/mapping_rawdata.json"
+            setting_file: str = "mappings/setting_rawdata.json"
             ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
-    procs = []
+    procs: List[multiprocessing.context.Process] = []
     for file in target_files:
         # バイナリファイルを読み取り、データリストを取得
+        samples: List[dict]
+        sequential_number: int
         samples, sequential_number = _read_binary_files(file, sequential_number)
 
         if len(procs) > 0:
             for p in procs:
                 p.join()
 
-        logger.debug("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
 
-        # テンポラリファイルにsequential_numberは不要なので除去
-        samples = [
-            {
-                "timestamp": x["timestamp"],
-                "displacement": x["displacement"],
-                "load01": x["load01"],
-                "load02": x["load02"],
-                "load03": x["load03"],
-                "load04": x["load04"],
-            }
-            for x in samples
-        ]
-        df = pd.DataFrame(samples)
-        df.set_index("timestamp", inplace=True)
-        pickle_filename = os.path.splitext(os.path.basename(file.file_path))[0]
-        pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
-        df.to_pickle(pickle_filepath)
+        _export_to_pickle(samples, file, processed_dir_path)
 
         # 処理済みディレクトリに退避。テスト時は退避しない。
         if mode != "TEST":

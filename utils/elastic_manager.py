@@ -6,12 +6,10 @@ from elasticsearch import helpers
 from elasticsearch import AsyncElasticsearch
 import pandas as pd
 import json
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Tuple, List
 import multiprocessing
 from datetime import datetime
 import logging
-from itertools import repeat
-from functools import partial
 
 es_logger = logging.getLogger("elasticsearch")
 es_logger.setLevel(logging.WARNING)
@@ -249,16 +247,16 @@ class ElasticManager:
 
     @classmethod
     def multi_process_bulk_lazy_join(
-        cls, data: list, index_to_import: str, num_of_process=4, chunk_size: int = 500
-    ) -> list:
+        cls, data: List[dict], index_to_import: str, num_of_process: int = 4, chunk_size: int = 500
+    ) -> List[multiprocessing.context.Process]:
         """ マルチプロセスでbulk insertする。processリストを返却し、返却先でjoinする。 """
 
-        num_of_data = len(data)
+        num_of_data: int = len(data)
 
         # データをプロセッサの数に均等分配
-        data_num_by_proc: list = [(num_of_data + i) // num_of_process for i in range(num_of_process)]
+        data_num_by_proc: List[int] = [(num_of_data + i) // num_of_process for i in range(num_of_process)]
 
-        procs: list = []
+        procs: List[multiprocessing.context.Process] = []
         start_index: int = 0
         for proc_number, data_num in enumerate(data_num_by_proc):
             end_index: int = start_index + data_num
@@ -267,7 +265,9 @@ class ElasticManager:
 
             logger.debug(f"process {proc_number} will execute {len(target_data)} data.")
 
-            proc = multiprocessing.Process(target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size))
+            proc: multiprocessing.context.Process = multiprocessing.Process(
+                target=cls.bulk_insert, args=(target_data, index_to_import, chunk_size)
+            )
             proc.start()
             procs.append(proc)
 
