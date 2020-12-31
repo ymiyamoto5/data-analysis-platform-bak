@@ -4,10 +4,10 @@ import sys
 import logging
 import logging.handlers
 import pandas as pd
-from typing import Final, Tuple, List
+import glob
+from typing import Final, List
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
-import glob
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from elastic_manager import ElasticManager
@@ -41,7 +41,7 @@ class CutOutShot:
         self.__shot_number: int = 0
         self.__previous_shot_start_time: float = None
 
-    # # テスト用の公開プロパティ
+    # テスト用の公開プロパティ
     # @property
     # def is_shot_section(self):
     #     return self.__is_shot_section
@@ -119,15 +119,16 @@ class CutOutShot:
 
         if len(pause_events) > 0:
             for pause_event in pause_events:
+                if pause_event.get("start_time") is None:
+                    logger.exception("Invalid status in pause event. Not found [start_time] key.")
+                    raise KeyError
+
                 if pause_event.get("end_time") is None:
                     logger.exception("Pause event does not finished. Please retry after finish pause.")
-                    raise ValueError
+                    raise KeyError
                 # str to datetime
-                try:
-                    pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
-                    pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
-                except KeyError as e:
-                    logger.exception(str(e))
+                pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
+                pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
 
                 # datetime to unixtime
                 pause_event["start_time"] = pause_event["start_time"].timestamp()
@@ -145,11 +146,11 @@ class CutOutShot:
 
         if len(tag_events) > 0:
             for tag_event in tag_events:
-                try:
-                    tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
-                except KeyError as e:
-                    logger.exception(str(e))
+                if tag_event.get("end_time") is None:
+                    logger.exception("Invalid status in tag event. Not found [end_time] key.")
+                    raise KeyError
 
+                tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
                 tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
                 # datetime to unixtime
                 tag_event["start_time"] = tag_event["start_time"].timestamp()
@@ -176,11 +177,70 @@ class CutOutShot:
     def _exclude_pause_interval(self, df: DataFrame, pause_events: List[dict]) -> DataFrame:
         """ 中断区間のデータを除外 """
 
-        if len(pause_events) > 0:
-            for pause_event in pause_events:
-                df = df[(df["timestamp"] < pause_event["start_time"]) | (pause_event["end_time"] < df["timestamp"])]
+        for pause_event in pause_events:
+            df = df[(df["timestamp"] < pause_event["start_time"]) | (pause_event["end_time"] < df["timestamp"])]
 
         return df
+
+    def _is_include_in_pause_interval(self, rawdata_timestamp: datetime, pause_events: list) -> bool:
+        """ 対象のサンプルが中断区間にあるか判定する """
+
+        for pause_event in pause_events:
+            if pause_event["start_time"] <= rawdata_timestamp <= pause_event["end_time"]:
+                return True
+
+        return False
+
+    def _add_tags(self, shots: List[dict], tag_events: List[dict]) -> List[dict]:
+        """ ショットデータにタグ付け """
+
+        tags: List[str] = []
+
+        for d in shots:
+            tags: List[str] = self._get_tags(d["timestamp"], tag_events)
+            if len(tags) > 0:
+                d["tags"].extend(tags)
+
+        return shots
+
+    def _get_tags(self, rawdata_timestamp: datetime, tag_events: List[dict]) -> List[str]:
+        """ 対象サンプルが事象記録範囲にあるか判定し、範囲内であれば事象タグを返す """
+
+        tags: List[str] = []
+        for tag_event in tag_events:
+            if tag_event["start_time"] <= rawdata_timestamp <= tag_event["end_time"]:
+                tags.append(tag_event["tag"])
+
+        return tags
+
+    def _backup_df_tail(self, df: DataFrame) -> DataFrame:
+        """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
+
+        N: Final[int] = self.__tail_size
+        return df[-N:].copy()
+
+    def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
+        """ ショット開始点からN件遡ったデータを取得する """
+
+        N: Final[int] = self.__tail_size
+
+        # 遡って取得するデータが現在のDataFrameに含まれる場合
+        # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
+        if row_number >= N:
+            start_index: int = row_number - N
+            end_index: int = row_number
+            return rawdata_df[start_index:end_index]
+
+        # 初めのchunkでショットを検出し、遡って取得するデータが現在のDataFrameに含まれない場合
+        # ex) N=1000で、初めのchunkにおいてrow_number=100でショットを検知した場合、rawdata_df[:100]を取得
+        if len(previous_df_tail) == 0:
+            return rawdata_df[:row_number]
+
+        # 遡って取得するデータが現在のDataFrameに含まれない場合
+        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
+        start_index: int = row_number
+        end_index: int = row_number
+        return pd.concat([previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
 
     @time_log
     def cut_out_shot(
@@ -231,18 +291,12 @@ class CutOutShot:
 
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
-            rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
+            if len(pause_events) > 0:
+                rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
-            # chunk内のサンプルを1つずつ確認し、ショット切り出し
+            # TODO: 物理変換
+
             shots: List[dict] = self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
-
-            # タグ付け
-            tags: List[str] = []
-            if len(tag_events) > 0:
-                for d in shots:
-                    tags: List[str] = self._get_tags(d["timestamp"], tag_events)
-                    if len(tags) > 0:
-                        d["tags"].extend(tags)
 
             # 子プロセスのjoin
             if len(procs) > 0:
@@ -254,42 +308,23 @@ class CutOutShot:
                 processed_count += len(rawdata_df)
                 throughput_counter(processed_count, NOW)
 
+            # ショットがなければ以降の処理はスキップ
             if len(shots) == 0:
+                logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
-            # 物理変換
+            if len(tag_events) > 0:
+                shots = self._add_tags(shots, tag_events)
 
-            # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
-            if len(shots) > 0:
-                logger.info(f"{len(shots)} shots detected in {pickle_file}.")
-                procs = ElasticManager.multi_process_bulk_lazy_join(
-                    data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
-                )
-                shots = []
+            # ショットデータをElasticsearchに書き出し
+            logger.info(f"{len(shots)} shots detected in {pickle_file}.")
+            procs = ElasticManager.multi_process_bulk_lazy_join(
+                data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
+            )
+            shots = []
 
             # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。そのためのchunk末尾バックアップ。
             previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
-
-        logger.info("Cut out finished.")
-
-    def _is_include_in_pause_interval(self, rawdata_timestamp: datetime, pause_events: list) -> bool:
-        """ 対象のサンプルが中断区間にあるか判定する """
-
-        for pause_event in pause_events:
-            if pause_event["start_time"] <= rawdata_timestamp <= pause_event["end_time"]:
-                return True
-
-        return False
-
-    def _get_tags(self, rawdata_timestamp: datetime, tag_events: List[dict]) -> List[str]:
-        """ 対象サンプルが事象記録範囲にあるか判定し、範囲内であれば事象タグを返す """
-
-        tags: List[str] = []
-        for tag_event in tag_events:
-            if tag_event["start_time"] <= rawdata_timestamp <= tag_event["end_time"]:
-                tags.append(tag_event["tag"])
-
-        return tags
 
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
@@ -299,7 +334,7 @@ class CutOutShot:
         shots: List[dict] = []
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-            # ショット開始判定
+            # ショット開始判定。ショット開始 = 切り出し開始。
             if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
                 # spm計算。最初のショット検知時はspm計算できないため、timestampだけ保持しておく
                 if self.__shot_number == 0:
@@ -353,6 +388,7 @@ class CutOutShot:
             if not self.__is_target_of_cut_out:
                 continue
 
+            # ここに到達するのはショット区間かつ切り出し区間
             self.__sequential_number += 1
             self.__sequential_number_by_shot += 1
 
@@ -373,42 +409,15 @@ class CutOutShot:
 
         return shots
 
-    def _backup_df_tail(self, df: DataFrame) -> DataFrame:
-        """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
-
-        N: Final[int] = self.__tail_size
-        return df[-N:].copy()
-
-    def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
-        """ ショット開始点からN件遡ったデータを取得する """
-
-        N: Final[int] = self.__tail_size
-
-        # 遡って取得するデータが現在のDataFrameに含まれる場合
-        # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
-        if row_number >= N:
-            start_index: int = row_number - N
-            end_index: int = row_number
-            return rawdata_df[start_index:end_index]
-
-        # 初めのchunkでショットを検出し、遡って取得するデータが現在のDataFrameに含まれない場合
-        # ex) N=1000で、初めのchunkにおいてrow_number=100でショットを検知した場合、rawdata_df[:100]を取得
-        if len(previous_df_tail) == 0:
-            return rawdata_df[:row_number]
-
-        # 遡って取得するデータが現在のDataFrameに含まれない場合
-        # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
-        start_index: int = row_number
-        end_index: int = row_number
-        return pd.concat([previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
-
 
 def main():
-    # cut_out_shot = CutOutShot()
-    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 8)  # result: 9,356,063 samples
+    # No13 3000shot拡張。切り出し後のデータ数：9,287,537
+    cut_out_shot = CutOutShot()
+    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 8)
 
-    cut_out_shot = CutOutShot(tail_size=10)
-    cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 8)
+    # 任意波形生成
+    # cut_out_shot = CutOutShot(tail_size=10)
+    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 8)
 
 
 if __name__ == "__main__":
