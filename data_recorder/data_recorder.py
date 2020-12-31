@@ -1,12 +1,10 @@
 import os
 import sys
 
-# import csv
 import json
 import glob
 import re
 import shutil
-import asyncio
 import struct
 import logging
 import logging.handlers
@@ -143,14 +141,13 @@ def _create_files_info(shared_dir: str) -> list:
     return files_info
 
 
-def main() -> None:
-    settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
+def main(settings_file_path: str, mode=None) -> None:
 
     # データディレクトリを確認し、ファイルリストを作成
     data_dir = common.get_settings_value(settings_file_path, "data_dir")
     files_info: list = _create_files_info(data_dir)
 
-    if files_info is None:
+    if len(files_info) == 0:
         logger.info(f"No files in {data_dir}")
         return
 
@@ -163,7 +160,6 @@ def main() -> None:
 
     # 対象となるファイルに絞り込む
     target_files: list = _get_target_files(files_info, start_time, end_time)
-    # [print(x.file_path) for x in target_files]
 
     # TODO: 含まれないファイルは削除する
 
@@ -171,26 +167,29 @@ def main() -> None:
         logger.info(f"No files in target inteverl {start_time} - {end_time}.")
         return
 
-    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成
-    jst = start_time.astimezone(timezone("Asia/Tokyo"))
-    processed_dir_path = os.path.join(data_dir, datetime.strftime(jst, "%Y%m%d%H%M%S"))
+    logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
+
+    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。ディレクトリ名はconfigのstart_timeを基準とする。
+    start_time_jst = start_time.astimezone(timezone("Asia/Tokyo"))
+    processed_dir_path = os.path.join(data_dir, datetime.strftime(start_time_jst, "%Y%m%d%H%M%S"))
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # Elasticsearch rawdataインデックス名
-    rawdata_index: str = "rawdata-" + datetime.strftime(jst, "%Y%m%d%H%M%S")
+    rawdata_index: str = "rawdata-" + datetime.strftime(start_time_jst, "%Y%m%d%H%M%S")
 
-    # テスト用の実装
-    if ElasticManager.exists_index(rawdata_index):
-        ElasticManager.delete_index(rawdata_index)
-    mapping_file = "mappings/mapping_rawdata.json"
-    setting_file = "mappings/setting_rawdata.json"
-    ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
-
-    # 本来の実装
-    # if not ElasticManager.exists_index(rawdata_index):
-    #     mapping_file = "mappings/mapping_rawdata.json"
-    #     setting_file = "mappings/setting_rawdata.json"
-    #     ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+    # テスト時はインデックスを都度再作成する。
+    if mode == "TEST":
+        if ElasticManager.exists_index(rawdata_index):
+            ElasticManager.delete_index(rawdata_index)
+        mapping_file = "mappings/mapping_rawdata.json"
+        setting_file = "mappings/setting_rawdata.json"
+        ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+    # 通常はconfigのstart_timeが変わらない（格納先が変わらない）限り、データを追記していく
+    else:
+        if not ElasticManager.exists_index(rawdata_index):
+            mapping_file = "mappings/mapping_rawdata.json"
+            setting_file = "mappings/setting_rawdata.json"
+            ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
@@ -203,12 +202,11 @@ def main() -> None:
             for p in procs:
                 p.join()
 
-        # logger.info("es bulk start")
+        logger.debug("es bulk start")
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
 
-        # テンポラリファイル出力
         # テンポラリファイルにsequential_numberは不要なので除去
         samples = [
             {
@@ -227,10 +225,12 @@ def main() -> None:
         pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
 
-        # 処理済みディレクトリに退避
-        # shutil.move(file.file_path, processed_dir_path)
+        # 処理済みディレクトリに退避。テスト時は退避しない。
+        if mode != "TEST":
+            shutil.move(file.file_path, processed_dir_path)
         logger.info(f"processed: {file.file_path}")
 
+    # 最終ループでjoinできていないprocessを待機。
     if len(procs) > 0:
         for p in procs:
             p.join()
@@ -239,4 +239,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
+    main(settings_file_path, mode="TEST")
