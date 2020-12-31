@@ -3,7 +3,8 @@
 from elasticsearch import Elasticsearch
 from elasticsearch import exceptions
 from elasticsearch import helpers
-from elasticsearch import AsyncElasticsearch
+
+# from elasticsearch import AsyncElasticsearch
 import pandas as pd
 import json
 from typing import Iterable, Iterator, Tuple, List
@@ -21,7 +22,7 @@ class ElasticManager:
     """ Elasticsearchへの各種処理を行うwrapperクラス """
 
     es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
-    async_es = AsyncElasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
+    # async_es = AsyncElasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
 
     @classmethod
     def show_indices(cls, show_all_index: bool = False) -> pd.DataFrame:
@@ -76,7 +77,7 @@ class ElasticManager:
         return result["hits"]["hits"][0]["_source"]
 
     @classmethod
-    def get_all_doc(cls, index: str, query: dict) -> list:
+    def get_all_doc(cls, index: str, query: dict) -> List[dict]:
         """ 対象インデックスの全documentを返す """
 
         body = query
@@ -88,84 +89,90 @@ class ElasticManager:
     def delete_index(cls, index: str) -> None:
         """ インデックスを削除する """
 
+        is_valid_index: bool
+        message: str
         is_valid_index, message = ElasticManager.__check_index(index)
 
         if not is_valid_index:
-            print(message)
+            logger.error(message)
             return
 
-        result = cls.es.indices.delete(index=index)
+        result: dict = cls.es.indices.delete(index=index)
 
         if result["acknowledged"]:
-            print(f"{index}を削除しました。")
+            logger.info(f"{index} deleted.")
         else:
-            print(f"エラー：{index}を削除できませんでした。")
+            logger.error(f"{index} cannot deleted")
 
     @classmethod
     def delete_data_by_seq_num(cls, index: str, start: int, end: int) -> None:
         """ documentを削除する（連番指定） """
 
+        is_valid_index: bool
+        message: str
         is_valid_index, message = ElasticManager.__check_index(index)
 
         if not is_valid_index:
-            print(message)
+            logger.error(message)
             return
 
         if start > end:
-            print(f"end({end})はstart({start})より大きい値を設定してください。")
+            logger.error(f"end({end})はstart({start})より大きい値を設定してください。")
             return
 
         if start < 0 or end < 0:
-            print("連番の値が不正です。")
+            logger.error("Invalid value.")
             return
 
-        body = {"query": {"range": {"sequential_number": {"gte": start, "lte": end}}}}
+        body: dict = {"query": {"range": {"sequential_number": {"gte": start, "lte": end}}}}
 
-        result = cls.es.delete_by_query(index=index, body=body, refresh=True)
+        result: dict = cls.es.delete_by_query(index=index, body=body, refresh=True)
 
         if len(result["failures"]) != 0:
-            print("エラー：データ削除に失敗しました。")
+            logger.error("Failed to delete data.")
             for failure in result["failures"]:
-                print(failure)
+                logger.error(failure)
             return
 
-        print(f"データを{result['deleted']}件削除しました。")
+        logger.info(f"Delete was successful. {result['deleted']} docs deleted.")
 
     @classmethod
     def delete_data_by_shot_num(cls, index: str, shot_number: int) -> None:
         """ documentを削除する（shot番号指定） """
 
+        is_valid_index: bool
+        message: str
         is_valid_index, message = ElasticManager.__check_index(index)
 
         if not is_valid_index:
-            print(message)
+            logger.error(message)
             return
 
         if shot_number < 0:
             print("ショット番号が不正です。")
 
-        query = {"term": {"shot_number": shot_number}}
+        query: dict = {"term": {"shot_number": shot_number}}
 
-        result = cls.es.delete_by_query(index=index, body=query, refresh=True)
+        result: dict = cls.es.delete_by_query(index=index, body=query, refresh=True)
 
         if len(result["failures"]) != 0:
-            print("エラー：データ削除に失敗しました。")
+            logger.error("Failed to delete data.")
             for failure in result["failures"]:
-                print(failure)
+                logger.error(failure)
             return
 
-        print(f"データを{result['deleted']}件削除しました。")
+        logger.info(f"Delete was successful. {result['deleted']} docs deleted.")
 
     @classmethod
-    def __check_index(cls, index: str):
+    def __check_index(cls, index: str) -> Tuple[bool, str]:
         """ インデックスが指定されているかチェックする """
 
         if index == "":
-            message = "エラー：インデックスを指定してください。"
+            message = "インデックスを指定してください。"
             return False, message
 
         if not cls.exists_index(index):
-            message = f"エラー：{index}が存在しません。"
+            message = f"{index}が存在しません。"
             return False, message
 
         return True, ""
@@ -175,11 +182,11 @@ class ElasticManager:
         """ 既存のインデックスを削除する """
 
         if cls.exists_index(index):
-            result = cls.es.indices.delete(index=index)
+            result: dict = cls.es.indices.delete(index=index)
             logger.info(f"delete index '{index}' finished. result: {result}")
 
     @classmethod
-    def exists_index(cls, index: str):
+    def exists_index(cls, index: str) -> bool:
         """ インデックスの存在確認 """
         return cls.es.indices.exists(index=index)
 
@@ -219,7 +226,6 @@ class ElasticManager:
 
         try:
             cls.es.create(index=index, id=doc_id, body=query, refresh=True)
-            # logger.info("create document finished.")
             return True
 
         except exceptions.RequestError as e:
@@ -238,7 +244,6 @@ class ElasticManager:
 
         try:
             cls.es.update(index=index, id=doc_id, body=body, refresh=True)
-            # logger.info("update document finished.")
             return True
 
         except exceptions.RequestError as e:
@@ -249,7 +254,7 @@ class ElasticManager:
     def multi_process_bulk_lazy_join(
         cls, data: List[dict], index_to_import: str, num_of_process: int = 4, chunk_size: int = 500
     ) -> List[multiprocessing.context.Process]:
-        """ マルチプロセスでbulk insertする。processリストを返却し、返却先でjoinする。 """
+        """ マルチプロセスでbulk insertする。processリストを返却し、呼び出し元でjoinする。 """
 
         num_of_data: int = len(data)
 
@@ -274,7 +279,7 @@ class ElasticManager:
         return procs
 
     @classmethod
-    def bulk_insert(cls, data_list: list, index_to_import: str, chunk_size: int = 500) -> None:
+    def bulk_insert(cls, data_list: List[dict], index_to_import: str, chunk_size: int = 500) -> None:
         """
          マルチプロセスで実行する処理。渡されたデータをもとにElasticsearchにデータ投入する。
         """
@@ -284,23 +289,12 @@ class ElasticManager:
         # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
         es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000,)
 
-        actions = ({"_index": index_to_import, "_source": x} for x in data_list)
+        actions: Tuple[dict] = ({"_index": index_to_import, "_source": x} for x in data_list)
         helpers.bulk(es, actions, chunk_size=chunk_size, stats_only=True, raise_on_error=False)
 
     @classmethod
-    def single_process_range_scan(cls, index: str, start: int, end: int) -> Iterable:
-
-        body = {"query": {"range": {"sequential_number": {"gte": start, "lte": end - 1}}}}
-
-        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=body)
-        data = [x["_source"] for x in data_gen]
-        data.sort(key=lambda x: x["sequential_number"])
-
-        return data
-
-    @classmethod
     def count(cls, index: str) -> int:
-        result = cls.es.count(index=index)
+        result: dict = cls.es.count(index=index)
         return result["count"]
 
     @classmethod
@@ -356,30 +350,13 @@ class ElasticManager:
         # https://github.com/elastic/elasticsearch-py/issues/638
         es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000,)
 
-        body = {
+        body: dict = {
             "query": {"range": {"sequential_number": {"gte": start, "lte": end - 1}}},
-            # "sort": {
-            #     "sequential_number": "asc"
-            # }
         }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
         data = [x["_source"] for x in data_gen]
         data.sort(key=lambda x: x["sequential_number"])
-
-        # 読み込んだデータの順番がsequential_number通りになっていることの確認
-        # TODO: DEBUG_MODEのときだけ実行
-        # data_sequential_numbers = [x['sequential_number'] for x in data]
-        # expected = [x['sequential_number'] for x in sorted(data, key=lambda x: x['sequential_number'])]
-        # if data_sequential_numbers != expected:
-        #     file_name1 = "out_result_" + str(proc_num) + ".txt"
-        #     file_name2 = "out_expected_" + str(proc_num) + ".txt"
-        #     with open(file_name1, "w") as f:
-        #         for x in data_sequential_numbers:
-        #             f.write(str(x) + '\n')
-        #     with open(file_name2, "w") as f:
-        #         for x in expected:
-        #             f.write(str(x) + '\n')
 
         return_dict[proc_num] = data
 
