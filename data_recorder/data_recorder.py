@@ -169,7 +169,7 @@ def _export_to_pickle(samples: list, file: FileInfo, processed_dir_path: str) ->
         for x in samples
     ]
     df: DataFrame = pd.DataFrame(samples)
-    df.set_index("timestamp", inplace=True)
+    # df.set_index("timestamp", inplace=True)
     pickle_filename: str = os.path.splitext(os.path.basename(file.file_path))[0]
     pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
     df.to_pickle(pickle_filepath)

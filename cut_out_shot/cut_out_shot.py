@@ -1,13 +1,12 @@
+import multiprocessing
 import os
 import sys
 import logging
 import logging.handlers
 import pandas as pd
-from typing import Final
+from typing import Final, Tuple, List
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
-from pandas.core.series import Series
-from pandas.io import pickle
 import glob
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
@@ -110,19 +109,19 @@ class CutOutShot:
         """
 
         # 同名のindexがあれば削除
-        shots_index = "shots-" + rawdata_dir_name
+        shots_index: str = "shots-" + rawdata_dir_name
         ElasticManager.delete_exists_index(index=shots_index)
         # index作成
-        mapping_file = "mappings/mapping_shots.json"
+        mapping_file: str = "mappings/mapping_shots.json"
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
 
         # 対応するevents_indexのデータ取得
         events_index: str = "events-" + rawdata_dir_name
-        query = {"sort": {"event_id": {"order": "asc"}}}
-        events: list = ElasticManager.get_all_doc(events_index, query)
+        query: dict = {"sort": {"event_id": {"order": "asc"}}}
+        events: List[dict] = ElasticManager.get_all_doc(events_index, query)
 
         # events_indexから収集開始時間を取得
-        start_events = [x for x in events if x["event_type"] == "start"]
+        start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
         if len(start_events) == 0:
             logger.exception("Data collection has not started yet.")
             raise ValueError
@@ -130,8 +129,8 @@ class CutOutShot:
         collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
 
         # events_indexから中断区間を取得
-        pause_events = [x for x in events if x["event_type"] == "pause"]
-        # logger.info(pause_events)
+        pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
+        logger.debug(pause_events)
         if len(pause_events) > 0:
             for pause_event in pause_events:
                 if pause_event.get("end_time") is None:
@@ -146,8 +145,8 @@ class CutOutShot:
                 pause_event["end_time"] = pause_event["end_time"].timestamp()
 
         # events_indexからタグ付け区間を取得
-        tag_events = [x for x in events if x["event_type"] == "tag"]
-        # logger.info(tag_events)
+        tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
+        logger.debug(tag_events)
         if len(tag_events) > 0:
             for tag_event in tag_events:
                 tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
@@ -161,18 +160,18 @@ class CutOutShot:
         COLS: Final = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
 
-        procs: list = []
+        procs: List[multiprocessing.context.Process] = []
 
         NOW: Final = datetime.now()
 
         # 設定ファイルから取り込みデータを特定
         settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
         data_dir = common.get_settings_value(settings_file_path, "data_dir")
-        rawdata_dir_path = os.path.join(data_dir, rawdata_dir_name)
-        pickle_file_list: list = glob.glob(os.path.join(rawdata_dir_path, "tmp*.pkl"))
+        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
+        pickle_file_list: List[str] = glob.glob(os.path.join(rawdata_dir_path, "*.pkl"))
         pickle_file_list.sort()
 
-        processed_count = 0
+        processed_count: int = 0
         for loop_count, pickle_file in enumerate(pickle_file_list):
             rawdata_df = pd.read_pickle(pickle_file)
 
@@ -187,19 +186,12 @@ class CutOutShot:
                         | (pause_event["end_time"] < rawdata_df["timestamp"])
                     ]
 
-            # DataFrameにtimestamp列を追加
-            # logger.info("start add timestamp")
-            # timestamp_list = []
-            # for i in range(data_count):
-            #     timestamp: datetime = first_timestamp_of_file + timedelta(microseconds=10) * i
-            #     timestamp_list.append(timestamp)
-            # rawdata_df["timestamp"] = timestamp_list
-            # logger.info("end add timestamp")
-
             # chunk内のサンプルを1つずつ確認し、ショット切り出し
-            shots: list = self._cut_out_shot(
+            shots: List[dict] = self._cut_out_shot(
                 previous_df_tail, rawdata_df, start_displacement, end_displacement, tag_events
             )
+
+            # タグ付け
 
             # 子プロセスのjoin
             if len(procs) > 0:
@@ -219,13 +211,13 @@ class CutOutShot:
             # 切り出されたショットデータをElasticsearchに書き出し、バッファクリア
             if len(shots) > 0:
                 logger.info(f"{len(shots)} shots detected in {pickle_file}.")
-                procs: list = ElasticManager.multi_process_bulk_lazy_join(
+                procs = ElasticManager.multi_process_bulk_lazy_join(
                     data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
                 )
                 shots = []
 
             # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。そのためのchunk末尾バックアップ。
-            previous_df_tail = self._backup_df_tail(rawdata_df)
+            previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
 
         logger.info("Cut out finished.")
 
@@ -241,7 +233,7 @@ class CutOutShot:
     def _get_tags(self, rawdata_timestamp: datetime, tag_events: list) -> list:
         """ 対象サンプルが事象記録範囲にあるか判定し、範囲内であれば事象タグを返す """
 
-        tags: list = []
+        tags: List[str] = []
         for tag_event in tag_events:
             if tag_event["start_time"] <= rawdata_timestamp <= tag_event["end_time"]:
                 tags.append(tag_event["tag"])
@@ -259,7 +251,6 @@ class CutOutShot:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
         shots: list = []
-        # shot_start_time: float = None  # spm計算用
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             # ショット開始判定
@@ -270,7 +261,7 @@ class CutOutShot:
 
                 else:
                     spm: float = 1.0 * 60 / (rawdata.timestamp - self.__previous_shot_start_time)
-                    # logger.info(f"shot_number: {self.__shot_number}, spm: {spm}")
+                    logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
                     self.__previous_shot_start_time = rawdata.timestamp
 
                 self.__is_shot_section = True
@@ -282,9 +273,9 @@ class CutOutShot:
                 preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
 
                 for d in preceding_df.itertuples():
-                    tags: list = []
-                    # if len(tag_events) > 0:
-                    #     tags = self._get_tags(d.timestamp, tag_events)
+                    tags: List[str] = []
+                    if len(tag_events) > 0:
+                        tags = self._get_tags(d.timestamp, tag_events)
 
                     shot = {
                         "timestamp": d.timestamp,
@@ -324,9 +315,9 @@ class CutOutShot:
             self.__sequential_number_by_shot += 1
 
             # タグ付け
-            tags: list = []
-            # if len(tag_events) > 0:
-            #     tags = self._get_tags(rawdata.timestamp, tag_events)
+            tags: List[str] = []
+            if len(tag_events) > 0:
+                tags = self._get_tags(rawdata.timestamp, tag_events)
 
             # 切り出し対象としてリストに加える
             shot = {
@@ -376,12 +367,11 @@ class CutOutShot:
 
 
 def main():
-    cut_out_shot = CutOutShot()
-    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 8)  # result: 9,356,063 samples
-    # cut_out_shot.cut_out_shot("data/No04.CSV", "shots-no04", 47, 34, 8)
+    # cut_out_shot = CutOutShot()
+    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 8)  # result: 9,356,063 samples
 
-    # cut_out_shot = CutOutShot(chunk_size=1_000_000, tail_size=10)
-    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 8)
+    cut_out_shot = CutOutShot(tail_size=10)
+    cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 8)
 
 
 if __name__ == "__main__":
