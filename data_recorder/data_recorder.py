@@ -83,7 +83,7 @@ def _get_target_files(files_info: list, start_time: datetime, end_time: datetime
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
 
 
-def _read_binary_file(file: str, sequential_number: int):
+def _read_binary_files(file, sequential_number: int):
     """ バイナリファイルを読んで、そのデータをリストにして返す """
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
@@ -94,33 +94,33 @@ def _read_binary_file(file: str, sequential_number: int):
 
     with open(file.file_path, "rb") as f:
         binary = f.read()
-        while True:
-            # バイナリファイルから5ch分を1setとして取得し、処理
-            start_index = dataset_number * ROW_BYTE_SIZE
-            end_index = start_index + ROW_BYTE_SIZE
-            binary_dataset = binary[start_index:end_index]
+    while True:
+        # バイナリファイルから5ch分を1setとして取得し、処理
+        start_index = dataset_number * ROW_BYTE_SIZE
+        end_index = start_index + ROW_BYTE_SIZE
+        binary_dataset = binary[start_index:end_index]
 
-            if len(binary_dataset) == 0:
-                break
+        if len(binary_dataset) == 0:
+            break
 
-            dataset: Tuple = struct.unpack("<ddddd", binary_dataset)
-            logger.debug(dataset)
+        dataset: Tuple = struct.unpack("<ddddd", binary_dataset)
+        logger.debug(dataset)
 
-            data = {
-                "sequential_number": sequential_number,
-                "timestamp": timestamp,
-                "displacement": round(dataset[0], 3),
-                "load01": round(dataset[1], 3),
-                "load02": round(dataset[2], 3),
-                "load03": round(dataset[3], 3),
-                "load04": round(dataset[4], 3),
-            }
+        data = {
+            "sequential_number": sequential_number,
+            "timestamp": timestamp,
+            "displacement": round(dataset[0], 3),
+            "load01": round(dataset[1], 3),
+            "load02": round(dataset[2], 3),
+            "load03": round(dataset[3], 3),
+            "load04": round(dataset[4], 3),
+        }
 
-            samples.append(data)
+        samples.append(data)
 
-            dataset_number += 1
-            sequential_number += 1
-            timestamp += 0.000010  # 100k sample
+        dataset_number += 1
+        sequential_number += 1
+        timestamp += 0.000010  # 100k sample
 
     return samples, sequential_number
 
@@ -267,23 +267,59 @@ def main() -> None:
     if ElasticManager.exists_index(rawdata_index):
         ElasticManager.delete_index(rawdata_index)
     mapping_file = "mappings/mapping_rawdata.json"
-    ElasticManager.create_index(rawdata_index, mapping_file)
-
-    # 本来の実装
-    # if not ElasticManager.exists_index(rawdata_index):
-    #     mapping_file = "mappings/mapping_rawdata.json"
-    #     ElasticManager.create_index(rawdata_index, mapping_file)
-
-    # TODO: sequential_numberの初期値を決めるため、ESからcountを取る
+    setting_file = "mappings/setting_rawdata.json"
+    ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     # テンポラリファイル名のプレフィックス
     # pickle_filename_prefix: str = os.path.join(processed_dir_path, "tmp")
 
-    _multi_process(target_files, rawdata_index, processed_dir_path, 8)
+    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
+
+    procs = []
+    for file in target_files:
+        # バイナリファイルを読み取り、データリストを取得
+        samples, sequential_number = _read_binary_files(file, sequential_number)
+
+        if len(procs) > 0:
+            for p in procs:
+                p.join()
+
+        # elasticsearch出力
+        # logger.info("es bulk start")
+        procs = ElasticManager.multi_process_bulk_lazy_join(
+            data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
+        )
+
+        # テンポラリファイル出力
+        # logger.info("pickle dump start")
+
+        # sequential_numberは不要なので除去
+        samples = [
+            {
+                "timestamp": x["timestamp"],
+                "displacement": x["displacement"],
+                "load01": x["load01"],
+                "load02": x["load02"],
+                "load03": x["load03"],
+                "load04": x["load04"],
+            }
+            for x in samples
+        ]
+        df = pd.DataFrame(samples)
+        df.set_index("timestamp", inplace=True)
+        # pickle_filename = pickle_filename_prefix + str(file_number).zfill(3) + ".pkl"
+        pickle_filename = os.path.splitext(os.path.basename(file.file_path))[0]
+        pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
+        df.to_pickle(pickle_filepath)
+        # logger.info("pickle dump end")
 
     # 処理済みディレクトリに退避
     # shutil.move(file.file_path, processed_dir_path)
     # logger.info(f"processed: {file.file_path}")
+
+    if len(procs) > 0:
+        for p in procs:
+            p.join()
 
     logger.info("all file processed.")
 
