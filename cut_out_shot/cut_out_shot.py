@@ -192,6 +192,12 @@ class CutOutShot:
             )
 
             # タグ付け
+            tags: List[str] = []
+            if len(tag_events) > 0:
+                for d in shots:
+                    tags: List[str] = self._get_tags(d["timestamp"], tag_events)
+                    if len(tags) > 0:
+                        d["tags"].extend(tags)
 
             # 子プロセスのjoin
             if len(procs) > 0:
@@ -230,7 +236,7 @@ class CutOutShot:
 
         return False
 
-    def _get_tags(self, rawdata_timestamp: datetime, tag_events: list) -> list:
+    def _get_tags(self, rawdata_timestamp: datetime, tag_events: List[dict]) -> List[str]:
         """ 対象サンプルが事象記録範囲にあるか判定し、範囲内であれば事象タグを返す """
 
         tags: List[str] = []
@@ -241,12 +247,7 @@ class CutOutShot:
         return tags
 
     def _cut_out_shot(
-        self,
-        previous_df_tail: DataFrame,
-        rawdata_df: DataFrame,
-        start_displacement: float,
-        end_displacement: float,
-        tag_events: list = [],
+        self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
     ) -> list:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
@@ -273,10 +274,6 @@ class CutOutShot:
                 preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
 
                 for d in preceding_df.itertuples():
-                    tags: List[str] = []
-                    if len(tag_events) > 0:
-                        tags = self._get_tags(d.timestamp, tag_events)
-
                     shot = {
                         "timestamp": d.timestamp,
                         "sequential_number": self.__sequential_number,
@@ -287,7 +284,7 @@ class CutOutShot:
                         "load03": d.load03,
                         "load04": d.load04,
                         "shot_number": self.__shot_number,
-                        "tags": tags,
+                        "tags": [],
                     }
                     shots.append(shot)
                     self.__sequential_number += 1
@@ -314,11 +311,6 @@ class CutOutShot:
             self.__sequential_number += 1
             self.__sequential_number_by_shot += 1
 
-            # タグ付け
-            tags: List[str] = []
-            if len(tag_events) > 0:
-                tags = self._get_tags(rawdata.timestamp, tag_events)
-
             # 切り出し対象としてリストに加える
             shot = {
                 "timestamp": rawdata.timestamp,
@@ -330,7 +322,7 @@ class CutOutShot:
                 "load03": rawdata.load03,
                 "load04": rawdata.load04,
                 "shot_number": self.__shot_number,
-                "tags": tags,
+                "tags": [],
             }
             shots.append(shot)
 
