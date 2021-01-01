@@ -6,15 +6,18 @@ from datetime import datetime
 
 from .. import cut_out_shot
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../utils"))
+from elastic_manager import ElasticManager
+
 
 class TestGetEvents:
     def test_normal(self, mocker):
         expected = [
-            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.000"},
-            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.000"},
-            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.000"},
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
         ]
-        mocker.patch("elastic_manager.ElasticManager.get_all_doc", return_value=expected)
+        mocker.patch.object(ElasticManager, "get_all_doc", return_value=expected)
 
         target = cut_out_shot.CutOutShot()
         actual = target._get_events(suffix="20201201000000")
@@ -25,26 +28,26 @@ class TestGetEvents:
 class TestGetCollectStartTime:
     events_normal = (
         [
-            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.000"},
-            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.000"},
-            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.000"},
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
         ],
         [
-            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.000"},
-            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.000"},
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
         ],
     )
-
-    events_exception = ([{"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.000"}],)
 
     @pytest.mark.parametrize("events", events_normal)
     def test_normal(self, events):
         target = cut_out_shot.CutOutShot()
         actual = target._get_collect_start_time(events)
 
-        expected = datetime(2020, 12, 1, 0, 10, 0, 0).timestamp()
+        expected = datetime(2020, 12, 1, 0, 10, 0, 123456).timestamp()
 
         assert actual == expected
+
+    events_exception = ([{"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"}],)
 
     @pytest.mark.parametrize("events", events_exception)
     def test_no_start_event(self, events):
@@ -52,3 +55,74 @@ class TestGetCollectStartTime:
         with pytest.raises(ValueError):
             target._get_collect_start_time(events)
 
+
+class TestGetPauseEvents:
+    events_normal_1 = (
+        [
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {
+                "event_type": "pause",
+                "start_time": "2020-12-01T00:15:00.123456",
+                "end_time": "2020-12-01T00:16:00.123456",
+            },
+            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
+        ],
+        [
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {
+                "event_type": "pause",
+                "start_time": "2020-12-01T00:15:00.123456",
+                "end_time": "2020-12-01T00:16:00.123456",
+            },
+        ],
+    )
+
+    @pytest.mark.parametrize("events", events_normal_1)
+    def test_normal(self, events):
+        target = cut_out_shot.CutOutShot()
+        actual = target._get_pause_events(events)
+
+        expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
+        expected_end_time = datetime(2020, 12, 1, 0, 16, 0, 123456).timestamp()
+
+        expected = [
+            {"event_type": "pause", "start_time": expected_start_time, "end_time": expected_end_time},
+        ]
+
+        assert actual == expected
+
+    events_none = (
+        [
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
+        ],
+        [],
+    )
+
+    @pytest.mark.parametrize("events", events_none)
+    def test_no_pause_event(self, events):
+        target = cut_out_shot.CutOutShot()
+        actual = target._get_pause_events(events)
+
+        expected = []
+
+        assert actual == expected
+
+    events_exception_1 = ([{"event_type": "pause", "start_time": "2020-12-01T00:15:00.123456"}],)
+
+    @pytest.mark.parametrize("events", events_exception_1)
+    def test_not_end(self, events):
+        target = cut_out_shot.CutOutShot()
+        with pytest.raises(KeyError):
+            target._get_pause_events(events)
+
+    events_exception_2 = ([{"event_type": "pause", "end_time": "2020-12-01T00:16:00.123456"}],)
+
+    @pytest.mark.parametrize("events", events_exception_2)
+    def test_not_start(self, events):
+        target = cut_out_shot.CutOutShot()
+        with pytest.raises(KeyError):
+            target._get_pause_events(events)
