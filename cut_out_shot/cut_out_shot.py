@@ -39,49 +39,65 @@ class CutOutShot:
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
-        self.__previous_shot_start_time: float = None
+        self.__previous_shot_start_time: Optional[float] = None
         self.__shots: List[dict] = []
 
     # テスト用の公開プロパティ
-    # @property
-    # def is_shot_section(self):
-    #     return self.__is_shot_section
+    @property
+    def is_shot_section(self):
+        return self.__is_shot_section
 
-    # @is_shot_section.setter
-    # def is_shot_section(self, is_shot_section):
-    #     self.__is_shot_section = is_shot_section
+    @is_shot_section.setter
+    def is_shot_section(self, is_shot_section: bool):
+        self.__is_shot_section = is_shot_section
 
-    # @property
-    # def is_target_of_cut_out(self):
-    #     return self.__is_target_of_cut_out
+    @property
+    def is_target_of_cut_out(self):
+        return self.__is_target_of_cut_out
 
-    # @is_target_of_cut_out.setter
-    # def is_target_of_cut_out(self, is_target_of_cut_out):
-    #     self.__is_target_of_cut_out = is_target_of_cut_out
+    @is_target_of_cut_out.setter
+    def is_target_of_cut_out(self, is_target_of_cut_out: bool):
+        self.__is_target_of_cut_out = is_target_of_cut_out
 
-    # @property
-    # def sequential_number(self):
-    #     return self.__sequential_number
+    @property
+    def sequential_number(self):
+        return self.__sequential_number
 
-    # @sequential_number.setter
-    # def sequential_number(self, sequential_number):
-    #     self.__sequential_number = sequential_number
+    @sequential_number.setter
+    def sequential_number(self, sequential_number: int):
+        self.__sequential_number = sequential_number
 
-    # @property
-    # def sequential_number_by_shot(self):
-    #     return self.__sequential_number_by_shot
+    @property
+    def sequential_number_by_shot(self):
+        return self.__sequential_number_by_shot
 
-    # @sequential_number_by_shot.setter
-    # def sequential_number_by_shot(self, sequential_number_by_shot):
-    #     self.__sequential_number_by_shot = sequential_number_by_shot
+    @sequential_number_by_shot.setter
+    def sequential_number_by_shot(self, sequential_number_by_shot: int):
+        self.__sequential_number_by_shot = sequential_number_by_shot
 
-    # @property
-    # def shot_number(self):
-    #     return self.__shot_number
+    @property
+    def shot_number(self):
+        return self.__shot_number
 
-    # @shot_number.setter
-    # def shot_number(self, shot_number):
-    #     self.__shot_number = shot_number
+    @shot_number.setter
+    def shot_number(self, shot_number: int):
+        self.__shot_number = shot_number
+
+    @property
+    def previous_shot_start_time(self):
+        return self.__previous_shot_start_time
+
+    @previous_shot_start_time.setter
+    def previous_shot_start_time(self, previous_shot_start_time: Optional[float]):
+        self.__previous_shot_start_time = previous_shot_start_time
+
+    @property
+    def shots(self):
+        return self.__shots
+
+    @shots.setter
+    def shots(self, shots: List[dict]):
+        self.__shots = shots
 
     def _create_shots_index(self, shots_index: str) -> None:
         """ shots_indexの作成。既存のインデックスは削除。 """
@@ -200,10 +216,23 @@ class CutOutShot:
 
         return tags
 
-    def _detect_shot(self, displacement: float, start_displacement: float):
-        """ ショット検知。ショットが未検出かつ変位値が開始しきい値以下の場合、ショット開始とみなす。 """
+    def _detect_shot_start(self, displacement: float, start_displacement: float) -> bool:
+        """ ショット開始検知。ショットが未検出かつ変位値が開始しきい値以下の場合、ショット開始とみなす。 """
 
         return (not self.__is_shot_section) and (displacement <= start_displacement)
+
+    def _detect_shot_end(self, displacement: float, start_displacement: float, margin: float = 0.1) -> bool:
+        """ ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
+
+            margin: ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
+        """
+
+        return self.__is_shot_section and (displacement > start_displacement + margin)
+
+    def _detect_cut_out_end(self, displacement: float, end_displacement: float) -> bool:
+        """ 切り出し終了検知。切り出し区間として検知されており、かつ変位値が終了しきい値以下の場合、切り出し終了とみなす。"""
+
+        return self.__is_target_of_cut_out and (displacement <= end_displacement)
 
     def _backup_df_tail(self, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
@@ -251,7 +280,7 @@ class CutOutShot:
         """ ショット検出時の初期処理 """
 
         self.__is_shot_section = True
-        self.__is_target_of_cut_out = True
+        self.__is_target_of_cut_out = True  # ショット開始 = 切り出し区間開始
         self.__shot_number += 1
         self.__sequential_number_by_shot = 0
 
@@ -308,8 +337,8 @@ class CutOutShot:
         shots_index: str = "shots-" + rawdata_dir_name
         self._create_shots_index(shots_index)
 
+        # event_indexから各種イベント情報を取得する
         events: List[dict] = self._get_events(suffix=rawdata_dir_name)
-
         collect_start_time: float = self._get_collect_start_time(events)
         pause_events: List[dict] = self._get_pause_events(events)
         tag_events: List[dict] = self._get_tag_events(events, back_seconds_for_tagging)
@@ -321,22 +350,29 @@ class CutOutShot:
 
         NOW: Final[datetime] = datetime.now()
 
+        # 取り込むpickleファイルのリストを取得
         settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
         data_dir = common.get_settings_value(settings_file_path, "data_dir")
         rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
         pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 
+        # main loop
         for loop_count, pickle_file in enumerate(pickle_files):
             rawdata_df: DataFrame = pd.read_pickle(pickle_file)
 
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
+            # 中断区間の除外
             if len(pause_events) > 0:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
             # TODO: 物理変換
 
+            # ショット切り出し
             self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
+
+            # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップに遡ってデータを得る。
+            previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
 
             # 子プロセスのjoin
             if len(procs) > 0:
@@ -353,18 +389,17 @@ class CutOutShot:
                 logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
+            # タグ付け
             if len(tag_events) > 0:
                 self._add_tags(tag_events)
 
-            # ショットデータをElasticsearchに書き出し
+            # Elasticsearchに出力
             logger.info(f"{len(self.__shots)} shots detected in {pickle_file}.")
             procs = ElasticManager.multi_process_bulk_lazy_join(
                 data=self.__shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
             )
+            # バッファクリア
             self.__shots = []
-
-            # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。そのためのchunk末尾バックアップ。
-            previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
 
         # TODO: 低spmのshot削除
 
@@ -374,25 +409,22 @@ class CutOutShot:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-            if self._detect_shot(rawdata.displacement, start_displacement):
+            if self._detect_shot_start(rawdata.displacement, start_displacement):
                 spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
                 self._initialize_when_shot_detected(row_number, rawdata_df, previous_df_tail)
 
-            # ショット区間の終了判定
-            MARGIN: Final[float] = 0.1  # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
-            if self.__is_shot_section and (rawdata.displacement > start_displacement + MARGIN):
+            if self._detect_shot_end(rawdata.displacement, start_displacement, margin=0.1):
                 self.__is_shot_section = False
 
             # ショット未開始ならば後続は何もしない
             if not self.__is_shot_section:
                 continue
 
-            # 切り出し区間の終了判定
-            if self.__is_target_of_cut_out and (rawdata.displacement <= end_displacement):
+            if self._detect_cut_out_end(rawdata.displacement, end_displacement):
                 self.__is_target_of_cut_out = False
                 self.__sequential_number_by_shot = 0
 
-            # 切り出し区間に到達していなければ後続は何もしない
+            # 切り出し区間でなければ後続は何もしない
             if not self.__is_target_of_cut_out:
                 continue
 
