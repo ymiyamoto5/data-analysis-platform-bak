@@ -126,3 +126,70 @@ class TestGetPauseEvents:
         target = cut_out_shot.CutOutShot()
         with pytest.raises(KeyError):
             target._get_pause_events(events)
+
+
+class TestGetTagEvent:
+
+    events_normal_1 = (
+        [
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {
+                "event_type": "pause",
+                "start_time": "2020-12-01T00:15:00.123456",
+                "end_time": "2020-12-01T00:16:00.123456",
+            },
+            {"event_type": "tag", "tags": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
+            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
+        ],
+    )
+
+    @pytest.mark.parametrize("events", events_normal_1)
+    def test_normal_single_tag_event(self, events):
+        target = cut_out_shot.CutOutShot()
+        actual = target._get_tag_events(events, back_seconds_for_tagging=120)
+
+        expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
+        expected_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
+
+        expected = [
+            {"event_type": "tag", "tags": "tag1", "start_time": expected_start_time, "end_time": expected_end_time},
+        ]
+
+        assert actual == expected
+
+    events_normal_2 = (
+        [
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {"event_type": "tag", "tags": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
+            {"event_type": "tag", "tags": "tag2", "end_time": "2020-12-01T00:18:00.123456"},
+        ],
+    )
+
+    @pytest.mark.parametrize("events", events_normal_2)
+    def test_normal_multi_tag_event(self, events):
+        target = cut_out_shot.CutOutShot()
+        actual = target._get_tag_events(events, back_seconds_for_tagging=120)
+
+        expected_tag1_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
+        expected_tag1_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
+        expected_tag2_start_time = datetime(2020, 12, 1, 0, 16, 0, 123456).timestamp()
+        expected_tag2_end_time = datetime(2020, 12, 1, 0, 18, 0, 123456).timestamp()
+
+        expected = [
+            {
+                "event_type": "tag",
+                "tags": "tag1",
+                "start_time": expected_tag1_start_time,
+                "end_time": expected_tag1_end_time,
+            },
+            {
+                "event_type": "tag",
+                "tags": "tag2",
+                "start_time": expected_tag2_start_time,
+                "end_time": expected_tag2_end_time,
+            },
+        ]
+
+        assert actual == expected
