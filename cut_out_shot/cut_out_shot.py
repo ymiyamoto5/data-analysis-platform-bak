@@ -6,7 +6,7 @@ import logging.handlers
 import pandas as pd
 import glob
 import dataclasses
-from typing import Final, List, Tuple, Optional
+from typing import Callable, Final, List, Tuple, Optional
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
 
@@ -37,7 +37,15 @@ class ShotMetaData:
 
 
 class CutOutShot:
-    def __init__(self, tail_size: int = 1_000):
+    def __init__(
+        self,
+        tail_size: int = 1_000,
+        displacement_func: Optional[Callable[[float], float]] = None,
+        load01_func: Optional[Callable[[float], float]] = None,
+        load02_func: Optional[Callable[[float], float]] = None,
+        load03_func: Optional[Callable[[float], float]] = None,
+        load04_func: Optional[Callable[[float], float]] = None,
+    ):
         self.__tail_size: int = tail_size
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
@@ -47,6 +55,12 @@ class CutOutShot:
         self.__previous_shot_start_time: Optional[float] = None
         self.__cut_out_targets: List[dict] = []
         self.__shots_meta_data: List[ShotMetaData] = []
+
+        self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
+        self.__load01_func: Optional[Callable[[float], float]] = load01_func
+        self.__load02_func: Optional[Callable[[float], float]] = load02_func
+        self.__load03_func: Optional[Callable[[float], float]] = load03_func
+        self.__load04_func: Optional[Callable[[float], float]] = load04_func
 
     # テスト用の公開プロパティ
     @property
@@ -320,6 +334,26 @@ class CutOutShot:
         }
         self.__cut_out_targets.append(cut_out_target)
 
+    def _apply_expr_displacement(self, rawdata_df: DataFrame) -> None:
+        """ 変位値に対して変換式を適用 """
+
+        if self.__displacement_func is not None:
+            rawdata_df["displacement"] = rawdata_df["displacement"].apply(self.__displacement_func)
+
+    def _apply_expr_load(self) -> None:
+        """ 荷重値に対して変換式を適用 """
+
+        # if self.__load01_func is not None:
+        #     rawdata_df["load01"] = rawdata_df["load01"].apply(self.__load01_func)
+        # if self.__load02_func is not None:
+        #     rawdata_df["load02"] = rawdata_df["load02"].apply(self.__load02_func)
+        # if self.__load03_func is not None:
+        #     rawdata_df["load03"] = rawdata_df["load03"].apply(self.__load03_func)
+        # if self.__load04_func is not None:
+        #     rawdata_df["load04"] = rawdata_df["load04"].apply(self.__load04_func)
+
+        pass
+
     def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
         """ マルチプロセスの処理待ち """
 
@@ -392,7 +426,7 @@ class CutOutShot:
             if len(pause_events) > 0:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
-            # TODO: 物理変換
+            self._apply_expr_displacement(rawdata_df)
 
             # ショット切り出し
             self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
@@ -412,6 +446,8 @@ class CutOutShot:
             if len(self.__cut_out_targets) == 0:
                 logger.info(f"Shot is not detected in {pickle_file}")
                 continue
+
+            self._apply_expr_load()
 
             # タグ付け
             if len(tag_events) > 0:
@@ -433,7 +469,7 @@ class CutOutShot:
 
         # TODO: 低spmのshot削除
 
-        # TODO: shots_meta_dataをESに格納
+        # ショットメタデータをElasticsearchに出力
         shots_meta_data: List[dict] = [dataclasses.asdict(x) for x in self.__shots_meta_data]
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=num_of_process
@@ -480,7 +516,23 @@ class CutOutShot:
 
 def main():
     # No13 3000shot拡張。切り出し後のデータ数：9,287,537
-    cut_out_shot = CutOutShot()
+    # cut_out_shot = CutOutShot()
+    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
+
+    # lambda
+    displacement_func = lambda x: x + 1.0
+    load01_func = lambda x: x * 1.0
+    load02_func = lambda x: x * 2.0
+    load03_func = lambda x: x * 3.0
+    load04_func = lambda x: x * 4.0
+
+    cut_out_shot = CutOutShot(
+        displacement_func=displacement_func,
+        load01_func=load01_func,
+        load02_func=load02_func,
+        load03_func=load03_func,
+        load04_func=load04_func,
+    )
     cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # 任意波形生成
