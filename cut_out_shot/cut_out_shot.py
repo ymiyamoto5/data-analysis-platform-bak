@@ -340,19 +340,17 @@ class CutOutShot:
         if self.__displacement_func is not None:
             rawdata_df["displacement"] = rawdata_df["displacement"].apply(self.__displacement_func)
 
-    def _apply_expr_load(self) -> None:
+    def _apply_expr_load(self, df: DataFrame) -> None:
         """ 荷重値に対して変換式を適用 """
 
-        # if self.__load01_func is not None:
-        #     rawdata_df["load01"] = rawdata_df["load01"].apply(self.__load01_func)
-        # if self.__load02_func is not None:
-        #     rawdata_df["load02"] = rawdata_df["load02"].apply(self.__load02_func)
-        # if self.__load03_func is not None:
-        #     rawdata_df["load03"] = rawdata_df["load03"].apply(self.__load03_func)
-        # if self.__load04_func is not None:
-        #     rawdata_df["load04"] = rawdata_df["load04"].apply(self.__load04_func)
-
-        pass
+        if self.__load01_func is not None:
+            df["load01"] = df["load01"].apply(self.__load01_func)
+        if self.__load02_func is not None:
+            df["load02"] = df["load02"].apply(self.__load02_func)
+        if self.__load03_func is not None:
+            df["load03"] = df["load03"].apply(self.__load03_func)
+        if self.__load04_func is not None:
+            df["load04"] = df["load04"].apply(self.__load04_func)
 
     def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
         """ マルチプロセスの処理待ち """
@@ -447,14 +445,17 @@ class CutOutShot:
                 logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
-            self._apply_expr_load()
+            # NOTE: 変換式適用のため、一時的にDataFrameに変換している。
+            cut_out_df: DataFrame = pd.DataFrame(self.__cut_out_targets)
+            self._apply_expr_load(cut_out_df)
+            self.__cut_out_targets = cut_out_df.to_dict(orient="records")
 
             # タグ付け
             if len(tag_events) > 0:
                 self._add_tags(tag_events)
 
-            # Elasticsearchに出力
             logger.info(f"{len(self.__cut_out_targets)} shots detected in {pickle_file}.")
+            # Elasticsearchに出力
             procs = ElasticManager.multi_process_bulk_lazy_join(
                 data=self.__cut_out_targets,
                 index_to_import=shots_index,
@@ -537,7 +538,7 @@ def main():
 
     # 任意波形生成
     # cut_out_shot = CutOutShot(tail_size=10)
-    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 8)
+    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
 
 
 if __name__ == "__main__":
