@@ -5,7 +5,7 @@ import logging
 import logging.handlers
 import pandas as pd
 import glob
-from typing import Final, List
+from typing import Final, List, Tuple, Optional
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
 
@@ -15,8 +15,8 @@ from time_logger import time_log
 from throughput_counter import throughput_counter
 import common
 
-LOG_FILE: Final = "log/cut_out_shot/cut_out_shot.log"
-MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
+LOG_FILE: Final[str] = "log/cut_out_shot/cut_out_shot.log"
+MAX_LOG_SIZE: Final[int] = 1024 * 1024  # 1MB
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +40,7 @@ class CutOutShot:
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
         self.__previous_shot_start_time: float = None
+        self.__shots: List[dict] = []
 
     # テスト用の公開プロパティ
     # @property
@@ -158,12 +159,9 @@ class CutOutShot:
 
         return tag_events
 
-    def _get_pickle_list(self, rawdata_dir_name: str) -> List[str]:
-        """ 設定ファイルから取り込みデータ(pickleファイル)が存在するディレクトリを特定し、そのファイルリストを取得する """
+    def _get_pickle_list(self, rawdata_dir_path: str) -> List[str]:
+        """ 取り込むファイルのリストを取得する """
 
-        settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
-        data_dir = common.get_settings_value(settings_file_path, "data_dir")
-        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
         pickle_file_list: List[str] = glob.glob(os.path.join(rawdata_dir_path, "*.pkl"))
         pickle_file_list.sort()
 
@@ -182,26 +180,15 @@ class CutOutShot:
 
         return df
 
-    def _is_include_in_pause_interval(self, rawdata_timestamp: datetime, pause_events: list) -> bool:
-        """ 対象のサンプルが中断区間にあるか判定する """
-
-        for pause_event in pause_events:
-            if pause_event["start_time"] <= rawdata_timestamp <= pause_event["end_time"]:
-                return True
-
-        return False
-
-    def _add_tags(self, shots: List[dict], tag_events: List[dict]) -> List[dict]:
+    def _add_tags(self, tag_events: List[dict]) -> None:
         """ ショットデータにタグ付け """
 
         tags: List[str] = []
 
-        for d in shots:
+        for d in self.__shots:
             tags: List[str] = self._get_tags(d["timestamp"], tag_events)
             if len(tags) > 0:
                 d["tags"].extend(tags)
-
-        return shots
 
     def _get_tags(self, rawdata_timestamp: datetime, tag_events: List[dict]) -> List[str]:
         """ 対象サンプルが事象記録範囲にあるか判定し、範囲内であれば事象タグを返す """
@@ -212,6 +199,11 @@ class CutOutShot:
                 tags.append(tag_event["tag"])
 
         return tags
+
+    def _detect_shot(self, displacement: float, start_displacement: float):
+        """ ショット検知。ショットが未検出かつ変位値が開始しきい値以下の場合、ショット開始とみなす。 """
+
+        return (not self.__is_shot_section) and (displacement <= start_displacement)
 
     def _backup_df_tail(self, df: DataFrame) -> DataFrame:
         """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
@@ -241,6 +233,51 @@ class CutOutShot:
         start_index: int = row_number
         end_index: int = row_number
         return pd.concat([previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
+
+    def _calculate_spm(self, timestamp: float) -> Optional[float]:
+        """ spm (shot per minute) 計算。ショット検出時、前ショットの開始時間との差分を計算する。 """
+
+        # 最初のショット検知時はspm計算できないため、timestampだけ保持しておく
+        if self.__shot_number == 0:
+            self.__previous_shot_start_time: float = timestamp
+            return None
+        else:
+            spm: float = 1.0 * 60 / (timestamp - self.__previous_shot_start_time)
+            logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
+            self.__previous_shot_start_time = timestamp
+            return spm
+
+    def _initialize_when_shot_detected(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame):
+        """ ショット検出時の初期処理 """
+
+        self.__is_shot_section = True
+        self.__is_target_of_cut_out = True
+        self.__shot_number += 1
+        self.__sequential_number_by_shot = 0
+
+        preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
+
+        self._include_previous_data_in_shot(preceding_df)
+
+    def _include_previous_data_in_shot(self, preceding_df: DataFrame):
+        """ ショット検出時、tail_size分のデータを遡ってショットに含める。荷重立ち上がり点取りこぼし防止のため。 """
+
+        for d in preceding_df.itertuples():
+            shot: dict = {
+                "timestamp": d.timestamp,
+                "sequential_number": self.__sequential_number,
+                "sequential_number_by_shot": self.__sequential_number_by_shot,
+                "displacement": d.displacement,
+                "load01": d.load01,
+                "load02": d.load02,
+                "load03": d.load03,
+                "load04": d.load04,
+                "shot_number": self.__shot_number,
+                "tags": [],
+            }
+            self.__shots.append(shot)
+            self.__sequential_number += 1
+            self.__sequential_number_by_shot += 1
 
     @time_log
     def cut_out_shot(
@@ -277,14 +314,17 @@ class CutOutShot:
         pause_events: List[dict] = self._get_pause_events(events)
         tag_events: List[dict] = self._get_tag_events(events, back_seconds_for_tagging)
 
-        COLS: Final = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
+        COLS: Final[Tuple[str]] = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
 
-        NOW: Final = datetime.now()
+        NOW: Final[datetime] = datetime.now()
 
-        pickle_files: List[str] = self._get_pickle_list(rawdata_dir_name)
+        settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
+        data_dir = common.get_settings_value(settings_file_path, "data_dir")
+        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
+        pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 
         for loop_count, pickle_file in enumerate(pickle_files):
             rawdata_df: DataFrame = pd.read_pickle(pickle_file)
@@ -296,7 +336,7 @@ class CutOutShot:
 
             # TODO: 物理変換
 
-            shots: List[dict] = self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
+            self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
 
             # 子プロセスのjoin
             if len(procs) > 0:
@@ -309,69 +349,37 @@ class CutOutShot:
                 throughput_counter(processed_count, NOW)
 
             # ショットがなければ以降の処理はスキップ
-            if len(shots) == 0:
+            if len(self.__shots) == 0:
                 logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
             if len(tag_events) > 0:
-                shots = self._add_tags(shots, tag_events)
+                self._add_tags(tag_events)
 
             # ショットデータをElasticsearchに書き出し
-            logger.info(f"{len(shots)} shots detected in {pickle_file}.")
+            logger.info(f"{len(self.__shots)} shots detected in {pickle_file}.")
             procs = ElasticManager.multi_process_bulk_lazy_join(
-                data=shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
+                data=self.__shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
             )
-            shots = []
+            self.__shots = []
 
             # chunk開始直後にショットを検知した場合、荷重開始点を含めるためにN件遡る。そのためのchunk末尾バックアップ。
             previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
 
+        # TODO: 低spmのshot削除
+
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
-    ) -> List[dict]:
+    ):
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
-        shots: List[dict] = []
-
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-            # ショット開始判定。ショット開始 = 切り出し開始。
-            if (not self.__is_shot_section) and (rawdata.displacement <= start_displacement):
-                # spm計算。最初のショット検知時はspm計算できないため、timestampだけ保持しておく
-                if self.__shot_number == 0:
-                    self.__previous_shot_start_time: float = rawdata.timestamp
-
-                else:
-                    spm: float = 1.0 * 60 / (rawdata.timestamp - self.__previous_shot_start_time)
-                    logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
-                    self.__previous_shot_start_time = rawdata.timestamp
-
-                self.__is_shot_section = True
-                self.__is_target_of_cut_out = True
-                self.__shot_number += 1
-                self.__sequential_number_by_shot = 0
-
-                # 荷重立ち上がり点取りこぼし防止
-                preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
-
-                for d in preceding_df.itertuples():
-                    shot: dict = {
-                        "timestamp": d.timestamp,
-                        "sequential_number": self.__sequential_number,
-                        "sequential_number_by_shot": self.__sequential_number_by_shot,
-                        "displacement": d.displacement,
-                        "load01": d.load01,
-                        "load02": d.load02,
-                        "load03": d.load03,
-                        "load04": d.load04,
-                        "shot_number": self.__shot_number,
-                        "tags": [],
-                    }
-                    shots.append(shot)
-                    self.__sequential_number += 1
-                    self.__sequential_number_by_shot += 1
+            if self._detect_shot(rawdata.displacement, start_displacement):
+                spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
+                self._initialize_when_shot_detected(row_number, rawdata_df, previous_df_tail)
 
             # ショット区間の終了判定
-            MARGIN: Final = 0.1  # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
+            MARGIN: Final[float] = 0.1  # ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
             if self.__is_shot_section and (rawdata.displacement > start_displacement + MARGIN):
                 self.__is_shot_section = False
 
@@ -405,9 +413,7 @@ class CutOutShot:
                 "shot_number": self.__shot_number,
                 "tags": [],
             }
-            shots.append(shot)
-
-        return shots
+            self.__shots.append(shot)
 
 
 def main():
