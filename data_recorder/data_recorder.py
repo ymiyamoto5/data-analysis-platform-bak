@@ -239,6 +239,7 @@ def main(settings_file_path: str, mode=None) -> None:
         if len(procs) > 0:
             for p in procs:
                 p.join()
+            procs = []
 
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000

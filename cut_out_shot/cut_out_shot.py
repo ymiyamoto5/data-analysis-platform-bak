@@ -5,6 +5,7 @@ import logging
 import logging.handlers
 import pandas as pd
 import glob
+import dataclasses
 from typing import Final, List, Tuple, Optional
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
@@ -29,18 +30,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class CutOutShot:
-    """ データインポートクラス """
+@dataclasses.dataclass
+class ShotMetaData:
+    shot_number: int
+    spm: Optional[float] = None
 
-    def __init__(self, tail_size=1_000):
-        self.__tail_size = tail_size
+
+class CutOutShot:
+    def __init__(self, tail_size: int = 1_000):
+        self.__tail_size: int = tail_size
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
         self.__previous_shot_start_time: Optional[float] = None
-        self.__shots: List[dict] = []
+        self.__cut_out_targets: List[dict] = []
+        self.__shots_meta_data: List[ShotMetaData] = []
 
     # テスト用の公開プロパティ
     @property
@@ -92,20 +98,12 @@ class CutOutShot:
         self.__previous_shot_start_time = previous_shot_start_time
 
     @property
-    def shots(self):
-        return self.__shots
+    def cut_out_targets(self):
+        return self.__cut_out_targets
 
-    @shots.setter
-    def shots(self, shots: List[dict]):
-        self.__shots = shots
-
-    def _create_shots_index(self, shots_index: str) -> None:
-        """ shots_indexの作成。既存のインデックスは削除。 """
-
-        ElasticManager.delete_exists_index(index=shots_index)
-
-        mapping_file: str = "mappings/mapping_shots.json"
-        ElasticManager.create_index(index=shots_index, mapping_file=mapping_file)
+    @cut_out_targets.setter
+    def cut_out_targets(self, cut_out_targets: List[dict]):
+        self.__cut_out_targets = cut_out_targets
 
     def _get_events(self, suffix: str) -> List[dict]:
         """ 対応するevents_indexのデータ取得 """
@@ -132,8 +130,6 @@ class CutOutShot:
         """ events_indexから中断イベントを取得。時刻はunixtimeに変換する。 """
 
         pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
-        logger.debug(pause_events)
-
         if len(pause_events) > 0:
             for pause_event in pause_events:
                 if pause_event.get("start_time") is None:
@@ -146,7 +142,6 @@ class CutOutShot:
                 # str to datetime
                 pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
                 pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
-
                 # datetime to unixtime
                 pause_event["start_time"] = pause_event["start_time"].timestamp()
                 pause_event["end_time"] = pause_event["end_time"].timestamp()
@@ -201,7 +196,7 @@ class CutOutShot:
 
         tags: List[str] = []
 
-        for d in self.__shots:
+        for d in self.__cut_out_targets:
             tags: List[str] = self._get_tags(d["timestamp"], tag_events)
             if len(tags) > 0:
                 d["tags"].extend(tags)
@@ -263,20 +258,15 @@ class CutOutShot:
         end_index: int = row_number
         return pd.concat([previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
 
-    def _calculate_spm(self, timestamp: float) -> Optional[float]:
+    def _calculate_spm(self, timestamp: float) -> float:
         """ spm (shot per minute) 計算。ショット検出時、前ショットの開始時間との差分を計算する。 """
 
-        # 最初のショット検知時はspm計算できないため、timestampだけ保持しておく
-        if self.__shot_number == 0:
-            self.__previous_shot_start_time: float = timestamp
-            return None
-        else:
-            spm: float = 1.0 * 60 / (timestamp - self.__previous_shot_start_time)
-            logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
-            self.__previous_shot_start_time = timestamp
-            return spm
+        spm: float = 1.0 * 60 / (timestamp - self.__previous_shot_start_time)
+        logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
+        self.__previous_shot_start_time = timestamp
+        return spm
 
-    def _initialize_when_shot_detected(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame):
+    def _initialize_when_shot_detected(self) -> None:
         """ ショット検出時の初期処理 """
 
         self.__is_shot_section = True
@@ -284,15 +274,11 @@ class CutOutShot:
         self.__shot_number += 1
         self.__sequential_number_by_shot = 0
 
-        preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
-
-        self._include_previous_data_in_shot(preceding_df)
-
-    def _include_previous_data_in_shot(self, preceding_df: DataFrame):
-        """ ショット検出時、tail_size分のデータを遡ってショットに含める。荷重立ち上がり点取りこぼし防止のため。 """
+    def _include_previous_data(self, preceding_df: DataFrame) -> None:
+        """ ショット検出時、tail_size分のデータを遡って切り出し対象に含める。荷重立ち上がり点取りこぼし防止のため。 """
 
         for d in preceding_df.itertuples():
-            shot: dict = {
+            cut_out_target: dict = {
                 "timestamp": d.timestamp,
                 "sequential_number": self.__sequential_number,
                 "sequential_number_by_shot": self.__sequential_number_by_shot,
@@ -304,9 +290,44 @@ class CutOutShot:
                 "shot_number": self.__shot_number,
                 "tags": [],
             }
-            self.__shots.append(shot)
+            self.__cut_out_targets.append(cut_out_target)
             self.__sequential_number += 1
             self.__sequential_number_by_shot += 1
+
+    def _add_shots_meta_data(self, spm: float) -> None:
+        """ ショットのメタデータ追加 """
+
+        shot_meta_data: ShotMetaData = ShotMetaData(self.__shot_number, spm)
+        self.__shots_meta_data.append(shot_meta_data)
+
+    def _add_cut_out_target(self, rawdata: dict) -> None:
+        """ 切り出し対象としてデータを追加 """
+
+        self.__sequential_number += 1
+        self.__sequential_number_by_shot += 1
+
+        cut_out_target: dict = {
+            "timestamp": rawdata.timestamp,
+            "sequential_number": self.__sequential_number,
+            "sequential_number_by_shot": self.__sequential_number_by_shot,
+            "displacement": rawdata.displacement,
+            "load01": rawdata.load01,
+            "load02": rawdata.load02,
+            "load03": rawdata.load03,
+            "load04": rawdata.load04,
+            "shot_number": self.__shot_number,
+            "tags": [],
+        }
+        self.__cut_out_targets.append(cut_out_target)
+
+    def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
+        """ マルチプロセスの処理待ち """
+
+        if len(procs) > 0:
+            for p in procs:
+                p.join()
+
+        return []
 
     @time_log
     def cut_out_shot(
@@ -335,7 +356,12 @@ class CutOutShot:
         """
 
         shots_index: str = "shots-" + rawdata_dir_name
-        self._create_shots_index(shots_index)
+        ElasticManager.delete_exists_index(index=shots_index)
+        ElasticManager.create_index(index=shots_index, mapping_file="mappings/mapping_shots.json")
+
+        shots_meta_index: str = "shots-meta-" + rawdata_dir_name
+        ElasticManager.delete_exists_index(index=shots_meta_index)
+        ElasticManager.create_index(index=shots_meta_index, mapping_file="mappings/mapping_shots_meta.json")
 
         # event_indexから各種イベント情報を取得する
         events: List[dict] = self._get_events(suffix=rawdata_dir_name)
@@ -375,9 +401,7 @@ class CutOutShot:
             previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
 
             # 子プロセスのjoin
-            if len(procs) > 0:
-                for p in procs:
-                    p.join()
+            procs = self.__join_process(procs)
 
             # スループット表示
             if loop_count != 0:
@@ -385,7 +409,7 @@ class CutOutShot:
                 throughput_counter(processed_count, NOW)
 
             # ショットがなければ以降の処理はスキップ
-            if len(self.__shots) == 0:
+            if len(self.__cut_out_targets) == 0:
                 logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
@@ -394,14 +418,27 @@ class CutOutShot:
                 self._add_tags(tag_events)
 
             # Elasticsearchに出力
-            logger.info(f"{len(self.__shots)} shots detected in {pickle_file}.")
+            logger.info(f"{len(self.__cut_out_targets)} shots detected in {pickle_file}.")
             procs = ElasticManager.multi_process_bulk_lazy_join(
-                data=self.__shots, index_to_import=shots_index, num_of_process=num_of_process, chunk_size=5000
+                data=self.__cut_out_targets,
+                index_to_import=shots_index,
+                num_of_process=num_of_process,
+                chunk_size=5000,
             )
             # バッファクリア
-            self.__shots = []
+            self.__cut_out_targets = []
+
+        # 全ファイル走査後、子プロセスが残っていればjoin
+        procs = self.__join_process(procs)
 
         # TODO: 低spmのshot削除
+
+        # TODO: shots_meta_dataをESに格納
+        shots_meta_data: List[dict] = [dataclasses.asdict(x) for x in self.__shots_meta_data]
+        procs = ElasticManager.multi_process_bulk_lazy_join(
+            data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=num_of_process
+        )
+        procs = self.__join_process(procs)
 
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
@@ -410,8 +447,17 @@ class CutOutShot:
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             if self._detect_shot_start(rawdata.displacement, start_displacement):
-                spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
-                self._initialize_when_shot_detected(row_number, rawdata_df, previous_df_tail)
+                # 最初のショット検知時はspm計算できないため、timestampだけ保持しておく
+                if self.__shot_number == 0:
+                    self.__previous_shot_start_time: float = rawdata.timestamp
+                else:
+                    spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
+                    self._add_shots_meta_data(spm)
+
+                self._initialize_when_shot_detected()
+
+                preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
+                self._include_previous_data(preceding_df)
 
             if self._detect_shot_end(rawdata.displacement, start_displacement, margin=0.1):
                 self.__is_shot_section = False
@@ -429,29 +475,13 @@ class CutOutShot:
                 continue
 
             # ここに到達するのはショット区間かつ切り出し区間
-            self.__sequential_number += 1
-            self.__sequential_number_by_shot += 1
-
-            # 切り出し対象としてリストに加える
-            shot: dict = {
-                "timestamp": rawdata.timestamp,
-                "sequential_number": self.__sequential_number,
-                "sequential_number_by_shot": self.__sequential_number_by_shot,
-                "displacement": rawdata.displacement,
-                "load01": rawdata.load01,
-                "load02": rawdata.load02,
-                "load03": rawdata.load03,
-                "load04": rawdata.load04,
-                "shot_number": self.__shot_number,
-                "tags": [],
-            }
-            self.__shots.append(shot)
+            self._add_cut_out_target(rawdata)
 
 
 def main():
     # No13 3000shot拡張。切り出し後のデータ数：9,287,537
     cut_out_shot = CutOutShot()
-    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 8)
+    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # 任意波形生成
     # cut_out_shot = CutOutShot(tail_size=10)
