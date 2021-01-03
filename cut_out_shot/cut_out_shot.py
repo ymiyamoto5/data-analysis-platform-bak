@@ -402,7 +402,7 @@ class CutOutShot:
         tag_events: List[dict] = self._get_tag_events(events, back_seconds_for_tagging)
 
         COLS: Final[Tuple[str]] = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
-        previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)
+        previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)  # 前ファイルの末尾バックアップ
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
 
@@ -418,12 +418,14 @@ class CutOutShot:
         for loop_count, pickle_file in enumerate(pickle_files):
             rawdata_df: DataFrame = pd.read_pickle(pickle_file)
 
+            # 段取区間の除外
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
             # 中断区間の除外
             if len(pause_events) > 0:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
+            # 変位値に変換式適用
             self._apply_expr_displacement(rawdata_df)
 
             # ショット切り出し
@@ -447,6 +449,7 @@ class CutOutShot:
 
             # NOTE: 変換式適用のため、一時的にDataFrameに変換している。
             cut_out_df: DataFrame = pd.DataFrame(self.__cut_out_targets)
+            # 荷重値に変換式を適用
             self._apply_expr_load(cut_out_df)
             self.__cut_out_targets = cut_out_df.to_dict(orient="records")
 
@@ -455,6 +458,7 @@ class CutOutShot:
                 self._add_tags(tag_events)
 
             logger.info(f"{len(self.__cut_out_targets)} shots detected in {pickle_file}.")
+
             # Elasticsearchに出力
             procs = ElasticManager.multi_process_bulk_lazy_join(
                 data=self.__cut_out_targets,
@@ -517,24 +521,24 @@ class CutOutShot:
 
 def main():
     # No13 3000shot拡張。切り出し後のデータ数：9,287,537
-    # cut_out_shot = CutOutShot()
-    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
+    cut_out_shot = CutOutShot()
+    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # lambda
-    displacement_func = lambda x: x + 1.0
-    load01_func = lambda x: x * 1.0
-    load02_func = lambda x: x * 2.0
-    load03_func = lambda x: x * 3.0
-    load04_func = lambda x: x * 4.0
+    # displacement_func = lambda x: x + 1.0
+    # load01_func = lambda x: x * 1.0
+    # load02_func = lambda x: x * 2.0
+    # load03_func = lambda x: x * 3.0
+    # load04_func = lambda x: x * 4.0
 
-    cut_out_shot = CutOutShot(
-        displacement_func=displacement_func,
-        load01_func=load01_func,
-        load02_func=load02_func,
-        load03_func=load03_func,
-        load04_func=load04_func,
-    )
-    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
+    # cut_out_shot = CutOutShot(
+    #     displacement_func=displacement_func,
+    #     load01_func=load01_func,
+    #     load02_func=load02_func,
+    #     load03_func=load03_func,
+    #     load04_func=load04_func,
+    # )
+    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # 任意波形生成
     # cut_out_shot = CutOutShot(tail_size=10)

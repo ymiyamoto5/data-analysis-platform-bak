@@ -8,8 +8,8 @@ from data_collect_manager import app
 class ConfigFileManager:
     def __init__(self, file_path: str = None):
         if file_path is None:
-            settings_file_path = os.path.dirname(__file__) + "/../../common/app_config.json"
-            with open(settings_file_path, "r") as f:
+            app_config_path = os.path.dirname(__file__) + "/../../common/app_config.json"
+            with open(app_config_path, "r") as f:
                 settings: dict = json.load(f)
                 self.file_path = settings["config_file_path"]
         else:
@@ -17,6 +17,7 @@ class ConfigFileManager:
 
     def config_exists(self) -> bool:
         """ configファイルの存在確認 """
+
         return os.path.isfile(self.file_path)
 
     def create(self) -> bool:
@@ -28,8 +29,7 @@ class ConfigFileManager:
         with open(initial_config_path, "r") as f:
             initial_config: dict = json.load(f)
 
-        config_json_str: str = self.__create_json_str(initial_config)
-        successful: bool = self.__dump_config_file(config_json_str)
+        successful: bool = self._dump_config_file(initial_config)
 
         if not successful:
             return successful
@@ -56,8 +56,7 @@ class ConfigFileManager:
         if "end_time" in params:
             new_config["end_time"] = params["end_time"]
 
-        new_config_json: str = self.__create_json_str(new_config)
-        successful: bool = self.__dump_config_file(new_config_json)
+        successful: bool = self._dump_config_file(new_config)
 
         app.logger.info("Finished updating config file.")
 
@@ -71,20 +70,17 @@ class ConfigFileManager:
             except json.decoder.JSONDecodeError as e:
                 app.logger.error(str(e))
 
-    def __create_json_str(self, config) -> str:
-        """ JSONフォーマットのstringに変換 """
-
-        return json.dumps(config, indent=2, ensure_ascii=False)
-
-    def __dump_config_file(self, config) -> bool:
+    def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """
 
-        path_ext_pair: Tuple = os.path.splitext(self.file_path)
+        path_ext_pair: Tuple[str, str] = os.path.splitext(self.file_path)
         tmp_file_path: str = path_ext_pair[0] + ".tmp"
+
+        config_str: str = json.dumps(config, indent=2, ensure_ascii=False)
 
         # ファイル生成途中で読み込まれないよう、tmpファイルに出力した後にリネーム
         with open(tmp_file_path, mode="w") as f:
-            f.write(config)
+            f.write(config_str)
 
         file_path: str = path_ext_pair[0] + ".cnf"
         try:
