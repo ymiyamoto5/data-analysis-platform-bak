@@ -12,9 +12,14 @@ class ConfigFileManager:
         if app_config_path is None:
             app_config_path = os.path.dirname(__file__) + "/../../common/app_config.json"
 
-        with open(app_config_path, "r") as f:
-            settings: dict = json.load(f)
-            self.config_file_path = settings["config_file_path"]
+        try:
+            with open(app_config_path, "r") as f:
+                settings: dict = json.load(f)
+                self.config_file_path = settings["config_file_path"]
+        except FileNotFoundError as e:
+            app.logger.exception(str(e))
+        except Exception as e:
+            app.logger.exception(str(e))
 
     def config_exists(self) -> bool:
         """ configファイルの存在確認 """
@@ -69,7 +74,7 @@ class ConfigFileManager:
                 current_config: dict = json.load(f)
                 return current_config
             except json.decoder.JSONDecodeError as e:
-                app.logger.error(str(e))
+                app.logger.exception(str(e))
 
     def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """
@@ -88,5 +93,5 @@ class ConfigFileManager:
             os.rename(tmp_file_path, file_path)
             return True
         except OSError as e:
-            app.logger.error(str(e))
+            app.logger.exception(str(e))
             return False
