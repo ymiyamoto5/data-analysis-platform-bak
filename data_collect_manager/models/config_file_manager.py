@@ -6,19 +6,20 @@ from data_collect_manager import app
 
 
 class ConfigFileManager:
-    def __init__(self, file_path: str = None):
-        if file_path is None:
+    def __init__(self, app_config_path: str = None):
+        """ app_config.jsonからconfigファイルのパスを取得 """
+
+        if app_config_path is None:
             app_config_path = os.path.dirname(__file__) + "/../../common/app_config.json"
-            with open(app_config_path, "r") as f:
-                settings: dict = json.load(f)
-                self.file_path = settings["config_file_path"]
-        else:
-            self.file_path = file_path
+
+        with open(app_config_path, "r") as f:
+            settings: dict = json.load(f)
+            self.config_file_path = settings["config_file_path"]
 
     def config_exists(self) -> bool:
         """ configファイルの存在確認 """
 
-        return os.path.isfile(self.file_path)
+        return os.path.isfile(self.config_file_path)
 
     def create(self) -> bool:
         """ configファイル作成 """
@@ -63,7 +64,7 @@ class ConfigFileManager:
         return successful
 
     def read_config(self):
-        with open(self.file_path, "r") as f:
+        with open(self.config_file_path, "r") as f:
             try:
                 current_config: dict = json.load(f)
                 return current_config
@@ -73,7 +74,7 @@ class ConfigFileManager:
     def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """
 
-        path_ext_pair: Tuple[str, str] = os.path.splitext(self.file_path)
+        path_ext_pair: Tuple[str, str] = os.path.splitext(self.config_file_path)
         tmp_file_path: str = path_ext_pair[0] + ".tmp"
 
         config_str: str = json.dumps(config, indent=2, ensure_ascii=False)
