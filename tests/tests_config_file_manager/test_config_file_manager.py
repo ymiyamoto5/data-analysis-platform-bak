@@ -71,8 +71,8 @@ class TestDumpConfigFile:
 
 
 class TestReadConfig:
-    def test_normal(self, config_file):
-        cfm = ConfigFileManager()
+    def test_normal(self, app_config_file, config_file):
+        cfm = ConfigFileManager(app_config_file)
 
         actual: dict = cfm.read_config(config_file._str)
 
@@ -96,32 +96,32 @@ class TestReadConfig:
 
 
 class TestCreate:
-    def test_normal(self, config_file):
-        cfm = ConfigFileManager()
+    def test_normal(self, app_config_file, config_file):
+        cfm = ConfigFileManager(app_config_file)
 
         actual: bool = cfm.create(config_file._str)
         expected: bool = True
 
         assert actual == expected
 
-    def test_initial_config_not_found_exception(self):
+    def test_initial_config_not_found_exception(self, app_config_file):
         """ 初期configファイルがない場合、Falseが返ること """
 
-        cfm = ConfigFileManager()
+        cfm = ConfigFileManager(app_config_file._str)
 
         actual: bool = cfm.create("not_exists_file_path")
         expected: bool = False
 
         assert actual == expected
 
-    def test_invalid_json_exception(self, config_file):
+    def test_invalid_json_exception(self, app_config_file, config_file):
         """ 初期configファイルが不正なJSONだった場合、Falseが返ること """
 
         # 不正なJSONにする
         with open(config_file._str, "a") as f:
             f.write("{")
 
-        cfm = ConfigFileManager()
+        cfm = ConfigFileManager(app_config_file._str)
 
         actual: bool = cfm.create(config_file._str)
         expected: bool = False
@@ -172,6 +172,8 @@ class TestUpdate:
     def test_normal_sequence_number_overflow(self, app_config_file, config_file):
         """ sequence_numberが上限値に達した場合、ローリングされて1から開始されること """
 
+        cfm = ConfigFileManager(app_config_file._str)
+
         # C言語でのint型上限値に書き換え
         with open(config_file._str, "r") as f:
             new_config: dict = json.load(f)
@@ -179,8 +181,6 @@ class TestUpdate:
             json_str: str = json.dumps(new_config)
         with open(config_file._str, "w") as f:
             f.write(json_str)
-
-        cfm = ConfigFileManager(app_config_file._str)
 
         start_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
         params = {"status": "running", "start_time": start_time}

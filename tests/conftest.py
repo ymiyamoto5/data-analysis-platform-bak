@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/.
 def app_config_file(tmp_path):
     """ app_config.json の fixture """
 
-    config_file_path: pathlib.PosixPath = tmp_path / "conf_Gw-00.cnf"
+    config_file_path: pathlib.PosixPath = tmp_path / "tmp.cnf"
     config_file_path.write_text("")
 
     data_dir: pathlib.PosixPath = tmp_path / "data"
@@ -30,7 +30,7 @@ def app_config_file(tmp_path):
 def config_file(tmp_path):
     """ .cnfファイルの fixture """
 
-    config_file: pathlib.PosixPath = tmp_path / "conf_Gw-00.cnf"
+    config_file: pathlib.PosixPath = tmp_path / "tmp.cnf"
 
     config: dict = {
         "sequence_number": 1,
