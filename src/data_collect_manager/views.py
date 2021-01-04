@@ -3,6 +3,7 @@ import sys
 from flask import render_template, request, Response
 from datetime import datetime
 from pytz import timezone
+from typing import Optional
 import json
 
 from werkzeug import exceptions
@@ -30,9 +31,9 @@ def show_manager():
         return render_template("manager.html", status="stop")
 
     # configファイルがある場合、直近のevents_indexから状態判定
-    latest_event_index: str = ElasticManager.get_latest_events_index()
+    latest_event_index: Optional[str] = ElasticManager.get_latest_events_index()
 
-    # configファイルがあるのにevents_indexがない例外パターン。
+    # configファイルがあるのにevents_indexがない例外パターン
     if latest_event_index is None:
         app.logger.error("config file exists, but events_index not found.")
         # stop状態にして収集を止め、初期画面に戻す
@@ -45,7 +46,20 @@ def show_manager():
         return render_template("manager.html", status="stop")
 
     # events_indexの最新documentから状態判定
-    latest_events_index_doc: dict = ElasticManager.get_latest_events_index_doc(latest_event_index)
+    latest_events_index_doc: Optional[dict] = ElasticManager.get_latest_events_index_doc(latest_event_index)
+
+    # 最新のevents_indexがあるのにdocumentがない例外パターン
+    if latest_events_index_doc is None:
+        app.logger.error("events_index exists, but document not found.")
+        # stop状態にして収集を止め、初期画面に戻す
+        successful: bool = cfm.update({"status": "stop"})
+        if not successful:
+            return Response(
+                response=json.dumps({"successful": successful, "message": "config file update failed"}), status=500
+            )
+
+        return render_template("manager.html", status="stop")
+
     event_type: str = latest_events_index_doc["event_type"]
 
     # pause状態の場合、pauseのままなのか再開されたかによって状態変更

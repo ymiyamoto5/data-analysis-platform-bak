@@ -30,6 +30,70 @@ class TestShowManager:
         assert actual_code == expected_code
         assert b'{"successful": false, "message": "config file create failed"}' in response.data
 
+    def test_event_index_not_found_exception(self, client, mocker):
+        """ 異常系：configファイルが存在するのに、event_indexが存在しないパターン。
+            configファイルのstatusをstopにし、初期画面に戻す。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+
+        response = client.get("/")
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b"initial-view" in response.data
+
+    def test_events_index_not_found_and_config_update_fail_exception(self, client, mocker):
+        """ 異常系：configファイルが存在するのに、events_indexが存在しないパターン。
+            さらに、configファイルのstatus変更が失敗したパターン。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(ConfigFileManager, "update", return_value=False)
+
+        response = client.get("/")
+        actual_code = response.status_code
+        expected_code = 500
+
+        assert actual_code == expected_code
+        assert b'{"successful": false, "message": "config file update failed"}' in response.data
+
+    def test_events_index_dose_not_have_document_exception(self, client, mocker):
+        """ 異常系：events_indexが存在するのに、documentがないパターン。
+            configファイルのstatusをstopにし、初期画面に戻す。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_event_index")
+        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value=None)
+
+        response = client.get("/")
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b"initial-view" in response.data
+
+    def test_events_index_does_not_have_document_and_config_update_fail_exception(self, client, mocker):
+        """ 異常系：events_indexが存在するのに、documentがないパターン。
+            さらに、configファイルのstatus変更が失敗したパターン。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value=None)
+        mocker.patch.object(ConfigFileManager, "update", return_value=False)
+
+        response = client.get("/")
+        actual_code = response.status_code
+        expected_code = 500
+
+        assert actual_code == expected_code
+        assert b'{"successful": false, "message": "config file update failed"}' in response.data
+
     def test_normal_latest_event_is_stop(self, client, mocker):
         """ 正常系：configファイルがすでに存在し、最新のevent_indexが存在するパターン。
             event_indexの最新ステータスはstopなので、前回の取得サイクルが正常に終了しており、初期画面に遷移。

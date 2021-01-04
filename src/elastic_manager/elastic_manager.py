@@ -7,7 +7,7 @@ from elasticsearch import helpers
 # from elasticsearch import AsyncElasticsearch
 import pandas as pd
 import json
-from typing import Iterable, Iterator, Tuple, List
+from typing import Iterable, Iterator, Tuple, List, Optional
 import multiprocessing
 from datetime import datetime
 import logging
@@ -53,7 +53,7 @@ class ElasticManager:
         return df
 
     @classmethod
-    def get_latest_events_index(cls) -> str:
+    def get_latest_events_index(cls) -> Optional[str]:
         """ 最新のevents_indexの名前を返す """
 
         _indices = cls.es.cat.indices(index="events-*", s="index", h="index").splitlines()
@@ -63,7 +63,7 @@ class ElasticManager:
         return _indices[-1]
 
     @classmethod
-    def get_latest_events_index_doc(cls, latest_events_index: str) -> dict:
+    def get_latest_events_index_doc(cls, latest_events_index: str) -> Optional[dict]:
         """ 最新のevents_indexの一番最後に記録されたdocumentを返す。
             events_indexにdocumentが無い場合はNoneを返す。
         """
