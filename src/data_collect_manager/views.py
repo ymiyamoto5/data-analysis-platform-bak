@@ -24,7 +24,9 @@ def show_manager():
     if not cfm.config_exists():
         successful: bool = cfm.create()
         if not successful:
-            return Response(response=json.dumps({"successful": successful}), status=500)
+            return Response(
+                response=json.dumps({"successful": successful, "message": "config file create failed"}), status=500
+            )
         return render_template("manager.html", status="stop")
 
     # configファイルがある場合、直近のevents_indexから状態判定
@@ -36,7 +38,9 @@ def show_manager():
         # stop状態にして収集を止め、初期画面に戻す
         successful: bool = cfm.update({"status": "stop"})
         if not successful:
-            return Response(response=json.dumps({"successful": successful}), status=500)
+            return Response(
+                response=json.dumps({"successful": successful, "message": "config file update failed"}), status=500
+            )
 
         return render_template("manager.html", status="stop")
 
@@ -71,7 +75,7 @@ def setup():
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
+        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     # configファイル更新
     start_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
@@ -80,7 +84,9 @@ def setup():
     successful: bool = cfm.update(params)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
+        return Response(
+            response=json.dumps({"successful": successful, "message": "config file update failed."}), status=500
+        )
 
     return Response(response=json.dumps({"successful": successful}), status=200)
 
@@ -98,7 +104,7 @@ def start():
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
+        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     return Response(response=json.dumps({"successful": successful}), status=200)
 
@@ -116,7 +122,7 @@ def pause():
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
+        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     return Response(response=json.dumps({"successful": successful}), status=200)
 
@@ -134,7 +140,7 @@ def resume():
     successful: bool = ElasticManager.update_doc(events_index, doc_id, query)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
+        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     return Response(response=json.dumps({"successful": successful}), status=200)
 
@@ -161,7 +167,7 @@ def stop():
     successful = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
+        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     return Response(response=json.dumps({"successful": successful}), status=200)
 
@@ -173,7 +179,7 @@ def record_tag():
     try:
         tag: str = request.form["tag"]
     except exceptions.BadRequestKeyError as e:
-        app.logger.error(str(e))
+        app.logger.exception(str(e))
         return Response(response=json.dumps({"successful": False, "message": str(e)}), status=500)
 
     utc_now: datetime = datetime.utcnow()
@@ -185,6 +191,6 @@ def record_tag():
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful, "message": "record_tag: create_doc failed."}))
+        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     return Response(response=json.dumps({"successful": successful}), status=200)

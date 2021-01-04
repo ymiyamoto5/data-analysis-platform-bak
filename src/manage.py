@@ -1,6 +1,3 @@
-import os
-import sys
-
 from data_collect_manager import app
 
 if __name__ == "__main__":
