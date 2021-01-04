@@ -36,11 +36,9 @@ class TestGetTargetInterval:
         end_time: datetime = start_time + timedelta(seconds=30)
         end_time_str: str = datetime.strftime(end_time, "%Y%m%d%H%M%S%f")
 
-        tmp_config_file = tmp_path / "tmp.cnf"
         config = {"start_time": start_time_str, "end_time": end_time_str}
-        tmp_config_file.write_text(json.dumps(config))
 
-        actual = data_recorder._get_target_interval(tmp_config_file)
+        actual = data_recorder._get_target_interval(config)
 
         expected = (start_time, end_time)
 
@@ -52,11 +50,9 @@ class TestGetTargetInterval:
         start_time: datetime = datetime.now()
         start_time_str: str = datetime.strftime(start_time, "%Y%m%d%H%M%S%f")
 
-        tmp_config_file = tmp_path / "tmp.cnf"
         config = {"start_time": start_time_str}
-        tmp_config_file.write_text(json.dumps(config))
 
-        actual = data_recorder._get_target_interval(tmp_config_file)
+        actual = data_recorder._get_target_interval(config)
 
         expected = (start_time, datetime.max)
 
@@ -65,11 +61,9 @@ class TestGetTargetInterval:
     def test_is_not_started(self, tmp_path):
         """ start_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
-        tmp_config_file = tmp_path / "tmp.cnf"
         config = {}
-        tmp_config_file.write_text(json.dumps(config))
 
-        actual = data_recorder._get_target_interval(tmp_config_file)
+        actual = data_recorder._get_target_interval(config)
 
         expected = (None, None)
 
@@ -83,12 +77,10 @@ class TestGetTargetInterval:
         end_time: datetime = start_time - timedelta(seconds=30)
         end_time_str: str = datetime.strftime(end_time, "%Y%m%d%H%M%S%f")
 
-        tmp_config_file = tmp_path / "tmp.cnf"
         config = {"start_time": start_time_str, "end_time": end_time_str}
-        tmp_config_file.write_text(json.dumps(config))
 
         with pytest.raises(ValueError) as excinfo:
-            data_recorder._get_target_interval(tmp_config_file)
+            data_recorder._get_target_interval(config)
             exception_message = excinfo.value.args[0]
             assert exception_message == "start_time({start_time}) > end_time({end_time}). This is abnormal condition."
 

@@ -74,7 +74,7 @@ class TestReadConfig:
     def test_normal(self, config_file):
         cfm = ConfigFileManager()
 
-        actual: dict = cfm._read_config(config_file._str)
+        actual: dict = cfm.read_config(config_file._str)
 
         expected: dict = {
             "sequence_number": 1,

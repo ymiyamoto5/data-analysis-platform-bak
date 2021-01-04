@@ -14,10 +14,9 @@ class ConfigFileManager:
     def __init__(self, app_config_path: str = None):
         """ app_config.jsonからconfigファイルのパスを取得 """
 
-        if app_config_path is None:
-            app_config_path = "app_config.json"
+        self.app_config_path = "app_config.json" if app_config_path is None else app_config_path
 
-        self.config_file_path = common.get_config_value(app_config_path, "config_file_path")
+        self.config_file_path = common.get_config_value(self.app_config_path, "config_file_path")
 
     def config_exists(self) -> bool:
         """ configファイルの存在確認 """
@@ -33,7 +32,7 @@ class ConfigFileManager:
             initial_config_path: str = os.path.dirname(__file__) + "/initial_config.json"
 
         try:
-            initial_config: dict = self._read_config(initial_config_path)
+            initial_config: dict = self.read_config(initial_config_path)
         except Exception:
             return False
 
@@ -52,7 +51,7 @@ class ConfigFileManager:
         logger.info("Updating config file.")
 
         try:
-            new_config: dict = self._read_config(self.config_file_path)
+            new_config: dict = self.read_config(self.config_file_path)
         except Exception:
             return False
 
@@ -75,7 +74,7 @@ class ConfigFileManager:
 
         return successful
 
-    def _read_config(self, config_file_path) -> Union[dict, FileNotFoundError, Exception]:
+    def read_config(self, config_file_path) -> Union[dict, FileNotFoundError, Exception]:
         """ configファイルを読み取り、dictで返す """
 
         try:

@@ -19,6 +19,7 @@ import dataclasses
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
+from config_file_manager.config_file_manager import ConfigFileManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
@@ -60,11 +61,8 @@ def _create_file_timestamp(filepath: str) -> datetime:
     return timestamp
 
 
-def _get_target_interval(config_file_path: str) -> Tuple[datetime, datetime]:
+def _get_target_interval(config: dict) -> Tuple[datetime, datetime]:
     """ 処理対象となる区間（開始/終了時刻）を取得する """
-
-    with open(config_file_path, "r") as f:
-        config: dict = json.load(f)
 
     if config.get("start_time") is None:
         logger.info("data collect is not started.")
@@ -177,13 +175,12 @@ def _export_to_pickle(samples: list, file: FileInfo, processed_dir_path: str) ->
     df.to_pickle(pickle_filepath)
 
 
-def main(app_config_file: str = None, mode=None) -> None:
+def main(app_config_path: str = None, mode=None) -> None:
 
-    if app_config_file is None:
-        app_config_file = "app_config.json"
+    cfm: ConfigFileManager = ConfigFileManager(app_config_path)
 
     # データディレクトリを確認し、ファイルリストを作成
-    data_dir: str = common.get_config_value(app_config_file, "data_dir")
+    data_dir: str = common.get_config_value(cfm.app_config_path, "data_dir")
     files_info: list = _create_files_info(data_dir)
 
     if len(files_info) == 0:
@@ -191,9 +188,9 @@ def main(app_config_file: str = None, mode=None) -> None:
         return
 
     # configファイルからstart-endtimeを取得
-    config_file: str = common.get_config_value(app_config_file, "config_file_path")
     start_time: datetime
     end_time: datetime
+    config_file: dict = cfm.read_config(cfm.config_file_path)
     start_time, end_time = _get_target_interval(config_file)
 
     if start_time is None:
