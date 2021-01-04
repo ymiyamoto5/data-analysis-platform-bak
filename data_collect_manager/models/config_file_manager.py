@@ -61,7 +61,10 @@ class ConfigFileManager:
         new_config: dict = self.read_config()
 
         if should_change_sequence:
-            new_config["sequence_number"] = int(new_config["sequence_number"]) + 1
+            # C言語のint上限値に達したら0クリア
+            if new_config["sequence_number"] == 2_147_483_647:
+                new_config["sequence_number"] = 0
+            new_config["sequence_number"] = new_config["sequence_number"] + 1
 
         # TODO: すべてのパラメータを再設定
         if "status" in params:

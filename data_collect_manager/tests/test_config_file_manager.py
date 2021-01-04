@@ -1,7 +1,9 @@
 from _pytest.config import Config
+from flask import app
 import pytest
 import os
 import json
+from datetime import datetime
 from ..models.config_file_manager import ConfigFileManager
 
 
@@ -87,5 +89,22 @@ class TestCreate:
 
 
 class TestUpdate:
-    def test_normal(self):
-        pass
+    def test_normal_change_sequence(self, app_config_file, config_file):
+        """ configファイルを正常に更新できること。sequence_numberを書き換えるパターン。 """
+
+        cfm = ConfigFileManager(app_config_file._str)
+
+        start_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        params = {"status": "start", "start_time": start_time}
+
+        actual: bool = cfm.update(params, should_change_sequence=True)
+        expected: bool = True
+
+        assert actual == expected
+
+        with open(config_file._str, "r") as f:
+            new_config: dict = json.load(f)
+
+        assert new_config["status"] == "start"
+        assert new_config["start_time"] == start_time
+
