@@ -38,5 +38,5 @@ pnpm-debug.log*
 
 log
 testprogram.py
-data_collect_manager/node_modules
+src/data_collect_manager/node_modules
 shared

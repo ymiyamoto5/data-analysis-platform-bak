@@ -10,7 +10,7 @@ class ConfigFileManager:
         """ app_config.jsonからconfigファイルのパスを取得 """
 
         if app_config_path is None:
-            app_config_path = os.path.dirname(__file__) + "/../../common/app_config.json"
+            app_config_path = "app_config.json"
 
         try:
             with open(app_config_path, "r") as f:

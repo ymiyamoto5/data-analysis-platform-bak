@@ -17,8 +17,10 @@ from typing import Final, Tuple, List, Mapping
 import pandas as pd
 import dataclasses
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+from elastic_manager.elastic_manager import ElasticManager
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
-from elastic_manager import ElasticManager
 import common
 
 LOG_FILE: Final = "log/data_recorder/data_recorder.log"
@@ -175,10 +177,13 @@ def _export_to_pickle(samples: list, file: FileInfo, processed_dir_path: str) ->
     df.to_pickle(pickle_filepath)
 
 
-def main(settings_file_path: str, mode=None) -> None:
+def main(app_config_file: str = None, mode=None) -> None:
+
+    if app_config_file is None:
+        app_config_file = "app_config.json"
 
     # データディレクトリを確認し、ファイルリストを作成
-    data_dir: str = common.get_settings_value(settings_file_path, "data_dir")
+    data_dir: str = common.get_config_value(app_config_file, "data_dir")
     files_info: list = _create_files_info(data_dir)
 
     if len(files_info) == 0:
@@ -186,7 +191,7 @@ def main(settings_file_path: str, mode=None) -> None:
         return
 
     # configファイルからstart-endtimeを取得
-    config_file: str = common.get_settings_value(settings_file_path, "config_file_path")
+    config_file: str = common.get_config_value(app_config_file, "config_file_path")
     start_time: datetime
     end_time: datetime
     start_time, end_time = _get_target_interval(config_file)
@@ -261,5 +266,4 @@ def main(settings_file_path: str, mode=None) -> None:
 
 
 if __name__ == "__main__":
-    settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
-    main(settings_file_path, mode="TEST")
+    main(mode="TEST")

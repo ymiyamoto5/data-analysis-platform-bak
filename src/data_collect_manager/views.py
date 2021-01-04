@@ -10,8 +10,8 @@ from werkzeug import exceptions
 from data_collect_manager import app
 from data_collect_manager.models.config_file_manager import ConfigFileManager
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
-from elastic_manager import ElasticManager
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+from elastic_manager.elastic_manager import ElasticManager
 
 
 @app.route("/")

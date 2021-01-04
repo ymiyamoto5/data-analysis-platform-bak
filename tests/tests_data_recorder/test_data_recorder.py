@@ -2,7 +2,7 @@ import pytest
 import json
 from datetime import datetime, timedelta
 
-from .. import data_recorder
+from data_recorder import data_recorder
 
 
 class TestCreateFileTimestamp:

@@ -10,8 +10,10 @@ from typing import Callable, Final, List, Tuple, Optional
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+from elastic_manager.elastic_manager import ElasticManager
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
-from elastic_manager import ElasticManager
 from time_logger import time_log
 from throughput_counter import throughput_counter
 import common
@@ -409,8 +411,7 @@ class CutOutShot:
         NOW: Final[datetime] = datetime.now()
 
         # 取り込むpickleファイルのリストを取得
-        settings_file_path: str = os.path.dirname(__file__) + "/../common/app_config.json"
-        data_dir = common.get_settings_value(settings_file_path, "data_dir")
+        data_dir = common.get_config_value("app_config.json", "data_dir")
         rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
         pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 
@@ -521,8 +522,8 @@ class CutOutShot:
 
 def main():
     # No13 3000shot拡張。切り出し後のデータ数：9,287,537
-    cut_out_shot = CutOutShot()
-    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
+    # cut_out_shot = CutOutShot()
+    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # lambda
     # displacement_func = lambda x: x + 1.0
@@ -541,8 +542,8 @@ def main():
     # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # 任意波形生成
-    # cut_out_shot = CutOutShot(tail_size=10)
-    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
+    cut_out_shot = CutOutShot(tail_size=10)
+    cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
 
 
 if __name__ == "__main__":

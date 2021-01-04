@@ -1,13 +1,8 @@
 import pytest
-import os
-import sys
-import pytest_mock
 from datetime import datetime
 
-from .. import cut_out_shot
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../utils"))
-from elastic_manager import ElasticManager
+from elastic_manager.elastic_manager import ElasticManager
+from cut_out_shot import cut_out_shot
 
 
 class TestGetEvents:

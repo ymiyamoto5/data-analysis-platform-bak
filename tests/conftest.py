@@ -1,6 +1,10 @@
+import sys
+import os
 import pytest
 import json
 import pathlib
+
+sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../src/"))
 
 
 @pytest.fixture
