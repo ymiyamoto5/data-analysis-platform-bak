@@ -1,8 +1,13 @@
 import os
+import sys
 import json
+import logging
 from typing import Tuple, Optional, Union
 
-from data_collect_manager import app
+sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
+import common
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigFileManager:
@@ -12,14 +17,7 @@ class ConfigFileManager:
         if app_config_path is None:
             app_config_path = "app_config.json"
 
-        try:
-            with open(app_config_path, "r") as f:
-                settings: dict = json.load(f)
-                self.config_file_path = settings["config_file_path"]
-        except FileNotFoundError as e:
-            app.logger.exception(str(e))
-        except Exception as e:
-            app.logger.exception(str(e))
+        self.config_file_path = common.get_config_value(app_config_path, "config_file_path")
 
     def config_exists(self) -> bool:
         """ configファイルの存在確認 """
@@ -29,7 +27,7 @@ class ConfigFileManager:
     def create(self, initial_config_path: Optional[str] = None) -> bool:
         """ configファイル作成 """
 
-        app.logger.info("Creating config file.")
+        logger.info("Creating config file.")
 
         if initial_config_path is None:
             initial_config_path: str = os.path.dirname(__file__) + "/initial_config.json"
@@ -44,14 +42,14 @@ class ConfigFileManager:
         if not successful:
             return successful
 
-        app.logger.info("Finished creating config file.")
+        logger.info("Finished creating config file.")
 
         return successful
 
     def update(self, params: dict) -> bool:
         """ 既存のconfigファイルを更新 """
 
-        app.logger.info("Updating config file.")
+        logger.info("Updating config file.")
 
         try:
             new_config: dict = self._read_config(self.config_file_path)
@@ -73,7 +71,7 @@ class ConfigFileManager:
 
         successful: bool = self._dump_config_file(new_config)
 
-        app.logger.info("Finished updating config file.")
+        logger.info("Finished updating config file.")
 
         return successful
 
@@ -85,10 +83,10 @@ class ConfigFileManager:
                 current_config: dict = json.load(f)
                 return current_config
         except FileNotFoundError as e:
-            app.logger.exception(str(e))
+            logger.exception(str(e))
             raise FileNotFoundError
         except Exception as e:
-            app.logger.exception(str(e))
+            logger.exception(str(e))
             raise e
 
     def _dump_config_file(self, config: dict) -> bool:
@@ -104,7 +102,7 @@ class ConfigFileManager:
             with open(tmp_file_path, mode="w") as f:
                 f.write(config_str)
         except Exception as e:
-            app.logger.exception(str(e))
+            logger.exception(str(e))
             return False
 
         file_path: str = path_ext_pair[0] + ".cnf"
@@ -112,5 +110,5 @@ class ConfigFileManager:
             os.rename(tmp_file_path, file_path)
             return True
         except OSError as e:
-            app.logger.exception(str(e))
+            logger.exception(str(e))
             return False
