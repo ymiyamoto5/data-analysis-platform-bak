@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime, timedelta
 
 from config_file_manager.config_file_manager import ConfigFileManager
 from elastic_manager.elastic_manager import ElasticManager
@@ -127,6 +128,85 @@ class TestShowManager:
 
         assert actual_code == expected_code
         assert b"setup-view" in response.data
+
+    def test_normal_latest_event_is_start(self, client, mocker):
+        """ 正常系：configファイルがすでに存在し、最新のevent_indexが存在するパターン。
+            event_indexの最新ステータスがstartの場合、測定中画面に遷移。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_event_index")
+        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "start"})
+
+        response = client.get("/")
+
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b"started-view" in response.data
+
+    def test_normal_latest_event_is_tag(self, client, mocker):
+        """ 正常系：configファイルがすでに存在し、最新のevent_indexが存在するパターン。
+            event_indexの最新ステータスがtagの場合、測定中画面に遷移。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_event_index")
+        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "tag"})
+
+        response = client.get("/")
+
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b"started-view" in response.data
+
+    def test_normal_latest_event_is_pause_and_does_not_have_end_time(self, client, mocker):
+        """ 正常系：configファイルがすでに存在し、最新のevent_indexが存在するパターン。
+            event_indexの最新ステータスがpauseかつend_timeがない場合、中断中画面に遷移。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_event_index")
+        start_time: datetime = datetime.utcnow()
+        mocker.patch.object(
+            ElasticManager,
+            "get_latest_events_index_doc",
+            return_value={"event_type": "pause", "start_time": start_time},
+        )
+
+        response = client.get("/")
+
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b"paused-view" in response.data
+
+    def test_normal_latest_event_is_pause_and_has_end_time(self, client, mocker):
+        """ 正常系：configファイルがすでに存在し、最新のevent_indexが存在するパターン。
+            event_indexの最新ステータスがpauseかつend_timeがある場合、測定中画面に遷移。
+        """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_event_index")
+        start_time: datetime = datetime.utcnow()
+        end_time: datetime = start_time + timedelta(seconds=60)
+        mocker.patch.object(
+            ElasticManager,
+            "get_latest_events_index_doc",
+            return_value={"event_type": "pause", "start_time": start_time, "end_time": end_time},
+        )
+
+        response = client.get("/")
+
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b"started-view" in response.data
 
 
 class TestSetup:

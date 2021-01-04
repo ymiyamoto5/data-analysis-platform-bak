@@ -65,7 +65,7 @@ def show_manager():
     # pause状態の場合、pauseのままなのか再開されたかによって状態変更
     if event_type == "pause":
         if latest_events_index_doc.get("end_time") is not None:
-            event_type == "start"
+            event_type = "start"
 
     # 状態に応じて画面を戻す
     return render_template("manager.html", status=event_type)
