@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 
 from data_collect_manager import app
 
@@ -35,13 +35,8 @@ class ConfigFileManager:
             initial_config_path: str = os.path.dirname(__file__) + "/initial_config.json"
 
         try:
-            with open(initial_config_path, "r") as f:
-                initial_config: dict = json.load(f)
-        except FileNotFoundError as e:
-            app.logger.exception(str(e))
-            return False
-        except Exception as e:
-            app.logger.exception(str(e))
+            initial_config: dict = self._read_config(initial_config_path)
+        except Exception:
             return False
 
         successful: bool = self._dump_config_file(initial_config)
@@ -58,14 +53,17 @@ class ConfigFileManager:
 
         app.logger.info("Updating config file.")
 
-        new_config: dict = self.read_config()
+        try:
+            new_config: dict = self._read_config(self.config_file_path)
+        except Exception:
+            return False
 
         # C言語のint上限値に達したら0クリア
         if new_config["sequence_number"] == 2_147_483_647:
             new_config["sequence_number"] = 0
         new_config["sequence_number"] = new_config["sequence_number"] + 1
 
-        # TODO: すべてのパラメータを再設定
+        # NOTE: UIから変更される可能性があるパラメータは以下の3つのみ。
         if "status" in params:
             new_config["status"] = params["status"]
         if "start_time" in params:
@@ -79,19 +77,19 @@ class ConfigFileManager:
 
         return successful
 
-    def read_config(self) -> Optional[dict]:
+    def _read_config(self, config_file_path) -> Union[dict, FileNotFoundError, Exception]:
         """ configファイルを読み取り、dictで返す """
 
         try:
-            with open(self.config_file_path, "r") as f:
+            with open(config_file_path, "r") as f:
                 current_config: dict = json.load(f)
                 return current_config
         except FileNotFoundError as e:
             app.logger.exception(str(e))
-            return False
+            raise FileNotFoundError
         except Exception as e:
             app.logger.exception(str(e))
-            return False
+            raise e
 
     def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """
@@ -102,8 +100,12 @@ class ConfigFileManager:
         config_str: str = json.dumps(config, indent=2, ensure_ascii=False)
 
         # ファイル生成途中で読み込まれないよう、tmpファイルに出力した後にリネーム
-        with open(tmp_file_path, mode="w") as f:
-            f.write(config_str)
+        try:
+            with open(tmp_file_path, mode="w") as f:
+                f.write(config_str)
+        except Exception as e:
+            app.logger.exception(str(e))
+            return False
 
         file_path: str = path_ext_pair[0] + ".cnf"
         try:

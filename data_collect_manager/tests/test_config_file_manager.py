@@ -1,3 +1,4 @@
+import builtins
 from _pytest.config import Config
 from flask import app
 import pytest
@@ -9,6 +10,8 @@ from ..models.config_file_manager import ConfigFileManager
 
 class TestDumpConfigFile:
     def test_normal(self, app_config_file):
+        """ configファイルが無い状態で新規作成できること。 """
+
         cfm = ConfigFileManager(app_config_file._str)
 
         config: dict = {"dummy_config": "dummy_config"}
@@ -39,6 +42,19 @@ class TestDumpConfigFile:
 
         assert actual_config == expected_config
 
+    def test_config_file_open_exception(self, mocker, app_config_file):
+        """ 書き込みファイルのオープン失敗時、例外が発生しFalseが返ること。 """
+
+        cfm = ConfigFileManager(app_config_file._str)
+
+        config: dict = {"dummy_config": "dummy_config"}
+
+        mocker.patch.object(builtins, "open", side_effect=Exception)
+        actual: bool = cfm._dump_config_file(config)
+        expected: bool = False
+
+        assert actual == expected
+
     def test_rename_exception(self, mocker, app_config_file):
         """ リネーム時の例外発生でFalseが返ること """
 
@@ -50,6 +66,31 @@ class TestDumpConfigFile:
 
         actual: bool = cfm._dump_config_file(config)
         expected: bool = False
+
+        assert actual == expected
+
+
+class TestReadConfig:
+    def test_normal(self, config_file):
+        cfm = ConfigFileManager()
+
+        actual: dict = cfm._read_config(config_file._str)
+
+        expected: dict = {
+            "sequence_number": 1,
+            "gateway_result": 0,
+            "status": "stop",
+            "gateway_id": "Gw-00",
+            "Log_Level": 5,
+            "ADC_0": {
+                "handler_id": "AD-00",
+                "handler_type": "USB_1608HS",
+                "ADC_SerialNum": "01234567",
+                "sampling_frequency": 100000,
+                "sampling_chnum": 5,
+                "filewrite_time": 3600,
+            },
+        }
 
         assert actual == expected
 
