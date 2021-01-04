@@ -89,15 +89,15 @@ class TestCreate:
 
 
 class TestUpdate:
-    def test_normal_change_sequence(self, app_config_file, config_file):
-        """ configファイルを正常に更新できること。sequence_numberを書き換えるパターン。 """
+    def test_normal_change_status_to_running(self, app_config_file, config_file):
+        """ configファイルを正常に更新できること。statusをrunningに変更。 """
 
         cfm = ConfigFileManager(app_config_file._str)
 
         start_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
-        params = {"status": "start", "start_time": start_time}
+        params = {"status": "running", "start_time": start_time}
 
-        actual: bool = cfm.update(params, should_change_sequence=True)
+        actual: bool = cfm.update(params)
         expected: bool = True
 
         assert actual == expected
@@ -105,6 +105,54 @@ class TestUpdate:
         with open(config_file._str, "r") as f:
             new_config: dict = json.load(f)
 
-        assert new_config["status"] == "start"
+        assert new_config["sequence_number"] == 2  # initialが1のため、インクリメントされて2
+        assert new_config["status"] == "running"
+        assert new_config["start_time"] == start_time
+
+    def test_normal_change_status_to_stop(self, app_config_file, config_file):
+        """ configファイルを正常に更新できること。statusをstopに変更。 """
+
+        cfm = ConfigFileManager(app_config_file._str)
+
+        end_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        params = {"status": "stop", "end_time": end_time}
+
+        actual: bool = cfm.update(params)
+        expected: bool = True
+
+        assert actual == expected
+
+        with open(config_file._str, "r") as f:
+            new_config: dict = json.load(f)
+
+        assert new_config["sequence_number"] == 2  # initialが1のため、インクリメントされて2
+        assert new_config["status"] == "stop"
+
+    def test_normal_sequence_number_overflow(self, app_config_file, config_file):
+        """ sequence_numberが上限値に達した場合、ローリングされて1から開始されること """
+
+        # C言語でのint型上限値に書き換え
+        with open(config_file._str, "r") as f:
+            new_config: dict = json.load(f)
+            new_config["sequence_number"] = 2_147_483_647
+            json_str: str = json.dumps(new_config)
+        with open(config_file._str, "w") as f:
+            f.write(json_str)
+
+        cfm = ConfigFileManager(app_config_file._str)
+
+        start_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        params = {"status": "running", "start_time": start_time}
+
+        actual: bool = cfm.update(params)
+        expected: bool = True
+
+        assert actual == expected
+
+        with open(config_file._str, "r") as f:
+            new_config: dict = json.load(f)
+
+        assert new_config["sequence_number"] == 1
+        assert new_config["status"] == "running"
         assert new_config["start_time"] == start_time
 

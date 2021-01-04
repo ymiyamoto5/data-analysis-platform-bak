@@ -77,7 +77,7 @@ def setup():
     start_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
     params = {"status": "running", "start_time": start_time}
     cfm = ConfigFileManager()
-    successful: bool = cfm.update(params, should_change_sequence=True)
+    successful: bool = cfm.update(params)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)
@@ -149,7 +149,7 @@ def stop():
     end_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
     params = {"status": "stop", "end_time": end_time}
     cfm = ConfigFileManager()
-    successful: bool = cfm.update(params, should_change_sequence=True)
+    successful: bool = cfm.update(params)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful}), status=500)

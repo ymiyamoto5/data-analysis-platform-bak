@@ -29,7 +29,7 @@ def config_file(tmp_path):
     config_file: pathlib.PosixPath = tmp_path / "conf_Gw-00.cnf"
 
     config: dict = {
-        "sequence_number": 10,
+        "sequence_number": 1,
         "gateway_result": 0,
         "status": "stop",
         "gateway_id": "Gw-00",

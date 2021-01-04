@@ -53,18 +53,17 @@ class ConfigFileManager:
 
         return successful
 
-    def update(self, params: dict, should_change_sequence: bool = False) -> bool:
+    def update(self, params: dict) -> bool:
         """ 既存のconfigファイルを更新 """
 
         app.logger.info("Updating config file.")
 
         new_config: dict = self.read_config()
 
-        if should_change_sequence:
-            # C言語のint上限値に達したら0クリア
-            if new_config["sequence_number"] == 2_147_483_647:
-                new_config["sequence_number"] = 0
-            new_config["sequence_number"] = new_config["sequence_number"] + 1
+        # C言語のint上限値に達したら0クリア
+        if new_config["sequence_number"] == 2_147_483_647:
+            new_config["sequence_number"] = 0
+        new_config["sequence_number"] = new_config["sequence_number"] + 1
 
         # TODO: すべてのパラメータを再設定
         if "status" in params:
