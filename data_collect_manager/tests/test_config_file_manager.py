@@ -1,3 +1,4 @@
+from _pytest.config import Config
 import pytest
 import os
 import json
@@ -6,7 +7,7 @@ from ..models.config_file_manager import ConfigFileManager
 
 class TestDumpConfigFile:
     def test_normal(self, app_config_file):
-        cfm = ConfigFileManager(app_config_file)
+        cfm = ConfigFileManager(app_config_file._str)
 
         config: dict = {"dummy_config": "dummy_config"}
 
@@ -20,7 +21,7 @@ class TestDumpConfigFile:
             引数 config_file のfixtureでconfigファイルが生成される。
         """
 
-        cfm = ConfigFileManager(app_config_file)
+        cfm = ConfigFileManager(app_config_file._str)
 
         config: dict = {"dummy_config": "dummy_config"}
 
@@ -41,7 +42,7 @@ class TestDumpConfigFile:
 
         mocker.patch.object(os, "rename", side_effect=OSError)
 
-        cfm = ConfigFileManager(app_config_file)
+        cfm = ConfigFileManager(app_config_file._str)
 
         config: dict = {"dummy_config": "dummy_config"}
 
@@ -49,3 +50,42 @@ class TestDumpConfigFile:
         expected: bool = False
 
         assert actual == expected
+
+
+class TestCreate:
+    def test_normal(self, config_file):
+        cfm = ConfigFileManager()
+
+        actual: bool = cfm.create(config_file._str)
+        expected: bool = True
+
+        assert actual == expected
+
+    def test_initial_config_not_found_exception(self):
+        """ 初期configファイルがない場合、Falseが返ること """
+
+        cfm = ConfigFileManager()
+
+        actual: bool = cfm.create("not_exists_file_path")
+        expected: bool = False
+
+        assert actual == expected
+
+    def test_invalid_json_exception(self, config_file):
+        """ 初期configファイルが不正なJSONだった場合、Falseが返ること """
+
+        # 不正なJSONにする
+        with open(config_file._str, "a") as f:
+            f.write("{")
+
+        cfm = ConfigFileManager()
+
+        actual: bool = cfm.create(config_file._str)
+        expected: bool = False
+
+        assert actual == expected
+
+
+class TestUpdate:
+    def test_normal(self):
+        pass

@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Tuple
+from typing import Tuple, Optional
 
 from data_collect_manager import app
 
@@ -26,14 +26,23 @@ class ConfigFileManager:
 
         return os.path.isfile(self.config_file_path)
 
-    def create(self) -> bool:
+    def create(self, initial_config_path: Optional[str] = None) -> bool:
         """ configファイル作成 """
 
         app.logger.info("Creating config file.")
 
-        initial_config_path = os.path.dirname(__file__) + "/initial_config.json"
-        with open(initial_config_path, "r") as f:
-            initial_config: dict = json.load(f)
+        if initial_config_path is None:
+            initial_config_path: str = os.path.dirname(__file__) + "/initial_config.json"
+
+        try:
+            with open(initial_config_path, "r") as f:
+                initial_config: dict = json.load(f)
+        except FileNotFoundError as e:
+            app.logger.exception(str(e))
+            return False
+        except Exception as e:
+            app.logger.exception(str(e))
+            return False
 
         successful: bool = self._dump_config_file(initial_config)
 
@@ -68,13 +77,19 @@ class ConfigFileManager:
 
         return successful
 
-    def read_config(self):
-        with open(self.config_file_path, "r") as f:
-            try:
+    def read_config(self) -> Optional[dict]:
+        """ configファイルを読み取り、dictで返す """
+
+        try:
+            with open(self.config_file_path, "r") as f:
                 current_config: dict = json.load(f)
                 return current_config
-            except json.decoder.JSONDecodeError as e:
-                app.logger.exception(str(e))
+        except FileNotFoundError as e:
+            app.logger.exception(str(e))
+            return False
+        except Exception as e:
+            app.logger.exception(str(e))
+            return False
 
     def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """

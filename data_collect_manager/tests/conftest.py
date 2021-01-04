@@ -1,5 +1,6 @@
 import pytest
 import json
+import pathlib
 
 
 @pytest.fixture
@@ -18,14 +19,14 @@ def app_config_file(tmp_path):
     app_config_file = tmp_path / "app_config.json"
     app_config_file.write_text(app_config_str)
 
-    yield app_config_file._str
+    yield app_config_file
 
 
 @pytest.fixture
 def config_file(tmp_path):
     """ .cnfファイルの fixture """
 
-    config_file = tmp_path / "conf_Gw-00.cnf"
+    config_file: pathlib.PosixPath = tmp_path / "conf_Gw-00.cnf"
 
     config: dict = {
         "sequence_number": 10,
@@ -45,4 +46,4 @@ def config_file(tmp_path):
 
     config_file.write_text(json.dumps(config))
 
-    yield config_file._str
+    yield config_file
