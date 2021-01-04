@@ -7,16 +7,16 @@ import pathlib
 def app_config_file(tmp_path):
     """ app_config.json の fixture """
 
-    config_file_path = tmp_path / "conf_Gw-00.cnf"
+    config_file_path: pathlib.PosixPath = tmp_path / "conf_Gw-00.cnf"
     config_file_path.write_text("")
 
-    data_dir = tmp_path / "data"
+    data_dir: pathlib.PosixPath = tmp_path / "data"
     data_dir.mkdir()
 
     app_config: dict = {"config_file_path": config_file_path._str, "data_dir": data_dir._str}
     app_config_str: str = json.dumps(app_config, indent=2, ensure_ascii=False)
 
-    app_config_file = tmp_path / "app_config.json"
+    app_config_file: pathlib.PosixPath = tmp_path / "app_config.json"
     app_config_file.write_text(app_config_str)
 
     yield app_config_file

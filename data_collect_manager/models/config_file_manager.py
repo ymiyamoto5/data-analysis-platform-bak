@@ -63,7 +63,7 @@ class ConfigFileManager:
             new_config["sequence_number"] = 0
         new_config["sequence_number"] = new_config["sequence_number"] + 1
 
-        # NOTE: UIから変更される可能性があるパラメータは以下の3つのみ。
+        # NOTE: 現状のUIから変更される可能性があるパラメータは以下の3つのみ。
         if "status" in params:
             new_config["status"] = params["status"]
         if "start_time" in params:
