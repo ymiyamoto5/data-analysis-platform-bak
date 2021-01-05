@@ -60,6 +60,8 @@ function stopCommit() {
             console.log(data.message)
         }
 
+        waitRecordFinish()
+
         $("#stop").hide()
         $("#pause").hide()
         $("#setup").show()
@@ -70,6 +72,34 @@ function stopCommit() {
     }).fail(function (data) {
         console.log("stop failed.")
     })
+}
+
+// データ取り込み完了待ち
+async function waitRecordFinish() {
+    const message = "データ取り込み完了までお待ちください。これは通常2分以内に完了します。"
+    const $dialog = $('<div></div>').text(message);
+
+    $dialog.dialog({
+        modal: true,
+        title: 'データ取り込み完了待ち',
+        closeText: 'Cancel',
+        width: 350,
+        position: {
+            "of": "#main"
+        },
+        closeOnEscape: false,
+    });
+    // NOTE: 右上のcloseボタンがbootstrapとの相性で正常に表示されないため、非表示とする。
+    $dialog.dialog('widget').find(".ui-dialog-titlebar-close").hide();
+
+    await $.get("/check", function (data) {
+        alert("データ取り込みが完了しました。");
+    }).catch(() => {
+        alert("データ取り込みが完了しませんでした。dataディレクトリを確認してください。");
+    });
+
+    $dialog.dialog('destroy')
+    $dialog.remove()
 }
 
 // [中断] ボタン押下時の動作（ダイアログ表示）

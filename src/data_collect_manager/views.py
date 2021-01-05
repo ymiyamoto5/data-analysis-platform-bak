@@ -1,9 +1,11 @@
 import os
 import sys
+import time
+import glob
 from flask import render_template, request, Response
 from datetime import datetime
 from pytz import timezone
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Final
 import json
 
 from werkzeug import exceptions
@@ -13,6 +15,9 @@ from data_collect_manager import app
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
 from config_file_manager.config_file_manager import ConfigFileManager
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../utils/"))
+import common
 
 
 def _initialize_config_file() -> Tuple[bool, Optional[str]]:
@@ -322,3 +327,36 @@ def record_tag():
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     return Response(response=json.dumps({"successful": successful}), status=200)
+
+
+@app.route("/check", methods=["GET"])
+def check_record_finished():
+    """ data_recorderによるデータ取り込みが完了したか確認。dataディレクトリにdatファイルが残っていなければ完了とみなす。 """
+
+    cfm = ConfigFileManager()
+
+    data_dir: str = common.get_config_value(cfm.app_config_path, "data_dir")
+
+    successful: bool = False
+    message: Optional[str] = None
+    status: int = 500
+
+    # 最大 36 * 5 = 180 秒待つ
+    RETRY_COUNT: Final[int] = 36
+    WAIT_SECONDS: Final[int] = 5
+
+    for _ in range(RETRY_COUNT):
+        data_file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
+
+        data_file_list = []
+
+        if len(data_file_list) == 0:
+            successful: bool = True
+            status: int = 200
+            break
+
+        time.sleep(WAIT_SECONDS)
+
+    message: str = f"Wait {RETRY_COUNT * WAIT_SECONDS}, but data recording is not finished yet."
+    return Response(response=json.dumps({"successful": successful, "message": message}), status=status)
+
