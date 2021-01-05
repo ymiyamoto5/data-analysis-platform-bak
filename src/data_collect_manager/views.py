@@ -347,7 +347,7 @@ def check_record_finished():
     successful: bool = False
     status: int = 500
 
-    for i in range(RETRY_COUNT):
+    for _ in range(RETRY_COUNT):
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
 
         if len(data_file_list) == 0:

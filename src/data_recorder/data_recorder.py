@@ -1,8 +1,6 @@
 import multiprocessing
 import os
 import sys
-
-import json
 import glob
 import re
 import shutil
@@ -88,6 +86,12 @@ def _get_target_files(files_info: List[FileInfo], start_time: datetime, end_time
     """ 処理対象(開始/終了区間に含まれる）ファイルリストを返す """
 
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
+
+
+def _get_not_target_files(files_info: List[FileInfo], start_time: datetime, end_time: datetime) -> List[FileInfo]:
+    """ 処理対象外(開始/終了区間に含まれない）ファイルリストを返す """
+
+    return list(filter(lambda x: (x.timestamp < start_time or x.timestamp > end_time), files_info))
 
 
 def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dict], int]:
@@ -181,7 +185,7 @@ def main(app_config_path: str = None, mode=None) -> None:
 
     # データディレクトリを確認し、ファイルリストを作成
     data_dir: str = common.get_config_value(cfm.app_config_path, "data_dir")
-    files_info: list = _create_files_info(data_dir)
+    files_info: List[FileInfo] = _create_files_info(data_dir)
 
     if len(files_info) == 0:
         logger.info(f"No files in {data_dir}")
@@ -197,9 +201,14 @@ def main(app_config_path: str = None, mode=None) -> None:
         return
 
     # 対象となるファイルに絞り込む
-    target_files: list = _get_target_files(files_info, start_time, end_time)
+    target_files: List[FileInfo] = _get_target_files(files_info, start_time, end_time)
 
-    # TODO: 含まれないファイルは削除する
+    # 含まれないファイルは削除する
+    not_target_files: List[FileInfo] = _get_not_target_files(files_info, start_time, end_time)
+    if mode != "TEST":
+        for file in not_target_files:
+            os.remove(file.file_path)
+            logger.info(f"{file.file_path} has been deleted because it is out of range.")
 
     if len(target_files) == 0:
         logger.info(f"No files in target inteverl {start_time} - {end_time}.")
