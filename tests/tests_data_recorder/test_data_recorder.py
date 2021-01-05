@@ -120,3 +120,72 @@ class TestCreateFilesInfo:
         expected = None
 
         assert actual == expected
+
+
+class TestGetTargetFiles:
+    def test_normal_target_file_exists(self, dat_files):
+        """ 正常系：5ファイル中3ファイルが対象範囲。以下2ファイルが対象外。
+            1ファイル目：20201216-080058.620753
+            5ファイル目：20201216-080102.620753
+        """
+
+        file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
+
+        start_time = datetime(2020, 12, 16, 8, 0, 59, 0)
+        end_time = datetime(2020, 12, 16, 8, 1, 2, 0)
+        actual = data_recorder._get_target_files(file_infos, start_time, end_time)
+
+        expected = [
+            data_recorder.FileInfo(dat_files.tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 59, 620753)),
+            data_recorder.FileInfo(dat_files.tmp_dat_3._str, datetime(2020, 12, 16, 8, 1, 0, 620753)),
+            data_recorder.FileInfo(dat_files.tmp_dat_4._str, datetime(2020, 12, 16, 8, 1, 1, 620753)),
+        ]
+
+        assert actual == expected
+
+    def test_normal_no_target_file(self, dat_files):
+        """ 正常系：対象ファイルなし """
+
+        file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
+
+        start_time = datetime(2020, 12, 16, 8, 1, 3, 0)
+        end_time = datetime(2020, 12, 16, 8, 1, 5, 0)
+        actual = data_recorder._get_target_files(file_infos, start_time, end_time)
+
+        expected = []
+
+        assert actual == expected
+
+
+class TestGetNotTargetFiles:
+    def test_normal_not_target_file_exists(self, dat_files):
+        """ 正常系：5ファイル中3ファイルが対象範囲外。以下2ファイルが対象外。
+            1ファイル目：20201216-080058.620753
+            5ファイル目：20201216-080102.620753
+        """
+
+        file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
+
+        start_time = datetime(2020, 12, 16, 8, 0, 59, 0)
+        end_time = datetime(2020, 12, 16, 8, 1, 2, 0)
+        actual = data_recorder._get_not_target_files(file_infos, start_time, end_time)
+
+        expected = [
+            data_recorder.FileInfo(dat_files.tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753)),
+            data_recorder.FileInfo(dat_files.tmp_dat_5._str, datetime(2020, 12, 16, 8, 1, 2, 620753)),
+        ]
+
+        assert actual == expected
+
+    def test_normal_all_files_are_target(self, dat_files):
+        """ 正常系：すべて対象ファイル（対象外ファイルなし） """
+
+        file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
+
+        start_time = datetime(2020, 12, 16, 8, 0, 58, 0)
+        end_time = datetime(2020, 12, 16, 8, 1, 10, 0)
+        actual = data_recorder._get_not_target_files(file_infos, start_time, end_time)
+
+        expected = []
+
+        assert actual == expected
