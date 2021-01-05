@@ -7,6 +7,7 @@ $("#setup").click(function () {
     }).done(function (data) {
         if (!data.successful) {
             console.log("setup failed.")
+            console.log(data.message)
         }
 
         $("#setup").hide()
@@ -27,6 +28,7 @@ $("#start").click(function () {
     }).done(function (data) {
         if (!data.successful) {
             console.log("start failed.")
+            console.log(data.message)
         }
 
         $("#start").hide()
@@ -55,6 +57,7 @@ function stopCommit() {
     }).done(function (data) {
         if (!data.successful) {
             console.log("stop failed.")
+            console.log(data.message)
         }
 
         $("#stop").hide()
@@ -83,6 +86,7 @@ function pauseCommit() {
     }).done(function (data) {
         if (!data.successful) {
             console.log("pause failed.")
+            console.log(data.message)
         }
 
         $("#pause").hide()
@@ -106,6 +110,7 @@ $("#resume").click(function () {
     }).done(function (data) {
         if (!data.successful) {
             console.log("resume failed.")
+            console.log(data.message)
         }
 
         $("#resume").hide()
@@ -134,6 +139,7 @@ $("#tag").submit(function (e) {
         dataType: 'json'
     }).done(function (data) {
         if (!data.successful) {
+            console.log(data.message)
             console.log(data.message)
         }
     }).fail(function (data) {

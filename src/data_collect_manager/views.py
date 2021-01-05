@@ -15,6 +15,42 @@ from elastic_manager.elastic_manager import ElasticManager
 from config_file_manager.config_file_manager import ConfigFileManager
 
 
+def _initialize_config_file() -> None:
+    """ 不正な状態が検出された場合、configファイルのstatusをstopにして初期化する """
+
+    cfm = ConfigFileManager()
+
+    successful: bool = cfm.update({"status": "stop"})
+    if not successful:
+        return Response(
+            response=json.dumps({"successful": successful, "message": "config file update failed"}), status=500
+        )
+
+
+def _initialize_events_index() -> None:
+    """ 不正な状態が検出された場合、events_index(event_type=stop)を作成して初期化する """
+
+    utc_now: datetime = datetime.utcnow()
+    jst_now = utc_now.astimezone(timezone("Asia/Tokyo"))
+
+    # events_index作成
+    events_index: str = "events-" + jst_now.strftime("%Y%m%d%H%M%S")
+    successful: bool = ElasticManager.create_index(events_index)
+
+    if not successful:
+        return Response(
+            response=json.dumps({"successful": successful, "message": "create ES index failed."}), status=500
+        )
+
+    # events_indexに停止イベントを記録
+    doc_id = 0
+    query = {"event_id": doc_id, "event_type": "stop", "occurred_time": utc_now}
+    successful = ElasticManager.create_doc(events_index, doc_id, query)
+
+    if not successful:
+        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
+
+
 @app.route("/")
 def show_manager():
     """ TOP画面表示。configファイルのstatusによって画面切り替え """
@@ -28,21 +64,14 @@ def show_manager():
             return Response(
                 response=json.dumps({"successful": successful, "message": "config file create failed"}), status=500
             )
-        return render_template("manager.html", status="stop")
 
-    # configファイルがある場合、直近のevents_indexから状態判定
+    # 直近のevents_indexから状態判定
     latest_event_index: Optional[str] = ElasticManager.get_latest_events_index()
 
-    # configファイルがあるのにevents_indexがない例外パターン
+    # 直近のevents_indexがない場合、初期化処理後に初期画面へ遷移
     if latest_event_index is None:
-        app.logger.error("config file exists, but events_index not found.")
-        # stop状態にして収集を止め、初期画面に戻す
-        successful: bool = cfm.update({"status": "stop"})
-        if not successful:
-            return Response(
-                response=json.dumps({"successful": successful, "message": "config file update failed"}), status=500
-            )
-
+        _initialize_events_index()
+        _initialize_config_file()
         return render_template("manager.html", status="stop")
 
     # events_indexの最新documentから状態判定
@@ -51,13 +80,8 @@ def show_manager():
     # 最新のevents_indexがあるのにdocumentがない例外パターン
     if latest_events_index_doc is None:
         app.logger.error("events_index exists, but document not found.")
-        # stop状態にして収集を止め、初期画面に戻す
-        successful: bool = cfm.update({"status": "stop"})
-        if not successful:
-            return Response(
-                response=json.dumps({"successful": successful, "message": "config file update failed"}), status=500
-            )
-
+        _initialize_events_index()
+        _initialize_config_file()
         return render_template("manager.html", status="stop")
 
     event_type: str = latest_events_index_doc["event_type"]
@@ -81,7 +105,12 @@ def setup():
 
     # events_index作成
     events_index: str = "events-" + jst_now.strftime("%Y%m%d%H%M%S")
-    ElasticManager.create_index(events_index)
+    successful: bool = ElasticManager.create_index(events_index)
+
+    if not successful:
+        return Response(
+            response=json.dumps({"successful": successful, "message": "create ES index failed."}), status=500
+        )
 
     # events_indexに段取り開始(setup)を記録
     doc_id = 0
@@ -93,7 +122,7 @@ def setup():
 
     # configファイル更新
     start_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
-    params = {"status": "running", "start_time": start_time}
+    params: dict = {"status": "running", "start_time": start_time}
     cfm = ConfigFileManager()
     successful: bool = cfm.update(params)
 
@@ -112,9 +141,16 @@ def start():
     utc_now: datetime = datetime.utcnow()
 
     # events_indexに開始イベントを記録
-    events_index: str = ElasticManager.get_latest_events_index()
-    doc_id = ElasticManager.count(events_index)
-    query = {"event_id": doc_id, "event_type": "start", "occurred_time": utc_now}
+    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+
+    if events_index is None:
+        app.logger.error("events_index not found.")
+        _initialize_events_index()
+        _initialize_config_file()
+        return render_template("manager.html", status="stop")
+
+    doc_id: int = ElasticManager.count(events_index)
+    query: dict = {"event_id": doc_id, "event_type": "start", "occurred_time": utc_now}
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
@@ -130,9 +166,16 @@ def pause():
     utc_now: datetime = datetime.utcnow()
 
     # 中断イベントの記録。中断終了時刻は現在時刻を仮置き。
-    events_index: str = ElasticManager.get_latest_events_index()
-    doc_id = ElasticManager.count(events_index)
-    query = {"event_id": doc_id, "event_type": "pause", "start_time": utc_now}
+    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+
+    if events_index is None:
+        app.logger.error("events_index not found.")
+        _initialize_events_index()
+        _initialize_config_file()
+        return render_template("manager.html", status="stop")
+
+    doc_id: int = ElasticManager.count(events_index)
+    query: dict = {"event_id": doc_id, "event_type": "pause", "start_time": utc_now}
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
@@ -148,9 +191,16 @@ def resume():
     utc_now: datetime = datetime.utcnow()
 
     # 再開時は中断時に記録されたイベントを更新
-    events_index: str = ElasticManager.get_latest_events_index()
-    doc_id = ElasticManager.count(events_index) - 1  # 更新対象は最新のdocument（pause）イベントである前提
-    query = {"end_time": utc_now}
+    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+
+    if events_index is None:
+        app.logger.error("events_index not found.")
+        _initialize_events_index()
+        _initialize_config_file()
+        return render_template("manager.html", status="stop")
+
+    doc_id: int = ElasticManager.count(events_index) - 1  # 更新対象は最新のdocument（pause）イベントである前提
+    query: dict = {"end_time": utc_now}
     successful: bool = ElasticManager.update_doc(events_index, doc_id, query)
 
     if not successful:
@@ -167,7 +217,7 @@ def stop():
 
     # configファイル更新
     end_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
-    params = {"status": "stop", "end_time": end_time}
+    params: dict = {"status": "stop", "end_time": end_time}
     cfm = ConfigFileManager()
     successful: bool = cfm.update(params)
 
@@ -175,7 +225,14 @@ def stop():
         return Response(response=json.dumps({"successful": successful}), status=500)
 
     # events_indexに停止イベントを記録
-    events_index: str = ElasticManager.get_latest_events_index()
+    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+
+    if events_index is None:
+        app.logger.error("events_index not found.")
+        _initialize_events_index()
+        _initialize_config_file()
+        return render_template("manager.html", status="stop")
+
     doc_id = ElasticManager.count(events_index)
     query = {"event_id": doc_id, "event_type": "stop", "occurred_time": utc_now}
     successful = ElasticManager.create_doc(events_index, doc_id, query)
@@ -199,9 +256,16 @@ def record_tag():
     utc_now: datetime = datetime.utcnow()
 
     # events_indexに事象記録
-    query = {"event_type": "tag", "tag": tag, "occurred_time": utc_now}
-    events_index: str = ElasticManager.get_latest_events_index()
-    doc_id = ElasticManager.count(events_index)
+    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+
+    if events_index is None:
+        app.logger.error("events_index not found.")
+        _initialize_events_index()
+        _initialize_config_file()
+        return render_template("manager.html", status="stop")
+
+    doc_id: int = ElasticManager.count(events_index)
+    query: dict = {"event_type": "tag", "tag": tag, "occurred_time": utc_now}
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
