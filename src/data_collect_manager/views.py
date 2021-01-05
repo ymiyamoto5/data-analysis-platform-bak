@@ -82,7 +82,10 @@ def show_manager():
         app.logger.error("events_index exists, but document not found.")
         _initialize_events_index()
         _initialize_config_file()
-        return render_template("manager.html", status="stop")
+        return Response(
+            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
+            status=500,
+        )
 
     event_type: str = latest_events_index_doc["event_type"]
 
@@ -147,7 +150,10 @@ def start():
         app.logger.error("events_index not found.")
         _initialize_events_index()
         _initialize_config_file()
-        return render_template("manager.html", status="stop")
+        return Response(
+            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
+            status=500,
+        )
 
     doc_id: int = ElasticManager.count(events_index)
     query: dict = {"event_id": doc_id, "event_type": "start", "occurred_time": utc_now}
@@ -172,7 +178,10 @@ def pause():
         app.logger.error("events_index not found.")
         _initialize_events_index()
         _initialize_config_file()
-        return render_template("manager.html", status="stop")
+        return Response(
+            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
+            status=500,
+        )
 
     doc_id: int = ElasticManager.count(events_index)
     query: dict = {"event_id": doc_id, "event_type": "pause", "start_time": utc_now}
@@ -197,7 +206,10 @@ def resume():
         app.logger.error("events_index not found.")
         _initialize_events_index()
         _initialize_config_file()
-        return render_template("manager.html", status="stop")
+        return Response(
+            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
+            status=500,
+        )
 
     doc_id: int = ElasticManager.count(events_index) - 1  # 更新対象は最新のdocument（pause）イベントである前提
     query: dict = {"end_time": utc_now}
@@ -231,7 +243,10 @@ def stop():
         app.logger.error("events_index not found.")
         _initialize_events_index()
         _initialize_config_file()
-        return render_template("manager.html", status="stop")
+        return Response(
+            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
+            status=500,
+        )
 
     doc_id = ElasticManager.count(events_index)
     query = {"event_id": doc_id, "event_type": "stop", "occurred_time": utc_now}
@@ -262,7 +277,10 @@ def record_tag():
         app.logger.error("events_index not found.")
         _initialize_events_index()
         _initialize_config_file()
-        return render_template("manager.html", status="stop")
+        return Response(
+            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
+            status=500,
+        )
 
     doc_id: int = ElasticManager.count(events_index)
     query: dict = {"event_type": "tag", "tag": tag, "occurred_time": utc_now}
