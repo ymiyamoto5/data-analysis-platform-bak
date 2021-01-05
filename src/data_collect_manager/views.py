@@ -234,7 +234,9 @@ def stop():
     successful: bool = cfm.update(params)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful}), status=500)
+        return Response(
+            response=json.dumps({"successful": successful, "message": "config file update failed."}), status=500
+        )
 
     # events_indexに停止イベントを記録
     events_index: Optional[str] = ElasticManager.get_latest_events_index()
@@ -266,7 +268,7 @@ def record_tag():
         tag: str = request.form["tag"]
     except exceptions.BadRequestKeyError as e:
         app.logger.exception(str(e))
-        return Response(response=json.dumps({"successful": False, "message": str(e)}), status=500)
+        return Response(response=json.dumps({"successful": False, "message": str(e)}), status=400)
 
     utc_now: datetime = datetime.utcnow()
 
