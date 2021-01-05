@@ -329,6 +329,12 @@ def record_tag():
     return Response(response=json.dumps({"successful": successful}), status=200)
 
 
+# 最大 36 * 5 = 180 秒待つ
+# NOTE: ローカル変数はmockできないのでglobalで定義
+RETRY_COUNT: Final[int] = 36
+WAIT_SECONDS: Final[int] = 5
+
+
 @app.route("/check", methods=["GET"])
 def check_record_finished():
     """ data_recorderによるデータ取り込みが完了したか確認。dataディレクトリにdatファイルが残っていなければ完了とみなす。 """
@@ -337,26 +343,20 @@ def check_record_finished():
 
     data_dir: str = common.get_config_value(cfm.app_config_path, "data_dir")
 
+    message: str = f"Wait {RETRY_COUNT * WAIT_SECONDS} sec, but data recording is not finished yet."
     successful: bool = False
-    message: Optional[str] = None
     status: int = 500
 
-    # 最大 36 * 5 = 180 秒待つ
-    RETRY_COUNT: Final[int] = 36
-    WAIT_SECONDS: Final[int] = 5
-
-    for _ in range(RETRY_COUNT):
+    for i in range(RETRY_COUNT):
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
-
-        data_file_list = []
 
         if len(data_file_list) == 0:
             successful: bool = True
+            message: str = "data recording is finished."
             status: int = 200
             break
 
         time.sleep(WAIT_SECONDS)
 
-    message: str = f"Wait {RETRY_COUNT * WAIT_SECONDS}, but data recording is not finished yet."
     return Response(response=json.dumps({"successful": successful, "message": message}), status=status)
 

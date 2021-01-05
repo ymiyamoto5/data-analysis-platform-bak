@@ -1,6 +1,7 @@
 import pytest
 from typing import Tuple, Optional
 from datetime import datetime, timedelta
+import glob
 
 from data_collect_manager import views
 from config_file_manager.config_file_manager import ConfigFileManager
@@ -584,3 +585,33 @@ class TestRecordTag:
 
         assert actual_code == expected_code
         assert b'{"successful": false, "message": "save to ES failed."}' in response.data
+
+
+class TestCheck:
+    def test_normal(self, client, mocker):
+        """ 正常系：datファイルがすべて処理済み。 """
+
+        mocker.patch.object(glob, "glob", return_value=[])
+
+        response = client.get("/check")
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b'{"successful": true, "message": "data recording is finished."}' in response.data
+
+    def test_data_recording_not_finish(self, client, mocker, monkeypatch):
+        """ 異常系： datファイルが時間内に捌けない場合 """
+
+        mocker.patch.object(glob, "glob", return_value=["dummy1.dat", "dummy2.dat"])
+
+        monkeypatch.setattr(views, "RETRY_COUNT", 1)
+        monkeypatch.setattr(views, "WAIT_SECONDS", 1)
+
+        response = client.get("/check")
+        actual_code = response.status_code
+        expected_code = 500
+
+        assert actual_code == expected_code
+        assert b'{"successful": false, "message": "Wait 1 sec, but data recording is not finished yet."}' in response.data
+
