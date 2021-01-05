@@ -40,3 +40,4 @@ log
 testprogram.py
 src/data_collect_manager/node_modules
 shared
+.coverage

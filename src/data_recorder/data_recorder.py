@@ -11,7 +11,7 @@ import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
 from pytz import timezone
-from typing import Final, Tuple, List, Mapping
+from typing import Final, Tuple, List, Mapping, Optional
 import pandas as pd
 import dataclasses
 
@@ -137,10 +137,10 @@ def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dic
     return samples, sequential_number
 
 
-def _create_files_info(shared_dir: str) -> List[FileInfo]:
+def _create_files_info(data_dir: str) -> Optional[List[FileInfo]]:
     """ バイナリファイルの情報（パスとファイル名から抽出した日時）リストを生成 """
 
-    file_list: List[str] = glob.glob(os.path.join(shared_dir, "*.dat"))
+    file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
 
     if len(file_list) == 0:
         return None
@@ -185,9 +185,9 @@ def main(app_config_path: str = None, mode=None) -> None:
 
     # データディレクトリを確認し、ファイルリストを作成
     data_dir: str = common.get_config_value(cfm.app_config_path, "data_dir")
-    files_info: List[FileInfo] = _create_files_info(data_dir)
+    files_info: Optional[List[FileInfo]] = _create_files_info(data_dir)
 
-    if len(files_info) == 0:
+    if files_info is None:
         logger.info(f"No files in {data_dir}")
         return
 

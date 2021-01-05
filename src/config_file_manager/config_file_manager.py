@@ -86,7 +86,7 @@ class ConfigFileManager:
             raise FileNotFoundError
         except Exception as e:
             logger.exception(str(e))
-            raise e
+            raise Exception
 
     def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """
