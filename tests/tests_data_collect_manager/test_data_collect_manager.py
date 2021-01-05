@@ -1,10 +1,77 @@
 import pytest
+from typing import Tuple, Optional
 from datetime import datetime, timedelta
-from werkzeug import exceptions
 
+from data_collect_manager import views
 from config_file_manager.config_file_manager import ConfigFileManager
 from elastic_manager.elastic_manager import ElasticManager
 
+
+class TestInitializeConfigFile:
+    def test_normal(self, mocker):
+        """ 正常系 """
+
+        mocker.patch.object(ConfigFileManager, "update", return_value=True)
+
+        acutal: Tuple[bool, Optional[str]] = views._initialize_config_file()
+        expected: Tuple[bool, Optional[str]] = True, None
+
+        assert acutal == expected
+
+        ConfigFileManager.update.assert_called_once()
+
+    def test_config_file_update_fail_exception(self, mocker):
+        """ 異常系：configファイルの更新失敗 """
+
+        mocker.patch.object(ConfigFileManager, "update", return_value=False)
+
+        acutal: Tuple[bool, Optional[str]] = views._initialize_config_file()
+        expected: Tuple[bool, str] = False, "config file update failed."
+
+        assert acutal == expected
+
+        ConfigFileManager.update.assert_called_once()
+
+class TestInitializeEventsIndex:
+    def test_normal(self, mocker):
+        """ 正常系 """
+
+        mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+
+        acutal: Tuple[bool, Optional[str]] = views._initialize_events_index()
+        expected: Tuple[bool, Optional[str]] = True, None
+
+        assert acutal == expected
+
+        ElasticManager.create_index.assert_called_once()
+        ElasticManager.create_doc.assert_called_once()
+
+    def test_events_index_create_fail_exception(self, mocker):
+        """ 異常系：events_indexの作成失敗 """
+
+        mocker.patch.object(ElasticManager, "create_index", return_value=False)
+
+        acutal: Tuple[bool, Optional[str]] = views._initialize_events_index()
+        expected: Tuple[bool, Optional[str]] = False, "create ES index failed."
+
+        assert acutal == expected
+
+        ElasticManager.create_index.assert_called_once()
+
+    def test_events_index_create_doc_fail_exception(self, mocker):
+        """ 異常系：events_indexの作成失敗 """
+
+        mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(ElasticManager, "create_doc", return_value=False)
+
+        acutal: Tuple[bool, Optional[str]] = views._initialize_events_index()
+        expected: Tuple[bool, Optional[str]] = False, "save to ES failed."
+
+        assert acutal == expected
+
+        ElasticManager.create_index.assert_called_once()
+        ElasticManager.create_doc.assert_called_once()
 
 class TestShowManager:
     def test_normal_config_file_not_exists(self, client, mocker):

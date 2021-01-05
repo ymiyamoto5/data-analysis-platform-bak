@@ -3,7 +3,7 @@ import sys
 from flask import render_template, request, Response
 from datetime import datetime
 from pytz import timezone
-from typing import Optional
+from typing import Optional, Tuple
 import json
 
 from werkzeug import exceptions
@@ -15,19 +15,21 @@ from elastic_manager.elastic_manager import ElasticManager
 from config_file_manager.config_file_manager import ConfigFileManager
 
 
-def _initialize_config_file() -> None:
+def _initialize_config_file() -> Tuple[bool, Optional[str]]:
     """ 不正な状態が検出された場合、configファイルのstatusをstopにして初期化する """
 
     cfm = ConfigFileManager()
 
     successful: bool = cfm.update({"status": "stop"})
+
+    message: str = None
     if not successful:
-        return Response(
-            response=json.dumps({"successful": successful, "message": "config file update failed"}), status=500
-        )
+        message: str = "config file update failed."
+
+    return successful, message
 
 
-def _initialize_events_index() -> None:
+def _initialize_events_index() -> Tuple[bool, Optional[str]]:
     """ 不正な状態が検出された場合、events_index(event_type=stop)を作成して初期化する """
 
     utc_now: datetime = datetime.utcnow()
@@ -38,9 +40,7 @@ def _initialize_events_index() -> None:
     successful: bool = ElasticManager.create_index(events_index)
 
     if not successful:
-        return Response(
-            response=json.dumps({"successful": successful, "message": "create ES index failed."}), status=500
-        )
+        return False, "create ES index failed."
 
     # events_indexに停止イベントを記録
     doc_id = 0
@@ -48,7 +48,9 @@ def _initialize_events_index() -> None:
     successful = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
-        return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
+        return False, "save to ES failed."
+
+    return True, None
 
 
 @app.route("/")
@@ -70,8 +72,12 @@ def show_manager():
 
     # 直近のevents_indexがない場合、初期化処理後に初期画面へ遷移
     if latest_event_index is None:
-        _initialize_events_index()
-        _initialize_config_file()
+        successful, message = _initialize_events_index()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return render_template("manager.html", status="stop")
 
     # events_indexの最新documentから状態判定
@@ -80,8 +86,12 @@ def show_manager():
     # 最新のevents_indexがあるのにdocumentがない例外パターン
     if latest_events_index_doc is None:
         app.logger.error("events_index exists, but document not found.")
-        _initialize_events_index()
-        _initialize_config_file()
+        successful, message = _initialize_events_index()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return Response(
             response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
             status=500,
@@ -148,8 +158,12 @@ def start():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        _initialize_events_index()
-        _initialize_config_file()
+        successful, message = _initialize_events_index()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return Response(
             response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
             status=500,
@@ -176,8 +190,12 @@ def pause():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        _initialize_events_index()
-        _initialize_config_file()
+        successful, message = _initialize_events_index()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return Response(
             response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
             status=500,
@@ -204,8 +222,12 @@ def resume():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        _initialize_events_index()
-        _initialize_config_file()
+        successful, message = _initialize_events_index()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return Response(
             response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
             status=500,
@@ -243,8 +265,12 @@ def stop():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        _initialize_events_index()
-        _initialize_config_file()
+        successful, message = _initialize_events_index()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return Response(
             response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
             status=500,
@@ -277,8 +303,12 @@ def record_tag():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        _initialize_events_index()
-        _initialize_config_file()
+        successful, message = _initialize_events_index()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return Response(
             response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
             status=500,
