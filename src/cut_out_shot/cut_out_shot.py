@@ -36,6 +36,7 @@ class CutOutShot:
         self,
         tail_size: int = 1_000,
         min_spm: int = 15,
+        back_seconds_for_tagging: int = 120,
         num_of_process: int = 8,
         displacement_func: Optional[Callable[[float], float]] = None,
         load01_func: Optional[Callable[[float], float]] = None,
@@ -45,6 +46,7 @@ class CutOutShot:
     ):
         self.__tail_size: int = tail_size
         self.__min_spm: int = min_spm
+        self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * 100_000  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
@@ -165,7 +167,7 @@ class CutOutShot:
 
         return pause_events
 
-    def _get_tag_events(self, events: List[dict], back_seconds_for_tagging) -> List[dict]:
+    def _get_tag_events(self, events: List[dict]) -> List[dict]:
         """ events_indexからタグ付け区間を取得。
             記録された時刻（end_time）からN秒前(back_seconds_for_tagging)に遡り、start_timeとする。
         """
@@ -180,7 +182,7 @@ class CutOutShot:
                     raise KeyError
 
                 tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
-                tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
+                tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=self.__back_seconds_for_tagging)
                 # datetime to unixtime
                 tag_event["start_time"] = tag_event["start_time"].timestamp()
                 tag_event["end_time"] = tag_event["end_time"].timestamp()
@@ -350,7 +352,7 @@ class CutOutShot:
         """ 切り出したショットの内、最大サンプル数を上回るショットを除外したDataFrameを返す """
 
         over_sample_df: DataFrame = self.__shots_meta_df[
-            self.__shots_meta_df["num_of_samples_in_shot"] > self.__max_samples_per_shot
+            self.__shots_meta_df["num_of_samples_in_cut_out"] > self.__max_samples_per_shot
         ]
 
         if len(over_sample_df) == 0:
@@ -408,13 +410,7 @@ class CutOutShot:
         return []
 
     @time_log
-    def cut_out_shot(
-        self,
-        rawdata_dir_name: str,
-        start_displacement: float,
-        end_displacement: float,
-        back_seconds_for_tagging: int = 120,
-    ) -> None:
+    def cut_out_shot(self, rawdata_dir_name: str, start_displacement: float, end_displacement: float,) -> None:
         """
         csvファイルをチャンクサイズ単位に読み取り、以下の処理を行う。
         * 中断区間のデータ除外
@@ -444,7 +440,7 @@ class CutOutShot:
         events: List[dict] = self._get_events(suffix=rawdata_dir_name)
         collect_start_time: float = self._get_collect_start_time(events)
         pause_events: List[dict] = self._get_pause_events(events)
-        tag_events: List[dict] = self._get_tag_events(events, back_seconds_for_tagging)
+        tag_events: List[dict] = self._get_tag_events(events)
 
         COLS: Final[Tuple[str]] = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
         previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)  # 前ファイルの末尾バックアップ
@@ -454,7 +450,7 @@ class CutOutShot:
         NOW: Final[datetime] = datetime.now()
 
         # 取り込むpickleファイルのリストを取得
-        data_dir = common.get_config_value("app_config.json", "data_dir")
+        data_dir: str = common.get_config_value("app_config.json", "data_dir")
         rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
         pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 
@@ -590,6 +586,7 @@ def main():
 
     cut_out_shot = CutOutShot(
         min_spm=15,
+        back_seconds_for_tagging=20,
         num_of_process=12,
         displacement_func=displacement_func,
         load01_func=load01_func,
@@ -597,9 +594,7 @@ def main():
         load03_func=load03_func,
         load04_func=load04_func,
     )
-    cut_out_shot.cut_out_shot(
-        rawdata_dir_name="20201201010000", start_displacement=47, end_displacement=34, back_seconds_for_tagging=20,
-    )
+    cut_out_shot.cut_out_shot(rawdata_dir_name="20201201010000", start_displacement=47, end_displacement=34)
 
     # 任意波形生成
     # cut_out_shot = CutOutShot(tail_size=10)

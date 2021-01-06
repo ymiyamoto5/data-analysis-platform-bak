@@ -145,8 +145,8 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_normal_1)
     def test_normal_single_tag_event(self, events):
-        target = cut_out_shot.CutOutShot()
-        actual = target._get_tag_events(events, back_seconds_for_tagging=120)
+        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
+        actual = target._get_tag_events(events)
 
         expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
         expected_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
@@ -168,8 +168,8 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_normal_2)
     def test_normal_multi_tag_event(self, events):
-        target = cut_out_shot.CutOutShot()
-        actual = target._get_tag_events(events, back_seconds_for_tagging=120)
+        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
+        actual = target._get_tag_events(events)
 
         expected_tag1_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
         expected_tag1_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
@@ -204,8 +204,8 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_none)
     def test_no_tag_event(self, events):
-        target = cut_out_shot.CutOutShot()
-        actual = target._get_tag_events(events, back_seconds_for_tagging=120)
+        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
+        actual = target._get_tag_events(events)
 
         expected = []
 
@@ -227,9 +227,9 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_exception)
     def test_no_end_time(self, events):
-        target = cut_out_shot.CutOutShot()
+        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
         with pytest.raises(KeyError):
-            target._get_tag_events(events, back_seconds_for_tagging=120)
+            target._get_tag_events(events)
 
 
 class TestGetPickleList:
