@@ -421,6 +421,7 @@ class CutOutShot:
         * ショット切り出し
         * 物理変換
         * SPM計算
+        * SPMしきい値以下のデータ除外
         * 事象記録のタグ付け
         * Elasticsearchへの保存
 
@@ -428,7 +429,7 @@ class CutOutShot:
             rawdata_filename: 生データcsvのファイル名
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
-            back_seconds_for_tagging: タグ付けにおいて、何秒前まで遡るか
+            back_seconds_for_tagging: タグ付けにおいて、遡る秒数
         """
 
         shots_index: str = "shots-" + rawdata_dir_name
@@ -519,7 +520,7 @@ class CutOutShot:
                 num_of_process=self.__num_of_process,
                 chunk_size=5000,
             )
-            # バッファクリア
+
             self.__cut_out_targets = []
 
         # 全ファイル走査後、子プロセスが残っていればjoin

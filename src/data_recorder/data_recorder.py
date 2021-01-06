@@ -160,20 +160,8 @@ def _create_files_info(data_dir: str) -> Optional[List[FileInfo]]:
 def _export_to_pickle(samples: list, file: FileInfo, processed_dir_path: str) -> None:
     """ pickleファイルに出力する """
 
-    # テンポラリファイルにsequential_numberは不要なので除去
-    # samples: List[dict] = [
-    #     {
-    #         "timestamp": x["timestamp"],
-    #         "displacement": x["displacement"],
-    #         "load01": x["load01"],
-    #         "load02": x["load02"],
-    #         "load03": x["load03"],
-    #         "load04": x["load04"],
-    #     }
-    #     for x in samples
-    # ]
     df: DataFrame = pd.DataFrame(samples)
-    # df.set_index("timestamp", inplace=True)
+
     pickle_filename: str = os.path.splitext(os.path.basename(file.file_path))[0]
     pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
     df.to_pickle(pickle_filepath)
