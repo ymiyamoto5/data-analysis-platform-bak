@@ -5,7 +5,6 @@ import logging
 import logging.handlers
 import pandas as pd
 import glob
-import dataclasses
 from typing import Callable, Final, List, Tuple, Optional
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
@@ -32,16 +31,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@dataclasses.dataclass
-class ShotMetaData:
-    shot_number: int
-    spm: Optional[float] = None
-
-
 class CutOutShot:
     def __init__(
         self,
         tail_size: int = 1_000,
+        min_spm: int = 15,
         displacement_func: Optional[Callable[[float], float]] = None,
         load01_func: Optional[Callable[[float], float]] = None,
         load02_func: Optional[Callable[[float], float]] = None,
@@ -49,14 +43,19 @@ class CutOutShot:
         load04_func: Optional[Callable[[float], float]] = None,
     ):
         self.__tail_size: int = tail_size
+        self.__min_spm: int = min_spm
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * 100_000  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
         self.__previous_shot_start_time: Optional[float] = None
+        self.__previous_shot_start_number: Optional[int] = None
         self.__cut_out_targets: List[dict] = []
-        self.__shots_meta_data: List[ShotMetaData] = []
+        self.__shots_meta_df: DataFrame = pd.DataFrame(
+            columns=("shot_number", "spm", "num_of_samples_in_cut_out", "num_of_samples_in_shot")
+        )
 
         self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
         self.__load01_func: Optional[Callable[[float], float]] = load01_func
@@ -282,6 +281,14 @@ class CutOutShot:
         self.__previous_shot_start_time = timestamp
         return spm
 
+    def _count_samples_in_shot(self, sequential_number: int) -> int:
+        """ ショットに含まれるサンプル数をカウント """
+
+        num_of_samples_in_shot: int = sequential_number - self.__previous_shot_start_number
+        logger.debug(f"shot_number: {self.__shot_number}, {num_of_samples_in_shot} samples in shot.")
+        self.__previous_shot_start_number = sequential_number
+        return num_of_samples_in_shot
+
     def _initialize_when_shot_detected(self) -> None:
         """ ショット検出時の初期処理 """
 
@@ -310,12 +317,6 @@ class CutOutShot:
             self.__sequential_number += 1
             self.__sequential_number_by_shot += 1
 
-    def _add_shots_meta_data(self, spm: float) -> None:
-        """ ショットのメタデータ追加 """
-
-        shot_meta_data: ShotMetaData = ShotMetaData(self.__shot_number, spm)
-        self.__shots_meta_data.append(shot_meta_data)
-
     def _add_cut_out_target(self, rawdata: dict) -> None:
         """ 切り出し対象としてデータを追加 """
 
@@ -336,13 +337,36 @@ class CutOutShot:
         }
         self.__cut_out_targets.append(cut_out_target)
 
-    def _apply_expr_displacement(self, rawdata_df: DataFrame) -> None:
+    def _set_to_none_for_low_spm(self) -> None:
+        """ 切り出したショットの内、最低spmを下回るショットのspmはNoneに設定する """
+
+        self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(
+            self.__shots_meta_df["spm"] >= self.__min_spm, None
+        )
+
+    def _exclude_over_sample(self, df: DataFrame) -> DataFrame:
+        """ 切り出したショットの内、最大サンプル数を上回るショットを除外したDataFrameを返す """
+
+        over_sample_df: DataFrame = self.__shots_meta_df[
+            self.__shots_meta_df["num_of_samples_in_shot"] > self.__max_samples_per_shot
+        ]
+
+        if len(over_sample_df) == 0:
+            return df
+
+        over_sample_shot_numbers: List[float] = list(over_sample_df.shot_number)
+
+        return df.query("shot_number not in @over_sample_shot_numbers")
+
+    def _apply_expr_displacement(self, df: DataFrame) -> DataFrame:
         """ 変位値に対して変換式を適用 """
 
         if self.__displacement_func is not None:
-            rawdata_df["displacement"] = rawdata_df["displacement"].apply(self.__displacement_func)
+            df["displacement"] = df["displacement"].apply(self.__displacement_func)
 
-    def _apply_expr_load(self, df: DataFrame) -> None:
+        return df
+
+    def _apply_expr_load(self, df: DataFrame) -> DataFrame:
         """ 荷重値に対して変換式を適用 """
 
         if self.__load01_func is not None:
@@ -353,6 +377,8 @@ class CutOutShot:
             df["load03"] = df["load03"].apply(self.__load03_func)
         if self.__load04_func is not None:
             df["load04"] = df["load04"].apply(self.__load04_func)
+
+        return df
 
     def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
         """ マルチプロセスの処理待ち """
@@ -427,7 +453,7 @@ class CutOutShot:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
             # 変位値に変換式適用
-            self._apply_expr_displacement(rawdata_df)
+            rawdata_df = self._apply_expr_displacement(rawdata_df)
 
             # ショット切り出し
             self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
@@ -448,10 +474,20 @@ class CutOutShot:
                 logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
-            # NOTE: 変換式適用のため、一時的にDataFrameに変換している。
+            # NOTE: 以下処理のため一時的にDataFrameに変換している。
             cut_out_df: DataFrame = pd.DataFrame(self.__cut_out_targets)
+
+            # 最大サンプル数を超えたショットの削除
+            cut_out_df: DataFrame = self._exclude_over_sample(cut_out_df)
+
+            if len(cut_out_df) == 0:
+                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
+                continue
+
             # 荷重値に変換式を適用
-            self._apply_expr_load(cut_out_df)
+            cut_out_df: DataFrame = self._apply_expr_load(cut_out_df)
+
+            # Elasticsearchに格納するため、dictに戻す
             self.__cut_out_targets = cut_out_df.to_dict(orient="records")
 
             # タグ付け
@@ -473,10 +509,16 @@ class CutOutShot:
         # 全ファイル走査後、子プロセスが残っていればjoin
         procs = self.__join_process(procs)
 
-        # TODO: 低spmのshot削除
+        # spmがしきい値以下の場合、Noneとする。
+        self._set_to_none_for_low_spm()
 
         # ショットメタデータをElasticsearchに出力
-        shots_meta_data: List[dict] = [dataclasses.asdict(x) for x in self.__shots_meta_data]
+        self.__shots_meta_df["shot_number"] = self.__shots_meta_df["shot_number"].astype(int)
+        self.__shots_meta_df["num_of_samples_in_cut_out"] = self.__shots_meta_df["num_of_samples_in_cut_out"].astype(
+            int
+        )
+        self.__shots_meta_df["num_of_samples_in_shot"] = self.__shots_meta_df["num_of_samples_in_shot"].astype(int)
+        shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=num_of_process
         )
@@ -489,12 +531,23 @@ class CutOutShot:
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             if self._detect_shot_start(rawdata.displacement, start_displacement):
-                # 最初のショット検知時はspm計算できないため、timestampだけ保持しておく
+                # 最初のショット検知時はspm計算できない
                 if self.__shot_number == 0:
                     self.__previous_shot_start_time: float = rawdata.timestamp
+                    self.__previous_shot_start_number: int = rawdata.sequential_number
+                # 2つめ以降のショット検知時は、1つ前のショット情報(spm/切り出したサンプル数/ショットサンプル数)を記録する
                 else:
-                    spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
-                    self._add_shots_meta_data(spm)
+                    spm: float = self._calculate_spm(rawdata.timestamp)
+                    num_of_samples_in_shot: int = self._count_samples_in_shot(rawdata.sequential_number)
+                    self.__shots_meta_df = self.__shots_meta_df.append(
+                        {
+                            "shot_number": self.__shot_number,
+                            "spm": spm,
+                            "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
+                            "num_of_samples_in_shot": num_of_samples_in_shot,
+                        },
+                        ignore_index=True,
+                    )
 
                 self._initialize_when_shot_detected()
 
@@ -510,7 +563,6 @@ class CutOutShot:
 
             if self._detect_cut_out_end(rawdata.displacement, end_displacement):
                 self.__is_target_of_cut_out = False
-                self.__sequential_number_by_shot = 0
 
             # 切り出し区間でなければ後続は何もしない
             if not self.__is_target_of_cut_out:
@@ -526,20 +578,27 @@ def main():
     # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # lambda
-    displacement_func = lambda x: x + 1.0
+    displacement_func = lambda x: x * 1.0
     load01_func = lambda x: x * 1.0
     load02_func = lambda x: x * 2.0
     load03_func = lambda x: x * 3.0
     load04_func = lambda x: x * 4.0
 
     cut_out_shot = CutOutShot(
+        min_spm=15,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,
         load03_func=load03_func,
         load04_func=load04_func,
     )
-    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
+    cut_out_shot.cut_out_shot(
+        rawdata_dir_name="20201201010000",
+        start_displacement=47,
+        end_displacement=34,
+        back_seconds_for_tagging=20,
+        num_of_process=12,
+    )
 
     # 任意波形生成
     # cut_out_shot = CutOutShot(tail_size=10)
