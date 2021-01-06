@@ -36,6 +36,7 @@ class CutOutShot:
         self,
         tail_size: int = 1_000,
         min_spm: int = 15,
+        num_of_process: int = 8,
         displacement_func: Optional[Callable[[float], float]] = None,
         load01_func: Optional[Callable[[float], float]] = None,
         load02_func: Optional[Callable[[float], float]] = None,
@@ -44,6 +45,7 @@ class CutOutShot:
     ):
         self.__tail_size: int = tail_size
         self.__min_spm: int = min_spm
+        self.__num_of_process: int = num_of_process
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * 100_000  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
@@ -380,7 +382,7 @@ class CutOutShot:
 
         return df
 
-    def _export_shots_meta_to_es(self, shots_meta_index: str, num_of_process: int):
+    def _export_shots_meta_to_es(self, shots_meta_index: str):
         """ ショットメタデータをshots_metaインデックスに出力 """
 
         self.__shots_meta_df["shot_number"] = self.__shots_meta_df["shot_number"].astype(int)
@@ -392,7 +394,7 @@ class CutOutShot:
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
         procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=num_of_process
+            data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=self.__num_of_process
         )
         procs = self.__join_process(procs)
 
@@ -412,7 +414,6 @@ class CutOutShot:
         start_displacement: float,
         end_displacement: float,
         back_seconds_for_tagging: int = 120,
-        num_of_process: int = 8,
     ) -> None:
         """
         csvファイルをチャンクサイズ単位に読み取り、以下の処理を行う。
@@ -428,7 +429,6 @@ class CutOutShot:
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
             back_seconds_for_tagging: タグ付けにおいて、何秒前まで遡るか
-            num_of_process: 並列処理のプロセス数
         """
 
         shots_index: str = "shots-" + rawdata_dir_name
@@ -516,7 +516,7 @@ class CutOutShot:
             procs = ElasticManager.multi_process_bulk_lazy_join(
                 data=self.__cut_out_targets,
                 index_to_import=shots_index,
-                num_of_process=num_of_process,
+                num_of_process=self.__num_of_process,
                 chunk_size=5000,
             )
             # バッファクリア
@@ -529,7 +529,7 @@ class CutOutShot:
         self._set_to_none_for_low_spm()
 
         # ショットメタデータをElasticsearchに出力
-        self._export_shots_meta_to_es(shots_meta_index, num_of_process)
+        self._export_shots_meta_to_es(shots_meta_index)
 
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
@@ -538,7 +538,7 @@ class CutOutShot:
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             if self._detect_shot_start(rawdata.displacement, start_displacement):
-                # 最初のショット検知時はspm計算できない
+                # 最初のショット検知時はspm計算できない。
                 if self.__shot_number == 0:
                     self.__previous_shot_start_time: float = rawdata.timestamp
                     self.__previous_shot_start_number: int = rawdata.sequential_number
@@ -581,10 +581,6 @@ class CutOutShot:
 
 def main():
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
-    # cut_out_shot = CutOutShot()
-    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
-
-    # lambda
     displacement_func = lambda x: x * 1.0
     load01_func = lambda x: x * 1.0
     load02_func = lambda x: x * 2.0
@@ -593,6 +589,7 @@ def main():
 
     cut_out_shot = CutOutShot(
         min_spm=15,
+        num_of_process=12,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,
@@ -600,11 +597,7 @@ def main():
         load04_func=load04_func,
     )
     cut_out_shot.cut_out_shot(
-        rawdata_dir_name="20201201010000",
-        start_displacement=47,
-        end_displacement=34,
-        back_seconds_for_tagging=20,
-        num_of_process=12,
+        rawdata_dir_name="20201201010000", start_displacement=47, end_displacement=34, back_seconds_for_tagging=20,
     )
 
     # 任意波形生成
