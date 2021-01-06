@@ -526,24 +526,24 @@ def main():
     # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # lambda
-    # displacement_func = lambda x: x + 1.0
-    # load01_func = lambda x: x * 1.0
-    # load02_func = lambda x: x * 2.0
-    # load03_func = lambda x: x * 3.0
-    # load04_func = lambda x: x * 4.0
+    displacement_func = lambda x: x + 1.0
+    load01_func = lambda x: x * 1.0
+    load02_func = lambda x: x * 2.0
+    load03_func = lambda x: x * 3.0
+    load04_func = lambda x: x * 4.0
 
-    # cut_out_shot = CutOutShot(
-    #     displacement_func=displacement_func,
-    #     load01_func=load01_func,
-    #     load02_func=load02_func,
-    #     load03_func=load03_func,
-    #     load04_func=load04_func,
-    # )
-    # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
+    cut_out_shot = CutOutShot(
+        displacement_func=displacement_func,
+        load01_func=load01_func,
+        load02_func=load02_func,
+        load03_func=load03_func,
+        load04_func=load04_func,
+    )
+    cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
     # 任意波形生成
-    cut_out_shot = CutOutShot(tail_size=10)
-    cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
+    # cut_out_shot = CutOutShot(tail_size=10)
+    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
 
 
 if __name__ == "__main__":

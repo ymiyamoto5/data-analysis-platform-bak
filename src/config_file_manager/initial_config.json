@@ -10,6 +10,6 @@
         "ADC_SerialNum": "01234567",
         "sampling_frequency": 100000,
         "sampling_chnum": 5,
-        "filewrite_time": 3600
+        "filewrite_time": 60
     }
 }

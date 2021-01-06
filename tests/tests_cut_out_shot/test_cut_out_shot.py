@@ -1,5 +1,8 @@
 import pytest
+import pandas as pd
 from datetime import datetime
+from pandas.core.frame import DataFrame
+from pandas.util.testing import assert_frame_equal
 
 from elastic_manager.elastic_manager import ElasticManager
 from cut_out_shot import cut_out_shot
@@ -12,6 +15,7 @@ class TestGetEvents:
             {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
             {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
         ]
+
         mocker.patch.object(ElasticManager, "get_all_doc", return_value=expected)
 
         target = cut_out_shot.CutOutShot()
@@ -278,3 +282,16 @@ class TestGetPickleList:
         expected = []
 
         assert actual == expected
+
+
+class TestExcludeSetupInterval:
+    def test_normal_exclude(self, rawdata_df):
+        """ 正常系：段取区間除外 """
+
+        target = cut_out_shot.CutOutShot()
+        collect_start_time: float = datetime(2020, 12, 1, 10, 30, 23, 0).timestamp()
+        actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
+
+        expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
+
+        assert_frame_equal(actual, expected)
