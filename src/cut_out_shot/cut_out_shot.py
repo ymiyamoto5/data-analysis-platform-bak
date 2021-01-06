@@ -380,6 +380,22 @@ class CutOutShot:
 
         return df
 
+    def _export_shots_meta_to_es(self, shots_meta_index: str, num_of_process: int):
+        """ ショットメタデータをshots_metaインデックスに出力 """
+
+        self.__shots_meta_df["shot_number"] = self.__shots_meta_df["shot_number"].astype(int)
+        self.__shots_meta_df["num_of_samples_in_cut_out"] = self.__shots_meta_df["num_of_samples_in_cut_out"].astype(
+            int
+        )
+        self.__shots_meta_df["num_of_samples_in_shot"] = self.__shots_meta_df["num_of_samples_in_shot"].astype(int)
+
+        shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
+
+        procs = ElasticManager.multi_process_bulk_lazy_join(
+            data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=num_of_process
+        )
+        procs = self.__join_process(procs)
+
     def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
         """ マルチプロセスの処理待ち """
 
@@ -458,7 +474,7 @@ class CutOutShot:
             # ショット切り出し
             self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
 
-            # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップに遡ってデータを得る。
+            # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップからデータを得る。
             previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
 
             # 子プロセスのjoin
@@ -488,7 +504,7 @@ class CutOutShot:
             cut_out_df: DataFrame = self._apply_expr_load(cut_out_df)
 
             # Elasticsearchに格納するため、dictに戻す
-            self.__cut_out_targets = cut_out_df.to_dict(orient="records")
+            self.__cut_out_targets: List[dict] = cut_out_df.to_dict(orient="records")
 
             # タグ付け
             if len(tag_events) > 0:
@@ -513,16 +529,7 @@ class CutOutShot:
         self._set_to_none_for_low_spm()
 
         # ショットメタデータをElasticsearchに出力
-        self.__shots_meta_df["shot_number"] = self.__shots_meta_df["shot_number"].astype(int)
-        self.__shots_meta_df["num_of_samples_in_cut_out"] = self.__shots_meta_df["num_of_samples_in_cut_out"].astype(
-            int
-        )
-        self.__shots_meta_df["num_of_samples_in_shot"] = self.__shots_meta_df["num_of_samples_in_shot"].astype(int)
-        shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
-        procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=num_of_process
-        )
-        procs = self.__join_process(procs)
+        self._export_shots_meta_to_es(shots_meta_index, num_of_process)
 
     def _cut_out_shot(
         self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
@@ -573,7 +580,7 @@ class CutOutShot:
 
 
 def main():
-    # No13 3000shot拡張。切り出し後のデータ数：9,287,537
+    # No13 3000shot拡張。切り出し後のデータ数：9,287,421
     # cut_out_shot = CutOutShot()
     # cut_out_shot.cut_out_shot("20201201010000", 47, 34, 20, 12)
 
