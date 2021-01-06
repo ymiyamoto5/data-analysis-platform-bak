@@ -34,30 +34,6 @@ def _initialize_config_file() -> Tuple[bool, Optional[str]]:
     return successful, message
 
 
-def _initialize_events_index() -> Tuple[bool, Optional[str]]:
-    """ 不正な状態が検出された場合、events_index(event_type=stop)を作成して初期化する """
-
-    utc_now: datetime = datetime.utcnow()
-    jst_now = utc_now.astimezone(timezone("Asia/Tokyo"))
-
-    # events_index作成
-    events_index: str = "events-" + jst_now.strftime("%Y%m%d%H%M%S")
-    successful: bool = ElasticManager.create_index(events_index)
-
-    if not successful:
-        return False, "create ES index failed."
-
-    # events_indexに停止イベントを記録
-    doc_id = 0
-    query = {"event_id": doc_id, "event_type": "stop", "occurred_time": utc_now}
-    successful = ElasticManager.create_doc(events_index, doc_id, query)
-
-    if not successful:
-        return False, "save to ES failed."
-
-    return True, None
-
-
 @app.route("/")
 def show_manager():
     """ TOP画面表示。configファイルのstatusによって画面切り替え """
@@ -77,9 +53,6 @@ def show_manager():
 
     # 直近のevents_indexがない場合、初期化処理後に初期画面へ遷移
     if latest_event_index is None:
-        successful, message = _initialize_events_index()
-        if not successful:
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
@@ -91,16 +64,10 @@ def show_manager():
     # 最新のevents_indexがあるのにdocumentがない例外パターン
     if latest_events_index_doc is None:
         app.logger.error("events_index exists, but document not found.")
-        successful, message = _initialize_events_index()
-        if not successful:
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
-        return Response(
-            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
-            status=500,
-        )
+        return render_template("manager.html", status="stop")
 
     event_type: str = latest_events_index_doc["event_type"]
 
@@ -163,16 +130,10 @@ def start():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        successful, message = _initialize_events_index()
-        if not successful:
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
-        return Response(
-            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
-            status=500,
-        )
+        return render_template("manager.html", status="stop")
 
     doc_id: int = ElasticManager.count(events_index)
     query: dict = {"event_id": doc_id, "event_type": "start", "occurred_time": utc_now}
@@ -195,16 +156,10 @@ def pause():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        successful, message = _initialize_events_index()
-        if not successful:
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
-        return Response(
-            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
-            status=500,
-        )
+        return render_template("manager.html", status="stop")
 
     doc_id: int = ElasticManager.count(events_index)
     query: dict = {"event_id": doc_id, "event_type": "pause", "start_time": utc_now}
@@ -227,16 +182,10 @@ def resume():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        successful, message = _initialize_events_index()
-        if not successful:
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
-        return Response(
-            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
-            status=500,
-        )
+        return render_template("manager.html", status="stop")
 
     doc_id: int = ElasticManager.count(events_index) - 1  # 更新対象は最新のdocument（pause）イベントである前提
     query: dict = {"end_time": utc_now}
@@ -270,16 +219,10 @@ def stop():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        successful, message = _initialize_events_index()
-        if not successful:
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
-        return Response(
-            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
-            status=500,
-        )
+        return render_template("manager.html", status="stop")
 
     doc_id = ElasticManager.count(events_index)
     query = {"event_id": doc_id, "event_type": "stop", "occurred_time": utc_now}
@@ -308,16 +251,10 @@ def record_tag():
 
     if events_index is None:
         app.logger.error("events_index not found.")
-        successful, message = _initialize_events_index()
-        if not successful:
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
-        return Response(
-            response=json.dumps({"successful": False, "message": "events_index not found. data collection stoppted."}),
-            status=500,
-        )
+        return render_template("manager.html", status="stop")
 
     doc_id: int = ElasticManager.count(events_index)
     query: dict = {"event_type": "tag", "tag": tag, "occurred_time": utc_now}
