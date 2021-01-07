@@ -57,14 +57,11 @@ class CutOutShot:
         self.__sequential_number_by_shot: int = 0
         self.__shot_number: int = 0
         self.__previous_shot_start_time: Optional[float] = None
-        self.__previous_shot_start_number: Optional[int] = None
         self.__cut_out_targets: List[dict] = []
         self.__previous_df_tail: DataFrame = pd.DataFrame(
             index=[], columns=("timestamp", "displacement", "load01", "load02", "load03", "load04")
         )
-        self.__shots_meta_df: DataFrame = pd.DataFrame(
-            columns=("shot_number", "spm", "num_of_samples_in_cut_out", "num_of_samples_in_shot")
-        )
+        self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("shot_number", "spm"))
 
         self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
         self.__load01_func: Optional[Callable[[float], float]] = load01_func
@@ -215,16 +212,6 @@ class CutOutShot:
 
         return df
 
-    def _add_tags(self, tag_events: List[dict]) -> None:
-        """ ショットデータにタグ付け """
-
-        tags: List[str] = []
-
-        for d in self.__cut_out_targets:
-            tags: List[str] = self._get_tags(d["timestamp"], tag_events)
-            if len(tags) > 0:
-                d["tags"].extend(tags)
-
     def _get_tags(self, rawdata_timestamp: datetime, tag_events: List[dict]) -> List[str]:
         """ 対象サンプルが事象記録範囲にあるか判定し、範囲内であれば事象タグを返す """
 
@@ -234,6 +221,16 @@ class CutOutShot:
                 tags.append(tag_event["tag"])
 
         return tags
+
+    def _add_tags(self, tag_events: List[dict]) -> None:
+        """ ショットデータにタグ付け """
+
+        tags: List[str] = []
+
+        for d in self.__cut_out_targets:
+            tags: List[str] = self._get_tags(d["timestamp"], tag_events)
+            if len(tags) > 0:
+                d["tags"].extend(tags)
 
     def _detect_shot_start(self, displacement: float, start_displacement: float) -> bool:
         """ ショット開始検知。ショットが未検出かつ変位値が開始しきい値以下の場合、ショット開始とみなす。 """
@@ -271,7 +268,7 @@ class CutOutShot:
             end_index: int = row_number
             return rawdata_df[start_index:end_index]
 
-        # 初めのchunkでショットを検出し、遡って取得するデータが現在のDataFrameに含まれない場合
+        # 初めのpklでショットを検出し、遡って取得するデータが現在のDataFrameに含まれない場合
         # ex) N=1000で、初めのchunkにおいてrow_number=100でショットを検知した場合、rawdata_df[:100]を取得
         if len(self.__previous_df_tail) == 0:
             return rawdata_df[:row_number]
@@ -289,14 +286,6 @@ class CutOutShot:
         logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
         self.__previous_shot_start_time = timestamp
         return spm
-
-    def _count_samples_in_shot(self, sequential_number: int) -> int:
-        """ ショットに含まれるサンプル数をカウント """
-
-        num_of_samples_in_shot: int = sequential_number - self.__previous_shot_start_number
-        logger.debug(f"shot_number: {self.__shot_number}, {num_of_samples_in_shot} samples in shot.")
-        self.__previous_shot_start_number = sequential_number
-        return num_of_samples_in_shot
 
     def _initialize_when_shot_detected(self) -> None:
         """ ショット検出時の初期処理 """
@@ -393,10 +382,6 @@ class CutOutShot:
         """ ショットメタデータをshots_metaインデックスに出力 """
 
         self.__shots_meta_df["shot_number"] = self.__shots_meta_df["shot_number"].astype(int)
-        self.__shots_meta_df["num_of_samples_in_cut_out"] = self.__shots_meta_df["num_of_samples_in_cut_out"].astype(
-            int
-        )
-        self.__shots_meta_df["num_of_samples_in_shot"] = self.__shots_meta_df["num_of_samples_in_shot"].astype(int)
 
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
@@ -539,23 +524,16 @@ class CutOutShot:
                 # 最初のショット検知時はspm計算できない。
                 if self.__shot_number == 0:
                     self.__previous_shot_start_time: float = rawdata.timestamp
-                    self.__previous_shot_start_number: int = rawdata.sequential_number
-                # 2つめ以降のショット検知時は、1つ前のショット情報(spm/切り出したサンプル数/ショットサンプル数)を記録する
+                # 2つめ以降のショット検知時は、1つ前のショットのspmを計算して記録する
                 else:
                     spm: float = self._calculate_spm(rawdata.timestamp)
-                    num_of_samples_in_shot: int = self._count_samples_in_shot(rawdata.sequential_number)
                     self.__shots_meta_df = self.__shots_meta_df.append(
-                        {
-                            "shot_number": self.__shot_number,
-                            "spm": spm,
-                            "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
-                            "num_of_samples_in_shot": num_of_samples_in_shot,
-                        },
-                        ignore_index=True,
+                        {"shot_number": self.__shot_number, "spm": spm}, ignore_index=True,
                     )
 
                 self._initialize_when_shot_detected()
 
+                # 荷重開始点取りこぼし防止
                 preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df)
                 self._include_previous_data(preceding_df)
 
@@ -587,7 +565,7 @@ def main():
 
     cut_out_shot = CutOutShot(
         min_spm=15,
-        back_seconds_for_tagging=20,
+        back_seconds_for_tagging=120,
         previous_size=1_000,
         num_of_process=12,
         chunk_size=5_000,

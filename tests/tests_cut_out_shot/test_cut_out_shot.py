@@ -311,6 +311,7 @@ class TestExcludeSetupInterval:
         """ 正常系：段取区間除外（除外対象なし） """
 
         target = cut_out_shot.CutOutShot()
+        # rawdata_dfの最初のサンプルと同時刻
         collect_start_time: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
         actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
 
@@ -320,36 +321,42 @@ class TestExcludeSetupInterval:
 
 
 class TestExcludePauseInterval:
-    pass
-    # def test_normal_exclude_all(self, rawdata_df):
-    #     """ 正常系：段取区間除外（全データ） """
+    def test_normal_exclude_one_interval(self, rawdata_df):
+        """ 正常系：中断区間(1回)除外 """
 
-    #     target = cut_out_shot.CutOutShot()
-    #     collect_start_time: float = datetime(2020, 12, 1, 10, 30, 22, 111112).timestamp()
-    #     actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
+        target = cut_out_shot.CutOutShot()
 
-    #     expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
+        start_time: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        end_time: float = datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp()
 
-    #     assert_frame_equal(actual, expected)
+        pause_events = [{"event_type": "pause", "start_time": start_time, "end_time": end_time}]
 
-    # def test_normal_exclude_some_data(self, rawdata_df):
-    #     """ 正常系：段取区間除外（部分データ） """
+        actual: DataFrame = target._exclude_pause_interval(rawdata_df, pause_events)
 
-    #     target = cut_out_shot.CutOutShot()
-    #     collect_start_time: float = datetime(2020, 12, 1, 10, 30, 20, 0).timestamp()
-    #     actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
+        # 最初と最後のサンプルを以外すべて除去される。
+        expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[1 : len(rawdata_df) - 1])
 
-    #     expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:-3])
+        assert_frame_equal(actual, expected)
 
-    #     assert_frame_equal(actual, expected)
+    def test_normal_exclude_two_interval(self, rawdata_df):
+        """ 正常系：中断区間(2回)除外 """
 
-    # def test_normal_not_exclude(self, rawdata_df):
-    #     """ 正常系：段取区間除外（除外対象なし） """
+        target = cut_out_shot.CutOutShot()
 
-    #     target = cut_out_shot.CutOutShot()
-    #     collect_start_time: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
-    #     actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
+        start_time_1: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        end_time_1: float = datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp()
+        start_time_2: float = datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp()
+        end_time_2: float = datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp()
 
-    #     expected: DataFrame = rawdata_df
+        pause_events = [
+            {"event_type": "pause", "start_time": start_time_1, "end_time": end_time_1},
+            {"event_type": "pause", "start_time": start_time_2, "end_time": end_time_2},
+        ]
 
-    #     assert_frame_equal(actual, expected)
+        actual: DataFrame = target._exclude_pause_interval(rawdata_df, pause_events)
+
+        # 最初と最後のサンプルを以外すべて除去される。
+        expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[1 : len(rawdata_df) - 1])
+
+        assert_frame_equal(actual, expected)
+

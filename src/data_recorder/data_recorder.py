@@ -132,6 +132,7 @@ def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dic
 
         dataset_number += 1
         sequential_number += 1
+
         timestamp += 0.000010  # 100k sample
 
     return samples, sequential_number
@@ -157,7 +158,7 @@ def _create_files_info(data_dir: str) -> Optional[List[FileInfo]]:
     return files_info
 
 
-def _export_to_pickle(samples: list, file: FileInfo, processed_dir_path: str) -> None:
+def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: str) -> None:
     """ pickleファイルに出力する """
 
     df: DataFrame = pd.DataFrame(samples)
@@ -226,6 +227,7 @@ def main(app_config_path: str = None, mode=None) -> None:
             setting_file: str = "mappings/setting_rawdata.json"
             ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
+    # modelに分離
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     procs: List[multiprocessing.context.Process] = []
@@ -235,10 +237,10 @@ def main(app_config_path: str = None, mode=None) -> None:
         sequential_number: int
         samples, sequential_number = _read_binary_files(file, sequential_number)
 
-        if len(procs) > 0:
-            for p in procs:
-                p.join()
-            procs = []
+        # if len(procs) > 0:
+        #     for p in procs:
+        #         p.join()
+        #     procs = []
 
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
