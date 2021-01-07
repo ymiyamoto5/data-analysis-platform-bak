@@ -7,6 +7,7 @@ import shutil
 import struct
 import logging
 import logging.handlers
+from numpy.core.records import record
 import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
@@ -168,12 +169,13 @@ def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: s
     df.to_pickle(pickle_filepath)
 
 
-def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str):
+def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str) -> None:
     """ バイナリファイル読み取りおよびES/pkl出力 """
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
 
     procs: List[multiprocessing.context.Process] = []
+
     for file in target_files:
         # バイナリファイルを読み取り、データリストを取得
         samples: List[dict]
@@ -254,6 +256,8 @@ def main(app_config_path: str = None) -> None:
             mapping_file: str = "mappings/mapping_rawdata.json"
             setting_file: str = "mappings/setting_rawdata.json"
             ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+
+    _data_record(rawdata_index, target_files, processed_dir_path)
 
     logger.info("all file processed.")
 
