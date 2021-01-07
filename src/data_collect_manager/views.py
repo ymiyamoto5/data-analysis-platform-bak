@@ -4,7 +4,6 @@ import time
 import glob
 from flask import render_template, request, Response
 from datetime import datetime
-from pytz import timezone
 from typing import Optional, Tuple, List, Final
 import json
 
@@ -18,6 +17,7 @@ from config_file_manager.config_file_manager import ConfigFileManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils/"))
 import common
+from utils.common import DisplayTime
 
 
 def _initialize_config_file() -> Tuple[bool, Optional[str]]:
@@ -86,10 +86,10 @@ def setup():
 
     # 基本的にUTCを使うが、events_index名のサフィックスのみJSTを使う
     utc_now: datetime = datetime.utcnow()
-    jst_now = utc_now.astimezone(timezone("Asia/Tokyo"))
+    jst_now: DisplayTime = DisplayTime(utc_now)
 
     # events_index作成
-    events_index: str = "events-" + jst_now.strftime("%Y%m%d%H%M%S")
+    events_index: str = "events-" + jst_now.to_string()
     successful: bool = ElasticManager.create_index(events_index)
 
     if not successful:

@@ -10,7 +10,6 @@ import logging.handlers
 import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
-from pytz import timezone
 from typing import Final, Tuple, List, Mapping, Optional
 import pandas as pd
 import dataclasses
@@ -169,7 +168,35 @@ def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: s
     df.to_pickle(pickle_filepath)
 
 
-def main(app_config_path: str = None, mode=None) -> None:
+def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str):
+    """ バイナリファイル読み取りおよびES/pkl出力 """
+
+    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
+
+    procs: List[multiprocessing.context.Process] = []
+    for file in target_files:
+        # バイナリファイルを読み取り、データリストを取得
+        samples: List[dict]
+        sequential_number: int
+        samples, sequential_number = _read_binary_files(file, sequential_number)
+
+        procs = ElasticManager.multi_process_bulk_lazy_join(
+            data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
+        )
+
+        _export_to_pickle(samples, file, processed_dir_path)
+
+        # 処理済みディレクトリに退避。テスト時は退避しない。
+        if MODE != "TEST":
+            shutil.move(file.file_path, processed_dir_path)
+        logger.info(f"processed: {file.file_path}")
+
+    if len(procs) > 0:
+        for p in procs:
+            p.join()
+
+
+def main(app_config_path: str = None) -> None:
 
     cfm: ConfigFileManager = ConfigFileManager(app_config_path)
 
@@ -195,7 +222,7 @@ def main(app_config_path: str = None, mode=None) -> None:
 
     # 含まれないファイルは削除する
     not_target_files: List[FileInfo] = _get_not_target_files(files_info, start_time, end_time)
-    if mode != "TEST":
+    if MODE != "TEST":
         for file in not_target_files:
             os.remove(file.file_path)
             logger.info(f"{file.file_path} has been deleted because it is out of range.")
@@ -212,10 +239,10 @@ def main(app_config_path: str = None, mode=None) -> None:
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # Elasticsearch rawdataインデックス名
-    rawdata_index: str = "rawdata-" + datetime.strftime(start_time_jst, "%Y%m%d%H%M%S")
+    rawdata_index: str = "rawdata-" + start_time_jst.to_string()
 
     # テスト時はインデックスを都度再作成する。
-    if mode == "TEST":
+    if MODE == "TEST":
         if ElasticManager.exists_index(rawdata_index):
             ElasticManager.delete_index(rawdata_index)
         mapping_file: str = "mappings/mapping_rawdata.json"
@@ -228,39 +255,10 @@ def main(app_config_path: str = None, mode=None) -> None:
             setting_file: str = "mappings/setting_rawdata.json"
             ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
-    # modelに分離
-    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
-
-    procs: List[multiprocessing.context.Process] = []
-    for file in target_files:
-        # バイナリファイルを読み取り、データリストを取得
-        samples: List[dict]
-        sequential_number: int
-        samples, sequential_number = _read_binary_files(file, sequential_number)
-
-        # if len(procs) > 0:
-        #     for p in procs:
-        #         p.join()
-        #     procs = []
-
-        procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
-        )
-
-        _export_to_pickle(samples, file, processed_dir_path)
-
-        # 処理済みディレクトリに退避。テスト時は退避しない。
-        if mode != "TEST":
-            shutil.move(file.file_path, processed_dir_path)
-        logger.info(f"processed: {file.file_path}")
-
-    # 最終ループでjoinできていないprocessを待機。
-    if len(procs) > 0:
-        for p in procs:
-            p.join()
-
     logger.info("all file processed.")
 
 
 if __name__ == "__main__":
-    main(mode="TEST")
+    MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
+    main()
+
