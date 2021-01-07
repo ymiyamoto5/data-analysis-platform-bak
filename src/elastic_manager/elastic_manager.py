@@ -4,7 +4,6 @@ from elasticsearch import Elasticsearch
 from elasticsearch import exceptions
 from elasticsearch import helpers
 
-# from elasticsearch import AsyncElasticsearch
 import pandas as pd
 import json
 from typing import Iterable, Iterator, Tuple, List, Optional
@@ -22,7 +21,6 @@ class ElasticManager:
     """ Elasticsearchへの各種処理を行うwrapperクラス """
 
     es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
-    # async_es = AsyncElasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
 
     @classmethod
     def show_indices(cls, show_all_index: bool = False) -> pd.DataFrame:
@@ -252,7 +250,7 @@ class ElasticManager:
 
     @classmethod
     def multi_process_bulk_lazy_join(
-        cls, data: List[dict], index_to_import: str, num_of_process: int = 4, chunk_size: int = 500
+        cls, data: List[dict], index_to_import: str, num_of_process: int = 8, chunk_size: int = 5000
     ) -> List[multiprocessing.context.Process]:
         """ マルチプロセスでbulk insertする。processリストを返却し、呼び出し元でjoinする。 """
 

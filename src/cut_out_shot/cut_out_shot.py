@@ -50,7 +50,7 @@ class CutOutShot:
         self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * 100_000  # 100kサンプルにおける最大サンプル数
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * common.SAMPLING_INTERVAL  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
@@ -61,7 +61,7 @@ class CutOutShot:
         self.__previous_df_tail: DataFrame = pd.DataFrame(
             index=[], columns=("timestamp", "displacement", "load01", "load02", "load03", "load04")
         )
-        self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("shot_number", "spm"))
+        self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("shot_number", "spm", "num_of_samples_in_cut_out"))
 
         self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
         self.__load01_func: Optional[Callable[[float], float]] = load01_func
@@ -237,7 +237,7 @@ class CutOutShot:
 
         return (not self.__is_shot_section) and (displacement <= start_displacement)
 
-    def _detect_shot_end(self, displacement: float, start_displacement: float, margin: float = 0.1) -> bool:
+    def _detect_shot_end(self, displacement: float, start_displacement: float, margin: float = common.MARGIN) -> bool:
         """ ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
 
             margin: ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
@@ -528,7 +528,12 @@ class CutOutShot:
                 else:
                     spm: float = self._calculate_spm(rawdata.timestamp)
                     self.__shots_meta_df = self.__shots_meta_df.append(
-                        {"shot_number": self.__shot_number, "spm": spm}, ignore_index=True,
+                        {
+                            "shot_number": self.__shot_number,
+                            "spm": spm,
+                            "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
+                        },
+                        ignore_index=True,
                     )
 
                 self._initialize_when_shot_detected()
@@ -537,7 +542,7 @@ class CutOutShot:
                 preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df)
                 self._include_previous_data(preceding_df)
 
-            if self._detect_shot_end(rawdata.displacement, start_displacement, margin=0.1):
+            if self._detect_shot_end(rawdata.displacement, start_displacement, margin=common.MARGIN):
                 self.__is_shot_section = False
 
             # ショット未開始ならば後続は何もしない

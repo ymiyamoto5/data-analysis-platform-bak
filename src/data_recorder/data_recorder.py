@@ -21,6 +21,7 @@ from config_file_manager.config_file_manager import ConfigFileManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
+from utils.common import DisplayTime
 
 LOG_FILE: Final = "log/data_recorder/data_recorder.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
@@ -133,7 +134,7 @@ def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dic
         dataset_number += 1
         sequential_number += 1
 
-        timestamp += 0.000010  # 100k sample
+        timestamp += common.SAMPLING_INTERVAL  # 100k sample固定
 
     return samples, sequential_number
 
@@ -206,8 +207,8 @@ def main(app_config_path: str = None, mode=None) -> None:
     logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
     # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。ディレクトリ名はconfigのstart_timeを基準とする。
-    start_time_jst: datetime = start_time.astimezone(timezone("Asia/Tokyo"))
-    processed_dir_path: str = os.path.join(data_dir, datetime.strftime(start_time_jst, "%Y%m%d%H%M%S"))
+    start_time_jst: DisplayTime = DisplayTime(start_time)
+    processed_dir_path: str = os.path.join(data_dir, start_time_jst.to_string())
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # Elasticsearch rawdataインデックス名
