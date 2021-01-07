@@ -34,20 +34,22 @@ logger = logging.getLogger(__name__)
 class CutOutShot:
     def __init__(
         self,
-        tail_size: int = 1_000,
+        previous_size: int = 1_000,
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
         num_of_process: int = 8,
+        chunk_size: int = 5_000,
         displacement_func: Optional[Callable[[float], float]] = None,
         load01_func: Optional[Callable[[float], float]] = None,
         load02_func: Optional[Callable[[float], float]] = None,
         load03_func: Optional[Callable[[float], float]] = None,
         load04_func: Optional[Callable[[float], float]] = None,
     ):
-        self.__tail_size: int = tail_size
+        self.__previous_size: int = previous_size
         self.__min_spm: int = min_spm
         self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
+        self.__chunk_size: int = chunk_size
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * 100_000  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
@@ -57,6 +59,9 @@ class CutOutShot:
         self.__previous_shot_start_time: Optional[float] = None
         self.__previous_shot_start_number: Optional[int] = None
         self.__cut_out_targets: List[dict] = []
+        self.__previous_df_tail: DataFrame = pd.DataFrame(
+            index=[], columns=("timestamp", "displacement", "load01", "load02", "load03", "load04")
+        )
         self.__shots_meta_df: DataFrame = pd.DataFrame(
             columns=("shot_number", "spm", "num_of_samples_in_cut_out", "num_of_samples_in_shot")
         )
@@ -248,16 +253,16 @@ class CutOutShot:
 
         return self.__is_target_of_cut_out and (displacement <= end_displacement)
 
-    def _backup_df_tail(self, df: DataFrame) -> DataFrame:
-        """ 1つ前のchunkの末尾を現在のchunkの末尾に更新し、現在のchunkの末尾を保持する """
+    def _backup_df_tail(self, df: DataFrame) -> None:
+        """ 現在のchunkの末尾を保持する """
 
-        N: Final[int] = self.__tail_size
-        return df[-N:].copy()
+        N: Final[int] = self.__previous_size
+        self.__previous_df_tail: DataFrame = df[-N:].copy()
 
-    def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame, previous_df_tail: DataFrame) -> DataFrame:
+    def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
 
-        N: Final[int] = self.__tail_size
+        N: Final[int] = self.__previous_size
 
         # 遡って取得するデータが現在のDataFrameに含まれる場合
         # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
@@ -268,14 +273,14 @@ class CutOutShot:
 
         # 初めのchunkでショットを検出し、遡って取得するデータが現在のDataFrameに含まれない場合
         # ex) N=1000で、初めのchunkにおいてrow_number=100でショットを検知した場合、rawdata_df[:100]を取得
-        if len(previous_df_tail) == 0:
+        if len(self.__previous_df_tail) == 0:
             return rawdata_df[:row_number]
 
         # 遡って取得するデータが現在のDataFrameに含まれない場合
         # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
         start_index: int = row_number
         end_index: int = row_number
-        return pd.concat([previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
+        return pd.concat([self.__previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
 
     def _calculate_spm(self, timestamp: float) -> float:
         """ spm (shot per minute) 計算。ショット検出時、前ショットの開始時間との差分を計算する。 """
@@ -302,7 +307,7 @@ class CutOutShot:
         self.__sequential_number_by_shot = 0
 
     def _include_previous_data(self, preceding_df: DataFrame) -> None:
-        """ ショット検出時、tail_size分のデータを遡って切り出し対象に含める。荷重立ち上がり点取りこぼし防止のため。 """
+        """ ショット検出時、previous_size分のデータを遡って切り出し対象に含める。荷重立ち上がり点取りこぼし防止のため。 """
 
         for d in preceding_df.itertuples():
             cut_out_target: dict = {
@@ -442,8 +447,6 @@ class CutOutShot:
         pause_events: List[dict] = self._get_pause_events(events)
         tag_events: List[dict] = self._get_tag_events(events)
 
-        COLS: Final[Tuple[str]] = ("timestamp", "displacement", "load01", "load02", "load03", "load04")
-        previous_df_tail: DataFrame = pd.DataFrame(index=[], columns=COLS)  # 前ファイルの末尾バックアップ
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
 
@@ -469,10 +472,10 @@ class CutOutShot:
             rawdata_df = self._apply_expr_displacement(rawdata_df)
 
             # ショット切り出し
-            self._cut_out_shot(previous_df_tail, rawdata_df, start_displacement, end_displacement)
+            self._cut_out_shot(rawdata_df, start_displacement, end_displacement)
 
             # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップからデータを得る。
-            previous_df_tail: DataFrame = self._backup_df_tail(rawdata_df)
+            self._backup_df_tail(rawdata_df)
 
             # 子プロセスのjoin
             procs = self.__join_process(procs)
@@ -514,7 +517,7 @@ class CutOutShot:
                 data=self.__cut_out_targets,
                 index_to_import=shots_index,
                 num_of_process=self.__num_of_process,
-                chunk_size=5000,
+                chunk_size=self.__chunk_size,
             )
 
             self.__cut_out_targets = []
@@ -528,9 +531,7 @@ class CutOutShot:
         # ショットメタデータをElasticsearchに出力
         self._export_shots_meta_to_es(shots_meta_index)
 
-    def _cut_out_shot(
-        self, previous_df_tail: DataFrame, rawdata_df: DataFrame, start_displacement: float, end_displacement: float
-    ):
+    def _cut_out_shot(self, rawdata_df: DataFrame, start_displacement: float, end_displacement: float):
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
@@ -555,7 +556,7 @@ class CutOutShot:
 
                 self._initialize_when_shot_detected()
 
-                preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df, previous_df_tail)
+                preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df)
                 self._include_previous_data(preceding_df)
 
             if self._detect_shot_end(rawdata.displacement, start_displacement, margin=0.1):
@@ -587,7 +588,9 @@ def main():
     cut_out_shot = CutOutShot(
         min_spm=15,
         back_seconds_for_tagging=20,
+        previous_size=1_000,
         num_of_process=12,
+        chunk_size=5_000,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,
@@ -597,7 +600,7 @@ def main():
     cut_out_shot.cut_out_shot(rawdata_dir_name="20201201010000", start_displacement=47, end_displacement=34)
 
     # 任意波形生成
-    # cut_out_shot = CutOutShot(tail_size=10)
+    # cut_out_shot = CutOutShot(previous_size=10)
     # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
 
 
