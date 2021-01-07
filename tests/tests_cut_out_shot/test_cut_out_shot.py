@@ -318,3 +318,38 @@ class TestExcludeSetupInterval:
 
         assert_frame_equal(actual, expected)
 
+
+class TestExcludePauseInterval:
+    pass
+    # def test_normal_exclude_all(self, rawdata_df):
+    #     """ 正常系：段取区間除外（全データ） """
+
+    #     target = cut_out_shot.CutOutShot()
+    #     collect_start_time: float = datetime(2020, 12, 1, 10, 30, 22, 111112).timestamp()
+    #     actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
+
+    #     expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
+
+    #     assert_frame_equal(actual, expected)
+
+    # def test_normal_exclude_some_data(self, rawdata_df):
+    #     """ 正常系：段取区間除外（部分データ） """
+
+    #     target = cut_out_shot.CutOutShot()
+    #     collect_start_time: float = datetime(2020, 12, 1, 10, 30, 20, 0).timestamp()
+    #     actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
+
+    #     expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:-3])
+
+    #     assert_frame_equal(actual, expected)
+
+    # def test_normal_not_exclude(self, rawdata_df):
+    #     """ 正常系：段取区間除外（除外対象なし） """
+
+    #     target = cut_out_shot.CutOutShot()
+    #     collect_start_time: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
+    #     actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
+
+    #     expected: DataFrame = rawdata_df
+
+    #     assert_frame_equal(actual, expected)

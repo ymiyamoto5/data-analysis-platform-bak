@@ -135,3 +135,15 @@ def rawdata_df():
 
     rawdata_df: DataFrame = pd.DataFrame(rawdata)
     yield rawdata_df
+
+
+@pytest.fixture
+def events_list():
+    """ events_indexのデータfixture """
+
+    events: List[dict] = [
+        {"event_type": "setup", "occrred_time": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),},
+        {"event_type": "start", "occrred_time": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),},
+        {},
+    ]
+
