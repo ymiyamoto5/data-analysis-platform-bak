@@ -39,6 +39,7 @@ class CutOutShot:
         back_seconds_for_tagging: int = 120,
         num_of_process: int = 8,
         chunk_size: int = 5_000,
+        margin: int = 0.1,
         displacement_func: Optional[Callable[[float], float]] = None,
         load01_func: Optional[Callable[[float], float]] = None,
         load02_func: Optional[Callable[[float], float]] = None,
@@ -50,6 +51,7 @@ class CutOutShot:
         self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
+        self.__margin: int = margin
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * common.SAMPLING_INTERVAL  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
@@ -237,13 +239,13 @@ class CutOutShot:
 
         return (not self.__is_shot_section) and (displacement <= start_displacement)
 
-    def _detect_shot_end(self, displacement: float, start_displacement: float, margin: float = common.MARGIN) -> bool:
+    def _detect_shot_end(self, displacement: float, start_displacement: float) -> bool:
         """ ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
-
+        
             margin: ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
         """
 
-        return self.__is_shot_section and (displacement > start_displacement + margin)
+        return self.__is_shot_section and (displacement > start_displacement + self.__margin)
 
     def _detect_cut_out_end(self, displacement: float, end_displacement: float) -> bool:
         """ 切り出し終了検知。切り出し区間として検知されており、かつ変位値が終了しきい値以下の場合、切り出し終了とみなす。"""
@@ -453,6 +455,8 @@ class CutOutShot:
             if len(pause_events) > 0:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
+            # TODO: 変位値を物理変換
+
             # 変位値に変換式適用
             rawdata_df = self._apply_expr_displacement(rawdata_df)
 
@@ -484,6 +488,8 @@ class CutOutShot:
             if len(cut_out_df) == 0:
                 logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
+
+            # TODO: 荷重値を物理変換
 
             # 荷重値に変換式を適用
             cut_out_df: DataFrame = self._apply_expr_load(cut_out_df)
@@ -542,7 +548,7 @@ class CutOutShot:
                 preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df)
                 self._include_previous_data(preceding_df)
 
-            if self._detect_shot_end(rawdata.displacement, start_displacement, margin=common.MARGIN):
+            if self._detect_shot_end(rawdata.displacement, start_displacement):
                 self.__is_shot_section = False
 
             # ショット未開始ならば後続は何もしない
@@ -574,6 +580,7 @@ def main():
         previous_size=1_000,
         num_of_process=12,
         chunk_size=5_000,
+        margin=0.1,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,

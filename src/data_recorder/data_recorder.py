@@ -182,6 +182,10 @@ def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir
         sequential_number: int
         samples, sequential_number = _read_binary_files(file, sequential_number)
 
+        if len(procs) > 0:
+            for p in procs:
+                p.join()
+
         procs = ElasticManager.multi_process_bulk_lazy_join(
             data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
         )
