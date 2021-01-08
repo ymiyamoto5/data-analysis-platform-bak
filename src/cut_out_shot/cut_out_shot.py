@@ -583,9 +583,9 @@ def main():
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
     displacement_func = lambda x: x * 1.0
     load01_func = lambda x: x * 1.0
-    load02_func = lambda x: x * 2.0
-    load03_func = lambda x: x * 3.0
-    load04_func = lambda x: x * 4.0
+    load02_func = lambda x: x * 1.0
+    load03_func = lambda x: x * 1.0
+    load04_func = lambda x: x * 1.0
 
     cut_out_shot = CutOutShot(
         min_spm=15,

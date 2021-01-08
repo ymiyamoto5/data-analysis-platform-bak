@@ -9,7 +9,7 @@ from cut_out_shot import cut_out_shot
 
 
 class TestGetEvents:
-    def test_normal(self, mocker):
+    def test_normal(self, target, mocker):
         expected = [
             {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
             {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
@@ -18,7 +18,6 @@ class TestGetEvents:
 
         mocker.patch.object(ElasticManager, "get_all_doc", return_value=expected)
 
-        target = cut_out_shot.CutOutShot()
         actual = target._get_events(suffix="20201201000000")
 
         assert actual == expected
@@ -37,9 +36,10 @@ class TestGetCollectStartTime:
         ],
     )
 
-    @pytest.mark.parametrize("events", events_normal)
-    def test_normal(self, events):
-        target = cut_out_shot.CutOutShot()
+    events_normal_ids = [f"events-{x}" for x in events_normal]
+
+    @pytest.mark.parametrize("events", events_normal, ids=events_normal_ids)
+    def test_normal(self, target, events):
         actual = target._get_collect_start_time(events)
 
         expected = datetime(2020, 12, 1, 0, 10, 0, 123456).timestamp()
@@ -49,8 +49,7 @@ class TestGetCollectStartTime:
     events_exception = ([{"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"}],)
 
     @pytest.mark.parametrize("events", events_exception)
-    def test_no_start_event(self, events):
-        target = cut_out_shot.CutOutShot()
+    def test_no_start_event(self, target, events):
         with pytest.raises(ValueError):
             target._get_collect_start_time(events)
 
@@ -79,8 +78,7 @@ class TestGetPauseEvents:
     )
 
     @pytest.mark.parametrize("events", events_normal_1)
-    def test_normal(self, events):
-        target = cut_out_shot.CutOutShot()
+    def test_normal(self, target, events):
         actual = target._get_pause_events(events)
 
         expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
@@ -102,8 +100,7 @@ class TestGetPauseEvents:
     )
 
     @pytest.mark.parametrize("events", events_none)
-    def test_no_pause_event(self, events):
-        target = cut_out_shot.CutOutShot()
+    def test_no_pause_event(self, target, events):
         actual = target._get_pause_events(events)
 
         expected = []
@@ -113,16 +110,14 @@ class TestGetPauseEvents:
     events_exception_1 = ([{"event_type": "pause", "start_time": "2020-12-01T00:15:00.123456"}],)
 
     @pytest.mark.parametrize("events", events_exception_1)
-    def test_not_end(self, events):
-        target = cut_out_shot.CutOutShot()
+    def test_not_end(self, target, events):
         with pytest.raises(KeyError):
             target._get_pause_events(events)
 
     events_exception_2 = ([{"event_type": "pause", "end_time": "2020-12-01T00:16:00.123456"}],)
 
     @pytest.mark.parametrize("events", events_exception_2)
-    def test_not_start(self, events):
-        target = cut_out_shot.CutOutShot()
+    def test_not_start(self, target, events):
         with pytest.raises(KeyError):
             target._get_pause_events(events)
 
@@ -144,8 +139,8 @@ class TestGetTagEvent:
     )
 
     @pytest.mark.parametrize("events", events_normal_1)
-    def test_normal_single_tag_event(self, events):
-        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
+    def test_normal_single_tag_event(self, target, events):
+        target.back_seconds_for_tagging = 120
         actual = target._get_tag_events(events)
 
         expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
@@ -167,8 +162,8 @@ class TestGetTagEvent:
     )
 
     @pytest.mark.parametrize("events", events_normal_2)
-    def test_normal_multi_tag_event(self, events):
-        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
+    def test_normal_multi_tag_event(self, target, events):
+        target.back_seconds_for_tagging = 120
         actual = target._get_tag_events(events)
 
         expected_tag1_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
@@ -203,8 +198,8 @@ class TestGetTagEvent:
     )
 
     @pytest.mark.parametrize("events", events_none)
-    def test_no_tag_event(self, events):
-        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
+    def test_no_tag_event(self, target, events):
+        target.back_seconds_for_tagging = 120
         actual = target._get_tag_events(events)
 
         expected = []
@@ -226,14 +221,14 @@ class TestGetTagEvent:
     )
 
     @pytest.mark.parametrize("events", events_exception)
-    def test_no_end_time(self, events):
-        target = cut_out_shot.CutOutShot(back_seconds_for_tagging=120)
+    def test_no_end_time(self, target, events):
+        target.back_seconds_for_tagging = 120
         with pytest.raises(KeyError):
             target._get_tag_events(events)
 
 
 class TestGetPickleList:
-    def test_normal_1(self, tmp_path):
+    def test_normal_1(self, target, tmp_path):
         tmp_file_1 = tmp_path / "AD-00_20201216-080001.853297.pkl"
         tmp_file_2 = tmp_path / "AD-00_20201216-080000.280213.pkl"
         tmp_file_3 = tmp_path / "AD-00_20201216-075958.708968.pkl"
@@ -242,7 +237,6 @@ class TestGetPickleList:
         tmp_file_2.write_text("")
         tmp_file_3.write_text("")
 
-        target = cut_out_shot.CutOutShot()
         actual = target._get_pickle_list(tmp_path)
 
         expected = [
@@ -253,7 +247,7 @@ class TestGetPickleList:
 
         assert actual == expected
 
-    def test_normal_2(self, tmp_path):
+    def test_normal_2(self, target, tmp_path):
         tmp_file_1 = tmp_path / "AD-00_20201216-075958.708968.pkl"
         tmp_file_2 = tmp_path / "AD-00_20201216-075958.708968.dat"
         tmp_file_3 = tmp_path / "AD-00_20201216-080000.280213.pkl"
@@ -264,7 +258,6 @@ class TestGetPickleList:
         tmp_file_3.write_text("")
         tmp_file_4.write_text("")
 
-        target = cut_out_shot.CutOutShot()
         actual = target._get_pickle_list(tmp_path)
 
         expected = [
@@ -275,8 +268,7 @@ class TestGetPickleList:
 
         assert actual == expected
 
-    def test_no_file(self, tmp_path):
-        target = cut_out_shot.CutOutShot()
+    def test_no_file(self, target, tmp_path):
         actual = target._get_pickle_list(tmp_path)
 
         expected = []
@@ -285,10 +277,9 @@ class TestGetPickleList:
 
 
 class TestExcludeSetupInterval:
-    def test_normal_exclude_all(self, rawdata_df):
+    def test_normal_exclude_all(self, target, rawdata_df):
         """ 正常系：段取区間除外（全データ） """
 
-        target = cut_out_shot.CutOutShot()
         collect_start_time: float = datetime(2020, 12, 1, 10, 30, 22, 111112).timestamp()
         actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
 
@@ -296,10 +287,9 @@ class TestExcludeSetupInterval:
 
         assert_frame_equal(actual, expected)
 
-    def test_normal_exclude_some_data(self, rawdata_df):
+    def test_normal_exclude_some_data(self, target, rawdata_df):
         """ 正常系：段取区間除外（部分データ） """
 
-        target = cut_out_shot.CutOutShot()
         collect_start_time: float = datetime(2020, 12, 1, 10, 30, 20, 0).timestamp()
         actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
 
@@ -307,10 +297,9 @@ class TestExcludeSetupInterval:
 
         assert_frame_equal(actual, expected)
 
-    def test_normal_not_exclude(self, rawdata_df):
+    def test_normal_not_exclude(self, target, rawdata_df):
         """ 正常系：段取区間除外（除外対象なし） """
 
-        target = cut_out_shot.CutOutShot()
         # rawdata_dfの最初のサンプルと同時刻
         collect_start_time: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
         actual: DataFrame = target._exclude_setup_interval(rawdata_df, collect_start_time)
@@ -321,10 +310,8 @@ class TestExcludeSetupInterval:
 
 
 class TestExcludePauseInterval:
-    def test_normal_exclude_one_interval(self, rawdata_df):
+    def test_normal_exclude_one_interval(self, target, rawdata_df):
         """ 正常系：中断区間(1回)除外 """
-
-        target = cut_out_shot.CutOutShot()
 
         start_time: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
         end_time: float = datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp()
@@ -338,10 +325,8 @@ class TestExcludePauseInterval:
 
         assert_frame_equal(actual, expected)
 
-    def test_normal_exclude_two_interval(self, rawdata_df):
+    def test_normal_exclude_two_interval(self, target, rawdata_df):
         """ 正常系：中断区間(2回)除外 """
-
-        target = cut_out_shot.CutOutShot()
 
         start_time_1: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
         end_time_1: float = datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp()

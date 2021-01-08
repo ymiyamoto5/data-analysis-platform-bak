@@ -1,10 +1,33 @@
-import os
-import sys
 import pytest
 import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
 from typing import List
+
+from cut_out_shot import cut_out_shot
+
+
+@pytest.fixture
+def target():
+    """ 変換式のみ定義したCutOutShotインスタンス fixture"""
+
+    displacement_func = lambda x: x * 1.0
+    load01_func = lambda x: x * 1.0
+    load02_func = lambda x: x * 1.0
+    load03_func = lambda x: x * 1.0
+    load04_func = lambda x: x * 1.0
+
+    instance = cut_out_shot.CutOutShot(
+        displacement_func=displacement_func,
+        load01_func=load01_func,
+        load02_func=load02_func,
+        load03_func=load03_func,
+        load04_func=load04_func,
+    )
+
+    yield instance
+
+    del instance
 
 
 @pytest.fixture
