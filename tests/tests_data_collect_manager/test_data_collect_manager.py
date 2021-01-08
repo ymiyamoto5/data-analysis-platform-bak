@@ -531,18 +531,3 @@ class TestCheck:
         assert actual_code == expected_code
         assert b'{"successful": true, "message": "data recording is finished."}' in response.data
 
-    def test_data_recording_not_finish(self, client, mocker, monkeypatch):
-        """ 異常系： datファイルが時間内に捌けない場合 """
-
-        mocker.patch.object(glob, "glob", return_value=["dummy1.dat", "dummy2.dat"])
-
-        monkeypatch.setattr(views, "RETRY_COUNT", 1)
-        monkeypatch.setattr(views, "WAIT_SECONDS", 1)
-
-        response = client.get("/check")
-        actual_code = response.status_code
-        expected_code = 500
-
-        assert actual_code == expected_code
-        assert b'{"successful": false, "message": "Wait 1 sec, but data recording is not finished yet."}' in response.data
-
