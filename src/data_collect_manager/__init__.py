@@ -1,7 +1,6 @@
 import os
 from flask import Flask
 from logging.config import dictConfig
-from flask_session import Session
 
 # logging
 dictConfig(

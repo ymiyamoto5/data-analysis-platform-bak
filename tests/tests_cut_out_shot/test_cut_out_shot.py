@@ -360,3 +360,6 @@ class TestExcludePauseInterval:
 
         assert_frame_equal(actual, expected)
 
+
+# class TestGetTags:
+

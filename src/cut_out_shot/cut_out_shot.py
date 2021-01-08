@@ -65,10 +65,29 @@ class CutOutShot:
         )
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("shot_number", "spm", "num_of_samples_in_cut_out"))
 
+        if displacement_func is None:
+            logger.error("displacement_func is not defined.")
+            raise SystemExit
         self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
+
+        if load01_func is None:
+            logger.error("load01_func is not defined.")
+            raise SystemExit
         self.__load01_func: Optional[Callable[[float], float]] = load01_func
+
+        if load02_func is None:
+            logger.error("load02_func is not defined.")
+            raise SystemExit
         self.__load02_func: Optional[Callable[[float], float]] = load02_func
+
+        if load03_func is None:
+            logger.error("load03_func is not defined.")
+            raise SystemExit
         self.__load03_func: Optional[Callable[[float], float]] = load03_func
+
+        if load04_func is None:
+            logger.error("load04_func is not defined.")
+            raise SystemExit
         self.__load04_func: Optional[Callable[[float], float]] = load04_func
 
     # テスト用の公開プロパティ
@@ -241,7 +260,7 @@ class CutOutShot:
 
     def _detect_shot_end(self, displacement: float, start_displacement: float) -> bool:
         """ ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
-        
+
             margin: ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
         """
 
@@ -369,14 +388,10 @@ class CutOutShot:
     def _apply_expr_load(self, df: DataFrame) -> DataFrame:
         """ 荷重値に対して変換式を適用 """
 
-        if self.__load01_func is not None:
-            df["load01"] = df["load01"].apply(self.__load01_func)
-        if self.__load02_func is not None:
-            df["load02"] = df["load02"].apply(self.__load02_func)
-        if self.__load03_func is not None:
-            df["load03"] = df["load03"].apply(self.__load03_func)
-        if self.__load04_func is not None:
-            df["load04"] = df["load04"].apply(self.__load04_func)
+        df["load01"] = df["load01"].apply(self.__load01_func)
+        df["load02"] = df["load02"].apply(self.__load02_func)
+        df["load03"] = df["load03"].apply(self.__load03_func)
+        df["load04"] = df["load04"].apply(self.__load04_func)
 
         return df
 
@@ -466,9 +481,6 @@ class CutOutShot:
             # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップからデータを得る。
             self._backup_df_tail(rawdata_df)
 
-            # 子プロセスのjoin
-            procs = self.__join_process(procs)
-
             # スループット表示
             if loop_count != 0:
                 processed_count += len(rawdata_df)
@@ -489,8 +501,6 @@ class CutOutShot:
                 logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
 
-            # TODO: 荷重値を物理変換
-
             # 荷重値に変換式を適用
             cut_out_df: DataFrame = self._apply_expr_load(cut_out_df)
 
@@ -502,6 +512,9 @@ class CutOutShot:
                 self._add_tags(tag_events)
 
             logger.info(f"{len(self.__cut_out_targets)} shots detected in {pickle_file}.")
+
+            # 子プロセスのjoin
+            procs = self.__join_process(procs)
 
             # Elasticsearchに出力
             procs = ElasticManager.multi_process_bulk_lazy_join(
