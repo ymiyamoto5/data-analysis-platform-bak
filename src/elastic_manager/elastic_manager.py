@@ -46,7 +46,7 @@ class ElasticManager:
 
         indices_list = [x.split() for x in _indices]
 
-        df = pd.DataFrame(indices_list[1:], columns=indices_list[0])
+        df = pd.DataFrame(indices_list[1:], columns=indices_list[0]).sort_values("index").reset_index(drop=True)
 
         return df
 
