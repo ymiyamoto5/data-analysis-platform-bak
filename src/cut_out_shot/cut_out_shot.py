@@ -52,7 +52,7 @@ class CutOutShot:
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
         self.__margin: int = margin
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * common.SAMPLING_INTERVAL  # 100kサンプルにおける最大サンプル数
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * common.SAMPLING_RATE  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
