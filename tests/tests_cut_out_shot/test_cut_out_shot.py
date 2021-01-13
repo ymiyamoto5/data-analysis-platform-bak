@@ -750,7 +750,33 @@ class TestGetPrecedingDf:
         # assertのためindexはresetしておく
         actual = actual.reset_index(drop=True)
 
-        expected = rawdata_df[0:row_number]
+        expected = rawdata_df[:row_number]
 
         assert_frame_equal(actual, expected)
+
+
+class TestCalculateSpm:
+    def test_normal(self, target):
+
+        # 前回のショット検知時と今回のショット検知時が1秒差
+        target.previous_shot_start_time = datetime(2020, 12, 1, 10, 29, 11, 111111).timestamp()
+        timestamp: float = datetime(2020, 12, 1, 10, 29, 12, 111111).timestamp()
+
+        actual: float = target._calculate_spm(timestamp)
+
+        # 1ショットに1秒、つまり60spm
+        expected = 60.0
+
+        assert actual == expected
+
+    def test_zero_divide_exception(self, target):
+        """ 異常系：前回のショット検知時と今回のショット検知時の時差がないとき、0割り例外。
+            通常は発生しえない。
+        """
+
+        target.previous_shot_start_time = datetime(2020, 12, 1, 10, 29, 11, 111111).timestamp()
+        timestamp: float = datetime(2020, 12, 1, 10, 29, 11, 111111).timestamp()
+
+        with pytest.raises(ZeroDivisionError):
+            target._calculate_spm(timestamp)
 
