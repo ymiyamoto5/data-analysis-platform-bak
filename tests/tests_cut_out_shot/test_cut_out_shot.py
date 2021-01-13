@@ -470,3 +470,43 @@ class TestAddTags:
 
         assert actual == expected
 
+
+class TestDetectShotStart:
+    def test_normal_shot_detect(self, target):
+        """ 正常系：ショット開始検知 """
+
+        target.is_shot_section = False
+        displacemnet = 45.0
+        start_displacement = 45.0
+
+        actual: bool = target._detect_shot_start(displacemnet, start_displacement)
+
+        expected = True
+
+        assert actual == expected
+
+    def test_normal_shot_already_started(self, target):
+        """ 正常系：ショットがすでに開始されているため検知対象外 """
+
+        target.is_shot_section = True
+        displacemnet = 45.0
+        start_displacement = 45.0
+
+        actual: bool = target._detect_shot_start(displacemnet, start_displacement)
+
+        expected = False
+
+        assert actual == expected
+
+    def test_normal_displacement_has_not_reached_threshold(self, target):
+        """ 正常系：ショット開始となる変位値まで到達していない """
+
+        target.is_shot_section = False
+        displacemnet = 45.1
+        start_displacement = 45.0
+
+        actual: bool = target._detect_shot_start(displacemnet, start_displacement)
+
+        expected = False
+
+        assert actual == expected
