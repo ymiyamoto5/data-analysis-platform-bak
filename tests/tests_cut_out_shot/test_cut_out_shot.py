@@ -810,9 +810,6 @@ class TestIncludePreviousData:
         assert target.cut_out_targets[1]["shot_number"] == 0
         assert target.cut_out_targets[1]["tags"] == []
 
-        assert target.sequential_number == 2
-        assert target.sequential_number_by_shot == 2
-
 
 class TestAddCutOutTarget:
     def test_normal(self, target, rawdata_df):
@@ -826,8 +823,8 @@ class TestAddCutOutTarget:
 
         expected = {
             "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
-            "sequential_number": 1,
-            "sequential_number_by_shot": 1,
+            "sequential_number": 0,
+            "sequential_number_by_shot": 0,
             "displacement": 47.0,
             "load01": 1.574,
             "load02": 1.308,
@@ -839,6 +836,28 @@ class TestAddCutOutTarget:
 
         assert actual[0] == expected
 
-        assert target.sequential_number == 1
-        assert target.sequential_number_by_shot == 1
 
+class TestSetToNoneForLowSpm:
+    def test_normal(self, target, rawdata_df, shots_meta_df):
+        target.previous_size = 1
+        target._cut_out_shot(rawdata_df, 47.0, 34.0)
+        target._set_to_none_for_low_spm()
+
+
+class TestCutOutShot:
+    def test_normal_1(self, target, rawdata_df, shots_meta_df):
+        """ 正常系：遡り件数1件, start: 47.0, end: 34.0。
+            全13サンプル中8サンプルが切り出される。
+        """
+
+        target.previous_size = 1
+        target._cut_out_shot(rawdata_df, 47.0, 34.0)
+
+        actual: List[dict] = target.cut_out_targets
+        actual_df = pd.DataFrame(actual)
+
+        expected_df = pd.concat([rawdata_df[1:5], rawdata_df[8:13]], axis=0)
+        expected_df = expected_df.reset_index(drop=True)
+        # expected_df["shot_number"]
+
+        assert_frame_equal(actual_df, expected_df)

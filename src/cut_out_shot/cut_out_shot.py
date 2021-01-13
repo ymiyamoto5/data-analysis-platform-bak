@@ -344,28 +344,11 @@ class CutOutShot:
     def _include_previous_data(self, preceding_df: DataFrame) -> None:
         """ ショット検出時、previous_size分のデータを遡って切り出し対象に含める。荷重立ち上がり点取りこぼし防止のため。 """
 
-        for d in preceding_df.itertuples():
-            cut_out_target: dict = {
-                "timestamp": d.timestamp,
-                "sequential_number": self.__sequential_number,
-                "sequential_number_by_shot": self.__sequential_number_by_shot,
-                "displacement": d.displacement,
-                "load01": d.load01,
-                "load02": d.load02,
-                "load03": d.load03,
-                "load04": d.load04,
-                "shot_number": self.__shot_number,
-                "tags": [],
-            }
-            self.__cut_out_targets.append(cut_out_target)
-            self.__sequential_number += 1
-            self.__sequential_number_by_shot += 1
+        for series in preceding_df.itertuples():
+            self._add_cut_out_target(series)
 
     def _add_cut_out_target(self, rawdata: Series) -> None:
         """ 切り出し対象としてデータを追加 """
-
-        self.__sequential_number += 1
-        self.__sequential_number_by_shot += 1
 
         cut_out_target: dict = {
             "timestamp": rawdata.timestamp,
@@ -380,6 +363,8 @@ class CutOutShot:
             "tags": [],
         }
         self.__cut_out_targets.append(cut_out_target)
+        self.__sequential_number += 1
+        self.__sequential_number_by_shot += 1
 
     def _set_to_none_for_low_spm(self) -> None:
         """ 切り出したショットの内、最低spmを下回るショットのspmはNoneに設定する """

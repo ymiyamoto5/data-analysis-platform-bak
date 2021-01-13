@@ -32,7 +32,7 @@ def target():
 
 @pytest.fixture
 def rawdata_df():
-    """ 生データのDataFrame fixture。
+    """ 生データ（物理変換後）のDataFrame fixture。
         切り出しの開始変位値 47.0, 終了変位値 34.0 を想定したデータ。
     """
 
@@ -176,3 +176,18 @@ def events_list():
 
     yield events
 
+
+@pytest.fixture
+def shots_meta_df():
+    """ ショットメタデータのfixture """
+
+    shots_meta = [
+        {"shot_number": 1, "spm": 25.0, "num_of_samples_in_cut_out": 3000},
+        {"shot_number": 2, "spm": 40.0, "num_of_samples_in_cut_out": 2000},
+        {"shot_number": 3, "spm": 80.0, "num_of_samples_in_cut_out": 1000},
+        {"shot_number": 4, "spm": 1.0, "num_of_samples_in_cut_out": 10000},
+    ]
+
+    shots_meta_df: DataFrame = pd.DataFrame(shots_meta)
+
+    yield shots_meta_df
