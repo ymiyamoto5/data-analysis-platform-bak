@@ -595,3 +595,38 @@ class TestDetectCutOutEnd:
         expected = False
 
         assert actual == expected
+
+
+class TestBackupDfTail:
+    def test_normal(self, target, rawdata_df):
+        target.previous_size = 3
+        target._backup_df_tail(rawdata_df)
+        actual: DataFrame = target.previous_df_tail
+
+        expected = rawdata_df.tail(target.previous_size)
+
+        assert_frame_equal(actual, expected)
+
+    def test_normal_over_size_backup(self, target, rawdata_df):
+        """ バックアップするサイズがDataFrameのサイズを超えている場合、全件取得 """
+
+        target.previous_size = 100
+        target._backup_df_tail(rawdata_df)
+        actual: DataFrame = target.previous_df_tail
+
+        expected = rawdata_df
+
+        assert_frame_equal(actual, expected)
+
+    def test_normal_empty_dataframe(self, target, rawdata_df):
+        """ DataFrameが空の場合、空のDataFrameが返る """
+
+        rawdata_df: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
+
+        target.previous_size = 3
+        target._backup_df_tail(rawdata_df)
+        actual: DataFrame = target.previous_df_tail
+
+        expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
+
+        assert_frame_equal(actual, expected)

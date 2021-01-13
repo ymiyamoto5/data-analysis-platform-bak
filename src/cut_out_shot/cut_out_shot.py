@@ -91,6 +91,23 @@ class CutOutShot:
         self.__load04_func: Optional[Callable[[float], float]] = load04_func
 
     # テスト用の公開プロパティ
+
+    @property
+    def previous_size(self):
+        return self.__previous_size
+
+    @previous_size.setter
+    def previous_size(self, previous_size: int):
+        self.__previous_size = previous_size
+
+    @property
+    def previous_df_tail(self):
+        return self.__previous_df_tail
+
+    @previous_df_tail.setter
+    def previous_df_tail(self, previous_df_tail: DataFrame):
+        self.__previous_df_tail = previous_df_tail
+
     @property
     def is_shot_section(self):
         return self.__is_shot_section
