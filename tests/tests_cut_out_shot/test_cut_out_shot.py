@@ -639,11 +639,11 @@ class TestGetPrecedingDf:
         """
 
         target.previous_size = 3
-        row_number = 3
+        row_number = 4
 
         actual: DataFrame = target._get_preceding_df(row_number, rawdata_df)
 
-        expected: DataFrame = rawdata_df[0:3]
+        expected: DataFrame = rawdata_df[(row_number - target.previous_size) : row_number]
 
         assert_frame_equal(actual, expected)
 
@@ -652,13 +652,13 @@ class TestGetPrecedingDf:
             過去のDataFrameと現在のDataFrameからデータを取得する必要がある
         """
 
-        # rawdata_dfを過去と現在に2分割
-        target.previous_df_tail = rawdata_df[:5]
-        current_df = rawdata_df[5:]
-
         # 5件遡るが、3つ目のサンプルでショットを検知したため、過去分に遡る必要がある
         target.previous_size = 5
         row_number = 3
+
+        # rawdata_dfを過去と現在に2分割
+        target.previous_df_tail = rawdata_df[: target.previous_size]
+        current_df = rawdata_df[target.previous_size :]
 
         actual: DataFrame = target._get_preceding_df(row_number, current_df)
         # assertのためindexはresetしておく
@@ -714,3 +714,43 @@ class TestGetPrecedingDf:
 
         expected_df = pd.DataFrame(expected)
         assert_frame_equal(actual, expected_df)
+
+    def test_normal_all_data_included_in_previous_df(self, target, rawdata_df):
+        """ 正常系：現在のDataFrameの最初でショットを検知した場合、
+            過去のDataFrameからデータを取得する必要がある
+        """
+
+        # 5件遡るが、最初のサンプルでショットを検知したため、過去分に遡る必要がある
+        target.previous_size = 5
+        row_number = 0
+
+        # rawdata_dfを過去と現在に2分割
+        target.previous_df_tail = rawdata_df[: target.previous_size]
+        current_df = rawdata_df[target.previous_size :]
+
+        actual: DataFrame = target._get_preceding_df(row_number, current_df)
+        # assertのためindexはresetしておく
+        actual = actual.reset_index(drop=True)
+
+        expected = target.previous_df_tail
+
+        assert_frame_equal(actual, expected)
+
+    def test_normal_detect_shot_in_first_df(self, target, rawdata_df):
+        """ 正常系：最初のDataFrame（最初のファイル）の序盤でショットを検知した場合、
+            過去のDataFrameがないので、現在のDataFrameから遡れるだけ遡ってデータを取得する
+        """
+
+        target.previous_df_tail = pd.DataFrame()
+
+        target.previous_size = 5
+        row_number = 3
+
+        actual: DataFrame = target._get_preceding_df(row_number, rawdata_df)
+        # assertのためindexはresetしておく
+        actual = actual.reset_index(drop=True)
+
+        expected = rawdata_df[0:row_number]
+
+        assert_frame_equal(actual, expected)
+
