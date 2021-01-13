@@ -172,6 +172,14 @@ class CutOutShot:
     def cut_out_targets(self, cut_out_targets: List[dict]):
         self.__cut_out_targets = cut_out_targets
 
+    @property
+    def shots_meta_df(self):
+        return self.__shots_meta_df
+
+    @shots_meta_df.setter
+    def shots_meta_df(self, shots_meta_df: DataFrame):
+        self.__shots_meta_df = shots_meta_df
+
     def _get_events(self, suffix: str) -> List[dict]:
         """ 対応するevents_indexのデータ取得 """
 

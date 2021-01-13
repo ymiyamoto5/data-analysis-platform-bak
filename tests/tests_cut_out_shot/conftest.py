@@ -182,10 +182,10 @@ def shots_meta_df():
     """ ショットメタデータのfixture """
 
     shots_meta = [
-        {"shot_number": 1, "spm": 25.0, "num_of_samples_in_cut_out": 3000},
-        {"shot_number": 2, "spm": 40.0, "num_of_samples_in_cut_out": 2000},
-        {"shot_number": 3, "spm": 80.0, "num_of_samples_in_cut_out": 1000},
-        {"shot_number": 4, "spm": 1.0, "num_of_samples_in_cut_out": 10000},
+        {"shot_number": 1, "spm": 80.0, "num_of_samples_in_cut_out": 3000},
+        {"shot_number": 2, "spm": 10.0, "num_of_samples_in_cut_out": 10000},
+        {"shot_number": 3, "spm": 40.0, "num_of_samples_in_cut_out": 6000},
+        {"shot_number": 4, "spm": 60.0, "num_of_samples_in_cut_out": 4000},
     ]
 
     shots_meta_df: DataFrame = pd.DataFrame(shots_meta)

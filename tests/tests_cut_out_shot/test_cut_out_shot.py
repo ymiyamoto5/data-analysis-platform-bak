@@ -1,10 +1,10 @@
 import pytest
 import pandas as pd
-from datetime import datetime, time
+from datetime import datetime
 from typing import List
 from pandas.core.frame import DataFrame, Series
 from pandas.util.testing import assert_frame_equal
-import cut_out_shot
+import numpy as np
 
 from elastic_manager.elastic_manager import ElasticManager
 from cut_out_shot.cut_out_shot import CutOutShot
@@ -838,10 +838,22 @@ class TestAddCutOutTarget:
 
 
 class TestSetToNoneForLowSpm:
-    def test_normal(self, target, rawdata_df, shots_meta_df):
-        target.previous_size = 1
-        target._cut_out_shot(rawdata_df, 47.0, 34.0)
+    def test_normal(self, target, shots_meta_df):
+        target.shots_meta_df = shots_meta_df
         target._set_to_none_for_low_spm()
+
+        actual_df: DataFrame = target.shots_meta_df
+
+        expected = [
+            {"shot_number": 1, "spm": 80.0, "num_of_samples_in_cut_out": 3000},
+            {"shot_number": 2, "spm": None, "num_of_samples_in_cut_out": 10000},
+            {"shot_number": 3, "spm": 40.0, "num_of_samples_in_cut_out": 6000},
+            {"shot_number": 4, "spm": 60.0, "num_of_samples_in_cut_out": 4000},
+        ]
+
+        expected_df = pd.DataFrame(expected).replace({np.nan: None})
+
+        assert_frame_equal(actual_df, expected_df)
 
 
 class TestCutOutShot:
@@ -856,8 +868,113 @@ class TestCutOutShot:
         actual: List[dict] = target.cut_out_targets
         actual_df = pd.DataFrame(actual)
 
-        expected_df = pd.concat([rawdata_df[1:5], rawdata_df[8:13]], axis=0)
-        expected_df = expected_df.reset_index(drop=True)
-        # expected_df["shot_number"]
+        expected = [
+            # 切り出し区間前2
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
+                "sequential_number": 0,
+                "sequential_number_by_shot": 0,
+                "displacement": 47.534,
+                "load01": 0.155,
+                "load02": 0.171,
+                "load03": 0.180,
+                "load04": 0.146,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間1-1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "sequential_number": 1,
+                "sequential_number_by_shot": 1,
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "sequential_number": 2,
+                "sequential_number_by_shot": 2,
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間1-3
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "sequential_number": 3,
+                "sequential_number_by_shot": 3,
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間後4(ショット区間終了）
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 18, 111111).timestamp(),
+                "sequential_number": 4,
+                "sequential_number_by_shot": 0,
+                "displacement": 47.150,
+                "load01": 0.156,
+                "load02": 0.172,
+                "load03": 0.181,
+                "load04": 0.147,
+                "shot_number": 2,
+                "tags": [],
+            },
+            # 切り出し区間2-1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
+                "sequential_number": 5,
+                "sequential_number_by_shot": 1,
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "shot_number": 2,
+                "tags": [],
+            },
+            # 切り出し区間2-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
+                "sequential_number": 6,
+                "sequential_number_by_shot": 2,
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "shot_number": 2,
+                "tags": [],
+            },
+            # 切り出し区間2-3
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "sequential_number": 7,
+                "sequential_number_by_shot": 3,
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "shot_number": 2,
+                "tags": [],
+            },
+        ]
+
+        expected_df = pd.DataFrame(expected)
 
         assert_frame_equal(actual_df, expected_df)
