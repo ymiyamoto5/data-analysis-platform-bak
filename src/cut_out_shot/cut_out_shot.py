@@ -108,6 +108,14 @@ class CutOutShot:
         self.__is_target_of_cut_out = is_target_of_cut_out
 
     @property
+    def margin(self):
+        return self.__margin
+
+    @margin.setter
+    def margin(self, margin: float):
+        self.__margin = margin
+
+    @property
     def sequential_number(self):
         return self.__sequential_number
 

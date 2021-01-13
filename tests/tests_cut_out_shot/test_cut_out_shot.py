@@ -510,3 +510,88 @@ class TestDetectShotStart:
         expected = False
 
         assert actual == expected
+
+
+class TestDetectShotEnd:
+    def test_normal_detect_shot_end(self, target):
+        """ 正常系：ショット終了検知 """
+
+        target.is_shot_section = True
+        target.margin = 0.1
+        displacemnet = 45.2
+        start_displacement = 45.0
+
+        actual: bool = target._detect_shot_end(displacemnet, start_displacement)
+
+        expected = True
+
+        assert actual == expected
+
+    def test_normal_shot_has_not_started_yet(self, target):
+        """ 正常系：ショット未開始のため終了検知しない """
+
+        target.is_shot_section = False
+        target.margin = 0.1
+        displacemnet = 45.2
+        start_displacement = 45.0
+
+        actual: bool = target._detect_shot_end(displacemnet, start_displacement)
+
+        expected = False
+
+        assert actual == expected
+
+    def test_normal_not_detect_by_maring(self, target):
+        """ 正常系：マージンを加味するとショット終了検知されない """
+
+        target.is_shot_section = True
+        target.margin = 0.1
+        displacemnet = 45.1
+        start_displacement = 45.0
+
+        actual: bool = target._detect_shot_end(displacemnet, start_displacement)
+
+        expected = False
+
+        assert actual == expected
+
+
+class TestDetectCutOutEnd:
+    def test_normal_detect_cut_out_end(self, target):
+        """ 正常系：切り出し終了検知 """
+
+        target.is_target_of_cut_out = True
+        displacement = 30.0
+        end_displacement = 30.0
+
+        actual: bool = target._detect_cut_out_end(displacement, end_displacement)
+
+        expected = True
+
+        assert actual == expected
+
+    def test_normal_cut_out_has_not_started_yet(self, target):
+        """ 正常系：切り出しが開始されていないため終了検知せず """
+
+        target.is_target_of_cut_out = False
+        displacement = 30.0
+        end_displacement = 30.0
+
+        actual: bool = target._detect_cut_out_end(displacement, end_displacement)
+
+        expected = False
+
+        assert actual == expected
+
+    def test_normal_displacement_has_not_reached_threshold(self, target):
+        """ 正常系：切り出しが終了しきい値に到達していない """
+
+        target.is_target_of_cut_out = True
+        displacement = 30.1
+        end_displacement = 30.0
+
+        actual: bool = target._detect_cut_out_end(displacement, end_displacement)
+
+        expected = False
+
+        assert actual == expected
