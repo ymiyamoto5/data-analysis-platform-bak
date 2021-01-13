@@ -5,9 +5,9 @@ import logging
 import logging.handlers
 import pandas as pd
 import glob
-from typing import Callable, Final, List, Tuple, Optional
+from typing import Callable, Final, List, Optional
 from datetime import datetime, timedelta
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame, Series
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
@@ -361,7 +361,7 @@ class CutOutShot:
             self.__sequential_number += 1
             self.__sequential_number_by_shot += 1
 
-    def _add_cut_out_target(self, rawdata: dict) -> None:
+    def _add_cut_out_target(self, rawdata: Series) -> None:
         """ 切り出し対象としてデータを追加 """
 
         self.__sequential_number += 1
@@ -584,7 +584,8 @@ class CutOutShot:
 
                 # 荷重開始点取りこぼし防止
                 preceding_df: DataFrame = self._get_preceding_df(row_number, rawdata_df)
-                self._include_previous_data(preceding_df)
+                if len(preceding_df) != 0:
+                    self._include_previous_data(preceding_df)
 
             if self._detect_shot_end(rawdata.displacement, start_displacement):
                 self.__is_shot_section = False

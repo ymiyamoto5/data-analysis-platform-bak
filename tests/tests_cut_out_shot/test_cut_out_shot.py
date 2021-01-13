@@ -2,8 +2,9 @@ import pytest
 import pandas as pd
 from datetime import datetime, time
 from typing import List
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame, Series
 from pandas.util.testing import assert_frame_equal
+import cut_out_shot
 
 from elastic_manager.elastic_manager import ElasticManager
 from cut_out_shot.cut_out_shot import CutOutShot
@@ -779,4 +780,65 @@ class TestCalculateSpm:
 
         with pytest.raises(ZeroDivisionError):
             target._calculate_spm(timestamp)
+
+
+class TestIncludePreviousData:
+    def test_normal(self, target, rawdata_df):
+        """ 正常系：2つのサンプルを追加 """
+
+        target._include_previous_data(rawdata_df[:2])
+
+        assert target.cut_out_targets[0]["timestamp"] == rawdata_df.iloc[0].timestamp
+        assert target.cut_out_targets[0]["sequential_number"] == 0
+        assert target.cut_out_targets[0]["sequential_number_by_shot"] == 0
+        assert target.cut_out_targets[0]["displacement"] == rawdata_df.iloc[0].displacement
+        assert target.cut_out_targets[0]["load01"] == rawdata_df.iloc[0].load01
+        assert target.cut_out_targets[0]["load02"] == rawdata_df.iloc[0].load02
+        assert target.cut_out_targets[0]["load03"] == rawdata_df.iloc[0].load03
+        assert target.cut_out_targets[0]["load04"] == rawdata_df.iloc[0].load04
+        assert target.cut_out_targets[0]["shot_number"] == 0
+        assert target.cut_out_targets[0]["tags"] == []
+
+        assert target.cut_out_targets[1]["timestamp"] == rawdata_df.iloc[1].timestamp
+        assert target.cut_out_targets[1]["sequential_number"] == 1
+        assert target.cut_out_targets[1]["sequential_number_by_shot"] == 1
+        assert target.cut_out_targets[1]["displacement"] == rawdata_df.iloc[1].displacement
+        assert target.cut_out_targets[1]["load01"] == rawdata_df.iloc[1].load01
+        assert target.cut_out_targets[1]["load02"] == rawdata_df.iloc[1].load02
+        assert target.cut_out_targets[1]["load03"] == rawdata_df.iloc[1].load03
+        assert target.cut_out_targets[1]["load04"] == rawdata_df.iloc[1].load04
+        assert target.cut_out_targets[1]["shot_number"] == 0
+        assert target.cut_out_targets[1]["tags"] == []
+
+        assert target.sequential_number == 2
+        assert target.sequential_number_by_shot == 2
+
+
+class TestAddCutOutTarget:
+    def test_normal(self, target, rawdata_df):
+        """ 正常系：1レコード追加 """
+
+        cut_out_target: Series = rawdata_df.iloc[2]
+
+        target._add_cut_out_target(cut_out_target)
+
+        actual: List[dict] = target.cut_out_targets
+
+        expected = {
+            "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+            "sequential_number": 1,
+            "sequential_number_by_shot": 1,
+            "displacement": 47.0,
+            "load01": 1.574,
+            "load02": 1.308,
+            "load03": 1.363,
+            "load04": 1.432,
+            "shot_number": 0,
+            "tags": [],
+        }
+
+        assert actual[0] == expected
+
+        assert target.sequential_number == 1
+        assert target.sequential_number_by_shot == 1
 
