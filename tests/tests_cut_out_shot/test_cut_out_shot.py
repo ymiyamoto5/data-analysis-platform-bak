@@ -608,7 +608,7 @@ class TestBackupDfTail:
         assert_frame_equal(actual, expected)
 
     def test_normal_over_size_backup(self, target, rawdata_df):
-        """ バックアップするサイズがDataFrameのサイズを超えている場合、全件取得 """
+        """ 正常系：バックアップするサイズがDataFrameのサイズを超えている場合、全件取得 """
 
         target.previous_size = 100
         target._backup_df_tail(rawdata_df)
@@ -619,7 +619,7 @@ class TestBackupDfTail:
         assert_frame_equal(actual, expected)
 
     def test_normal_empty_dataframe(self, target, rawdata_df):
-        """ DataFrameが空の場合、空のDataFrameが返る """
+        """ 正常系：DataFrameが空の場合、空のDataFrameが返る """
 
         rawdata_df: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
 
@@ -630,3 +630,87 @@ class TestBackupDfTail:
         expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
 
         assert_frame_equal(actual, expected)
+
+
+class TestGetPrecedingDf:
+    def test_normal_data_included_in_current_df(self, target, rawdata_df):
+        """ 正常系：遡るデータが現在のDataFrameに含まれる（つまりファイルを跨がない）場合、
+            現在のDataFrameからデータを取得すればよい
+        """
+
+        target.previous_size = 3
+        row_number = 3
+
+        actual: DataFrame = target._get_preceding_df(row_number, rawdata_df)
+
+        expected: DataFrame = rawdata_df[0:3]
+
+        assert_frame_equal(actual, expected)
+
+    def test_normal_data_included_in_previous_df(self, target, rawdata_df):
+        """ 正常系：遡るデータが過去のDataFrameに含まれる（つまりファイルを跨ぐ）場合、
+            過去のDataFrameと現在のDataFrameからデータを取得する必要がある
+        """
+
+        # rawdata_dfを過去と現在に2分割
+        target.previous_df_tail = rawdata_df[:5]
+        current_df = rawdata_df[5:]
+
+        # 5件遡るが、3つ目のサンプルでショットを検知したため、過去分に遡る必要がある
+        target.previous_size = 5
+        row_number = 3
+
+        actual: DataFrame = target._get_preceding_df(row_number, current_df)
+        # assertのためindexはresetしておく
+        actual = actual.reset_index(drop=True)
+
+        expected = [
+            # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+            },
+            # 切り出し区間1-3
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+            },
+            # 切り出し区間後1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
+                "displacement": 30.599,
+                "load01": -0.130,
+                "load02": 0.020,
+                "load03": 0.483,
+                "load04": 0.419,
+            },
+            # 切り出し区間後2
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp(),
+                "displacement": 24.867,
+                "load01": -0.052,
+                "load02": 0.035,
+                "load03": 0.402,
+                "load04": 0.278,
+            },
+            # 切り出し区間後3(変位にmargin=0.1を加算した場合、ショットの終了と見做されない変位値)
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111).timestamp(),
+                "displacement": 47.100,
+                "load01": 0.155,
+                "load02": 0.171,
+                "load03": 0.180,
+                "load04": 0.146,
+            },
+        ]
+
+        expected_df = pd.DataFrame(expected)
+        assert_frame_equal(actual, expected_df)
