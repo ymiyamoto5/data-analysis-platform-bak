@@ -1,11 +1,12 @@
 import pytest
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, time
+from typing import List
 from pandas.core.frame import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 from elastic_manager.elastic_manager import ElasticManager
-from cut_out_shot import cut_out_shot
+from cut_out_shot.cut_out_shot import CutOutShot
 
 
 class TestGetEvents:
@@ -346,5 +347,126 @@ class TestExcludePauseInterval:
         assert_frame_equal(actual, expected)
 
 
-# class TestGetTags:
+class TestGetTags:
+    def test_normal_one_tag_event(self, target):
+        """ 正常系：事象記録が1回あり、対象サンプルがその事象区間に含まれる """
+
+        rawdata_timestamp: float = datetime(2020, 12, 1, 10, 30, 10, 000000).timestamp()
+        start_time: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
+        end_time: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+
+        tag_events = [
+            {"event_type": "tag", "tag": "異常A", "start_time": start_time, "end_time": end_time},
+        ]
+
+        actual: List[str] = target._get_tags(rawdata_timestamp, tag_events)
+
+        expected: List[str] = ["異常A"]
+
+        assert actual == expected
+
+    def test_normal_two_tag_events(self, target):
+        """ 正常系：事象記録が2回あり、対象サンプルが両方の事象区間に含まれる """
+
+        rawdata_timestamp: float = datetime(2020, 12, 1, 10, 30, 10, 000000).timestamp()
+
+        start_time_1: float = datetime(2020, 12, 1, 10, 28, 10, 111111).timestamp()
+        end_time_1: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
+        start_time_2: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
+        end_time_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+
+        tag_events = [
+            {"event_type": "tag", "tag": "異常A", "start_time": start_time_1, "end_time": end_time_1},
+            {"event_type": "tag", "tag": "異常B", "start_time": start_time_2, "end_time": end_time_2},
+        ]
+
+        actual: List[str] = target._get_tags(rawdata_timestamp, tag_events)
+
+        expected: List[str] = ["異常A", "異常B"]
+
+        assert actual == expected
+
+    def test_normal_not_include_tag_range(self, target):
+        """ 正常系：事象記録が1回あり、対象サンプルがその事象区間に含まれない """
+
+        rawdata_timestamp: float = datetime(2020, 12, 1, 10, 35, 10, 000000).timestamp()
+        start_time: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
+        end_time: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+
+        tag_events = [
+            {"event_type": "tag", "tag": "異常A", "start_time": start_time, "end_time": end_time},
+        ]
+
+        actual: List[str] = target._get_tags(rawdata_timestamp, tag_events)
+
+        expected: List[str] = []
+
+        assert actual == expected
+
+
+class TestAddTags:
+    def test_normal_one_target(self, target, mocker):
+        """ 正常系： cut_out_target 1件に対してタグ付け """
+
+        timestamp: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        target.cut_out_targets = [
+            {"timestamp": timestamp, "tags": []},
+        ]
+
+        tags: List[str] = ["異常A", "異常B"]
+
+        mocker.patch.object(CutOutShot, "_get_tags", return_value=tags)
+
+        # mockするので実際は使われない。
+        start_time_1: float = datetime(2020, 12, 1, 10, 28, 10, 111111).timestamp()
+        end_time_1: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
+        start_time_2: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
+        end_time_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        tag_events = [
+            {"event_type": "tag", "tag": "異常A", "start_time": start_time_1, "end_time": end_time_1},
+            {"event_type": "tag", "tag": "異常B", "start_time": start_time_2, "end_time": end_time_2},
+        ]
+
+        target._add_tags(tag_events)
+        actual = target.cut_out_targets
+
+        expected = [
+            {"timestamp": timestamp, "tags": ["異常A", "異常B"]},
+        ]
+
+        assert actual == expected
+
+    def test_normal_two_targets(self, target, mocker):
+        """ 正常系： cut_out_target 2件に対してタグ付け """
+
+        timestamp_1: float = datetime(2020, 12, 1, 10, 30, 11, 000000).timestamp()
+        timestamp_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        target.cut_out_targets = [
+            {"timestamp": timestamp_1, "tags": []},
+            {"timestamp": timestamp_2, "tags": []},
+        ]
+
+        tags: List[str] = ["異常A", "異常B"]
+
+        mocker.patch.object(CutOutShot, "_get_tags", return_value=tags)
+
+        # mockするので実際は使われない。
+        start_time_1: float = datetime(2020, 12, 1, 10, 28, 10, 111111).timestamp()
+        end_time_1: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
+        start_time_2: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
+        end_time_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        tag_events = [
+            {"event_type": "tag", "tag": "異常A", "start_time": start_time_1, "end_time": end_time_1},
+            {"event_type": "tag", "tag": "異常B", "start_time": start_time_2, "end_time": end_time_2},
+        ]
+
+        target._add_tags(tag_events)
+        actual = target.cut_out_targets
+
+        expected = [
+            {"timestamp": timestamp_1, "tags": ["異常A", "異常B"]},
+            {"timestamp": timestamp_2, "tags": ["異常A", "異常B"]},
+        ]
+
+        assert actual == expected
 
