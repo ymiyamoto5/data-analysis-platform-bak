@@ -1326,3 +1326,164 @@ class TestCutOutShot:
         expected_shots_meta_df = pd.DataFrame(columns=("shot_number", "spm", "num_of_samples_in_cut_out"))
 
         assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
+
+    def test_exception_2(self, target, rawdata_df):
+        """ 異常系：遡りなし, start_displacememt: 47.0, end_displacememt: 20.0。
+            end_displacementが非常に小さい値に設定されており、切り出し区間が終わらない。
+            ショットの終わりは検知できるので、ショットの終わりまでが切り出し区間として含まれる。
+            全13サンプル中10サンプルが切り出される。
+        """
+
+        target.previous_size = 0
+        target._cut_out_shot(rawdata_df, 47.0, 20.0)
+
+        actual: List[dict] = target.cut_out_targets
+        actual_df = pd.DataFrame(actual)
+
+        expected = [
+            # 切り出し区間1-1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "sequential_number": 0,
+                "sequential_number_by_shot": 0,
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "sequential_number": 1,
+                "sequential_number_by_shot": 1,
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間1-3
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "sequential_number": 2,
+                "sequential_number_by_shot": 2,
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間後1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
+                "sequential_number": 3,
+                "sequential_number_by_shot": 3,
+                "displacement": 30.599,
+                "load01": -0.130,
+                "load02": 0.020,
+                "load03": 0.483,
+                "load04": 0.419,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間後2
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp(),
+                "sequential_number": 4,
+                "sequential_number_by_shot": 4,
+                "displacement": 24.867,
+                "load01": -0.052,
+                "load02": 0.035,
+                "load03": 0.402,
+                "load04": 0.278,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間後3(変位にmargin=0.1を加算した場合、ショットの終了と見做されない変位値)
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111).timestamp(),
+                "sequential_number": 5,
+                "sequential_number_by_shot": 5,
+                "displacement": 47.100,
+                "load01": 0.155,
+                "load02": 0.171,
+                "load03": 0.180,
+                "load04": 0.146,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間2-1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
+                "sequential_number": 6,
+                "sequential_number_by_shot": 0,
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "shot_number": 2,
+                "tags": [],
+            },
+            # 切り出し区間2-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
+                "sequential_number": 7,
+                "sequential_number_by_shot": 1,
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "shot_number": 2,
+                "tags": [],
+            },
+            # 切り出し区間2-3
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "sequential_number": 8,
+                "sequential_number_by_shot": 2,
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "shot_number": 2,
+                "tags": [],
+            },
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 22, 111111).timestamp(),
+                "sequential_number": 9,
+                "sequential_number_by_shot": 3,
+                "displacement": 30.599,
+                "load01": -0.130,
+                "load02": 0.020,
+                "load03": 0.483,
+                "load04": 0.419,
+                "shot_number": 2,
+                "tags": [],
+            },
+        ]
+
+        expected_df = pd.DataFrame(expected)
+
+        assert_frame_equal(actual_df, expected_df)
+
+        # shots_meta_dfの確認
+        actual_shots_meta_df: DataFrame = target.shots_meta_df
+
+        # ショットが1つしかなく、次のショットが見つからないのでメタ情報は得られない。
+        # 最後のショットの情報は得られないので記録されない。
+        expected_shots_meta = [
+            {"shot_number": 1.0, "spm": 8.571429, "num_of_samples_in_cut_out": 6.0},
+        ]
+        expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
+
+        assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
