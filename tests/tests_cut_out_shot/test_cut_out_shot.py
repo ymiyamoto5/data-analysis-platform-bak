@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from typing import List
 from pandas.core.frame import DataFrame
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 import numpy as np
 
 from elastic_manager.elastic_manager import ElasticManager
@@ -370,7 +370,7 @@ class TestExcludePauseInterval:
         actual: DataFrame = target._exclude_pause_interval(rawdata_df, pause_events)
 
         # 最初と最後のサンプルを以外すべて除去される。
-        expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[1 : len(rawdata_df) - 1])
+        expected: DataFrame = pd.concat([rawdata_df[:1], rawdata_df[-1:]], axis=0)
 
         assert_frame_equal(actual, expected)
 
@@ -390,7 +390,7 @@ class TestExcludePauseInterval:
         actual: DataFrame = target._exclude_pause_interval(rawdata_df, pause_events)
 
         # 最初と最後のサンプルを以外すべて除去される。
-        expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[1 : len(rawdata_df) - 1])
+        expected: DataFrame = pd.concat([rawdata_df[:1], rawdata_df[-1:]], axis=0)
 
         assert_frame_equal(actual, expected)
 
@@ -1174,6 +1174,61 @@ class TestCutOutShot:
         # 最後のショットの情報は得られないので記録されない。
         expected_shots_meta = [
             {"shot_number": 1.0, "spm": 8.571429, "num_of_samples_in_cut_out": 4.0},
+        ]
+        expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
+
+        assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
+
+    def test_normal_2(self, target, rawdata_df):
+        """ 正常系：遡りなし, start_displacememt: 46.9, end_displacememt: 34.0。
+            全13サンプル中2サンプルが切り出される。
+        """
+
+        target.previous_size = 0
+        target._cut_out_shot(rawdata_df, 46.9, 34.0)
+
+        actual: List[dict] = target.cut_out_targets
+        actual_df = pd.DataFrame(actual)
+
+        expected = [
+            # 切り出し区間1-3
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "sequential_number": 0,
+                "sequential_number_by_shot": 0,
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "shot_number": 1,
+                "tags": [],
+            },
+            # 切り出し区間2-3
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "sequential_number": 1,
+                "sequential_number_by_shot": 0,
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "shot_number": 2,
+                "tags": [],
+            },
+        ]
+
+        expected_df = pd.DataFrame(expected)
+
+        assert_frame_equal(actual_df, expected_df)
+
+        # shots_meta_dfの確認
+        actual_shots_meta_df: DataFrame = target.shots_meta_df
+
+        # 最後のショットの情報は得られないので記録されない。
+        expected_shots_meta = [
+            {"shot_number": 1.0, "spm": 8.571429, "num_of_samples_in_cut_out": 1.0},
         ]
         expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
 

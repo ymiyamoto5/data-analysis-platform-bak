@@ -159,6 +159,8 @@ def rawdata_df():
     rawdata_df: DataFrame = pd.DataFrame(rawdata)
     yield rawdata_df
 
+    del rawdata_df
+
 
 @pytest.fixture
 def events_list():
@@ -176,6 +178,8 @@ def events_list():
 
     yield events
 
+    del events
+
 
 @pytest.fixture
 def shots_meta_df():
@@ -191,3 +195,5 @@ def shots_meta_df():
     shots_meta_df: DataFrame = pd.DataFrame(shots_meta)
 
     yield shots_meta_df
+
+    del shots_meta_df

@@ -390,17 +390,19 @@ class CutOutShot:
     def _apply_expr_displacement(self, df: DataFrame) -> DataFrame:
         """ 変位値に対して変換式を適用 """
 
-        df["displacement"] = df["displacement"].apply(self.__displacement_func)
+        # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
+        df.loc[:, "displacement"] = df["displacement"].apply(self.__displacement_func)
 
         return df
 
     def _apply_expr_load(self, df: DataFrame) -> DataFrame:
         """ 荷重値に対して変換式を適用 """
 
-        df["load01"] = df["load01"].apply(self.__load01_func)
-        df["load02"] = df["load02"].apply(self.__load02_func)
-        df["load03"] = df["load03"].apply(self.__load03_func)
-        df["load04"] = df["load04"].apply(self.__load04_func)
+        # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
+        df.loc[:, "load01"] = df["load01"].apply(self.__load01_func)
+        df.loc[:, "load02"] = df["load02"].apply(self.__load02_func)
+        df.loc[:, "load03"] = df["load03"].apply(self.__load03_func)
+        df.loc[:, "load04"] = df["load04"].apply(self.__load04_func)
 
         return df
 
