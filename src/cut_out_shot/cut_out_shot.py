@@ -406,8 +406,7 @@ class CutOutShot:
     def _apply_expr_displacement(self, df: DataFrame) -> DataFrame:
         """ 変位値に対して変換式を適用 """
 
-        if self.__displacement_func is not None:
-            df["displacement"] = df["displacement"].apply(self.__displacement_func)
+        df["displacement"] = df["displacement"].apply(self.__displacement_func)
 
         return df
 

@@ -10,6 +10,53 @@ from elastic_manager.elastic_manager import ElasticManager
 from cut_out_shot.cut_out_shot import CutOutShot
 
 
+class TestInit:
+    def test_displacement_func_is_none_exception(self):
+        with pytest.raises(SystemExit):
+            cut_out_shot = CutOutShot(
+                load01_func=lambda x: x + 1.0,
+                load02_func=lambda x: x + 1.0,
+                load03_func=lambda x: x + 1.0,
+                load04_func=lambda x: x + 1.0,
+            )
+
+    def test_load01_func_is_none_exception(self):
+        with pytest.raises(SystemExit):
+            cut_out_shot = CutOutShot(
+                displacement_func=lambda x: x + 1.0,
+                load02_func=lambda x: x + 1.0,
+                load03_func=lambda x: x + 1.0,
+                load04_func=lambda x: x + 1.0,
+            )
+
+    def test_load02_func_is_none_exception(self):
+        with pytest.raises(SystemExit):
+            cut_out_shot = CutOutShot(
+                displacement_func=lambda x: x + 1.0,
+                load01_func=lambda x: x + 1.0,
+                load03_func=lambda x: x + 1.0,
+                load04_func=lambda x: x + 1.0,
+            )
+
+    def test_load03_func_is_none_exception(self):
+        with pytest.raises(SystemExit):
+            cut_out_shot = CutOutShot(
+                displacement_func=lambda x: x + 1.0,
+                load01_func=lambda x: x + 1.0,
+                load02_func=lambda x: x + 1.0,
+                load04_func=lambda x: x + 1.0,
+            )
+
+    def test_load04_func_is_none_exception(self):
+        with pytest.raises(SystemExit):
+            cut_out_shot = CutOutShot(
+                displacement_func=lambda x: x + 1.0,
+                load01_func=lambda x: x + 1.0,
+                load02_func=lambda x: x + 1.0,
+                load03_func=lambda x: x + 1.0,
+            )
+
+
 class TestGetEvents:
     def test_normal(self, target, mocker):
         expected = [
@@ -894,6 +941,108 @@ class TestExcludeOverSample:
         expected: DataFrame = cut_out_targets_df
 
         assert_frame_equal(actual, expected)
+
+
+class TestApplyExprDisplacment:
+    def test_normal(self, rawdata_df):
+        """ 正常系：lambda式適用"""
+
+        cut_out_shot = CutOutShot(
+            displacement_func=lambda x: x + 1.0,
+            load01_func=lambda x: x * 1.0,
+            load02_func=lambda x: x * 1.0,
+            load03_func=lambda x: x * 1.0,
+            load04_func=lambda x: x * 1.0,
+        )
+
+        # 全データを見る必要はないので一部スライス
+        target_df: DataFrame = rawdata_df[:3]
+
+        actual_df: DataFrame = cut_out_shot._apply_expr_displacement(target_df)
+
+        expected = [
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
+                "displacement": 50.284,
+                "load01": 0.223,
+                "load02": 0.211,
+                "load03": 0.200,
+                "load04": 0.218,
+            },
+            # 切り出し区間前2
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
+                "displacement": 48.534,
+                "load01": 0.155,
+                "load02": 0.171,
+                "load03": 0.180,
+                "load04": 0.146,
+            },
+            # 切り出し区間1-1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "displacement": 48.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+            },
+        ]
+
+        expected_df = pd.DataFrame(expected)
+
+        assert_frame_equal(actual_df, expected_df)
+
+
+class TestApplyExprLoad:
+    def test_normal(self, rawdata_df):
+        """ 正常系：lambda式適用"""
+
+        cut_out_shot = CutOutShot(
+            displacement_func=lambda x: x + 1.0,
+            load01_func=lambda x: x + 2.0,
+            load02_func=lambda x: x + 3.0,
+            load03_func=lambda x: x + 4.0,
+            load04_func=lambda x: x + 5.0,
+        )
+
+        # 全データを見る必要はないので一部スライス
+        target_df: DataFrame = rawdata_df[:3]
+
+        actual_df: DataFrame = cut_out_shot._apply_expr_load(target_df)
+
+        expected = [
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
+                "displacement": 49.284,
+                "load01": 2.223,
+                "load02": 3.211,
+                "load03": 4.200,
+                "load04": 5.218,
+            },
+            # 切り出し区間前2
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
+                "displacement": 47.534,
+                "load01": 2.155,
+                "load02": 3.171,
+                "load03": 4.180,
+                "load04": 5.146,
+            },
+            # 切り出し区間1-1
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "displacement": 47.0,
+                "load01": 3.574,
+                "load02": 4.308,
+                "load03": 5.363,
+                "load04": 6.432,
+            },
+        ]
+
+        expected_df = pd.DataFrame(expected)
+
+        assert_frame_equal(actual_df, expected_df)
 
 
 class TestCutOutShot:
