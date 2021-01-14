@@ -877,6 +877,24 @@ class TestExcludeOverSample:
 
         assert_frame_equal(actual, expected)
 
+    def test_normal_not_exists_over_sample(self, target, rawdata_df, shots_meta_df):
+        """ 最大サンプル数を超えるショットがなかった場合、何も除外されずに元のDataFrameが返る """
+
+        # 全ショットが最大サンプル以下になるようデータ書き換え
+        shots_meta_df.at[0, "num_of_samples_in_cut_out"] = 5000
+        target.shots_meta_df = shots_meta_df
+
+        # 6サンプル切り出し
+        target.previous_size = 0
+        target._cut_out_shot(rawdata_df, 47.0, 34.0)
+        cut_out_targets_df = pd.DataFrame(target.cut_out_targets)
+
+        actual: DataFrame = target._exclude_over_sample(cut_out_targets_df)
+
+        expected: DataFrame = cut_out_targets_df
+
+        assert_frame_equal(actual, expected)
+
 
 class TestCutOutShot:
     def test_normal_1(self, target, rawdata_df):
