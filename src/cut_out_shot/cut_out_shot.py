@@ -141,22 +141,6 @@ class CutOutShot:
         self.__margin = margin
 
     @property
-    def sequential_number(self):
-        return self.__sequential_number
-
-    @sequential_number.setter
-    def sequential_number(self, sequential_number: int):
-        self.__sequential_number = sequential_number
-
-    @property
-    def sequential_number_by_shot(self):
-        return self.__sequential_number_by_shot
-
-    @sequential_number_by_shot.setter
-    def sequential_number_by_shot(self, sequential_number_by_shot: int):
-        self.__sequential_number_by_shot = sequential_number_by_shot
-
-    @property
     def shot_number(self):
         return self.__shot_number
 
