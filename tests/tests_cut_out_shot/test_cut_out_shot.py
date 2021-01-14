@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 from datetime import datetime
 from typing import List
-from pandas.core.frame import DataFrame, Series
+from pandas.core.frame import DataFrame
 from pandas.util.testing import assert_frame_equal
 import numpy as np
 
@@ -815,7 +815,7 @@ class TestAddCutOutTarget:
     def test_normal(self, target, rawdata_df):
         """ 正常系：1レコード追加 """
 
-        cut_out_target: Series = rawdata_df.iloc[2]
+        cut_out_target = rawdata_df.iloc[2]
 
         target._add_cut_out_target(cut_out_target)
 
@@ -839,14 +839,16 @@ class TestAddCutOutTarget:
 
 class TestSetToNoneForLowSpm:
     def test_normal(self, target, shots_meta_df):
+        """ 最低spm (15spm) を下回る spm は None に設定する """
+
         target.shots_meta_df = shots_meta_df
         target._set_to_none_for_low_spm()
 
         actual_df: DataFrame = target.shots_meta_df
 
         expected = [
-            {"shot_number": 1, "spm": 80.0, "num_of_samples_in_cut_out": 3000},
-            {"shot_number": 2, "spm": None, "num_of_samples_in_cut_out": 10000},
+            {"shot_number": 1, "spm": None, "num_of_samples_in_cut_out": 400000},
+            {"shot_number": 2, "spm": 80.0, "num_of_samples_in_cut_out": 3000},
             {"shot_number": 3, "spm": 40.0, "num_of_samples_in_cut_out": 6000},
             {"shot_number": 4, "spm": 60.0, "num_of_samples_in_cut_out": 4000},
         ]
@@ -856,9 +858,29 @@ class TestSetToNoneForLowSpm:
         assert_frame_equal(actual_df, expected_df)
 
 
+class TestExcludeOverSample:
+    def test_normal_exclude_one_shot(self, target, rawdata_df, shots_meta_df):
+        """ 最大サンプル数（60/15*100k=400,000）を超えるショットを除外する。
+            shots_meta_df fixtureのshot_number:1は400,001サンプルとしているため除外される。
+        """
+
+        target.shots_meta_df = shots_meta_df
+
+        # 6サンプル切り出し
+        target.previous_size = 0
+        target._cut_out_shot(rawdata_df, 47.0, 34.0)
+        cut_out_targets_df = pd.DataFrame(target.cut_out_targets)
+
+        actual: DataFrame = target._exclude_over_sample(cut_out_targets_df)
+
+        expected: DataFrame = cut_out_targets_df[cut_out_targets_df.shot_number == 2]
+
+        assert_frame_equal(actual, expected)
+
+
 class TestCutOutShot:
-    def test_normal_1(self, target, rawdata_df, shots_meta_df):
-        """ 正常系：遡り件数1件, start: 47.0, end: 34.0。
+    def test_normal_1(self, target, rawdata_df):
+        """ 正常系：遡り件数1件, start_displacememt: 47.0, end_displacememt: 34.0。
             全13サンプル中8サンプルが切り出される。
         """
 
@@ -869,7 +891,7 @@ class TestCutOutShot:
         actual_df = pd.DataFrame(actual)
 
         expected = [
-            # 切り出し区間前2
+            # 切り出し区間前2（遡りにより切り出し区間に含まれる）
             {
                 "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
                 "sequential_number": 0,
@@ -921,7 +943,7 @@ class TestCutOutShot:
                 "shot_number": 1,
                 "tags": [],
             },
-            # 切り出し区間後4(ショット区間終了）
+            # 切り出し区間後4(ショット区間終了）（遡りにより切り出し区間に含まれる）
             {
                 "timestamp": datetime(2020, 12, 1, 10, 30, 18, 111111).timestamp(),
                 "sequential_number": 4,
@@ -978,3 +1000,14 @@ class TestCutOutShot:
         expected_df = pd.DataFrame(expected)
 
         assert_frame_equal(actual_df, expected_df)
+
+        # shots_meta_dfの確認
+        actual_shots_meta_df: DataFrame = target.shots_meta_df
+
+        # 最後のショットの情報は得られないので記録されない。
+        expected_shots_meta = [
+            {"shot_number": 1.0, "spm": 8.571429, "num_of_samples_in_cut_out": 4.0},
+        ]
+        expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
+
+        assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)

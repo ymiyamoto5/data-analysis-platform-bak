@@ -7,7 +7,7 @@ import pandas as pd
 import glob
 from typing import Callable, Final, List, Optional
 from datetime import datetime, timedelta
-from pandas.core.frame import DataFrame, Series
+from pandas.core.frame import DataFrame
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
@@ -107,6 +107,14 @@ class CutOutShot:
     @previous_df_tail.setter
     def previous_df_tail(self, previous_df_tail: DataFrame):
         self.__previous_df_tail = previous_df_tail
+
+    @property
+    def min_spm(self):
+        return self.__min_spm
+
+    @min_spm.setter
+    def min_spm(self, min_spm: int):
+        self.__min_spm = min_spm
 
     @property
     def is_shot_section(self):
@@ -352,10 +360,10 @@ class CutOutShot:
     def _include_previous_data(self, preceding_df: DataFrame) -> None:
         """ ショット検出時、previous_size分のデータを遡って切り出し対象に含める。荷重立ち上がり点取りこぼし防止のため。 """
 
-        for series in preceding_df.itertuples():
-            self._add_cut_out_target(series)
+        for row in preceding_df.itertuples():
+            self._add_cut_out_target(row)
 
-    def _add_cut_out_target(self, rawdata: Series) -> None:
+    def _add_cut_out_target(self, rawdata) -> None:
         """ 切り出し対象としてデータを追加 """
 
         cut_out_target: dict = {
