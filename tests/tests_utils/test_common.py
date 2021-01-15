@@ -31,5 +31,6 @@ class TestGetCollectStartTime:
 
     @pytest.mark.parametrize("events", events_exception)
     def test_no_start_event(self, events):
-        with pytest.raises(ValueError):
-            common.get_collect_start_time(events)
+        actual = common.get_collect_start_time(events)
+
+        assert actual == None

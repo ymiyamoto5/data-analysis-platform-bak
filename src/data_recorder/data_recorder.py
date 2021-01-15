@@ -80,11 +80,14 @@ def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
     start_time: float = common.get_collect_start_time(events)
 
     if start_time is None:
-        sys.exit(1)
+        raise SystemExit
 
     end_time: float = _get_collect_end_time(events)
 
-    logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}")
+    if end_time == datetime.max.timestamp():
+        logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - ")
+    else:
+        logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}")
 
     return start_time, end_time
 

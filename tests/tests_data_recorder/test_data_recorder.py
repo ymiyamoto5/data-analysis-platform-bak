@@ -3,6 +3,7 @@ import pathlib
 from datetime import datetime, timedelta
 
 from data_recorder import data_recorder
+import utils.common as common
 
 
 class TestCreateFileTimestamp:
@@ -12,7 +13,7 @@ class TestCreateFileTimestamp:
         filepath = "tmp00/AD-00_20201216-080058.620753.dat"
 
         actual = data_recorder._create_file_timestamp(filepath)
-        expected = datetime(2020, 12, 16, 8, 0, 58, 620753)
+        expected = datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()
 
         assert actual == expected
 
@@ -22,15 +23,18 @@ class TestGetTargetInterval:
         """ start_timeとend_timeの設定が正しく行われること """
 
         start_time: datetime = datetime.now()
-        start_time_str: str = datetime.strftime(start_time, "%Y%m%d%H%M%S%f")
+        start_time_str: str = datetime.isoformat(start_time)
         end_time: datetime = start_time + timedelta(seconds=30)
-        end_time_str: str = datetime.strftime(end_time, "%Y%m%d%H%M%S%f")
+        end_time_str: str = datetime.isoformat(end_time)
 
-        config = {"start_time": start_time_str, "end_time": end_time_str}
+        events = [
+            {"event_type": "start", "occurred_time": start_time_str},
+            {"event_type": "stop", "occurred_time": end_time_str},
+        ]
 
-        actual = data_recorder._get_target_interval(config)
+        actual = data_recorder._get_target_interval(events)
 
-        expected = (start_time, end_time)
+        expected = (start_time.timestamp(), end_time.timestamp())
 
         assert actual == expected
 
@@ -38,41 +42,25 @@ class TestGetTargetInterval:
         """ start_timeのみが設定されている場合、end_timeはmaxとして設定される """
 
         start_time: datetime = datetime.now()
-        start_time_str: str = datetime.strftime(start_time, "%Y%m%d%H%M%S%f")
+        start_time_str: str = datetime.isoformat(start_time)
 
-        config = {"start_time": start_time_str}
+        events = [
+            {"event_type": "start", "occurred_time": start_time_str},
+        ]
 
-        actual = data_recorder._get_target_interval(config)
+        actual = data_recorder._get_target_interval(events)
 
-        expected = (start_time, datetime.max)
+        expected = (start_time.timestamp(), datetime.max.timestamp())
 
         assert actual == expected
 
     def test_is_not_started(self):
         """ start_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
-        config = {}
+        events = []
 
-        actual = data_recorder._get_target_interval(config)
-
-        expected = (None, None)
-
-        assert actual == expected
-
-    def test_start_bigger_than_end(self):
-        """ start_time > end_timeの場合、不正な値 """
-
-        start_time: datetime = datetime.now()
-        start_time_str: str = datetime.strftime(start_time, "%Y%m%d%H%M%S%f")
-        end_time: datetime = start_time - timedelta(seconds=30)
-        end_time_str: str = datetime.strftime(end_time, "%Y%m%d%H%M%S%f")
-
-        config = {"start_time": start_time_str, "end_time": end_time_str}
-
-        with pytest.raises(ValueError) as excinfo:
-            data_recorder._get_target_interval(config)
-            exception_message = excinfo.value.args[0]
-            assert exception_message == "start_time({start_time}) > end_time({end_time}). This is abnormal condition."
+        with pytest.raises(SystemExit):
+            data_recorder._get_target_interval(events)
 
 
 class TestCreateFilesInfo:
@@ -82,11 +70,11 @@ class TestCreateFilesInfo:
         actual = data_recorder._create_files_info(dat_files.tmp_path._str)
 
         expected = [
-            data_recorder.FileInfo(dat_files.tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753)),
-            data_recorder.FileInfo(dat_files.tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 59, 620753)),
-            data_recorder.FileInfo(dat_files.tmp_dat_3._str, datetime(2020, 12, 16, 8, 1, 0, 620753)),
-            data_recorder.FileInfo(dat_files.tmp_dat_4._str, datetime(2020, 12, 16, 8, 1, 1, 620753)),
-            data_recorder.FileInfo(dat_files.tmp_dat_5._str, datetime(2020, 12, 16, 8, 1, 2, 620753)),
+            data_recorder.FileInfo(dat_files.tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()),
+            data_recorder.FileInfo(dat_files.tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 59, 620753).timestamp()),
+            data_recorder.FileInfo(dat_files.tmp_dat_3._str, datetime(2020, 12, 16, 8, 1, 0, 620753).timestamp()),
+            data_recorder.FileInfo(dat_files.tmp_dat_4._str, datetime(2020, 12, 16, 8, 1, 1, 620753).timestamp()),
+            data_recorder.FileInfo(dat_files.tmp_dat_5._str, datetime(2020, 12, 16, 8, 1, 2, 620753).timestamp()),
         ]
 
         assert actual == expected
@@ -105,9 +93,9 @@ class TestCreateFilesInfo:
         actual = data_recorder._create_files_info(tmp_path._str)
 
         expected = [
-            data_recorder.FileInfo(tmp_dat_3._str, datetime(2020, 12, 10, 8, 1, 0, 620753)),
-            data_recorder.FileInfo(tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 40, 620753)),
-            data_recorder.FileInfo(tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753)),
+            data_recorder.FileInfo(tmp_dat_3._str, datetime(2020, 12, 10, 8, 1, 0, 620753).timestamp()),
+            data_recorder.FileInfo(tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 40, 620753).timestamp()),
+            data_recorder.FileInfo(tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()),
         ]
 
         assert actual == expected
@@ -131,14 +119,14 @@ class TestGetTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 0, 59, 0)
-        end_time = datetime(2020, 12, 16, 8, 1, 2, 0)
+        start_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
+        end_time = datetime(2020, 12, 16, 8, 1, 2, 0).timestamp()
         actual = data_recorder._get_target_files(file_infos, start_time, end_time)
 
         expected = [
-            data_recorder.FileInfo(dat_files.tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 59, 620753)),
-            data_recorder.FileInfo(dat_files.tmp_dat_3._str, datetime(2020, 12, 16, 8, 1, 0, 620753)),
-            data_recorder.FileInfo(dat_files.tmp_dat_4._str, datetime(2020, 12, 16, 8, 1, 1, 620753)),
+            data_recorder.FileInfo(dat_files.tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 59, 620753).timestamp()),
+            data_recorder.FileInfo(dat_files.tmp_dat_3._str, datetime(2020, 12, 16, 8, 1, 0, 620753).timestamp()),
+            data_recorder.FileInfo(dat_files.tmp_dat_4._str, datetime(2020, 12, 16, 8, 1, 1, 620753).timestamp()),
         ]
 
         assert actual == expected
@@ -148,8 +136,8 @@ class TestGetTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 1, 3, 0)
-        end_time = datetime(2020, 12, 16, 8, 1, 5, 0)
+        start_time = datetime(2020, 12, 16, 8, 1, 3, 0).timestamp()
+        end_time = datetime(2020, 12, 16, 8, 1, 5, 0).timestamp()
         actual = data_recorder._get_target_files(file_infos, start_time, end_time)
 
         expected = []
@@ -166,13 +154,13 @@ class TestGetNotTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 0, 59, 0)
-        end_time = datetime(2020, 12, 16, 8, 1, 2, 0)
+        start_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
+        end_time = datetime(2020, 12, 16, 8, 1, 2, 0).timestamp()
         actual = data_recorder._get_not_target_files(file_infos, start_time, end_time)
 
         expected = [
-            data_recorder.FileInfo(dat_files.tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753)),
-            data_recorder.FileInfo(dat_files.tmp_dat_5._str, datetime(2020, 12, 16, 8, 1, 2, 620753)),
+            data_recorder.FileInfo(dat_files.tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()),
+            data_recorder.FileInfo(dat_files.tmp_dat_5._str, datetime(2020, 12, 16, 8, 1, 2, 620753).timestamp()),
         ]
 
         assert actual == expected
@@ -182,8 +170,8 @@ class TestGetNotTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 0, 58, 0)
-        end_time = datetime(2020, 12, 16, 8, 1, 10, 0)
+        start_time = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
+        end_time = datetime(2020, 12, 16, 8, 1, 10, 0).timestamp()
         actual = data_recorder._get_not_target_files(file_infos, start_time, end_time)
 
         expected = []
