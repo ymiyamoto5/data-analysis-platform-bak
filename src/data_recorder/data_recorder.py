@@ -272,13 +272,12 @@ def main(app_config_path: str = None) -> None:
 
     logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
-    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。ディレクトリ名はconfigのstart_timeを基準とする。
-    start_time_jst: DisplayTime = DisplayTime(datetime.fromtimestamp(start_time))
-    processed_dir_path: str = os.path.join(data_dir, start_time_jst.to_string())
+    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。
+    processed_dir_path: str = os.path.join(data_dir, suffix)
     os.makedirs(processed_dir_path, exist_ok=True)
 
     # Elasticsearch rawdataインデックス名
-    rawdata_index: str = "rawdata-" + start_time_jst.to_string()
+    rawdata_index: str = "rawdata-" + suffix
 
     # テスト時はインデックスを都度再作成する。
     if MODE == "TEST":
