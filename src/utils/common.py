@@ -1,9 +1,15 @@
+import os
+import sys
 import json
 import logging
 
-from typing import Final
+from typing import Final, List, Optional
 from datetime import datetime
 from pytz import timezone
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+from elastic_manager.elastic_manager import ElasticManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +36,31 @@ def get_config_value(file_path: str, key: str):
         raise KeyError
 
     return value
+
+
+def get_events(suffix: str) -> List[dict]:
+    """ 対応するevents_indexのデータ取得 """
+
+    events_index: str = "events-" + suffix
+    query: dict = {"sort": {"event_id": {"order": "asc"}}}
+    events: List[dict] = ElasticManager.get_all_doc(events_index, query)
+
+    return events
+
+
+def get_collect_start_time(events: List[dict]) -> Optional[float]:
+    """ events_indexから収集開始時間を取得 """
+
+    start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
+
+    if len(start_events) == 0:
+        logger.error("Data collection has not started yet.")
+        return None
+
+    start_event: dict = start_events[0]
+    collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
+
+    return collect_start_time
 
 
 class DisplayTime:

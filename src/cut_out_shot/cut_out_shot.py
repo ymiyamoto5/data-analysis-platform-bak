@@ -172,27 +172,6 @@ class CutOutShot:
     def shots_meta_df(self, shots_meta_df: DataFrame):
         self.__shots_meta_df = shots_meta_df
 
-    def _get_events(self, suffix: str) -> List[dict]:
-        """ 対応するevents_indexのデータ取得 """
-
-        events_index: str = "events-" + suffix
-        query: dict = {"sort": {"event_id": {"order": "asc"}}}
-        events: List[dict] = ElasticManager.get_all_doc(events_index, query)
-
-        return events
-
-    def _get_collect_start_time(self, events: List[dict]) -> float:
-        """ events_indexから収集開始時間を取得 """
-
-        start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
-        if len(start_events) == 0:
-            logger.exception("Data collection has not started yet.")
-            raise ValueError
-        start_event: dict = start_events[0]
-        collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
-
-        return collect_start_time
-
     def _get_pause_events(self, events: List[dict]) -> List[dict]:
         """ events_indexから中断イベントを取得。時刻はunixtimeに変換する。 """
 
@@ -455,8 +434,11 @@ class CutOutShot:
         ElasticManager.create_index(index=shots_meta_index, mapping_file="mappings/mapping_shots_meta.json")
 
         # event_indexから各種イベント情報を取得する
-        events: List[dict] = self._get_events(suffix=rawdata_dir_name)
-        collect_start_time: float = self._get_collect_start_time(events)
+        events: List[dict] = common.get_events(suffix=rawdata_dir_name)
+        collect_start_time: Optional[float] = common.get_collect_start_time(events)
+        if collect_start_time is None:
+            return
+
         pause_events: List[dict] = self._get_pause_events(events)
         tag_events: List[dict] = self._get_tag_events(events)
 

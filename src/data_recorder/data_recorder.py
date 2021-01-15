@@ -7,7 +7,6 @@ import shutil
 import struct
 import logging
 import logging.handlers
-from numpy.core.records import record
 import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
@@ -44,10 +43,10 @@ class FileInfo:
         "timestamp",
     )
     file_path: str
-    timestamp: datetime
+    timestamp: float
 
 
-def _create_file_timestamp(filepath: str) -> datetime:
+def _create_file_timestamp(filepath: str) -> float:
     """ ファイル名から日時データを作成する。
         ファイル名は AD-XX_YYYYmmddHHMMSS.ffffff 形式が前提となる。
     """
@@ -56,40 +55,47 @@ def _create_file_timestamp(filepath: str) -> datetime:
 
     parts: List[str] = re.findall(r"\d+", filename)
     timestamp_str: str = parts[-3] + parts[-2] + parts[-1]
-    timestamp: datetime = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f")
+    timestamp: float = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f").timestamp()
     return timestamp
 
 
-def _get_target_interval(config: dict) -> Tuple[datetime, datetime]:
+def _get_collect_end_time(events: List[dict]) -> float:
+    """ events_indexから収集終了時間を取得 """
+
+    end_events: List[dict] = [x for x in events if x["event_type"] == "stop"]
+
+    if len(end_events) == 0:
+        logger.info("Data collect is not finished yet. end_time is set to max.")
+        end_time: float = datetime.max.timestamp()
+    else:
+        end_event: dict = end_events[0]
+        end_time: float = datetime.fromisoformat(end_event["occurred_time"]).timestamp()
+
+    return end_time
+
+
+def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
     """ 処理対象となる区間（開始/終了時刻）を取得する """
 
-    if config.get("start_time") is None:
-        logger.info("data collect is not started.")
-        return None, None
+    start_time: float = common.get_collect_start_time(events)
 
-    start_time: datetime = datetime.strptime(config["start_time"], "%Y%m%d%H%M%S%f")
+    if start_time is None:
+        sys.exit(1)
 
-    if config.get("end_time") is None:
-        end_time: datetime = datetime.max
-    else:
-        end_time: datetime = datetime.strptime(config["end_time"], "%Y%m%d%H%M%S%f")
+    end_time: float = _get_collect_end_time(events)
 
-    if start_time > end_time:
-        logger.exception(f"start_time({start_time}) > end_time({end_time}). This is abnormal condition.")
-        raise ValueError(f"start_time({start_time}) > end_time({end_time}). This is abnormal condition.")
-
-    logger.info(f"target interval: {start_time} - {end_time}")
+    logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}")
 
     return start_time, end_time
 
 
-def _get_target_files(files_info: List[FileInfo], start_time: datetime, end_time: datetime) -> List[FileInfo]:
+def _get_target_files(files_info: List[FileInfo], start_time: float, end_time: float) -> List[FileInfo]:
     """ 処理対象(開始/終了区間に含まれる）ファイルリストを返す """
 
     return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
 
 
-def _get_not_target_files(files_info: List[FileInfo], start_time: datetime, end_time: datetime) -> List[FileInfo]:
+def _get_not_target_files(files_info: List[FileInfo], start_time: float, end_time: float) -> List[FileInfo]:
     """ 処理対象外(開始/終了区間に含まれない）ファイルリストを返す """
 
     return list(filter(lambda x: (x.timestamp < start_time or x.timestamp > end_time), files_info))
@@ -101,7 +107,7 @@ def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dic
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
 
     dataset_number: int = 0  # ファイル内での連番
-    timestamp: float = file.timestamp.timestamp()
+    timestamp: float = file.timestamp
     samples: List[dict] = []
 
     with open(file.file_path, "rb") as f:
@@ -204,24 +210,29 @@ def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir
 
 def main(app_config_path: str = None) -> None:
 
-    cfm: ConfigFileManager = ConfigFileManager(app_config_path)
-
     # データディレクトリを確認し、ファイルリストを作成
-    data_dir: str = common.get_config_value(cfm.app_config_path, "data_dir")
+    data_dir: str = common.get_config_value(app_config_path, "data_dir")
     files_info: Optional[List[FileInfo]] = _create_files_info(data_dir)
 
     if files_info is None:
         logger.info(f"No files in {data_dir}")
         return
 
-    # configファイルからstart-endtimeを取得
-    start_time: datetime
-    end_time: datetime
-    config_file: dict = cfm.read_config(cfm.config_file_path)
-    start_time, end_time = _get_target_interval(config_file)
-
-    if start_time is None:
+    # 直近のElasticsearchからstart-endtimeを取得
+    latest_events_index: Optional[str] = ElasticManager.get_latest_events_index()
+    if latest_events_index is None:
+        logger.error("events_index is not found.")
         return
+
+    if MODE == "TEST":
+        latest_events_index: str = "events-20201216165900"
+
+    suffix: str = latest_events_index.split("-")[1]
+    events: List[dict] = common.get_events(suffix)
+
+    start_time: float
+    end_time: float
+    start_time, end_time = _get_target_interval(events)
 
     # 対象となるファイルに絞り込む
     target_files: List[FileInfo] = _get_target_files(files_info, start_time, end_time)
@@ -240,7 +251,7 @@ def main(app_config_path: str = None) -> None:
     logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
     # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。ディレクトリ名はconfigのstart_timeを基準とする。
-    start_time_jst: DisplayTime = DisplayTime(start_time)
+    start_time_jst: DisplayTime = DisplayTime(datetime.fromtimestamp(start_time))
     processed_dir_path: str = os.path.join(data_dir, start_time_jst.to_string())
     os.makedirs(processed_dir_path, exist_ok=True)
 
@@ -268,5 +279,5 @@ def main(app_config_path: str = None) -> None:
 
 if __name__ == "__main__":
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
-    main()
+    main(app_config_path="app_config.json")
 

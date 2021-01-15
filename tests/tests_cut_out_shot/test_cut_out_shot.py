@@ -6,7 +6,6 @@ from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
 import numpy as np
 
-from elastic_manager.elastic_manager import ElasticManager
 from cut_out_shot.cut_out_shot import CutOutShot
 
 
@@ -55,52 +54,6 @@ class TestInit:
                 load02_func=lambda x: x + 1.0,
                 load03_func=lambda x: x + 1.0,
             )
-
-
-class TestGetEvents:
-    def test_normal(self, target, mocker):
-        expected = [
-            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
-            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
-            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
-        ]
-
-        mocker.patch.object(ElasticManager, "get_all_doc", return_value=expected)
-
-        actual = target._get_events(suffix="20201201000000")
-
-        assert actual == expected
-
-
-class TestGetCollectStartTime:
-    events_normal = (
-        [
-            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
-            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
-            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
-        ],
-        [
-            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
-            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
-        ],
-    )
-
-    events_normal_ids = [f"events-{x}" for x in events_normal]
-
-    @pytest.mark.parametrize("events", events_normal, ids=events_normal_ids)
-    def test_normal(self, target, events):
-        actual = target._get_collect_start_time(events)
-
-        expected = datetime(2020, 12, 1, 0, 10, 0, 123456).timestamp()
-
-        assert actual == expected
-
-    events_exception = ([{"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"}],)
-
-    @pytest.mark.parametrize("events", events_exception)
-    def test_no_start_event(self, target, events):
-        with pytest.raises(ValueError):
-            target._get_collect_start_time(events)
 
 
 class TestGetPauseEvents:
