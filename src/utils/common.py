@@ -48,21 +48,6 @@ def get_events(suffix: str) -> List[dict]:
     return events
 
 
-def get_collect_start_time(events: List[dict]) -> Optional[float]:
-    """ events_indexから収集開始時間を取得 """
-
-    start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
-
-    if len(start_events) == 0:
-        logger.error("Data collection has not started yet.")
-        return None
-
-    start_event: dict = start_events[0]
-    collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
-
-    return collect_start_time
-
-
 class DisplayTime:
     """ 表示用時刻(JST) """
 

@@ -59,6 +59,21 @@ def _create_file_timestamp(filepath: str) -> float:
     return timestamp
 
 
+def _get_collect_start_time(events: List[dict]) -> Optional[float]:
+    """ events_indexから収集（段取）開始時間を取得 """
+
+    setup_events: List[dict] = [x for x in events if x["event_type"] == "setup"]
+
+    if len(setup_events) == 0:
+        logger.error("Data collection has not started yet.")
+        raise SystemExit
+
+    setup_event: dict = setup_events[0]
+    collect_start_time: float = datetime.fromisoformat(setup_event["occurred_time"]).timestamp()
+
+    return collect_start_time
+
+
 def _get_collect_end_time(events: List[dict]) -> float:
     """ events_indexから収集終了時間を取得 """
 
@@ -77,7 +92,7 @@ def _get_collect_end_time(events: List[dict]) -> float:
 def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
     """ 処理対象となる区間（開始/終了時刻）を取得する """
 
-    start_time: float = common.get_collect_start_time(events)
+    start_time: float = _get_collect_start_time(events)
 
     if start_time is None:
         raise SystemExit

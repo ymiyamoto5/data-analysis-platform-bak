@@ -6,7 +6,6 @@ from flask import render_template, request, Response
 from datetime import datetime
 from typing import Optional, Tuple, List, Final
 import json
-
 from werkzeug import exceptions
 
 from data_collect_manager import app

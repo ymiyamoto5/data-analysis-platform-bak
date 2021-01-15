@@ -3,7 +3,6 @@ import pathlib
 from datetime import datetime, timedelta
 
 from data_recorder import data_recorder
-import utils.common as common
 
 
 class TestCreateFileTimestamp:
@@ -19,43 +18,43 @@ class TestCreateFileTimestamp:
 
 
 class TestGetTargetInterval:
-    def test_start_end_are_set(self):
+    def test_setup_end_are_set(self):
         """ start_timeとend_timeの設定が正しく行われること """
 
-        start_time: datetime = datetime.now()
-        start_time_str: str = datetime.isoformat(start_time)
-        end_time: datetime = start_time + timedelta(seconds=30)
+        setup_time: datetime = datetime.now()
+        setup_time_str: str = datetime.isoformat(setup_time)
+        end_time: datetime = setup_time + timedelta(seconds=30)
         end_time_str: str = datetime.isoformat(end_time)
 
         events = [
-            {"event_type": "start", "occurred_time": start_time_str},
+            {"event_type": "setup", "occurred_time": setup_time_str},
             {"event_type": "stop", "occurred_time": end_time_str},
         ]
 
         actual = data_recorder._get_target_interval(events)
 
-        expected = (start_time.timestamp(), end_time.timestamp())
+        expected = (setup_time.timestamp(), end_time.timestamp())
 
         assert actual == expected
 
     def test_end_is_not_set(self):
-        """ start_timeのみが設定されている場合、end_timeはmaxとして設定される """
+        """ setup_timeのみが設定されている場合、end_timeはmaxとして設定される """
 
-        start_time: datetime = datetime.now()
-        start_time_str: str = datetime.isoformat(start_time)
+        setup_time: datetime = datetime.now()
+        setup_time_str: str = datetime.isoformat(setup_time)
 
         events = [
-            {"event_type": "start", "occurred_time": start_time_str},
+            {"event_type": "setup", "occurred_time": setup_time_str},
         ]
 
         actual = data_recorder._get_target_interval(events)
 
-        expected = (start_time.timestamp(), datetime.max.timestamp())
+        expected = (setup_time.timestamp(), datetime.max.timestamp())
 
         assert actual == expected
 
-    def test_is_not_started(self):
-        """ start_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
+    def test_is_not_setuped(self):
+        """ setup_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
         events = []
 
@@ -119,9 +118,9 @@ class TestGetTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
+        setup_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 2, 0).timestamp()
-        actual = data_recorder._get_target_files(file_infos, start_time, end_time)
+        actual = data_recorder._get_target_files(file_infos, setup_time, end_time)
 
         expected = [
             data_recorder.FileInfo(dat_files.tmp_dat_2._str, datetime(2020, 12, 16, 8, 0, 59, 620753).timestamp()),
@@ -136,9 +135,9 @@ class TestGetTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 1, 3, 0).timestamp()
+        setup_time = datetime(2020, 12, 16, 8, 1, 3, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 5, 0).timestamp()
-        actual = data_recorder._get_target_files(file_infos, start_time, end_time)
+        actual = data_recorder._get_target_files(file_infos, setup_time, end_time)
 
         expected = []
 
@@ -154,9 +153,9 @@ class TestGetNotTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
+        setup_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 2, 0).timestamp()
-        actual = data_recorder._get_not_target_files(file_infos, start_time, end_time)
+        actual = data_recorder._get_not_target_files(file_infos, setup_time, end_time)
 
         expected = [
             data_recorder.FileInfo(dat_files.tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()),
@@ -170,9 +169,9 @@ class TestGetNotTargetFiles:
 
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
 
-        start_time = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
+        setup_time = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 10, 0).timestamp()
-        actual = data_recorder._get_not_target_files(file_infos, start_time, end_time)
+        actual = data_recorder._get_not_target_files(file_infos, setup_time, end_time)
 
         expected = []
 
