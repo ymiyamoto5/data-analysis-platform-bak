@@ -236,7 +236,7 @@ def main(app_config_path: str = None) -> None:
         logger.info(f"No files in {data_dir}")
         return
 
-    # 直近のElasticsearchからstart-endtimeを取得
+    # 直近のevents_indexからイベント取得
     latest_events_index: Optional[str] = ElasticManager.get_latest_events_index()
     if latest_events_index is None:
         logger.error("events_index is not found.")
@@ -247,6 +247,10 @@ def main(app_config_path: str = None) -> None:
 
     suffix: str = latest_events_index.split("-")[1]
     events: List[dict] = common.get_events(suffix)
+
+    # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
+    if events[-1]["event_type"] == "recorded":
+        return
 
     start_time: float
     end_time: float

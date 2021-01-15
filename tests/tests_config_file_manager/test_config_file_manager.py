@@ -135,8 +135,7 @@ class TestUpdate:
 
         cfm = ConfigFileManager(app_config_file._str)
 
-        start_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
-        params = {"status": "running", "start_time": start_time}
+        params = {"status": "running"}
 
         actual: bool = cfm.update(params)
         expected: bool = True
@@ -148,15 +147,13 @@ class TestUpdate:
 
         assert new_config["sequence_number"] == 2  # initialが1のため、インクリメントされて2
         assert new_config["status"] == "running"
-        assert new_config["start_time"] == start_time
 
     def test_normal_change_status_to_stop(self, app_config_file, config_file):
         """ configファイルを正常に更新できること。statusをstopに変更。 """
 
         cfm = ConfigFileManager(app_config_file._str)
 
-        end_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
-        params = {"status": "stop", "end_time": end_time}
+        params = {"status": "stop"}
 
         actual: bool = cfm.update(params)
         expected: bool = True
@@ -182,8 +179,7 @@ class TestUpdate:
         with open(config_file._str, "w") as f:
             f.write(json_str)
 
-        start_time: str = datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
-        params = {"status": "running", "start_time": start_time}
+        params = {"status": "running"}
 
         actual: bool = cfm.update(params)
         expected: bool = True
@@ -195,5 +191,4 @@ class TestUpdate:
 
         assert new_config["sequence_number"] == 1
         assert new_config["status"] == "running"
-        assert new_config["start_time"] == start_time
 

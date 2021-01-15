@@ -105,8 +105,7 @@ def setup():
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
 
     # configファイル更新
-    start_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
-    params: dict = {"status": "running", "start_time": start_time}
+    params: dict = {"status": "running"}
     cfm = ConfigFileManager()
     successful: bool = cfm.update(params)
 
@@ -203,8 +202,7 @@ def stop():
     utc_now: datetime = datetime.utcnow()
 
     # configファイル更新
-    end_time: str = utc_now.strftime("%Y%m%d%H%M%S%f")
-    params: dict = {"status": "stop", "end_time": end_time}
+    params: dict = {"status": "stop"}
     cfm = ConfigFileManager()
     successful: bool = cfm.update(params)
 
@@ -282,9 +280,31 @@ def check_record_finished():
 
         if len(data_file_list) == 0:
             successful: bool = True
-            message: str = "data recording is finished."
-            status: int = 200
-            return Response(response=json.dumps({"successful": successful, "message": message}), status=status)
+
+            # events_indexに記録完了イベントを記録
+            events_index: Optional[str] = ElasticManager.get_latest_events_index()
+
+            if events_index is None:
+                app.logger.error("events_index not found.")
+                successful, message = _initialize_config_file()
+                if not successful:
+                    return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+                return render_template("manager.html", status="recorded")
+
+            doc_id = ElasticManager.count(events_index)
+            utc_now: datetime = datetime.utcnow()
+
+            query = {"event_id": doc_id, "event_type": "recorded", "occurred_time": utc_now}
+            successful = ElasticManager.create_doc(events_index, doc_id, query)
+
+            if not successful:
+                return Response(
+                    response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500
+                )
+
+            return Response(
+                response=json.dumps({"successful": successful, "message": "data recording is finished."}), status=200
+            )
 
         time.sleep(WAIT_SECONDS)
 
