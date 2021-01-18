@@ -271,8 +271,6 @@ WAIT_SECONDS: Final[int] = 5
 def check_record_finished():
     """ data_recorderによるデータ取り込みが完了したか確認。dataディレクトリにdatファイルが残っていなければ完了とみなす。 """
 
-    cfm = ConfigFileManager()
-
     data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
 
     while True:
