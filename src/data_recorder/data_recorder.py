@@ -22,13 +22,12 @@ import common
 LOG_FILE: Final[str] = os.path.join(
     common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
 )
-MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=MAX_LOG_SIZE, backupCount=5),
+        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
         logging.StreamHandler(),
     ],
 )

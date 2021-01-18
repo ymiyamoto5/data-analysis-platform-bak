@@ -1,6 +1,14 @@
 import os
+import sys
 from flask import Flask
 from logging.config import dictConfig
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
+import common
+
+LOG_FILE = os.path.join(
+    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_collect_manager/data_collect_manager.log"
+)
 
 # logging
 dictConfig(
@@ -12,9 +20,17 @@ dictConfig(
                 "class": "logging.StreamHandler",
                 "stream": "ext://flask.logging.wsgi_errors_stream",
                 "formatter": "default",
-            }
+            },
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": LOG_FILE,
+                "formatter": "default",
+                "encoding": "utf-8",
+                "maxBytes": common.MAX_LOG_SIZE,
+                "backupCount": common.BACKUP_COUNT,
+            },
         },
-        "root": {"level": "INFO", "handlers": ["wsgi"]},
+        "root": {"level": "INFO", "handlers": ["wsgi", "file"]},
     }
 )
 
