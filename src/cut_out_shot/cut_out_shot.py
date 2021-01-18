@@ -450,8 +450,15 @@ class CutOutShot:
 
         # event_indexから各種イベント情報を取得する
         events: List[dict] = common.get_events(suffix=rawdata_dir_name)
+
+        # 最後のイベントが記録済み(recorded)であることが前提
+        if events[-1]["event_type"] != "recorded":
+            logger.error("Exits because the status is not recorded.")
+            return
+
         collect_start_time: Optional[float] = self._get_collect_start_time(events)
         if collect_start_time is None:
+            logger.error("Exits because collect time is not recorded.")
             return
 
         pause_events: List[dict] = self._get_pause_events(events)
@@ -590,11 +597,14 @@ class CutOutShot:
 
 def main():
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
-    displacement_func = lambda x: x * 1.0
-    load01_func = lambda x: x * 1.0
-    load02_func = lambda x: x * 1.0
-    load03_func = lambda x: x * 1.0
-    load04_func = lambda x: x * 1.0
+    RANGE: Final[int] = 100_000
+    # displacement_func = lambda v: 135.0 - (v - 2.0) * 70.0 / 8.0
+    displacement_func = lambda v: v
+    # F(kN) = V / 10 * Range / 3.8 / 1000
+    load01_func = lambda v: v * RANGE / 38000.0
+    load02_func = lambda v: v * RANGE / 38000.0
+    load03_func = lambda v: v * RANGE / 38000.0
+    load04_func = lambda v: v * RANGE / 38000.0
 
     cut_out_shot = CutOutShot(
         min_spm=15,
