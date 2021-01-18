@@ -11,7 +11,6 @@ import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
 from typing import Final, Tuple, List, Mapping, Optional
-import pandas as pd
 import dataclasses
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
@@ -20,9 +19,8 @@ from config_file_manager.config_file_manager import ConfigFileManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
-from utils.common import DisplayTime
 
-LOG_FILE: Final = "log/data_recorder/data_recorder.log"
+LOG_FILE: Final = "/home/ymiyamoto5/h-one-experimental-system/src/data_recorder/data_recorder.log"
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
 
 logging.basicConfig(
@@ -250,6 +248,7 @@ def main(app_config_path: str = None) -> None:
 
     # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
     if events[-1]["event_type"] == "recorded":
+        logger.info("Exits because the status has not changed.")
         return
 
     start_time: float
@@ -267,7 +266,9 @@ def main(app_config_path: str = None) -> None:
             logger.info(f"{file.file_path} has been deleted because it is out of range.")
 
     if len(target_files) == 0:
-        logger.info(f"No files in target inteverl {start_time} - {end_time}.")
+        logger.info(
+            f"No files in target inteverl {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}."
+        )
         return
 
     logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
@@ -283,14 +284,14 @@ def main(app_config_path: str = None) -> None:
     if MODE == "TEST":
         if ElasticManager.exists_index(rawdata_index):
             ElasticManager.delete_index(rawdata_index)
-        mapping_file: str = "mappings/mapping_rawdata.json"
-        setting_file: str = "mappings/setting_rawdata.json"
+        mapping_file: str = common.get_config_value(app_config_path, "mapping_rawdata_path")
+        setting_file: str = common.get_config_value(app_config_path, "setting_rawdata_path")
         ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
     # 通常はconfigのstart_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
     else:
         if not ElasticManager.exists_index(rawdata_index):
-            mapping_file: str = "mappings/mapping_rawdata.json"
-            setting_file: str = "mappings/setting_rawdata.json"
+            mapping_file: str = common.get_config_value(app_config_path, "mapping_rawdata_path")
+            setting_file: str = common.get_config_value(app_config_path, "setting_rawdata_path")
             ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     _data_record(rawdata_index, target_files, processed_dir_path)
@@ -299,6 +300,7 @@ def main(app_config_path: str = None) -> None:
 
 
 if __name__ == "__main__":
+    print(os.environ.get("DATA_RECORDER_MODE"))
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
-    main(app_config_path="app_config.json")
+    main(app_config_path="/home/ymiyamoto5/h-one-experimental-system/app_config.json")
 

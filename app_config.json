@@ -1,4 +1,10 @@
 {
     "config_file_path": "/home/ymiyamoto5/h-one-experimental-system/shared/conf_Gw-00.cnf",
-    "data_dir": "/home/ymiyamoto5/h-one-experimental-system/shared/data/"
+    "data_dir": "/home/ymiyamoto5/h-one-experimental-system/shared/data/",
+    "mapping_rawdata_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
+    "mapping_shots_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
+    "mapping_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
+    "setting_rawdata_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_rawdata.json",
+    "setting_shots_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_rawdata.json",
+    "setting_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_rawdata.json"
 }

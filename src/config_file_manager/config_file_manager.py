@@ -48,7 +48,7 @@ class ConfigFileManager:
     def update(self, params: dict) -> bool:
         """ 既存のconfigファイルを更新 """
 
-        logger.info("Updating config file.")
+        logger.info(f"Updating config file. Params: {params}")
 
         try:
             new_config: dict = self.read_config(self.config_file_path)
