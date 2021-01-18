@@ -15,12 +15,13 @@ import dataclasses
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
-from config_file_manager.config_file_manager import ConfigFileManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
 
-LOG_FILE: Final = "/home/ymiyamoto5/h-one-experimental-system/src/data_recorder/data_recorder.log"
+LOG_FILE: Final[str] = os.path.join(
+    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
+)
 MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
 
 logging.basicConfig(
@@ -224,10 +225,10 @@ def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir
             p.join()
 
 
-def main(app_config_path: str = None) -> None:
+def main() -> None:
 
     # データディレクトリを確認し、ファイルリストを作成
-    data_dir: str = common.get_config_value(app_config_path, "data_dir")
+    data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
     files_info: Optional[List[FileInfo]] = _create_files_info(data_dir)
 
     if files_info is None:
@@ -240,6 +241,7 @@ def main(app_config_path: str = None) -> None:
         logger.error("events_index is not found.")
         return
 
+    # TODO: 削除
     if MODE == "TEST":
         latest_events_index: str = "events-20201216165900"
 
@@ -284,14 +286,14 @@ def main(app_config_path: str = None) -> None:
     if MODE == "TEST":
         if ElasticManager.exists_index(rawdata_index):
             ElasticManager.delete_index(rawdata_index)
-        mapping_file: str = common.get_config_value(app_config_path, "mapping_rawdata_path")
-        setting_file: str = common.get_config_value(app_config_path, "setting_rawdata_path")
+        mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
+        setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
         ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
     # 通常はconfigのstart_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
     else:
         if not ElasticManager.exists_index(rawdata_index):
-            mapping_file: str = common.get_config_value(app_config_path, "mapping_rawdata_path")
-            setting_file: str = common.get_config_value(app_config_path, "setting_rawdata_path")
+            mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
+            setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
             ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     _data_record(rawdata_index, target_files, processed_dir_path)
@@ -300,7 +302,5 @@ def main(app_config_path: str = None) -> None:
 
 
 if __name__ == "__main__":
-    print(os.environ.get("DATA_RECORDER_MODE"))
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
-    main(app_config_path="/home/ymiyamoto5/h-one-experimental-system/app_config.json")
-
+    main()

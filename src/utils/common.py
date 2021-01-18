@@ -14,6 +14,7 @@ from elastic_manager.elastic_manager import ElasticManager
 logger = logging.getLogger(__name__)
 
 # グローバル変数
+APP_CONFIG_PATH: Final[str] = "/home/ymiyamoto5/h-one-experimental-system/app_config.json"
 MARGIN: Final[int] = 0.1
 SAMPLING_RATE: Final[int] = 100_000
 SAMPLING_INTERVAL: Final[int] = 0.000010

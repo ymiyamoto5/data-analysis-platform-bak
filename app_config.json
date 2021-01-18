@@ -1,6 +1,7 @@
 {
     "config_file_path": "/home/ymiyamoto5/h-one-experimental-system/shared/conf_Gw-00.cnf",
     "data_dir": "/home/ymiyamoto5/h-one-experimental-system/shared/data/",
+    "log_dir": "/home/ymiyamoto5/h-one-experimental-system/log/",
     "mapping_rawdata_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
     "mapping_shots_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
     "mapping_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
