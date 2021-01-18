@@ -17,7 +17,9 @@ from time_logger import time_log
 from throughput_counter import throughput_counter
 import common
 
-LOG_FILE: Final[str] = "log/cut_out_shot/cut_out_shot.log"
+LOG_FILE: Final[str] = os.path.join(
+    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "cut_out_shot/cut_out_shot.log"
+)
 MAX_LOG_SIZE: Final[int] = 1024 * 1024  # 1MB
 
 logging.basicConfig(
@@ -462,7 +464,7 @@ class CutOutShot:
         NOW: Final[datetime] = datetime.now()
 
         # 取り込むpickleファイルのリストを取得
-        data_dir: str = common.get_config_value("app_config.json", "data_dir")
+        data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
         rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
         pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 

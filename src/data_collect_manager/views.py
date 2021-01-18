@@ -273,7 +273,7 @@ def check_record_finished():
 
     cfm = ConfigFileManager()
 
-    data_dir: str = common.get_config_value(cfm.app_config_path, "data_dir")
+    data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
 
     while True:
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
