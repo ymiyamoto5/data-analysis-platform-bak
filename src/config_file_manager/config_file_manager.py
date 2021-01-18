@@ -29,11 +29,12 @@ class ConfigFileManager:
         logger.info("Creating config file.")
 
         if initial_config_path is None:
-            initial_config_path: str = os.path.dirname(__file__) + "/initial_config.json"
+            initial_config_path: str = common.get_config_value(common.APP_CONFIG_PATH, "initial_config_file_path")
 
         try:
             initial_config: dict = self.read_config(initial_config_path)
         except Exception:
+            logger.exception("Initial config file not found.")
             return False
 
         successful: bool = self._dump_config_file(initial_config)
