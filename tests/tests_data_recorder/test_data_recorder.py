@@ -1,6 +1,6 @@
 import pytest
 import pathlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from data_recorder import data_recorder
 
@@ -49,7 +49,7 @@ class TestGetTargetInterval:
 
         actual = data_recorder._get_target_interval(events)
 
-        expected = (setup_time.timestamp(), datetime.max.timestamp())
+        expected = (setup_time.timestamp(), datetime.max.replace(tzinfo=timezone.utc).timestamp())
 
         assert actual == expected
 

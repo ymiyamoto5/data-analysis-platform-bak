@@ -8,7 +8,7 @@ import struct
 import logging
 import logging.handlers
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from pandas.core.frame import DataFrame
 from typing import Final, Tuple, List, Mapping, Optional
 import dataclasses
@@ -80,7 +80,7 @@ def _get_collect_end_time(events: List[dict]) -> float:
 
     if len(end_events) == 0:
         logger.info("Data collect is not finished yet. end_time is set to max.")
-        end_time: float = datetime.max.timestamp()
+        end_time: float = datetime.max.replace(tzinfo=timezone.utc).timestamp()
     else:
         end_event: dict = end_events[0]
         end_time: float = datetime.fromisoformat(end_event["occurred_time"]).timestamp()
@@ -98,7 +98,7 @@ def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
 
     end_time: float = _get_collect_end_time(events)
 
-    if end_time == datetime.max.timestamp():
+    if end_time == datetime.max.replace(tzinfo=timezone.utc).timestamp():
         logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - ")
     else:
         logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}")

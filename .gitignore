@@ -1,7 +1,6 @@
 .vscode
 .pytest_cache
 __pycache__
-flask_session
 /data/
 /venv/
 /backend/__pycache__

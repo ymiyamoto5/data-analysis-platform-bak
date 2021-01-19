@@ -74,7 +74,6 @@ fastcache=1.1.0=py38h7b6447c_0
 filelock=3.0.12=py_0
 flake8=3.8.3=py_0
 flask=1.1.2=py_0
-flask-session=0.3.2=pypi_0
 fontconfig=2.13.0=h9420a91_0
 freetype=2.10.2=h5ab3b9f_0
 fribidi=1.0.9=h7b6447c_0
