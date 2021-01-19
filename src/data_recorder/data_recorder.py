@@ -18,6 +18,7 @@ from elastic_manager.elastic_manager import ElasticManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
+from utils.common import DisplayTime
 
 LOG_FILE: Final[str] = os.path.join(
     common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
@@ -302,6 +303,57 @@ def main() -> None:
     logger.info("all file processed.")
 
 
+def manual_record(rawdata_dir_name: str):
+    """ 手動での生データ記録。手動実行時の時刻をベースにevents_indexとrawdata_indexを生成する。 """
+
+    files_info: Optional[List[FileInfo]] = _create_files_info(rawdata_dir_name)
+
+    if files_info is None:
+        logger.info(f"No files in {rawdata_dir_name}")
+        return
+
+    # eventsインデックス作成
+    utc_now: datetime = datetime.utcnow()
+    jst_now: DisplayTime = DisplayTime(utc_now)
+    suffix: str = jst_now.to_string()
+
+    events_index: str = "events-" + suffix
+    ElasticManager.delete_exists_index(index=events_index)
+    ElasticManager.create_index(events_index)
+
+    ElasticManager.create_doc(
+        index=events_index, doc_id=0, query={"event_id": 0, "event_type": "setup", "occurred_time": utc_now}
+    )
+    ElasticManager.create_doc(
+        index=events_index, doc_id=1, query={"event_id": 1, "event_type": "start", "occurred_time": utc_now}
+    )
+    ElasticManager.create_doc(
+        index=events_index, doc_id=2, query={"event_id": 2, "event_type": "stop", "occurred_time": datetime.max}
+    )
+
+    # rawdataインデックス作成
+    rawdata_index: str = "rawdata-" + suffix
+    ElasticManager.delete_exists_index(index=rawdata_index)
+    mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
+    setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
+    ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+
+    processed_dir_path: str = os.path.join(rawdata_dir_name, suffix)
+    os.makedirs(processed_dir_path, exist_ok=True)
+
+    _data_record(rawdata_index, files_info, processed_dir_path)
+
+    ElasticManager.create_doc(
+        index=events_index,
+        doc_id=3,
+        query={"event_id": 3, "event_type": "recorded", "occurred_time": datetime.utcnow()},
+    )
+
+    logger.info("manual import finished.")
+
+
 if __name__ == "__main__":
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
     main()
+    # manual_record("/home/ymiyamoto5/h-one-experimental-system/shared/data/bak-AD")
+
