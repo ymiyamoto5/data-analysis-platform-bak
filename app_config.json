@@ -1,15 +1,15 @@
 {
-    "config_file_path": "/home/ymiyamoto5/h-one-experimental-system/shared/conf_Gw-00.cnf",
-    "initial_config_file_path": "/home/ymiyamoto5/h-one-experimental-system/shared/initial_config.json",
-    "data_dir": "/home/ymiyamoto5/h-one-experimental-system/shared/data/",
-    "log_dir": "/home/ymiyamoto5/h-one-experimental-system/log/",
+    "config_file_path": "/datadrive/data/conf_Gw-00.cnf",
+    "initial_config_file_path": "/datadrive/data/initial_config.json",
+    "data_dir": "/datadrive/data",
+    "log_dir": "/home/hone/h-one-experimental-system/log/",
     "elastic_url": "localhost:9200",
     "elastic_user": "elastic",
     "elastic_password": "P@ssw0rd",
-    "mapping_rawdata_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
-    "mapping_shots_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
-    "mapping_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
-    "setting_rawdata_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_rawdata.json",
-    "setting_shots_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_rawdata.json",
-    "setting_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_rawdata.json"
+    "mapping_rawdata_path": "/home/hone/h-one-experimental-system/mappings/mapping_rawdata.json",
+    "mapping_shots_path": "/home/hone/h-one-experimental-system/mappings/mapping_rawdata.json",
+    "mapping_shots_meta_path": "/home/hone/h-one-experimental-system/mappings/mapping_rawdata.json",
+    "setting_rawdata_path": "/home/hone/h-one-experimental-system/mappings/setting_rawdata.json",
+    "setting_shots_path": "/home/hone/h-one-experimental-system/mappings/setting_rawdata.json",
+    "setting_shots_meta_path": "/home/hone/h-one-experimental-system/mappings/setting_rawdata.json"
 }

@@ -9,7 +9,7 @@ from pytz import timezone
 logger = logging.getLogger(__name__)
 
 # グローバル変数
-APP_CONFIG_PATH: Final[str] = "/home/ymiyamoto5/h-one-experimental-system/app_config.json"
+APP_CONFIG_PATH: Final[str] = "/home/ymiyamoto5/h-one-experimental-system/app_config_dev.json"
 MAX_LOG_SIZE: Final[int] = 1024 * 1024  # 1MB
 BACKUP_COUNT: Final[int] = 5
 MARGIN: Final[int] = 0.1
