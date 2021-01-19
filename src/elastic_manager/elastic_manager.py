@@ -3,10 +3,11 @@
 from elasticsearch import Elasticsearch
 from elasticsearch import exceptions
 from elasticsearch import helpers
-
+import os
+import sys
 import pandas as pd
 import json
-from typing import Iterable, Iterator, Tuple, List, Optional
+from typing import Iterable, Iterator, Tuple, List, Optional, Final
 import multiprocessing
 from datetime import datetime
 import logging
@@ -16,11 +17,18 @@ es_logger.setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
+import common
+
+ELASTIC_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_url")
+ELASTIC_USER: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_user")
+ELASTIC_PASSWORD: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_password")
+
 
 class ElasticManager:
     """ Elasticsearchへの各種処理を行うwrapperクラス """
 
-    es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
+    es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
     @classmethod
     def show_indices(cls, show_all_index: bool = False) -> pd.DataFrame:
@@ -75,8 +83,8 @@ class ElasticManager:
         return result["hits"]["hits"][0]["_source"]
 
     @classmethod
-    def get_all_doc(cls, index: str, query: dict) -> List[dict]:
-        """ 対象インデックスの全documentを返す """
+    def get_docs(cls, index: str, query: dict) -> List[dict]:
+        """ 対象インデックスのdocumentを返す """
 
         body = query
         result = cls.es.search(index=index, body=body, size=10_000)
@@ -285,7 +293,7 @@ class ElasticManager:
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
         # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
-        es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000,)
+        es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
         actions: Tuple[dict] = ({"_index": index_to_import, "_source": x} for x in data_list)
         helpers.bulk(es, actions, chunk_size=chunk_size, stats_only=True, raise_on_error=False)
@@ -346,7 +354,7 @@ class ElasticManager:
 
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
-        es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000,)
+        es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
         body: dict = {
             "query": {"range": {"sequential_number": {"gte": start, "lte": end - 1}}},

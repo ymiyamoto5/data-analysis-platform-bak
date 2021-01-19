@@ -449,7 +449,9 @@ class CutOutShot:
         ElasticManager.create_index(index=shots_meta_index, mapping_file="mappings/mapping_shots_meta.json")
 
         # event_indexから各種イベント情報を取得する
-        events: List[dict] = common.get_events(suffix=rawdata_dir_name)
+        events_index: str = "events-" + rawdata_dir_name
+        query: dict = {"sort": {"event_id": {"order": "asc"}}}
+        events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
 
         # 最後のイベントが記録済み(recorded)であることが前提
         if events[-1]["event_type"] != "recorded":

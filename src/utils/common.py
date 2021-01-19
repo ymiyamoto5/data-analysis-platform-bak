@@ -1,14 +1,9 @@
-import os
-import sys
 import json
 import logging
 
 from typing import Final, List, Optional
 from datetime import datetime
 from pytz import timezone
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-from elastic_manager.elastic_manager import ElasticManager
 
 
 logger = logging.getLogger(__name__)
@@ -39,16 +34,6 @@ def get_config_value(file_path: str, key: str):
         raise KeyError
 
     return value
-
-
-def get_events(suffix: str) -> List[dict]:
-    """ 対応するevents_indexのデータ取得 """
-
-    events_index: str = "events-" + suffix
-    query: dict = {"sort": {"event_id": {"order": "asc"}}}
-    events: List[dict] = ElasticManager.get_all_doc(events_index, query)
-
-    return events
 
 
 class DisplayTime:

@@ -245,7 +245,9 @@ def main() -> None:
         latest_events_index: str = "events-20201216165900"
 
     suffix: str = latest_events_index.split("-")[1]
-    events: List[dict] = common.get_events(suffix)
+    events_index: str = "events-" + suffix
+    query: dict = {"sort": {"event_id": {"order": "asc"}}}
+    events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
 
     # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
     if events[-1]["event_type"] == "recorded":

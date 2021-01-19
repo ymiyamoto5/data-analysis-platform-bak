@@ -1,7 +1,8 @@
 from typing import Final
 from datetime import datetime
 from pandas.core.frame import DataFrame
-
+import os
+import sys
 import logging
 import logging.handlers
 import pandas as pd
@@ -13,9 +14,17 @@ from time_logger import time_log
 from throughput_counter import throughput_counter
 
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
+import common
+
+ELASTIC_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_url")
+ELASTIC_USER: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_user")
+ELASTIC_PASSWORD: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_password")
+
+
 class DataReader:
     def __init__(self):
-        self.es = Elasticsearch(hosts="localhost:9200", http_auth=("elastic", "P@ssw0rd12345"), timeout=50000)
+        self.es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
     def read(self, src_index: str, shot_number: int = 1) -> list:
         """ 特定ショットのデータを取得し、連番の昇順にソートして返却する """
