@@ -1,22 +1,28 @@
-from typing import Final
-from datetime import datetime
-
+import os
+import sys
 import logging
 import logging.handlers
 import pandas as pd
+from typing import Final
+from datetime import datetime
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager import ElasticManager
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from time_logger import time_log
 from throughput_counter import throughput_counter
+import common
 
-LOG_FILE: Final = "log/rawdata_importer/rawdata_importer.log"
-MAX_LOG_SIZE: Final = 1024 * 1024  # 1MB
+LOG_FILE: Final[str] = os.path.join(
+    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "rawdata_importer/rawdata_importer.log"
+)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=MAX_LOG_SIZE, backupCount=5),
+        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
         logging.StreamHandler(),
     ],
 )
@@ -24,14 +30,16 @@ logger = logging.getLogger(__name__)
 
 
 class RawdataImporter:
+    """ 手動での生データインポート """
+
     @time_log
-    def import_raw_data(self, data_to_import: str, index_to_import: str, thread_count=4) -> None:
+    def import_raw_data(self, data_to_import: str, index_to_import: str, thread_count=12) -> None:
         """ rawデータインポート処理 """
 
         ElasticManager.delete_exists_index(index=index_to_import)
 
-        mapping_file = "mappings/mapping_rawdata.json"
-        setting_file = "mappings/setting_rawdata.json"
+        mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
+        setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
         ElasticManager.create_index(index=index_to_import, mapping_file=mapping_file, setting_file=setting_file)
 
         ElasticManager.parallel_bulk(

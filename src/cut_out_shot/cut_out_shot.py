@@ -442,11 +442,13 @@ class CutOutShot:
 
         shots_index: str = "shots-" + rawdata_dir_name
         ElasticManager.delete_exists_index(index=shots_index)
-        ElasticManager.create_index(index=shots_index, mapping_file="mappings/mapping_shots.json")
+        mapping_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_path")
+        ElasticManager.create_index(index=shots_index, mapping_file=mapping_shots)
 
         shots_meta_index: str = "shots-meta-" + rawdata_dir_name
         ElasticManager.delete_exists_index(index=shots_meta_index)
-        ElasticManager.create_index(index=shots_meta_index, mapping_file="mappings/mapping_shots_meta.json")
+        mapping_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_meta_path")
+        ElasticManager.create_index(index=shots_meta_index, mapping_file=mapping_shots_meta)
 
         # event_indexから各種イベント情報を取得する
         events_index: str = "events-" + rawdata_dir_name
