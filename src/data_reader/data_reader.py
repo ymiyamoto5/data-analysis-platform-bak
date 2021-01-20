@@ -36,7 +36,11 @@ class DataReader:
 
         num_of_data: int = ElasticManager.count(index=index)
 
-        result: List[dict] = ElasticManager.multi_process_range_scan(index=index, num_of_data=num_of_data)
+        print(f"データ件数: {num_of_data}")
+
+        result: List[dict] = ElasticManager.multi_process_range_scan(
+            index=index, num_of_data=num_of_data, num_of_process=14
+        )
         result.sort(key=lambda x: x["sequential_number"])
 
         df: DataFrame = pd.DataFrame(result)

@@ -33,6 +33,7 @@ class TestInitializeConfigFile:
 
         ConfigFileManager.update.assert_called_once()
 
+
 class TestShowManager:
     def test_normal_config_file_not_exists(self, client, mocker):
         """ 正常系：configファイルが存在せず、作成するパターン。 """
