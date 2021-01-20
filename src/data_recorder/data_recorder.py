@@ -19,6 +19,7 @@ from elastic_manager.elastic_manager import ElasticManager
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
 from utils.common import DisplayTime
+from time_logger import time_log
 
 LOG_FILE: Final[str] = os.path.join(
     common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
@@ -252,7 +253,7 @@ def main() -> None:
 
     # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
     if events[-1]["event_type"] == "recorded":
-        logger.info("Exits because the status has not changed.")
+        logger.info("Exits because the latest event is 'recorded'. May be data collect has not started yet.")
         return
 
     start_time: float
@@ -280,6 +281,7 @@ def main() -> None:
     # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。
     processed_dir_path: str = os.path.join(data_dir, suffix)
     os.makedirs(processed_dir_path, exist_ok=True)
+    logger.info(f"{processed_dir_path} created.")
 
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + suffix
@@ -303,6 +305,29 @@ def main() -> None:
     logger.info("all file processed.")
 
 
+def _is_now_recording() -> bool:
+    """ 多重記録防止のため、現在データ収集中かを判断する。直近のevents_indexのdocがrecordedでなければ記録中。 """
+
+    latest_events_index: Optional[str] = ElasticManager.get_latest_events_index()
+
+    if latest_events_index is None:
+        logger.error("Exits because latest events index not exists.")
+        return True
+
+    latest_events_index_doc: Optional[dict] = ElasticManager.get_latest_events_index_doc(latest_events_index)
+
+    if latest_events_index_doc is None:
+        logger.error("Exits because latest events index doc not exists.")
+        return True
+
+    event_type: str = latest_events_index_doc["event_type"]
+
+    if event_type != "recorded":
+        logger.error(f"Exits because latest event is {event_type}. Latest event should be 'recorded'.")
+        return True
+
+
+@time_log
 def manual_record(rawdata_dir_name: str):
     """ 手動での生データ記録。手動実行時の時刻をベースにevents_indexとrawdata_indexを生成する。 """
 
@@ -312,11 +337,14 @@ def manual_record(rawdata_dir_name: str):
         logger.info(f"No files in {rawdata_dir_name}")
         return
 
-    # eventsインデックス作成
+    if _is_now_recording():
+        return
+
     utc_now: datetime = datetime.utcnow()
     jst_now: DisplayTime = DisplayTime(utc_now)
     suffix: str = jst_now.to_string()
 
+    # events_index作成
     events_index: str = "events-" + suffix
     ElasticManager.delete_exists_index(index=events_index)
     ElasticManager.create_index(events_index)
@@ -331,7 +359,7 @@ def manual_record(rawdata_dir_name: str):
         index=events_index, doc_id=2, query={"event_id": 2, "event_type": "stop", "occurred_time": datetime.max}
     )
 
-    # rawdataインデックス作成
+    # rawdata*index作成
     rawdata_index: str = "rawdata-" + suffix
     ElasticManager.delete_exists_index(index=rawdata_index)
     mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
@@ -354,6 +382,21 @@ def manual_record(rawdata_dir_name: str):
 
 if __name__ == "__main__":
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
-    main()
-    # manual_record("/home/ymiyamoto5/h-one-experimental-system/shared/data/bak-AD")
+    # TODO: 引数で自動モードとマニュアルモード切り替え
+    args = sys.argv
+
+    if len(args) > 2:
+        logger.error("Arguments are too long.")
+        sys.exit(1)
+
+    if len(args) == 1:
+        main()
+
+    if len(args) == 2:
+        data_dir: str = args[1]
+        if not os.path.isdir(data_dir):
+            logger.error(f"{data_dir} is not exists.")
+            sys.exit(1)
+
+        manual_record(data_dir)
 
