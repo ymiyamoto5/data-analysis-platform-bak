@@ -12,10 +12,9 @@ def time_log(func: Callable[..., RT]) -> Callable[..., RT]:
 
     def wrapper(*args, **kwargs) -> RT:
         start = datetime.now()
-        logger.info(f"start {func.__name__}")
         func(*args, **kwargs)
         end = datetime.now()
         delta = end - start
-        logger.info(f"{end} {func.__name__} finished. elapsed time: {delta}")
+        logger.info(f"{func.__name__} finished. elapsed time: {delta}")
 
     return wrapper
