@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 
 from data_recorder import data_recorder
 
+from utils.common import TIMESTAMP_MAX
+
 
 class TestCreateFileTimestamp:
     def test_normal(self):
@@ -49,7 +51,7 @@ class TestGetTargetInterval:
 
         actual = data_recorder._get_target_interval(events)
 
-        expected = (setup_time.timestamp(), datetime.max.replace(tzinfo=timezone.utc).timestamp())
+        expected = (setup_time.timestamp(), TIMESTAMP_MAX)
 
         assert actual == expected
 

@@ -22,6 +22,20 @@ import common
 from utils.common import DisplayTime
 from time_logger import time_log
 
+LOG_FILE: Final[str] = os.path.join(
+    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
+        logging.StreamHandler(),
+    ],
+)
+logger = logging.getLogger(__name__)
+
 
 @dataclasses.dataclass
 class FileInfo:
@@ -68,7 +82,7 @@ def _get_collect_end_time(events: List[dict]) -> float:
 
     if len(end_events) == 0:
         logger.info("Data collect is not finished yet. end_time is set to max.")
-        end_time: float = datetime.max.replace(tzinfo=timezone.utc).timestamp()
+        end_time: float = common.TIMESTAMP_MAX
     else:
         end_event: dict = end_events[0]
         end_time: float = datetime.fromisoformat(end_event["occurred_time"]).timestamp()
@@ -86,7 +100,7 @@ def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
 
     end_time: float = _get_collect_end_time(events)
 
-    if end_time == datetime.max.replace(tzinfo=timezone.utc).timestamp():
+    if end_time == common.TIMESTAMP_MAX:
         logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - ")
     else:
         logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}")
@@ -213,6 +227,7 @@ def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir
             p.join()
 
 
+@time_log
 def main() -> None:
 
     # データディレクトリを確認し、ファイルリストを作成
@@ -258,17 +273,18 @@ def main() -> None:
             logger.info(f"{file.file_path} has been deleted because it is out of range.")
 
     if len(target_files) == 0:
-        logger.info(
-            f"No files in target inteverl {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}."
-        )
+        logger.info("No files in target inteverl")
         return
 
     logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
     # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。
     processed_dir_path: str = os.path.join(data_dir, suffix)
-    os.makedirs(processed_dir_path, exist_ok=True)
-    logger.info(f"{processed_dir_path} created.")
+    if os.path.isdir(processed_dir_path):
+        logger.debug(f"{processed_dir_path} is already exists")
+    else:
+        os.makedirs(processed_dir_path)
+        logger.info(f"{processed_dir_path} created.")
 
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + suffix
@@ -371,33 +387,9 @@ def manual_record(rawdata_dir_name: str):
 if __name__ == "__main__":
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
 
-    LOG_FILE: Final[str] = os.path.join(
-        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
-    )
-
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-l", "--log", help="set log level", choices=common.USER_CHOICE, default=common.DEFAULT_LOG_LEVEL
-    )
     parser.add_argument("-d", "--dir", help="set import directory (manual import)")
     args = parser.parse_args()
-
-    # parse log level
-    numeric_level = getattr(logging, args.log.upper(), None)
-    if not isinstance(numeric_level, int):
-        raise ValueError(f"Invalid log level: {numeric_level}")
-
-    logging.basicConfig(
-        level=numeric_level,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.handlers.RotatingFileHandler(
-                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
-            ),
-            logging.StreamHandler(),
-        ],
-    )
-    logger = logging.getLogger(__name__)
 
     if args.dir is None:
         main()

@@ -523,6 +523,9 @@ class TestCheck:
         """ 正常系：datファイルがすべて処理済み。 """
 
         mocker.patch.object(glob, "glob", return_value=[])
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(ElasticManager, "count", return_value=1)
+        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
 
         response = client.get("/check")
         actual_code = response.status_code

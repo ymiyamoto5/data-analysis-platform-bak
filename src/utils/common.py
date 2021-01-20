@@ -15,6 +15,7 @@ BACKUP_COUNT: Final[int] = 5
 MARGIN: Final[int] = 0.1
 SAMPLING_RATE: Final[int] = 100_000
 SAMPLING_INTERVAL: Final[int] = 0.000010
+TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
 LOG_LEVEL: List[str] = ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
 DEFAULT_LOG_LEVEL: Final[str] = "INFO"
 
