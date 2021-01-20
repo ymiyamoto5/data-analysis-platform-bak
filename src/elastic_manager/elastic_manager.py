@@ -31,31 +31,16 @@ class ElasticManager:
     es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
     @classmethod
-    def show_indices(cls, show_all_index: bool = False) -> pd.DataFrame:
-        """
-         インデックス一覧のDataFrameを返す。
+    def show_indices(cls, index: str = "*") -> pd.DataFrame:
+        """ インデックス一覧のDataFrameを返す """
 
-        Args:
-            show_all_index: Trueの場合、すべてのインデックスを表示する。
-                            デフォルトはFalseで、本プロジェクトに関係するインデックスのみ表示する。
-        """
-
-        if show_all_index:
-            _indices = cls.es.cat.indices(
-                index="*", v=True, h=["index", "docs.count", "store.size"], bytes="kb"
-            ).splitlines()
-        else:
-            _indices = cls.es.cat.indices(
-                index=["rawdata-*", "shots-*", "events-*", "analyzed-*"],
-                v=True,
-                h=["index", "docs.count", "store.size"],
-                bytes="kb",
-            ).splitlines()
+        _indices = cls.es.cat.indices(
+            index=index, v=True, h=["index", "docs.count", "store.size"], bytes="kb"
+        ).splitlines()
 
         indices_list = [x.split() for x in _indices]
 
         df = pd.DataFrame(indices_list[1:], columns=indices_list[0]).sort_values("index").reset_index(drop=True)
-
         return df
 
     @classmethod
@@ -304,33 +289,30 @@ class ElasticManager:
         return result["count"]
 
     @classmethod
-    def multi_process_range_scan(
-        cls, index: list, num_of_data: int, start: int, end: int, num_of_process: int = 4,
-    ) -> list:
+    def multi_process_range_scan(cls, index: str, num_of_data: int, num_of_process: int = 12) -> List[dict]:
         """ マルチプロセスでrange scanする。 """
 
-        dt_now = datetime.now()
-        print(f"{dt_now} data read start. data_count:{num_of_data}, process_count:{num_of_process}")
+        logger.info(f"Data read start. data_count: {num_of_data}.")
 
-        batch_size, mod = divmod(num_of_data, num_of_process)
+        # データをプロセッサの数に均等分配
+        data_num_by_proc: List[int] = [(num_of_data + i) // num_of_process for i in range(num_of_process)]
 
         # マルチプロセスの結果格納用
         manager = multiprocessing.Manager()
         return_dict = manager.dict()
 
-        procs: list = []
-        for i in range(num_of_process):
-            start_index: int = i * batch_size + start
-            end_index: int = start_index + batch_size
-            # 最後のプロセスには余り分を含めたデータを処理させる
-            if (i == num_of_process - 1) and (mod != 0):
-                end_index = end + 1
+        procs: List[multiprocessing.context.Process] = []
+        start_index: int = 0
+        for proc_number, data_num in enumerate(data_num_by_proc):
+            end_index: int = start_index + data_num
 
-            proc = multiprocessing.Process(
-                target=cls.range_scan, args=(index, i, start_index, end_index, return_dict),
+            proc: multiprocessing.context.Process = multiprocessing.Process(
+                target=cls.range_scan, args=(index, proc_number, start_index, end_index, return_dict)
             )
             proc.start()
             procs.append(proc)
+
+            start_index: int = end_index
 
         for proc in procs:
             proc.join()
@@ -341,15 +323,12 @@ class ElasticManager:
             for data in return_dict[proc]:
                 result.append(data)
 
-        dt_now = datetime.now()
-        print(f"{dt_now} Got {len(result)} documents.")
-
         return result
 
     @classmethod
     def range_scan(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> Iterator:
-        """ データをレンジスキャンした結果を返す
-         Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
+        """ データをレンジスキャンした結果を返す。
+            Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
         """
 
         # プロセスごとにコネクションが必要
@@ -362,7 +341,6 @@ class ElasticManager:
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
         data = [x["_source"] for x in data_gen]
-        data.sort(key=lambda x: x["sequential_number"])
 
         return_dict[proc_num] = data
 
