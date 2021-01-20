@@ -15,6 +15,10 @@ BACKUP_COUNT: Final[int] = 5
 MARGIN: Final[int] = 0.1
 SAMPLING_RATE: Final[int] = 100_000
 SAMPLING_INTERVAL: Final[int] = 0.000010
+LOG_LEVEL: List[str] = ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+DEFAULT_LOG_LEVEL: Final[str] = "INFO"
+
+USER_CHOICE: List[str] = LOG_LEVEL + list(map(lambda w: w.lower(), LOG_LEVEL))
 
 
 def get_config_value(file_path: str, key: str):

@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pandas.core.frame import DataFrame
 from typing import Final, Tuple, List, Mapping, Optional
 import dataclasses
+import argparse
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
@@ -20,20 +21,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
 from utils.common import DisplayTime
 from time_logger import time_log
-
-LOG_FILE: Final[str] = os.path.join(
-    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
-)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
-        logging.StreamHandler(),
-    ],
-)
-logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -355,11 +342,8 @@ def manual_record(rawdata_dir_name: str):
     ElasticManager.create_doc(
         index=events_index, doc_id=1, query={"event_id": 1, "event_type": "start", "occurred_time": utc_now}
     )
-    ElasticManager.create_doc(
-        index=events_index, doc_id=2, query={"event_id": 2, "event_type": "stop", "occurred_time": datetime.max}
-    )
 
-    # rawdata*index作成
+    # rawdata-index作成
     rawdata_index: str = "rawdata-" + suffix
     ElasticManager.delete_exists_index(index=rawdata_index)
     mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
@@ -371,10 +355,14 @@ def manual_record(rawdata_dir_name: str):
 
     _data_record(rawdata_index, files_info, processed_dir_path)
 
+    utc_now: datetime = datetime.utcnow()
+
     ElasticManager.create_doc(
-        index=events_index,
-        doc_id=3,
-        query={"event_id": 3, "event_type": "recorded", "occurred_time": datetime.utcnow()},
+        index=events_index, doc_id=2, query={"event_id": 2, "event_type": "stop", "occurred_time": utc_now}
+    )
+
+    ElasticManager.create_doc(
+        index=events_index, doc_id=3, query={"event_id": 3, "event_type": "recorded", "occurred_time": utc_now},
     )
 
     logger.info("manual import finished.")
@@ -382,21 +370,40 @@ def manual_record(rawdata_dir_name: str):
 
 if __name__ == "__main__":
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
-    # TODO: 引数で自動モードとマニュアルモード切り替え
-    args = sys.argv
 
-    if len(args) > 2:
-        logger.error("Arguments are too long.")
-        sys.exit(1)
+    LOG_FILE: Final[str] = os.path.join(
+        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
+    )
 
-    if len(args) == 1:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-l", "--log", help="set log level", choices=common.USER_CHOICE, default=common.DEFAULT_LOG_LEVEL
+    )
+    parser.add_argument("-d", "--dir", help="set import directory (manual import)")
+    args = parser.parse_args()
+
+    # parse log level
+    numeric_level = getattr(logging, args.log.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f"Invalid log level: {numeric_level}")
+
+    logging.basicConfig(
+        level=numeric_level,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.handlers.RotatingFileHandler(
+                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
+            ),
+            logging.StreamHandler(),
+        ],
+    )
+    logger = logging.getLogger(__name__)
+
+    if args.dir is None:
         main()
 
-    if len(args) == 2:
-        data_dir: str = args[1]
-        if not os.path.isdir(data_dir):
-            logger.error(f"{data_dir} is not exists.")
+    else:
+        if not os.path.isdir(args.dir):
+            logger.error(f"{args.dir} is not exists.")
             sys.exit(1)
-
-        manual_record(data_dir)
-
+        manual_record(args.dir)
