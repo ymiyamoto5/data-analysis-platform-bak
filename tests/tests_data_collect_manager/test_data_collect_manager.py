@@ -39,6 +39,8 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=False)
         mocker.patch.object(ConfigFileManager, "create", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.get("/")
         actual_code = response.status_code

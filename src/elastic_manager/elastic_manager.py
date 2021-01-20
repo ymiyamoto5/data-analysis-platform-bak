@@ -125,7 +125,7 @@ class ElasticManager:
                 logger.error(failure)
             return
 
-        logger.info(f"Delete was successful. {result['deleted']} docs deleted.")
+        logger.info(f"Delete successful. {result['deleted']} docs deleted.")
 
     @classmethod
     def delete_data_by_shot_num(cls, index: str, shot_number: int) -> None:
@@ -140,7 +140,7 @@ class ElasticManager:
             return
 
         if shot_number < 0:
-            print("ショット番号が不正です。")
+            logger.error("ショット番号が不正です。")
 
         query: dict = {"term": {"shot_number": shot_number}}
 
