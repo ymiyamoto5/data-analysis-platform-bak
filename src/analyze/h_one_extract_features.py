@@ -2,7 +2,10 @@
 import numpy as np
 import pandas as pd
 import os
-from .fft_tools import *
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "./"))
+import fft_tools as fft
 
 
 def _idiff(x):
@@ -28,8 +31,8 @@ def breaking(d, spm, fs=100000, low=0, high=8000, r_window=19, Debug=False, shot
           低SPM時はノイズ除去の必要性が大きくないはずなので調整の余地あり。
     """
     df = pd.DataFrame({"o": d})
-    s, f, p = fft_spectrum(df.o, fs=fs)  # FFT
-    df["d"] = bandpass_ifft(s, f, low, high).real  # バンドパス
+    s, f, p = fft.fft_spectrum(df.o, fs=fs)  # FFT
+    df["d"] = fft.bandpass_ifft(s, f, low, high).real  # バンドパス
     df["v"] = df.o.diff()  # 速度
     df["a"] = df.v.diff()  # 加速度
     df["v9"] = df.d.rolling(9, center=True).var() * -df.d.rolling(9, center=True).apply(_idiff)
@@ -46,7 +49,7 @@ def breaking(d, spm, fs=100000, low=0, high=8000, r_window=19, Debug=False, shot
             figsize=(10, 8), subplots=True, c="b", title="shot:%d,ch=%s" % (shot, ch)
         )
         df.o.plot(ax=ax[0], alpha=0.3, c="black")
-        plt.xlim(h - 100, h + 100)
+        fft.plt.xlim(h - 100, h + 100)
         ax[0].axvline(h, c="r")
         # ax[2].axhline(criteria,c='g')
 
@@ -82,13 +85,13 @@ def load_start(d, spm, r_window=399, Debug=False, shot=9999, ch="loadxx"):
     df["s"] = (df.v - l_min) / (l_max - l_min)
     h = df[df.d.argmax() - 1200 :][df.s > 0.2].index[0]  # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
     if Debug is True:
-        plt.figure(figsize=(12, 5))
+        fft.plt.figure(figsize=(12, 5))
         ax = df[["d", "v", "s"]].plot(figsize=(10, 8), subplots=True, c="b", title="shot:%d,ch=%s" % (shot, ch))
         df.o.plot(ax=ax[0], alpha=0.3, c="black")
         ax[0].axvline(h, c="r")
         ax[2].axhline(0.2, c="g")
         ax[2].set_ylim(0, 1)
-        plt.show()
+        fft.plt.show()
 
     # 値として元波形 or ノイズ除去後のいずれを採用すべきかは個々に判断されるべきと考えるので、
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
@@ -163,13 +166,13 @@ def max_load(d, spm, fs=100000, low=0, high=2000, r_window=19, Debug=False, shot
           低SPM時はノイズ除去の必要性が大きくないはずなので調整の余地あり。
     """
     df = pd.DataFrame({"o": d})
-    s, f, p = fft_spectrum(df.o, fs=fs)  # FFT
-    df["b"] = bandpass_ifft(s, f, low, high).real  # バンドパス
+    s, f, p = fft.fft_spectrum(df.o, fs=fs)  # FFT
+    df["b"] = fft.bandpass_ifft(s, f, low, high).real  # バンドパス
     df["m"] = df.b.rolling(r_window).mean()  # 破断の影響を前方に出さないようcenter=Trueしない
     h = df["m"].argmax()
     if Debug is True:
         ax = df.plot(figsize=(10, 4), subplots=True, title="shot:%d ch:%s" % (shot, ch), alpha=0.3)
-        plt.xlim(h - 300, h + 300)
+        fft.plt.xlim(h - 300, h + 300)
         ax[0].axvline(h, c="r")
         # ax[2].axhline(criteria,c='g')
 
@@ -209,7 +212,7 @@ def extract_features(shot_data, spm, func, disp_chart=False, **kwargs):
         spm = 80.0
 
     if disp_chart:
-        plt.figure(figsize=(12, 5))
+        fft.plt.figure(figsize=(12, 5))
 
     argmax = []
     valmax = []
@@ -219,18 +222,18 @@ def extract_features(shot_data, spm, func, disp_chart=False, **kwargs):
         argmax.append(i)
         valmax.append(v)
         if disp_chart:
-            plt.plot(shot_data[ch], label=ch, alpha=0.3)  # plotはplotで、scatterはscatterで、それぞれcmapを順番に使うので、
-            plt.scatter([i], [v], marker="o", s=200, alpha=0.5)  # plotもscatterもcolorを明示しなければたまたま同じ色になる。
+            fft.plt.plot(shot_data[ch], label=ch, alpha=0.3)  # plotはplotで、scatterはscatterで、それぞれcmapを順番に使うので、
+            fft.plt.scatter([i], [v], marker="o", s=200, alpha=0.5)  # plotもscatterもcolorを明示しなければたまたま同じ色になる。
 
     if disp_chart:
         if "shot" in kwargs:
             shot = kwargs["shot"]  # 可変キーワード変数から拝借; 掟破り
         else:
             shot = 9999
-        plt.title("shot:%d" % shot)
-        plt.legend()
-        plt.xlim(np.array(argmax).min() - 1000, np.array(argmax).max() + 1000)
-        plt.show()
+        fft.plt.title("shot:%d" % shot)
+        fft.plt.legend()
+        fft.plt.xlim(np.array(argmax).min() - 1000, np.array(argmax).max() + 1000)
+        fft.plt.show()
 
     return argmax, valmax
 

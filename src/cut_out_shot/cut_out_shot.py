@@ -440,15 +440,19 @@ class CutOutShot:
             back_seconds_for_tagging: タグ付けにおいて、遡る秒数
         """
 
-        shots_index: str = "shots-" + rawdata_dir_name
+        shots_index: str = "shots-" + rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
         mapping_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_path")
-        ElasticManager.create_index(index=shots_index, mapping_file=mapping_shots)
+        setting_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_path")
+        ElasticManager.create_index(index=shots_index, mapping_file=mapping_shots, setting_file=setting_shots)
 
-        shots_meta_index: str = "shots-meta-" + rawdata_dir_name
+        shots_meta_index: str = "shots-" + rawdata_dir_name + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
         mapping_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_meta_path")
-        ElasticManager.create_index(index=shots_meta_index, mapping_file=mapping_shots_meta)
+        setting_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_meta_path")
+        ElasticManager.create_index(
+            index=shots_meta_index, mapping_file=mapping_shots_meta, setting_file=setting_shots_meta
+        )
 
         # event_indexから各種イベント情報を取得する
         events_index: str = "events-" + rawdata_dir_name

@@ -41,6 +41,19 @@ class DataReader:
         df: DataFrame = pd.DataFrame(result)
         return df
 
+    def read_shots(self, index: str, start_shot_number: int, end_shot_number: int) -> DataFrame:
+        """ 複数ショット分のデータを取得し、連番の昇順にソートして返却する。
+            Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
+        """
+
+        query: dict = {"query": {"range": {"shot_number": {"gte": start_shot_number, "lte": end_shot_number - 1}}}}
+
+        result: List[dict] = ElasticManager.scan_docs(index=index, query=query)
+        result.sort(key=lambda x: x["sequential_number"])
+
+        df: DataFrame = pd.DataFrame(result)
+        return df
+
     @time_log
     def read_all(self, index: str) -> DataFrame:
         """ 全件取得し、連番の昇順ソート結果を返す """
