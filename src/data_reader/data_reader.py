@@ -86,7 +86,7 @@ class DataReader:
 
 def main():
     data_reader = DataReader()
-    data_reader.read_all("shots-20201201010000")
+    data_reader.read_all("shots-20201201010000-data")
 
 
 if __name__ == "__main__":

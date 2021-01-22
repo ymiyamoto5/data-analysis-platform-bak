@@ -39,9 +39,9 @@ def main(target: str):
 
     dr = DataReader()
 
-    shots_index: str = "shots-" + target
+    shots_index: str = "shots-" + target + "-data"
 
-    shots_meta_index: str = "shots-meta-" + target
+    shots_meta_index: str = "shots-" + target + "-meta"
 
     # TODO: 並列化
 
@@ -53,7 +53,9 @@ def main(target: str):
 
     max_points: List[dict] = apply_analyze_logic_to_all_shots(shots_df, shots_meta_df, ef.max_load)
     start_points: List[dict] = apply_analyze_logic_to_all_shots(shots_df, shots_meta_df, ef.load_start2)
-    break_points: List[dict] = apply_analyze_logic_to_all_shots(shots_df, shots_meta_df, ef.breaking)
+    break_points: List[dict] = apply_analyze_logic_to_all_shots(
+        shots_df, shots_meta_df, ef.breaking_varmax29idiff_tmpfix
+    )
 
     max_point_index: str = "shots-features-" + target + "-max-point"
     ElasticManager.delete_exists_index(index=max_point_index)
