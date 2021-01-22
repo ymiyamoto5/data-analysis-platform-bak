@@ -185,7 +185,6 @@ class ElasticManager:
     def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> bool:
         """ インデックスを作成する。 """
 
-        # body = {"settings": {"index": {"max_result_window": 30000}}}
         body = {}
 
         if setting_file:
@@ -326,7 +325,7 @@ class ElasticManager:
         return result
 
     @classmethod
-    def range_scan(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> Iterator:
+    def range_scan(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> None:
         """ データをレンジスキャンした結果を返す。
             Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
         """
@@ -340,9 +339,18 @@ class ElasticManager:
         }
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=body)
-        data = [x["_source"] for x in data_gen]
+        data: List[dict] = [x["_source"] for x in data_gen]
 
         return_dict[proc_num] = data
+
+    @classmethod
+    def scan_docs(cls, index: str, query: dict) -> List[dict]:
+        """ """
+
+        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query)
+        data: List[dict] = [x["_source"] for x in data_gen]
+
+        return data
 
 
 if __name__ == "__main__":
