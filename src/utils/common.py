@@ -16,9 +16,10 @@ MARGIN: Final[int] = 0.1
 SAMPLING_RATE: Final[int] = 100_000
 SAMPLING_INTERVAL: Final[int] = 0.000010
 TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
+NUM_OF_PROCESS: Final[int] = 14
+NUM_OF_LOAD_SENSOR: Final[int] = 4
 LOG_LEVEL: List[str] = ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
 DEFAULT_LOG_LEVEL: Final[str] = "INFO"
-
 USER_CHOICE: List[str] = LOG_LEVEL + list(map(lambda w: w.lower(), LOG_LEVEL))
 
 
