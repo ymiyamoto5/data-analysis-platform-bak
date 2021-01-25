@@ -345,9 +345,11 @@ class ElasticManager:
 
     @classmethod
     def scan_docs(cls, index: str, query: dict) -> List[dict]:
-        """ """
+        """ ドキュメントの範囲スキャン """
 
-        data_gen: Iterable = helpers.scan(client=cls.es, index=index, query=query)
+        es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
+
+        data_gen: Iterable = helpers.scan(client=es, index=index, query=query)
         data: List[dict] = [x["_source"] for x in data_gen]
 
         return data
