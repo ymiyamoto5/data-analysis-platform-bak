@@ -21,22 +21,12 @@ from time_logger import time_log
 from throughput_counter import throughput_counter
 import common
 
-LOG_FILE: Final[str] = os.path.join(common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "analyze/analyze.log")
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
-        logging.StreamHandler(),
-    ],
-)
 logger = logging.getLogger(__name__)
 
 
 @time_log
-def main(target: str):
-    """ """
+def apply(target: str):
+    """ 3,000 ショット適用処理のエントリポイント """
 
     shots_index: str = "shots-" + target + "-data"
     shots_meta_index: str = "shots-" + target + "-meta"
@@ -112,11 +102,13 @@ def apply_all_analyze_logic(
 
     dr = DataReader()
 
+    logger.debug(f"process {os.getpid()}: data read start. shot_number: {start_shot_number} - {end_shot_number-1}.")
+
     # 1プロセスが処理するショットのデータを取得
     shots_df: DataFrame = dr.read_shots(shots_index, start_shot_number, end_shot_number)
 
     logger.info(
-        f"process {os.getpid()} will execute shot_number: {start_shot_number} - {end_shot_number-1}. data count: {len(shots_df)}"
+        f"process {os.getpid()}: data read finished. shot_number: {start_shot_number} - {end_shot_number-1}. data count: {len(shots_df)}"
     )
 
     max_points: List[dict] = apply_analyze_logic(
@@ -124,21 +116,21 @@ def apply_all_analyze_logic(
     )
     ElasticManager.bulk_insert(max_points, max_point_index)
 
-    logger.info(f"PID: {os.getpid()}. max point recorded.")
+    logger.debug(f"PID: {os.getpid()}. max point recorded.")
 
     start_points: List[dict] = apply_analyze_logic(
         shots_df, shots_meta_df, start_shot_number, end_shot_number, ef.load_start2
     )
     ElasticManager.bulk_insert(start_points, start_point_index)
 
-    logger.info(f"PID: {os.getpid()}. start point recorded.")
+    logger.debug(f"PID: {os.getpid()}. start point recorded.")
 
     break_points: List[dict] = apply_analyze_logic(
         shots_df, shots_meta_df, start_shot_number, end_shot_number, ef.breaking_varmax29
     )
     ElasticManager.bulk_insert(break_points, break_point_index)
 
-    logger.info(f"PID: {os.getpid()}. break point recorded.")
+    logger.debug(f"PID: {os.getpid()}. break point recorded.")
 
 
 def apply_analyze_logic(
@@ -171,5 +163,19 @@ def apply_analyze_logic(
 
 
 if __name__ == "__main__":
+    LOG_FILE: Final[str] = os.path.join(
+        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "analyze/analyze.log"
+    )
 
-    main(target="20201201010000")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.handlers.RotatingFileHandler(
+                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
+            ),
+            logging.StreamHandler(),
+        ],
+    )
+
+    apply(target="20201201010000")

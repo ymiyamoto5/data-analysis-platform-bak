@@ -22,18 +22,6 @@ import common
 from utils.common import DisplayTime
 from time_logger import time_log
 
-LOG_FILE: Final[str] = os.path.join(
-    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
-)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
-        logging.StreamHandler(),
-    ],
-)
 logger = logging.getLogger(__name__)
 
 
@@ -385,6 +373,21 @@ def manual_record(rawdata_dir_name: str):
 
 
 if __name__ == "__main__":
+    LOG_FILE: Final[str] = os.path.join(
+        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
+    )
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.handlers.RotatingFileHandler(
+                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
+            ),
+            logging.StreamHandler(),
+        ],
+    )
+
     MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
 
     parser = argparse.ArgumentParser()

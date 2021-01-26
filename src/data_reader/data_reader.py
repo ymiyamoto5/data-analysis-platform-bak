@@ -14,18 +14,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from time_logger import time_log
 import common
 
-LOG_FILE: Final[str] = os.path.join(
-    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_reader/data_reader.log"
-)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
-        logging.StreamHandler(),
-    ],
-)
 logger = logging.getLogger(__name__)
 
 
@@ -84,11 +72,21 @@ class DataReader:
         return df
 
 
-def main():
+if __name__ == "__main__":
+    LOG_FILE: Final[str] = os.path.join(
+        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_reader/data_reader.log"
+    )
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.handlers.RotatingFileHandler(
+                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
+            ),
+            logging.StreamHandler(),
+        ],
+    )
+
     data_reader = DataReader()
     data_reader.read_all("shots-20201201010000-data")
-
-
-if __name__ == "__main__":
-    main()
-
