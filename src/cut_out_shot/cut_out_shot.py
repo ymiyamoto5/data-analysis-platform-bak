@@ -17,18 +17,6 @@ from time_logger import time_log
 from throughput_counter import throughput_counter
 import common
 
-LOG_FILE: Final[str] = os.path.join(
-    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "cut_out_shot/cut_out_shot.log"
-)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT),
-        logging.StreamHandler(),
-    ],
-)
 logger = logging.getLogger(__name__)
 
 
@@ -603,7 +591,22 @@ class CutOutShot:
             self._add_cut_out_target(rawdata)
 
 
-def main():
+if __name__ == "__main__":
+    LOG_FILE: Final[str] = os.path.join(
+        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "cut_out_shot/cut_out_shot.log"
+    )
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.handlers.RotatingFileHandler(
+                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
+            ),
+            logging.StreamHandler(),
+        ],
+    )
+
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
     RANGE: Final[int] = 100_000
     # displacement_func = lambda v: 135.0 - (v - 2.0) * 70.0 / 8.0
@@ -632,7 +635,3 @@ def main():
     # 任意波形生成
     # cut_out_shot = CutOutShot(previous_size=10)
     # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
-
-
-if __name__ == "__main__":
-    main()
