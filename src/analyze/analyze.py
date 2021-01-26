@@ -173,4 +173,3 @@ def apply_analyze_logic(
 if __name__ == "__main__":
 
     main(target="20201201010000")
-
