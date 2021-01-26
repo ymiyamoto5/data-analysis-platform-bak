@@ -2,7 +2,7 @@ import json
 import logging
 
 from typing import Final, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 
 
@@ -46,7 +46,8 @@ class DisplayTime:
     """ 表示用時刻(JST) """
 
     def __init__(self, value: datetime):
-        self.__value: datetime = value.astimezone(timezone("Asia/Tokyo"))
+        # self.__value: datetime = value.astimezone(timezone("Asia/Tokyo"))
+        self.__value: datetime = value + timedelta(hours=+9)
 
     @property
     def value(self) -> datetime:

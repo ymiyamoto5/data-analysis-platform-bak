@@ -205,9 +205,8 @@ def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir
 
         _export_to_pickle(samples, file, processed_dir_path)
 
-        # 処理済みディレクトリに退避。テスト時は退避しない。
-        if MODE != "TEST":
-            shutil.move(file.file_path, processed_dir_path)
+        shutil.move(file.file_path, processed_dir_path)
+
         logger.info(f"processed: {file.file_path}")
 
     if len(procs) > 0:
@@ -232,10 +231,6 @@ def main() -> None:
         logger.error("events_index is not found.")
         return
 
-    # TODO: 削除
-    if MODE == "TEST":
-        latest_events_index: str = "events-20201216165900"
-
     suffix: str = latest_events_index.split("-")[1]
     events_index: str = "events-" + suffix
     query: dict = {"sort": {"event_id": {"order": "asc"}}}
@@ -255,10 +250,9 @@ def main() -> None:
 
     # 含まれないファイルは削除する
     not_target_files: List[FileInfo] = _get_not_target_files(files_info, start_time, end_time)
-    if MODE != "TEST":
-        for file in not_target_files:
-            os.remove(file.file_path)
-            logger.info(f"{file.file_path} has been deleted because it is out of range.")
+    for file in not_target_files:
+        os.remove(file.file_path)
+        logger.info(f"{file.file_path} has been deleted because it is out of range.")
 
     if len(target_files) == 0:
         logger.info("No files in target inteverl")
@@ -277,19 +271,11 @@ def main() -> None:
     # Elasticsearch rawdataインデックス名
     rawdata_index: str = "rawdata-" + suffix
 
-    # テスト時はインデックスを都度再作成する。
-    if MODE == "TEST":
-        if ElasticManager.exists_index(rawdata_index):
-            ElasticManager.delete_index(rawdata_index)
+    # start_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
+    if not ElasticManager.exists_index(rawdata_index):
         mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
         setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
         ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
-    # 通常はconfigのstart_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
-    else:
-        if not ElasticManager.exists_index(rawdata_index):
-            mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
-            setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-            ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     _data_record(rawdata_index, target_files, processed_dir_path)
 
@@ -314,7 +300,7 @@ def _is_now_recording() -> bool:
     event_type: str = latest_events_index_doc["event_type"]
 
     if event_type != "recorded":
-        logger.error(f"Exits because latest event is {event_type}. Latest event should be 'recorded'.")
+        logger.error(f"Exits because latest event is '{event_type}'. Latest event should be 'recorded'.")
         return True
 
 
@@ -369,6 +355,10 @@ def manual_record(rawdata_dir_name: str):
         index=events_index, doc_id=3, query={"event_id": 3, "event_type": "recorded", "occurred_time": utc_now},
     )
 
+    # 出力データをdataディレクトリに移動
+    data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
+    shutil.move(processed_dir_path, data_dir)
+
     logger.info("manual import finished.")
 
 
@@ -387,8 +377,6 @@ if __name__ == "__main__":
             logging.StreamHandler(),
         ],
     )
-
-    MODE: Final[str] = os.environ.get("DATA_RECORDER_MODE", "TEST")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dir", help="set import directory (manual import)")
