@@ -8,7 +8,7 @@ import struct
 import logging
 import logging.handlers
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime
 from pandas.core.frame import DataFrame
 from typing import Final, Tuple, List, Mapping, Optional
 import dataclasses

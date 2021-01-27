@@ -412,20 +412,20 @@ class CutOutShot:
     @time_log
     def cut_out_shot(self, rawdata_dir_name: str, start_displacement: float, end_displacement: float,) -> None:
         """
-        csvファイルをチャンクサイズ単位に読み取り、以下の処理を行う。
-        * 中断区間のデータ除外
         * ショット切り出し
-        * 物理変換
+        * 中断区間のデータ除外
+        * 物理変換 + 校正
         * SPM計算
-        * SPMしきい値以下のデータ除外
         * 事象記録のタグ付け
-        * Elasticsearchへの保存
+        * SPMから算出される、ショット当たりの最大サンプル数を超えたショット除外
+        * Elasticsearchインデックスへの保存
+        * shots-yyyyMMddHHMMSS-data：切り出されたショットデータ
+        * shots-yyyyMMddHHMMSS-meta：ショットのメタデータ
 
         Args:
             rawdata_filename: 生データcsvのファイル名
             start_displacement: ショット開始となる変位値
             end_displacement: ショット終了となる変位値
-            back_seconds_for_tagging: タグ付けにおいて、遡る秒数
         """
 
         shots_index: str = "shots-" + rawdata_dir_name + "-data"
@@ -480,8 +480,6 @@ class CutOutShot:
             # 中断区間の除外
             if len(pause_events) > 0:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
-
-            # TODO: 変位値を物理変換
 
             # 変位値に変換式適用
             rawdata_df = self._apply_expr_displacement(rawdata_df)
