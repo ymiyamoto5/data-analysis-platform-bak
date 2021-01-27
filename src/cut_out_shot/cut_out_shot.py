@@ -621,7 +621,7 @@ if __name__ == "__main__":
         min_spm=15,
         back_seconds_for_tagging=120,
         previous_size=1_000,
-        num_of_process=12,
+        num_of_process=14,
         chunk_size=5_000,
         margin=0.1,
         displacement_func=displacement_func,
