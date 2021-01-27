@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+import fcntl
 from typing import Tuple, Optional, Union
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
@@ -76,7 +77,9 @@ class ConfigFileManager:
 
         try:
             with open(config_file_path, "r") as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 current_config: dict = json.load(f)
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                 return current_config
         except FileNotFoundError as e:
             logger.exception(str(e))
@@ -96,7 +99,9 @@ class ConfigFileManager:
         # ファイル生成途中で読み込まれないよう、tmpファイルに出力した後にリネーム
         try:
             with open(tmp_file_path, mode="w") as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 f.write(config_str)
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
         except Exception as e:
             logger.exception(str(e))
             return False
