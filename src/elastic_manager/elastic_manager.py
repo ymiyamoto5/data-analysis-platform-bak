@@ -7,9 +7,8 @@ import os
 import sys
 import pandas as pd
 import json
-from typing import Iterable, Iterator, Tuple, List, Optional, Final
+from typing import Iterable, Tuple, List, Optional, Final
 import multiprocessing
-from datetime import datetime
 import logging
 
 es_logger = logging.getLogger("elasticsearch")
@@ -276,7 +275,6 @@ class ElasticManager:
 
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
-        # TODO: 接続先定義が複数個所に分かれてしまっている。接続先はクラス変数を辞める？
         es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
         actions: Tuple[dict] = ({"_index": index_to_import, "_source": x} for x in data_list)

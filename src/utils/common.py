@@ -1,7 +1,7 @@
 import json
 import logging
 
-from typing import Final, List, Optional
+from typing import Final, List
 from datetime import datetime, timedelta
 from pytz import timezone
 
