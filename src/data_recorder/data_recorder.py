@@ -200,7 +200,7 @@ def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir
                 p.join()
 
         procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=samples, index_to_import=rawdata_index, num_of_process=12, chunk_size=5000
+            data=samples, index_to_import=rawdata_index, num_of_process=common.NUM_OF_PROCESS, chunk_size=5000
         )
 
         _export_to_pickle(samples, file, processed_dir_path)
