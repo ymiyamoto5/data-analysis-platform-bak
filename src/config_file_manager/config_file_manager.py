@@ -76,11 +76,13 @@ class ConfigFileManager:
         """ configファイルを読み取り、dictで返す """
 
         try:
-            with open(config_file_path, "r") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
-                current_config: dict = json.load(f)
-                fcntl.flock(f, fcntl.LOCK_UN)
-                return current_config
+            with open(config_file_path, "r+") as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    current_config: dict = json.load(f)
+                finally:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                    return current_config
         except FileNotFoundError as e:
             logger.exception(str(e))
             raise FileNotFoundError
@@ -91,25 +93,20 @@ class ConfigFileManager:
     def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """
 
-        path_ext_pair: Tuple[str, str] = os.path.splitext(self.config_file_path)
-        tmp_file_path: str = path_ext_pair[0] + ".tmp"
-
         config_str: str = json.dumps(config, indent=2, ensure_ascii=False)
 
-        # ファイル生成途中で読み込まれないよう、tmpファイルに出力した後にリネーム
+        # 排他ロックを確保して書き込み
         try:
-            with open(tmp_file_path, mode="w") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
-                f.write(config_str)
-                fcntl.flock(f, fcntl.LOCK_EX)
+            with open(self.config_file_path, "w") as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    f.write(config_str)
+                finally:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                    return True
+        except FileNotFoundError as e:
+            logger.exception(str(e))
+            raise FileNotFoundError
         except Exception as e:
             logger.exception(str(e))
-            return False
-
-        file_path: str = path_ext_pair[0] + ".cnf"
-        try:
-            os.rename(tmp_file_path, file_path)
-            return True
-        except OSError as e:
-            logger.exception(str(e))
-            return False
+            raise Exception
