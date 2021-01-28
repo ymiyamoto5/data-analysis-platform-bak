@@ -241,7 +241,11 @@ class ElasticManager:
 
     @classmethod
     def multi_process_bulk_lazy_join(
-        cls, data: List[dict], index_to_import: str, num_of_process: int = 8, chunk_size: int = 5000
+        cls,
+        data: List[dict],
+        index_to_import: str,
+        num_of_process: int = common.NUM_OF_PROCESS,
+        chunk_size: int = 5000,
     ) -> List[multiprocessing.context.Process]:
         """ マルチプロセスでbulk insertする。processリストを返却し、呼び出し元でjoinする。 """
 
@@ -286,7 +290,9 @@ class ElasticManager:
         return result["count"]
 
     @classmethod
-    def multi_process_range_scan(cls, index: str, num_of_data: int, num_of_process: int = 12) -> List[dict]:
+    def multi_process_range_scan(
+        cls, index: str, num_of_data: int, num_of_process: int = common.NUM_OF_PROCESS
+    ) -> List[dict]:
         """ マルチプロセスでrange scanする。 """
 
         logger.info(f"Data read start. data_count: {num_of_data}.")

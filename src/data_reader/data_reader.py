@@ -52,7 +52,7 @@ class DataReader:
         logger.info(f"データ件数: {num_of_data}")
 
         result: List[dict] = ElasticManager.multi_process_range_scan(
-            index=index, num_of_data=num_of_data, num_of_process=28
+            index=index, num_of_data=num_of_data, num_of_process=common.NUM_OF_PROCESS
         )
         result.sort(key=lambda x: x["sequential_number"])
 
