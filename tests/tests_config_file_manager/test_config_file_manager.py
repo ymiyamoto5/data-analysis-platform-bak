@@ -50,24 +50,8 @@ class TestDumpConfigFile:
         config: dict = {"dummy_config": "dummy_config"}
 
         mocker.patch.object(builtins, "open", side_effect=Exception)
-        actual: bool = cfm._dump_config_file(config)
-        expected: bool = False
-
-        assert actual == expected
-
-    def test_rename_exception(self, mocker, app_config_file):
-        """ リネーム時の例外発生でFalseが返ること """
-
-        mocker.patch.object(os, "rename", side_effect=OSError)
-
-        cfm = ConfigFileManager(app_config_file._str)
-
-        config: dict = {"dummy_config": "dummy_config"}
-
-        actual: bool = cfm._dump_config_file(config)
-        expected: bool = False
-
-        assert actual == expected
+        with pytest.raises(Exception):
+            cfm._dump_config_file(config)
 
 
 class TestReadConfig:
