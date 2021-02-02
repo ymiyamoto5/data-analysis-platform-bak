@@ -43,3 +43,4 @@ shared
 htmlcov
 *.log
 node_modules
+notebooks/analyze-Copy1.ipynb

@@ -477,6 +477,9 @@ class CutOutShot:
             # 段取区間の除外
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
+            if len(rawdata_df) == 0:
+                continue
+
             # 中断区間の除外
             if len(pause_events) > 0:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
