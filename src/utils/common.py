@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 
@@ -9,7 +10,7 @@ from pytz import timezone
 logger = logging.getLogger(__name__)
 
 # グローバル定数
-APP_CONFIG_PATH: Final[str] = "/home/ymiyamoto5/h-one-experimental-system/app_config_dev.json"
+APP_CONFIG_PATH: Final[str] = os.getenv("APP_CONFIG_PATH", "/home/hone/h-one-experimental-system/app_config.json")
 MAX_LOG_SIZE: Final[int] = 1024 * 1024  # 1MB
 BACKUP_COUNT: Final[int] = 5
 MARGIN: Final[int] = 0.1
