@@ -606,14 +606,20 @@ if __name__ == "__main__":
     )
 
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
-    RANGE: Final[int] = 100_000
+
+    Vr: Final[int] = 100_000
     # displacement_func = lambda v: 135.0 - (v - 2.0) * 70.0 / 8.0
-    displacement_func = lambda v: v
     # F(kN) = V / 10 * Range / 3.8 / 1000
-    load01_func = lambda v: v * RANGE / 38000.0
-    load02_func = lambda v: v * RANGE / 38000.0
-    load03_func = lambda v: v * RANGE / 38000.0
-    load04_func = lambda v: v * RANGE / 38000.0
+    # load01_func = lambda v: 2.5 / Vr * v * 1000
+    # load02_func = lambda v: 2.5 / Vr * v * 1000
+    # load03_func = lambda v: 2.5 / Vr * v * 1000
+    # load04_func = lambda v: 2.5 / Vr * v * 1000
+
+    displacement_func = lambda v: v
+    load01_func = lambda v: v
+    load02_func = lambda v: v * 2.0
+    load03_func = lambda v: v * 3.0
+    load04_func = lambda v: v * 4.0
 
     cut_out_shot = CutOutShot(
         min_spm=15,
