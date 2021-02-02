@@ -42,3 +42,4 @@ shared
 .coverage
 htmlcov
 *.log
+node_modules
