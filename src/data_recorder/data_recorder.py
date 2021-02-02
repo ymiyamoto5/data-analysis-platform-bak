@@ -5,6 +5,7 @@ import glob
 import re
 import shutil
 import struct
+import time
 import logging
 import logging.handlers
 import pandas as pd
@@ -276,6 +277,9 @@ def main() -> None:
         mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
         setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
         ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+
+    # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして5秒待つ
+    time.sleep(5)
 
     _data_record(rawdata_index, target_files, processed_dir_path)
 
