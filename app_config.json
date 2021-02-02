@@ -1,11 +1,11 @@
 {
-    "config_file_path": "/datadrive/data/conf_Gw-TEST-01.cnf",
+    "config_file_path": "/datadrive/data/conf_GW-TEST-01.cnf",
     "initial_config_file_path": "/datadrive/data/initial_config.json",
     "data_dir": "/datadrive/data",
     "log_dir": "/home/hone/h-one-experimental-system/log/",
     "elastic_url": "localhost:9200",
     "elastic_user": "elastic",
-    "elastic_password": "P@ssw0rd",
+    "elastic_password": "hP@ssw0rd1",
     "mapping_rawdata_path": "/home/hone/h-one-experimental-system/mappings/mapping_rawdata.json",
     "mapping_shots_path": "/home/hone/h-one-experimental-system/mappings/mapping_shots.json",
     "mapping_shots_meta_path": "/home/hone/h-one-experimental-system/mappings/mapping_shots_meta.json",
