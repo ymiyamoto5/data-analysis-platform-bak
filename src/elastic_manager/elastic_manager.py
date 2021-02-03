@@ -141,9 +141,9 @@ class ElasticManager:
         if shot_number < 0:
             logger.error("ショット番号が不正です。")
 
-        query: dict = {"term": {"shot_number": shot_number}}
+        body: dict = {"query": {"term": {"shot_number": shot_number}}}
 
-        result: dict = cls.es.delete_by_query(index=index, body=query, refresh=True)
+        result: dict = cls.es.delete_by_query(index=index, body=body, refresh=True)
 
         if len(result["failures"]) != 0:
             logger.error("Failed to delete data.")
