@@ -254,7 +254,7 @@ def record_tag():
         return render_template("manager.html", status="stop")
 
     doc_id: int = ElasticManager.count(events_index)
-    query: dict = {"event_type": "tag", "tag": tag, "occurred_time": utc_now}
+    query: dict = {"event_id": doc_id, "event_type": "tag", "tag": tag, "occurred_time": utc_now}
     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
     if not successful:
