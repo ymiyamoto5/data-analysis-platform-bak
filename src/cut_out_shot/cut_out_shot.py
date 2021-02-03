@@ -478,11 +478,18 @@ class CutOutShot:
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
             if len(rawdata_df) == 0:
+                logger.info(f"All data was excluded by setup interval. {pickle_file}")
                 continue
 
             # 中断区間の除外
             if len(pause_events) > 0:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
+
+            if len(rawdata_df) == 0:
+                logger.info(f"All data was excluded by pause interval. {pickle_file}")
+                # self.__previous_df_tailを空にしておく
+                self._backup_df_tail(rawdata_df)
+                continue
 
             # 変位値に変換式適用
             rawdata_df = self._apply_expr_displacement(rawdata_df)
