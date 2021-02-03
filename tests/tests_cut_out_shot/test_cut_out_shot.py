@@ -510,8 +510,9 @@ class TestDetectShotStart:
         target.is_shot_section = False
         displacemnet = 45.0
         start_displacement = 45.0
+        end_displacement = 30.0
 
-        actual: bool = target._detect_shot_start(displacemnet, start_displacement)
+        actual: bool = target._detect_shot_start(displacemnet, start_displacement, end_displacement)
 
         expected = True
 
@@ -523,8 +524,9 @@ class TestDetectShotStart:
         target.is_shot_section = True
         displacemnet = 45.0
         start_displacement = 45.0
+        end_displacement = 30.0
 
-        actual: bool = target._detect_shot_start(displacemnet, start_displacement)
+        actual: bool = target._detect_shot_start(displacemnet, start_displacement, end_displacement)
 
         expected = False
 
@@ -536,8 +538,23 @@ class TestDetectShotStart:
         target.is_shot_section = False
         displacemnet = 45.1
         start_displacement = 45.0
+        end_displacement = 30.0
 
-        actual: bool = target._detect_shot_start(displacemnet, start_displacement)
+        actual: bool = target._detect_shot_start(displacemnet, start_displacement, end_displacement)
+
+        expected = False
+
+        assert actual == expected
+
+    def test_small_displacement_exception(self, target):
+        """ 異常系：ショットが検知されておらず、変位値が終了しきい値よりも小さい値。データ異常を意図。 """
+
+        target.is_shot_section = False
+        displacemnet = 20.0
+        start_displacement = 45.0
+        end_displacement = 30.0
+
+        actual: bool = target._detect_shot_start(displacemnet, start_displacement, end_displacement)
 
         expected = False
 

@@ -260,10 +260,10 @@ class CutOutShot:
             if len(tags) > 0:
                 d["tags"].extend(tags)
 
-    def _detect_shot_start(self, displacement: float, start_displacement: float) -> bool:
-        """ ショット開始検知。ショットが未検出かつ変位値が開始しきい値以下の場合、ショット開始とみなす。 """
+    def _detect_shot_start(self, displacement: float, start_displacement: float, end_displacement: float) -> bool:
+        """ ショット開始検知。ショットが未検出かつ変位値が終了しきい値以上開始しきい値以下の場合、ショット開始とみなす。 """
 
-        return (not self.__is_shot_section) and (displacement <= start_displacement)
+        return (not self.__is_shot_section) and (end_displacement <= displacement <= start_displacement)
 
     def _detect_shot_end(self, displacement: float, start_displacement: float) -> bool:
         """ ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
@@ -558,8 +558,7 @@ class CutOutShot:
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
-            if self._detect_shot_start(rawdata.displacement, start_displacement):
-                # 最初のショット検知時はspm計算できない。
+            if self._detect_shot_start(rawdata.displacement, start_displacement, end_displacement):
                 if self.__shot_number == 0:
                     self.__previous_shot_start_time: float = rawdata.timestamp
                 # 2つめ以降のショット検知時は、1つ前のショットのspmを計算して記録する
