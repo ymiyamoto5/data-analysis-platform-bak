@@ -183,7 +183,9 @@ def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: s
     df.to_pickle(pickle_filepath)
 
 
-def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str) -> None:
+def _data_record(
+    rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str, is_manual: bool = False
+) -> None:
     """ バイナリファイル読み取りおよびES/pkl出力 """
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
@@ -206,7 +208,8 @@ def _data_record(rawdata_index: str, target_files: List[FileInfo], processed_dir
 
         _export_to_pickle(samples, file, processed_dir_path)
 
-        shutil.move(file.file_path, processed_dir_path)
+        if not is_manual:
+            shutil.move(file.file_path, processed_dir_path)
 
         logger.info(f"processed: {file.file_path}")
 
@@ -309,10 +312,14 @@ def _is_now_recording() -> bool:
 
 
 @time_log
-def manual_record(rawdata_dir_name: str):
-    """ 手動での生データ記録。手動実行時の時刻をベースにevents_indexとrawdata_indexを生成する。 """
+def manual_record(target_dir: str, rawdata_dir_name: str):
+    """ 手動での生データ取り込み。前提条件は以下。
+        * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
+        * 対応するevents_indexが存在すること。
+        * 対応するevents_indexの最後のドキュメントがrecordedであること。
+    """
 
-    files_info: Optional[List[FileInfo]] = _create_files_info(rawdata_dir_name)
+    files_info: Optional[List[FileInfo]] = _create_files_info(target_dir)
 
     if files_info is None:
         logger.info(f"No files in {rawdata_dir_name}")
@@ -321,47 +328,27 @@ def manual_record(rawdata_dir_name: str):
     if _is_now_recording():
         return
 
-    utc_now: datetime = datetime.utcnow()
-    jst_now: DisplayTime = DisplayTime(utc_now)
-    suffix: str = jst_now.to_string()
+    # events_index取得
+    events_index: str = "events-" + rawdata_dir_name
+    query: dict = {"sort": {"event_id": {"order": "asc"}}}
+    events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
 
-    # events_index作成
-    events_index: str = "events-" + suffix
-    ElasticManager.delete_exists_index(index=events_index)
-    ElasticManager.create_index(events_index)
+    # 最後のイベントが記録済み(recorded)であることが前提
+    if events[-1]["event_type"] != "recorded":
+        logger.error("Exits because the status is not recorded.")
+        return
 
-    ElasticManager.create_doc(
-        index=events_index, doc_id=0, query={"event_id": 0, "event_type": "setup", "occurred_time": utc_now}
-    )
-    ElasticManager.create_doc(
-        index=events_index, doc_id=1, query={"event_id": 1, "event_type": "start", "occurred_time": utc_now}
-    )
+    # Elasticsearch rawdataインデックス名
+    rawdata_index: str = "rawdata-" + rawdata_dir_name
 
-    # rawdata-index作成
-    rawdata_index: str = "rawdata-" + suffix
-    ElasticManager.delete_exists_index(index=rawdata_index)
-    mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
-    setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-    ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+    # インデックスが存在すれば再作成
+    if ElasticManager.exists_index(rawdata_index):
+        ElasticManager.delete_exists_index(index=rawdata_index)
+        mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
+        setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
+        ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
-    processed_dir_path: str = os.path.join(rawdata_dir_name, suffix)
-    os.makedirs(processed_dir_path, exist_ok=True)
-
-    _data_record(rawdata_index, files_info, processed_dir_path)
-
-    utc_now: datetime = datetime.utcnow()
-
-    ElasticManager.create_doc(
-        index=events_index, doc_id=2, query={"event_id": 2, "event_type": "stop", "occurred_time": utc_now}
-    )
-
-    ElasticManager.create_doc(
-        index=events_index, doc_id=3, query={"event_id": 3, "event_type": "recorded", "occurred_time": utc_now},
-    )
-
-    # 出力データをdataディレクトリに移動
-    data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-    shutil.move(processed_dir_path, data_dir)
+    _data_record(rawdata_index, files_info, target_dir, is_manual=True)
 
     logger.info("manual import finished.")
 
@@ -390,7 +377,10 @@ if __name__ == "__main__":
         main()
 
     else:
-        if not os.path.isdir(args.dir):
+        data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
+        target_dir: str = os.path.join(data_dir, args.dir)
+
+        if not os.path.isdir(target_dir):
             logger.error(f"{args.dir} is not exists.")
             sys.exit(1)
-        manual_record(args.dir)
+        manual_record(target_dir, args.dir)
