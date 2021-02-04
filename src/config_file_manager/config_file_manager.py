@@ -53,7 +53,7 @@ class ConfigFileManager:
         logger.info(f"Updating config file. Params: {params}")
 
         try:
-            new_config: dict = self.read_config(self.config_file_path)
+            new_config: dict = self.read_config()
         except Exception:
             return False
 
@@ -72,11 +72,14 @@ class ConfigFileManager:
 
         return successful
 
-    def read_config(self, config_file_path) -> Union[dict, FileNotFoundError, Exception]:
+    def read_config(self, config_file_path: str = None) -> Union[dict, FileNotFoundError, Exception]:
         """ configファイルを読み取り、dictで返す """
 
+        if config_file_path is None:
+            config_file_path: str = self.config_file_path
+
         try:
-            with open(config_file_path, "r+") as f:
+            with open(config_file_path, "r") as f:
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     current_config: dict = json.load(f)

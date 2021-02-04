@@ -45,3 +45,4 @@ htmlcov
 node_modules
 notebooks/analyze-Copy1.ipynb
 tmp_open_excel.py
+cron_job.sh

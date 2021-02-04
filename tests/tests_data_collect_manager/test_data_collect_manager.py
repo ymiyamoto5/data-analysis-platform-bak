@@ -39,6 +39,7 @@ class TestShowManager:
         """ 正常系：configファイルが存在せず、作成するパターン。 """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=False)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ConfigFileManager, "create", return_value=True)
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
@@ -63,10 +64,24 @@ class TestShowManager:
         assert actual_code == expected_code
         assert b'{"successful": false, "message": "config file create failed"}' in response.data
 
+    def test_gateway_result_invalid_exception(self, client, mocker):
+        """ 異常系：configファイルのgateway_resultが-1 """
+
+        mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
+
+        response = client.get("/")
+        actual_code = response.status_code
+        expected_code = 500
+
+        assert actual_code == expected_code
+        assert b'{"successful": false, "message": "The gateway status is abnormal. Please try again later."}' in response.data
+
     def test_event_index_not_found_exception(self, client, mocker):
         """ 異常系：event_indexが存在しない場合、初期化処理をして初期画面に戻す。 """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
@@ -81,6 +96,7 @@ class TestShowManager:
         """ 異常系：最新のevents_indexが存在しない場合、初期化処理をして初期画面に戻す """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
@@ -95,6 +111,7 @@ class TestShowManager:
         """ 異常系：events_indexが存在するのに、documentがない場合 """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
@@ -112,6 +129,7 @@ class TestShowManager:
         """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "stop"})
 
@@ -129,6 +147,7 @@ class TestShowManager:
         """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "setup"})
 
@@ -146,6 +165,7 @@ class TestShowManager:
         """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "start"})
 
@@ -163,6 +183,7 @@ class TestShowManager:
         """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "tag"})
 
@@ -180,6 +201,7 @@ class TestShowManager:
         """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         start_time: datetime = datetime.utcnow()
         mocker.patch.object(
@@ -202,6 +224,7 @@ class TestShowManager:
         """
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         start_time: datetime = datetime.utcnow()
         end_time: datetime = start_time + timedelta(seconds=60)
@@ -227,6 +250,7 @@ class TestSetup:
         """
 
         mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "create_doc", return_value=True)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
