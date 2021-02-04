@@ -47,6 +47,13 @@ def show_manager():
                 response=json.dumps({"successful": successful, "message": "config file create failed"}), status=500
             )
 
+    # configファイルのgateway_resultが-1のときはエラー
+    config: dict = cfm.read_config()
+    if config["gateway_result"] == -1:
+        message = "The gateway status is abnormal. Please try again later."
+        app.logger.error(message)
+        return Response(response=json.dumps({"successful": False, "message": message}), status=500)
+
     # 直近のevents_indexから状態判定
     latest_event_index: Optional[str] = ElasticManager.get_latest_events_index()
 
