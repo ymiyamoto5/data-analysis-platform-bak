@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 def apply(target: str):
     """ 3,000 ショット適用処理のエントリポイント """
 
+    logger.info("apply start.")
+
     shots_index: str = "shots-" + target + "-data"
     shots_meta_index: str = "shots-" + target + "-meta"
 
@@ -42,6 +44,8 @@ def apply(target: str):
     multi_process_apply_analyze_logic(
         shots_index, shots_meta_index, max_point_index, start_point_index, break_point_index, common.NUM_OF_PROCESS
     )
+
+    logger.info("apply finished.")
 
 
 def multi_process_apply_analyze_logic(
