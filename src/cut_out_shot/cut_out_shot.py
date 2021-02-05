@@ -409,7 +409,6 @@ class CutOutShot:
 
         return []
 
-    @time_log
     def cut_out_shot(self, rawdata_dir_name: str, start_displacement: float, end_displacement: float,) -> None:
         """
         * ショット切り出し

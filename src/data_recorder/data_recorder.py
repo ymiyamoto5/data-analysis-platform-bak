@@ -218,7 +218,6 @@ def _data_record(
             p.join()
 
 
-@time_log
 def main() -> None:
 
     # データディレクトリを確認し、ファイルリストを作成
@@ -311,7 +310,6 @@ def _is_now_recording() -> bool:
         return True
 
 
-@time_log
 def manual_record(target_dir: str, rawdata_dir_name: str):
     """ 手動での生データ取り込み。前提条件は以下。
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
