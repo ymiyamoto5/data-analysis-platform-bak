@@ -427,6 +427,8 @@ class CutOutShot:
             end_displacement: ショット終了となる変位値
         """
 
+        logger.info("Cut out shot start.")
+
         shots_index: str = "shots-" + rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
         mapping_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_path")
@@ -552,6 +554,8 @@ class CutOutShot:
 
         # ショットメタデータをElasticsearchに出力
         self._export_shots_meta_to_es(shots_meta_index)
+
+        logger.info("Cut out shot finished.")
 
     def _cut_out_shot(self, rawdata_df: DataFrame, start_displacement: float, end_displacement: float):
         """ ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。 """
