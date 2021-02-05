@@ -41,7 +41,6 @@ class DataReader:
         df: DataFrame = pd.DataFrame(result)
         return df
 
-    @time_log
     def read_all(self, index: str) -> DataFrame:
         """ 全件取得し、連番の昇順ソート結果を返す """
 
