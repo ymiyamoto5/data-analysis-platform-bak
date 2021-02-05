@@ -23,58 +23,150 @@ https://pandas-docs.github.io/pandas-docs-travis/reference/api/pandas.Series.arg
 https://stackoverflow.com/questions/47596390/can-i-use-idxmax-instead-of-argmax-in-all-cases
 """
 
+def _rms(x):
+    return np.sqrt(np.mean(np.abs(x)**2))
 
 def _idiff(x):
     # 必ずraw=Trueで呼ぶこと。
     # x は窓内の値が入った配列                                                                                                                                          # x[0]が最も古い、x[-1]が最も新しい値
     # 集計後の値を return する
-    i_width = int(len(x) / 2)
+    i_width = int(len(x)/2)
     return x[-i_width:].mean() - x[:i_width].mean()
 
+NARROW_PADDING = 50
 
-def breaking_varmax29(
-    d, spm, low=0, high=8000, r_window=1, Debug=False, shot=999, ch="loadxx", debug_xlim=[-100, 100]
-):
-    """ 破断点
+def narrowing_var_ch(shot,disp_narrowing = False):
+    """ 検索範囲限定のためのヘルパー関数 (破断点専用)
+    荷重4ch(load01,load02,load03,load04)を含むshot dataを受け取り、
+    4ch間の分散を考慮することにより、最小限の検索範囲を返す。
+    破断の前に、破断側/非破断側間の同期が崩れ、分散が増大することを利用している。
     
-
+    :shot (pd.DataFrame)        shotデータを含むDataFrame
+    :disp_narrowing (bool)      グラフ表示
+    :return (int,int)           検索範囲の左端と右端のindex
     """
-    df = pd.DataFrame({"o": d})
-    df["d"] = df.o.rolling(r_window, center=True, min_periods=1).mean()  # 移動平均
-    df["v"] = df.d.diff().rolling(r_window, center=True, min_periods=1).mean()  # 速度
-    df["a"] = df.v.diff().rolling(r_window, center=True, min_periods=1).mean()  # 加速度
-
-    df["var9"] = df.o.rolling(9, center=True).var()
-    df["var29"] = df.o.rolling(29, center=True).var()
-    varmax9 = df.var9.idxmax()
-    varmax29 = df.var29.idxmax()
-    if varmax29 >= varmax9:  # 502全ch破綻,rollingの範囲をspmに連動させるか?  346:3, 731:3
-        h = varmax9  # varmax29とvarmax9が一致 or 逆転した場合はvarmax9を採用、その範囲でmax採るより前倒した方が吉
+    SVAR_CRITERIA = 0.2   # 0.3だと破断後になるケースあり(shot#425)
+    df = shot.copy()
+    df['var'] = df[['load01','load02','load03','load04']].var(axis=1)
+    df['var'] = df['var'].rolling(49,min_periods=1,center=True).mean()
+    l_max = df['var'].max()
+    l_min = df['var'].min()
+    df['svar'] = (df['var'] - l_min) / (l_max - l_min)
+    df['bool'] = (df['svar']>SVAR_CRITERIA).astype(int)         # 0.1だと荷重開始点で反応するものが10件くらい
+    upward_list = df[df['bool'].diff()==1].index   # diff()を取って、1になるのは上向きに跨いだポイント
+    if len(upward_list) > 0:
+        var_start = upward_list[0]
     else:
-        h = df[varmax29:varmax9]["a"].idxmin()  ####        601:ff2でvarmax29とvarmax9が一致,29を広げるのは逆効果
+        var_start = df.index[0]    # 分散が.2以上にならないケース; 標準化してるのであり得ない
+    downward_list = df[df['bool'].diff()==-1].index   # diff()を取って、-1になるのは下向きに跨いだポイント
+    if len(downward_list) > 0:        
+        var_end = downward_list[0]                        # 0.2を超えた最初の山の範囲がvar_start:var_end,  var_endが広すぎるケースがほとんど
+    else:
+        var_end = np.min([df.index[-1],var_start+300])    # 分散が.2以下に降りてこないケース; これはあり得る。
+
+    if disp_narrowing == True:
+        df[['load01','load02','load03','load04','svar']].plot(subplots=True,figsize=(12,8))
+        plt.axvspan(var_start,var_end,color='g',alpha=.3)
+        plt.xlim([var_start-200,var_end+200]);
+        plt.show()
+
+    return var_start, var_end
+
+
+def breaking_var_vrms(d, spm, fs=100000,low=0, high=8000,r_window=1,Debug=False,shot=9999,ch='loadxx'):
+    """ 破断点
+    29点移動分散の最大点(varmax)と5点移動RMSの最大点(rmsmax)に挟まれた範囲の加速度最小点を返す。
+    
+    移動分散は、移動平均と同様にrolling windowの範囲に分散を適用する手法。
+    分散の増大はwindow内の値の変化が大きくなることを意味し、破断による急落を含む区間が大きくなる。
+    windowを広め(29区間)に取ることで、ピークが破断の手前に来ることを期待。
+    移動RMSも同様に、rolling windowの範囲に速度RMSを適用。
+    破断の衝撃による振動エネルギー(荷重センサーだが)の増大が、破断後の速度RMSピークとして現れることを期待している。
+    
+    実際には、速度RMSピークは期待よりも後方に現れることがしばしばあり、
+    最小加速度検索範囲の右端は、[ 速度RMS最大点、速度最小点、荷重最小点、移動分散最小点+50 ]の中の最も左にある点としている。
+
+    :d (np.array)        荷重系列データ
+    :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
+    :fs (int)            サンプリング周波数(Hz)
+    :low (int)           バンドパスフィルタ下限周波数
+    :high (float)        バンドパスフィルタ上限周波数    
+    :r_window (int)      移動平均ウィンドウ範囲
+    :Debug (bool)        グラフ表示
+    :shot (int)          デバッグ表示用
+    :ch (str)            デバッグ表示用
+    :return (int,float,*)  最大荷重点index, 最大荷重値
+    
+    ToDo:  502, 327:3
+    """
+    df = pd.DataFrame({'o':d})
+    s,f,p = fft_spectrum(df.o,fs=fs)                      # FFT
+    df['d'] = bandpass_ifft(s,f,low,high).real    
+    df = df[NARROW_PADDING:-NARROW_PADDING].reset_index()                           # FFT後のデータ両端は信用できないのでPADDING分を切り捨て
+    df['v'] = df.d.diff().rolling(r_window,center=True,min_periods=1).mean()        # 速度
+    df['a'] = df.v.diff().rolling(r_window,center=True,min_periods=1).mean()        # 加速度
+
+    df['var29'] = df.o.rolling(29,center=True,min_periods=1).var()                  # 29点移動分散
+    df['var29_v'] = df.var29 * (df.v <= 0).astype(int)                              # 速度が負の区間に限定
+    df['vrms'] = df.v.rolling(5, center=True,min_periods=1).apply(_rms)             # 速度RMS
+
+    varmax = df.var29_v.idxmax()    
+    rmsmax = np.min([df.vrms.idxmax(),df.d.idxmin(),df.v.idxmin(),varmax+50])
+    if varmax >= rmsmax:                          # 
+        h = rmsmax                                  # varmax29の考え方を踏襲しているが、このケースは範囲逆転して最小加速度の方が良いかも。
+    else:
+        h = df[varmax:rmsmax]['a'].argmin()        ####        601:ff2でvarmax29とvarmax9が一致,29を広げるのは逆効果    
 
     if Debug is True:
-        ax = df[["d", "var9", "var29", "v", "a"]].plot(
-            figsize=(10, 8),
-            subplots=True,
-            c="b",
-            title="%s shot:%d ch:%s" % (sys._getframe().f_code.co_name, shot, ch),
-        )
-        df.o.plot(ax=ax[0], alpha=0.3, c="black")
-        ax[0].axvline(h, c="r")
-        ax[1].axvline(varmax9, color="r")
-        ax[2].axvline(varmax29, color="r")
-        ax[4].axvspan(varmax29, varmax9, color="g", alpha=0.3)
-        ax[4].axvline(h, color="r")
-        plt.xlim(h + debug_xlim[0], h + debug_xlim[1])
+        ax = df[['d','var29','var29_v','vrms','v','a']].plot(figsize=(10,8),subplots=True,c='b',
+                                   title='%s shot:%d ch:%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black');
+        ax[0].axvline(h,c='r')
+        ax[2].axvline(varmax,color='r')
+        ax[3].axvline(rmsmax,color='r')
+        ax[5].axvspan(varmax,rmsmax,color='g',alpha=.3)
+        ax[5].axvline(h,color='r')
+        plt.xlim(h-100,h+100)
 
     # 破断点の場合は、df.d[h]ではなくdf.o[h]を返すべきか?
-    return h, df.d[h]
+    return h+NARROW_PADDING, df.d[h], [h-varmax,rmsmax-h]      # dfは50:-50の範囲でreset_indexされているので、df.dのindexはh+50である必要は無い
 
 
-def breaking_varmax29idiff(
-    d, spm, fs=100000, low=0, high=8000, r_window=19, Debug=False, shot=9999, ch="loadxx", debug_xlim=[-100, 100]
-):
+def breaking_varmax29(d, spm, low=0, high=8000,r_window=1,Debug=False,shot=999,ch='loadxx',debug_xlim=[-100,100]):
+    """ 破断点
+    
+
+    """
+    df = pd.DataFrame({'o':d})
+    df['d'] = df.o.rolling(r_window,center=True,min_periods=1).mean()   # 移動平均
+    df['v'] = df.d.diff().rolling(r_window,center=True,min_periods=1).mean()        # 速度
+    df['a'] = df.v.diff().rolling(r_window,center=True,min_periods=1).mean()        # 加速度
+
+    df['var9'] = df.o.rolling(9,center=True,min_periods=1).var()
+    df['var29'] = df.o.rolling(29,center=True,min_periods=1).var()    
+    varmax9 = df.var9.idxmax()            
+    varmax29 = df.var29.idxmax()     
+    if varmax29 >= varmax9:                          # 502全ch破綻,rollingの範囲をspmに連動させるか?  346:3, 731:3
+        h = varmax9                                  # varmax29とvarmax9が一致 or 逆転した場合はvarmax9を採用、その範囲でmax採るより前倒した方が吉
+    else:
+        h = df[varmax29:varmax9]['a'].idxmin()        ####        601:ff2でvarmax29とvarmax9が一致,29を広げるのは逆効果    
+
+    if Debug is True:
+        ax = df[['d','var9','var29','v','a']].plot(figsize=(10,8),subplots=True,c='b',
+                                   title='%s shot:%d ch:%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black');
+        ax[0].axvline(h,c='r')
+        ax[1].axvline(varmax9,color='r')
+        ax[2].axvline(varmax29,color='r')
+        ax[4].axvspan(varmax29,varmax9,color='g',alpha=.3)
+        ax[4].axvline(h,color='r')
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
+
+    # 破断点の場合は、df.d[h]ではなくdf.o[h]を返すべきか?
+    return h, df.d[h], varmax29
+
+
+def breaking_varmax29idiff(d, spm, fs=100000,low=0, high=8000, r_window=19,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-100,100]):
     """ 破断点
     :d (np.array)        荷重系列データ
     :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
@@ -83,52 +175,41 @@ def breaking_varmax29idiff(
     :high (float)        バンドパスフィルタ上限周波数    
     :r_window (int)      移動平均ウィンドウ範囲
     :Debug (bool)        グラフ表示
-    :return (int,float)  最大荷重点index, 最大荷重値
+    :return (int,float,*)  最大荷重点index, 最大荷重値
     
     ToDo: 低SPMではバンドパスノイズの影響が前方に及んでるケースがある。
           低SPM時はノイズ除去の必要性が大きくないはずなので調整の余地あり。
     """
-    df = pd.DataFrame({"o": d})
-    s, f, p = fft_spectrum(df.o, fs=fs)  # FFT
-    df["d"] = bandpass_ifft(s, f, low, high).real  # バンドパス
-    df["v"] = df.o.diff()  # 速度
-    df["a"] = df.v.diff()  # 加速度
-    df["v9"] = df.d.rolling(9, center=True).var() * -df.d.rolling(9, center=True).apply(_idiff)
-    df["v29"] = df.d.rolling(29, center=True).var() * -df.d.rolling(29, center=True).apply(_idiff)
-    varmax9idiff = df.v9.idxmax()
+    df = pd.DataFrame({'o':d})
+    s,f,p = fft_spectrum(df.o,fs=fs)                      # FFT
+    df['d'] = bandpass_ifft(s,f,low,high).real            # バンドパス
+    df['v'] = df.o.diff()                                 # 速度
+    df['a'] = df.v.diff()                                 # 加速度
+    df['v9'] =  (df.d.rolling(9,center=True,min_periods=1).var() * -df.d.rolling(9,center=True,min_periods=1).apply(_idiff))
+    df['v29'] = (df.d.rolling(29,center=True,min_periods=1).var() * -df.d.rolling(29,center=True,min_periods=1).apply(_idiff))
+    varmax9idiff =  df.v9.idxmax()
     varmax29idiff = df.v29.idxmax()
-    if varmax29idiff >= varmax9idiff:  # varmaxにidiffをかけることで下降局面に絞る; 731:1
-        h = varmax9idiff  #
-    else:  #
-        h = df[varmax29idiff:varmax9idiff]["a"].idxmin()  #
+    if varmax29idiff >= varmax9idiff:                     # varmaxにidiffをかけることで下降局面に絞る; 731:1 
+        h = varmax9idiff                                  #
+    else:                                                 #
+        h = df[varmax29idiff:varmax9idiff]['a'].idxmin()  #
 
     if Debug is True:
-        ax = df[["d", "v", "v29", "v9", "a"]].plot(
-            figsize=(10, 8),
-            subplots=True,
-            c="b",
-            title="%s shot:%d,ch=%s" % (sys._getframe().f_code.co_name, shot, ch),
-        )
-        df.o.plot(ax=ax[0], alpha=0.3, c="black")
-        ax[0].axvline(h, c="r")
-        # ax[2].axhline(criteria,c='g')
-        ax[2].axvline(varmax29idiff, c="r")
-        # ax[2].axhline(criteria,c='g')
-        ax[3].axvline(varmax9idiff, c="r")
-        # ax[2].axhline(criteria,c='g')
-        ax[4].axvspan(varmax29idiff, varmax9idiff, color="g", alpha=0.3)
-        ax[4].axvline(h, c="r")
-        # ax[2].axhline(criteria,c='g')
-        plt.xlim(h + debug_xlim[0], h + debug_xlim[1])
+        ax = df[['d','v','v29','v9','a']].plot(figsize=(10,8),subplots=True,c='b',
+                title='%s shot:%d,ch=%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black');
+        ax[0].axvline(h,c='r'); #ax[2].axhline(criteria,c='g')       
+        ax[2].axvline(varmax29idiff,c='r'); #ax[2].axhline(criteria,c='g')       
+        ax[3].axvline(varmax9idiff,c='r'); #ax[2].axhline(criteria,c='g')       
+        ax[4].axvspan(varmax29idiff,varmax9idiff,color='g',alpha=.3)
+        ax[4].axvline(h,c='r'); #ax[2].axhline(criteria,c='g')       
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
 
     # 値として元波形 or ノイズ除去後のいずれを採用すべきかは個々に判断されるべきと考えるので、
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
-    return h, df.o[h]
+    return h, df.o[h], varmax9idiff
 
-
-def breaking_varmax29idiff_tmpfix(
-    d, spm, fs=100000, low=0, high=8000, r_window=19, Debug=False, shot=9999, ch="loadxx", debug_xlim=[-100, 100]
-):
+def breaking_varmax29idiff_tmpfix(d, spm, fs=100000,low=0, high=8000, r_window=19,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-100,100]):
     """ 破断点
     :d (np.array)        荷重系列データ
     :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
@@ -137,51 +218,42 @@ def breaking_varmax29idiff_tmpfix(
     :high (float)        バンドパスフィルタ上限周波数    
     :r_window (int)      移動平均ウィンドウ範囲
     :Debug (bool)        グラフ表示
-    :return (int,float)  最大荷重点index, 最大荷重値
+    :return (int,float,*)  最大荷重点index, 最大荷重値
     
     ToDo: 低SPMではバンドパスノイズの影響が前方に及んでるケースがある。
           低SPM時はノイズ除去の必要性が大きくないはずなので調整の余地あり。
     """
-    df = pd.DataFrame({"o": d})
-    s, f, p = fft_spectrum(df.o, fs=fs)  # FFT
-    df["d"] = bandpass_ifft(s, f, low, high).real  # バンドパス
-    df["v"] = df.o.diff()  # 速度
-    df["a"] = df.v.diff()  # 加速度
-    df["v9"] = df.d.rolling(9, center=True).var() * -df.d.rolling(9, center=True).apply(_idiff)
-    df["v29"] = df.d.rolling(29, center=True).var() * -df.d.rolling(29, center=True).apply(_idiff)
-    varmax9idiff = df.v9.argmax()
+    df = pd.DataFrame({'o':d})
+    s,f,p = fft_spectrum(df.o,fs=fs)                      # FFT
+    df['d'] = bandpass_ifft(s,f,low,high).real            # バンドパス
+    df['v'] = df.o.diff()                                 # 速度
+    df['a'] = df.v.diff()                                 # 加速度
+    df['v9'] =  (df.d.rolling(9,center=True).var() * -df.d.rolling(9,center=True).apply(_idiff))
+    df['v29'] = (df.d.rolling(29,center=True).var() * -df.d.rolling(29,center=True).apply(_idiff))
+    varmax9idiff =  df.v9.argmax()
     varmax29idiff = df.v29.argmax()
-    h = varmax29idiff  # これなら確実に動くはず???
-    #    if varmax29idiff >= varmax9idiff:                     # varmaxにidiffをかけることで下降局面に絞る; 731:1
-    #        h = varmax9idiff                                  #
-    #    else:                                                 #
-    #        h = df[varmax29idiff:varmax9idiff]['a'].argmin()  #
+    h = varmax29idiff    # これなら確実に動くはず???
+#    if varmax29idiff >= varmax9idiff:                     # varmaxにidiffをかけることで下降局面に絞る; 731:1 
+#        h = varmax9idiff                                  #
+#    else:                                                 #
+#        h = df[varmax29idiff:varmax9idiff]['a'].argmin()  #
 
     if Debug is True:
-        ax = df[["d", "v", "v29", "v9", "a"]].plot(
-            figsize=(10, 8),
-            subplots=True,
-            c="b",
-            title="%s shot:%d,ch=%s" % (sys._getframe().f_code.co_name, shot, ch),
-        )
-        df.o.plot(ax=ax[0], alpha=0.3, c="black")
-        ax[0].axvline(h, c="r")
-        # ax[2].axhline(criteria,c='g')
-        ax[2].axvline(varmax29idiff, c="r")
-        # ax[2].axhline(criteria,c='g')
-        ax[3].axvline(varmax9idiff, c="r")
-        # ax[2].axhline(criteria,c='g')
-        ax[4].axvspan(varmax29idiff, varmax9idiff, color="g", alpha=0.3)
-        ax[4].axvline(h, c="r")
-        # ax[2].axhline(criteria,c='g')
-        plt.xlim(h + debug_xlim[0], h + debug_xlim[1])
+        ax = df[['d','v','v29','v9','a']].plot(figsize=(10,8),subplots=True,c='b',
+                title='%s shot:%d,ch=%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black');
+        ax[0].axvline(h,c='r'); #ax[2].axhline(criteria,c='g')       
+        ax[2].axvline(varmax29idiff,c='r'); #ax[2].axhline(criteria,c='g')       
+        ax[3].axvline(varmax9idiff,c='r'); #ax[2].axhline(criteria,c='g')       
+        ax[4].axvspan(varmax29idiff,varmax9idiff,color='g',alpha=.3)
+        ax[4].axvline(h,c='r'); #ax[2].axhline(criteria,c='g')       
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
 
     # 値として元波形 or ノイズ除去後のいずれを採用すべきかは個々に判断されるべきと考えるので、
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
-    return h, df.o[h]
+    return h, df.o[h], varmax9idiff
 
-
-def load_start(d, spm, r_window=399, Debug=False, shot=9999, ch="loadxx", debug_xlim=[-1000, 1500]):
+def load_start(d, spm, r_window=399,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-1000,1500]):
     """ 荷重開始点 (速度変化版; 加速度ではない)
     最大荷重に至るまでの範囲の速度推移を標準化(論理的には初期0、荷重開始以降は1となる想定)し、
     この標準化速度が0.2を超えた最初の点を荷重開始点とする。
@@ -190,7 +262,7 @@ def load_start(d, spm, r_window=399, Debug=False, shot=9999, ch="loadxx", debug_
     :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
     :r_window (int)      移動平均ウィンドウ範囲
     :Debug (bool)        グラフ表示
-    :return (int,float)  最大開始点index, 荷重開始値
+    :return (int,float,*)  最大開始点index, 荷重開始値
 
     ToDo: 検索範囲を決める1200の値はSPMによって大きく変わる。
           逆にSPMが正確にわかれば、かなり正確に特定できるはずなので、
@@ -198,37 +270,31 @@ def load_start(d, spm, r_window=399, Debug=False, shot=9999, ch="loadxx", debug_
           現状は、低SPMではこの1200が狭すぎるので、坂道の途中を求めてしまう。
     
     """
-    df = pd.DataFrame({"o": d})
-    df["d"] = df.o.rolling(r_window, center=True, min_periods=1).mean()  # 移動平均
-    df["v"] = df.d.diff().rolling(r_window, min_periods=1).mean()  # 速度
+    df = pd.DataFrame({'o':d})
+    df['d'] = df.o.rolling(r_window,center=True,min_periods=1).mean()   # 移動平均
+    df['v'] = df.d.diff().rolling(r_window,min_periods=1).mean()        # 速度
 
-    argmax = df.d.idxmax()  # 100:変位最大値位置の範囲で速度を標準化 -> df['s']
-    l_max = df.v[0 : df.d.idxmax()].max()
-    l_min = df.v[100 : df.d.idxmax()].min()
-    df["sv"] = (df.v - l_min) / (l_max - l_min)
-    h = df[df.d.idxmax() - 1200 :][df.sv > 0.2].index[0]  # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
+    argmax = df.d.idxmax()                                # 100:変位最大値位置の範囲で速度を標準化 -> df['s']
+    l_max = df.v[0:df.d.idxmax()].max()
+    l_min = df.v[100:df.d.idxmax()].min()
+    df['sv'] = (df.v - l_min) / (l_max - l_min)
+    h = df[df.d.idxmax()-1200:][df.sv>0.2].index[0]        # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
     if Debug is True:
-        plt.figure(figsize=(12, 5))
-        ax = df[["d", "v", "sv"]].plot(
-            figsize=(10, 8),
-            subplots=True,
-            c="b",
-            title="%s shot:%d,ch=%s" % (sys._getframe().f_code.co_name, shot, ch),
-        )
-        df.o.plot(ax=ax[0], alpha=0.3, c="black")
-        ax[0].axvline(h, c="r")
-        ax[2].axhline(0.2, c="g")
-        ax[2].axvspan(df.d.idxmax() - 1200, df.d.idxmax(), color="g", alpha=0.3)
-        ax[2].set_ylim(-0.1, 1.1)
-        plt.xlim(h + debug_xlim[0], h + debug_xlim[1])
+        plt.figure(figsize=(12,5))
+        ax = df[['d','v','sv']].plot(figsize=(10,8),subplots=True,c='b',
+                title='%s shot:%d,ch=%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black'); 
+        ax[0].axvline(h,c='r'); ax[2].axhline(0.2,c='g')       
+        ax[2].axvspan(df.d.idxmax()-1200,df.d.idxmax(),color='g',alpha=.3)
+        ax[2].set_ylim(-0.1,1.1)
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
         plt.show()
 
     # 値として元波形 or ノイズ除去後のいずれを採用すべきかは個々に判断されるべきと考えるので、
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
-    return h, df.d[h]
+    return h, df.d[h], l_max
 
-
-def load_start2(d, spm, r_window=399, Debug=False, shot=999, ch="loadxx", debug_xlim=[-1000, 1500]):
+def load_start2(d, spm, r_window=399,Debug=False,shot=999,ch='loadxx',debug_xlim=[-1000,1500]):
     """ 荷重開始点 (速度変化版 rev.2)
     速度に加え荷重値も開始:最大荷重の範囲を標準化(初期0、最大荷重1に向けて徐々に上昇)し、
     標準化荷重の下限から0.2を超えるまでの範囲を検索範囲とする。これによって、SPMの考慮は必須ではなくなった。
@@ -238,7 +304,7 @@ def load_start2(d, spm, r_window=399, Debug=False, shot=999, ch="loadxx", debug_
     :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用>  。                                           囲
     :r_window (int)      移動平均ウィンドウ範囲
     :Debug (bool)        グラフ表示
-    :return (int,float)  最大開始点index, 荷重開始値
+    :return (int,float,*)  最大開始点index, 荷重開始値
 
     ToDo: 荷重開始前の水平区間は、全体の傾向としてやや下降していることが多く、
           荷重下限は荷重開始の直前に来ることが多い。この場合、アルゴリズムはうまく機能するが、
@@ -248,45 +314,36 @@ def load_start2(d, spm, r_window=399, Debug=False, shot=999, ch="loadxx", debug_
           しかしながら、荷重開始前の水平区間のゆらぎが、鋼板のたわみのようなものだとすると、
           このような考慮はむしろ特定される荷重開始点のゆらぎに繋がるのではないか?
     """
-    df = pd.DataFrame({"o": d})
-    df["d"] = df.o.rolling(r_window, center=True, min_periods=1).mean()  # 移動平均
-    df["v"] = df.d.diff().rolling(r_window, min_periods=1).mean()  # 速度
+    df = pd.DataFrame({'o':d})
+    df['d'] = df.o.rolling(r_window,center=True,min_periods=1).mean()   # 移動平均
+    df['v'] = df.d.diff().rolling(r_window,min_periods=1).mean()        # 速度
 
-    argmax = df.d.idxmax()  # 100:変位最大値位置の範囲で速度を標準化 -> df['s']
+    argmax = df.d.idxmax()                                # 100:変位最大値位置の範囲で速度を標準化 -> df['s']
     l_max = df.d[argmax]
     l_min = df.d[100:argmax].min()
-    df["sd"] = (df.d - l_min) / (l_max - l_min)  # 標準化変位
-    l_max = df.v[0:argmax].max()
-    # print(l_max)
-    l_min = df.v[100:argmax].min()
-    # print(l_min)   # これをできるだけ直前に持っていきたい
-    df["sv"] = (df.v - l_min) / (l_max - l_min)
-
-    #     h = df[df.d.argmax()-1200:][df.sv>0.2].index[0]        # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
-    sd_start = df[100 : df.d.idxmax()].sd.idxmin()  # 100:最大荷重の範囲の荷重最小点 -> sd_start
-    sd_end = df[100 : df.d.idxmax()][df.sd > 0.2].index[0]  # 標準化変位が0.2を超えた -> sd_end
-    h = df[sd_start:sd_end][df.sv > 0.2].index[0]  # sd_start:sd_endの範囲で、標準化速度が0.2を超えた最初の点
+    df['sd'] = (df.d - l_min) / (l_max - l_min)           # 標準化変位 
+    l_max = df.v[0:argmax].max(); #print(l_max)
+    l_min = df.v[100:argmax].min(); #print(l_min)   # これをできるだけ直前に持っていきたい
+    df['sv'] = (df.v - l_min) / (l_max - l_min)
+      
+#     h = df[df.d.argmax()-1200:][df.sv>0.2].index[0]        # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
+    sd_start = df[100:df.d.idxmax()].sd.idxmin()           # 100:最大荷重の範囲の荷重最小点 -> sd_start
+    sd_end = df[100:df.d.idxmax()][df.sd>0.2].index[0]     # 標準化変位が0.2を超えた -> sd_end
+    h = df[sd_start:sd_end][df.sv>0.2].index[0]            # sd_start:sd_endの範囲で、標準化速度が0.2を超えた最初の点    
     if Debug is True:
-        ax = df[["d", "sd", "v", "sv"]].plot(
-            figsize=(10, 8),
-            subplots=True,
-            c="b",
-            title="%s shot:%d,ch=%s" % (sys._getframe().f_code.co_name, shot, ch),
-        )
-        df.o.plot(ax=ax[0], alpha=0.3, c="black")
-        ax[0].axvline(h, c="r")
-        ax[1].set_ylim(-0.1, 1.1)
-        ax[1].axvspan(sd_start, sd_end, color="g", alpha=0.3), ax[1].axhline(0.2, c="g")
-        ax[3].set_ylim(-0.1, 1.1)
-        ax[3].axhline(0.2, c="g")
-        plt.xlim(h + debug_xlim[0], h + debug_xlim[1])
+        ax = df[['d','sd','v','sv']].plot(figsize=(10,8),subplots=True,c='b',
+                title='%s shot:%d,ch=%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black');
+        ax[0].axvline(h,c='r')
+        ax[1].set_ylim(-0.1,1.1); ax[1].axvspan(sd_start,sd_end,color='g',alpha=.3),ax[1].axhline(0.2,c='g')
+        ax[3].set_ylim(-0.1,1.1); ax[3].axhline(0.2,c='g')
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
 
     # 値として元波形 or ノイズ除去後のいずれを採用すべきかは個々に判断されるべきと考えるので、
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
-    return h, df.d[h]
+    return h, df.d[h], sd_start
 
-
-def load_start3(d, spm, r_window=399, Debug=False, shot=999, ch="loadxx", debug_xlim=[-1000, 1500]):
+def load_start3(d, spm, r_window=399,Debug=False,shot=999,ch='loadxx',debug_xlim=[-1000,1500]):
     """ 荷重開始点 (加速度版)
     load_start2の方法で範囲を絞った後、加速度最大を採る
 
@@ -294,54 +351,46 @@ def load_start3(d, spm, r_window=399, Debug=False, shot=999, ch="loadxx", debug_
     :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用>  。                                           囲
     :r_window (int)      移動平均ウィンドウ範囲
     :Debug (bool)        グラフ表示
-    :return (int,float)  最大開始点index, 荷重開始値
+    :return (int,float,*)  最大開始点index, 荷重開始値
 
     ToDo: 402:4, 444:1, 601:2
 
     """
-    df = pd.DataFrame({"o": d})
-    df["d"] = df.o.rolling(r_window, center=True, min_periods=1).mean()  # 移動平均
-    df["v"] = df.d.diff().rolling(r_window, center=True, min_periods=1).mean()  # 速度
-    df["a"] = df.v.diff().rolling(r_window, center=True, min_periods=1).mean()  # 加速度
+    df = pd.DataFrame({'o':d})
+    df['d'] = df.o.rolling(r_window,center=True,min_periods=1).mean()   # 移動平均
+    df['v'] = df.d.diff().rolling(r_window,center=True,min_periods=1).mean()        # 速度
+    df['a'] = df.v.diff().rolling(r_window,center=True,min_periods=1).mean()        # 加速度
 
-    argmax = df.d.idxmax()  # 100:変位最大値位置の範囲で速度を標準化 -> df['s']
+
+    argmax = df.d.idxmax()                                # 100:変位最大値位置の範囲で速度を標準化 -> df['s']
     l_max = df.d[argmax]
     l_min = df.d[100:argmax].min()
-    df["sd"] = (df.d - l_min) / (l_max - l_min)  # 標準化変位
-    l_max = df.v[0:argmax].max()
-    # print(l_max)
-    l_min = df.v[100:argmax].min()
-    # print(l_min)   # これをできるだけ直前に持っていきたい
-    df["sv"] = (df.v - l_min) / (l_max - l_min)
+    df['sd'] = (df.d - l_min) / (l_max - l_min)           # 標準化変位
+    l_max = df.v[0:argmax].max(); #print(l_max)
+    l_min = df.v[100:argmax].min(); #print(l_min)   # これをできるだけ直前に持っていきたい
+    df['sv'] = (df.v - l_min) / (l_max - l_min)
 
-    #     h = df[df.d.argmax()-1200:][df.sv>0.2].index[0]        # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
-    sd_start = df[100 : df.d.idxmax()].sd.idxmin()  # 100:最大荷重の範囲の荷重最小点 -> sd_start
-    sd_end = df[100 : df.d.idxmax()][df.sd > 0.2].index[0]  # 標準化変位が0.2を超えた -> sd_end
-    h = df[sd_start:sd_end].a.idxmax()  # sd_start:sd_endの範囲で、
+#     h = df[df.d.argmax()-1200:][df.sv>0.2].index[0]        # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
+    sd_start = df[100:df.d.idxmax()].sd.idxmin()           # 100:最大荷重の範囲の荷重最小点 -> sd_start
+    sd_end = df[100:df.d.idxmax()][df.sd>0.2].index[0]     # 標準化変位が0.2を超えた -> sd_end
+    h = df[sd_start:sd_end].a.idxmax()           # sd_start:sd_endの範囲で、
     if Debug is True:
-        ax = df[["d", "sd", "v", "sv", "a"]].plot(
-            figsize=(10, 8),
-            subplots=True,
-            c="b",
-            title="%s shot:%d,ch=%s" % (sys._getframe().f_code.co_name, shot, ch),
-        )
-        df.o.plot(ax=ax[0], alpha=0.3, c="black")
-        ax[0].axvline(h, c="r")
-        ax[1].set_ylim(-0.1, 1.1)
-        ax[1].axhline(0.2, c="g")
-        ax[1].axvspan(sd_start, sd_end, color="g", alpha=0.3)
-        ax[3].set_ylim(-0.1, 1.1)
-        ax[3].axhline(0.2, c="g")
-        plt.xlim(h + debug_xlim[0], h + debug_xlim[1])
+        ax = df[['d','sd','v','sv','a']].plot(figsize=(10,8),subplots=True,c='b',
+                 title='%s shot:%d,ch=%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black');
+        ax[0].axvline(h,c='r')
+        ax[1].set_ylim(-0.1,1.1)
+        ax[1].axhline(0.2,c='g'); ax[1].axvspan(sd_start,sd_end,color='g',alpha=.3)
+        ax[3].set_ylim(-0.1,1.1); ax[3].axhline(0.2,c='g')
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
 
     # 値として元波形 or ノイズ除去後のいずれを採用すべきかは個々に判断されるべきと考えるので、
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
-    return h, df.d[h]
+    return h, df.d[h], sd_end
 
 
-def max_load(
-    d, spm, fs=100000, low=0, high=2000, r_window=19, Debug=False, shot=9999, ch="loadxx", debug_xlim=[-1500, 1000]
-):
+
+def max_load(d, spm, fs=100000,low=0, high=2000, r_window=19,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-1500,1000]):
     """ 最大荷重点
     1系列のデータをリストで受け取り、最大荷重点のindexとvalueを返す。
     バンドパス→移動平均でノイズを除去後、最大点を検出する単純なアルゴリズムなので、
@@ -351,30 +400,27 @@ def max_load(
     :low (float)         バンドパスフィルタ下限周波数
     :high (float)        バンドパスフィルタ上限周波数    
     :r_window (int)      移動平均ウィンドウ範囲
-    :return (int,float)  最大荷重点index, 最大荷重値
+    :return (int,float,*)  最大荷重点index, 最大荷重値
     
     ToDo: 低SPMではバンドパスノイズの影響が前方に及んでるケースがある。
           低SPM時はノイズ除去の必要性が大きくないはずなので調整の余地あり。
     """
-    df = pd.DataFrame({"o": d})
-    s, f, p = fft_spectrum(df.o, fs=fs)  # FFT
-    df["b"] = bandpass_ifft(s, f, low, high).real  # バンドパス
-    df["m"] = df.b.rolling(r_window).mean()  # 破断の影響を前方に出さないようcenter=Trueしない
-    h = df["m"].idxmax()
+    df = pd.DataFrame({'o':d})
+    s,f,p = fft_spectrum(df.o,fs=fs)                      # FFT
+    df['b'] = bandpass_ifft(s,f,low,high).real            # バンドパス
+    df['m'] = df.b.rolling(r_window).mean()               # 破断の影響を前方に出さないようcenter=Trueしない
+    h = df['m'].idxmax()
     if Debug is True:
-        ax = df.plot(
-            figsize=(10, 4), subplots=True, title="%s shot:%d,ch=%s" % (sys._getframe().f_code.co_name, shot, ch)
-        )
-        ax[0].axvline(h, c="r")
-        # ax[2].axhline(criteria,c='g')
-        plt.xlim(h + debug_xlim[0], h + debug_xlim[1])
+        ax = df.plot(figsize=(10,4),subplots=True,
+                title='%s shot:%d,ch=%s'%(sys._getframe().f_code.co_name,shot,ch))
+        ax[0].axvline(h,c='r'); #ax[2].axhline(criteria,c='g')       
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
 
     # 値として元波形 or ノイズ除去後のいずれを採用すべきかは個々に判断されるべきと考えるので、
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
-    return h, df.m[h]
+    return h, df.m[h], None
 
-
-def extract_features(shot_data, spm, func, disp_chart=False, xlim=[0, 0], **kwargs):
+def extract_features(shot_data, spm, func, narrowing = None, sub_func=None, disp_chart=False,xlim=[0,0],**kwargs):
     """ 特徴抽出ハンドラ関数
     変位をトリガーに切り出した1ショットのデータをpd.DataFrame(shot_data)として受け取り、
     抽出した特徴値を返す。
@@ -396,91 +442,91 @@ def extract_features(shot_data, spm, func, disp_chart=False, xlim=[0, 0], **kwar
     :shot_data (pd.DataFrame)   
     :spm (float)                      SPM(shots per minutes)
     :func (*function)                 関数ポインタ; 求めたい特徴値により対応する関数を指定
+    :sub_func (*function)             関数ポインタ; 処理効率改善のため時系列検索範囲を限定する必要があり、
+                                      4ch共通の範囲を指定したい場合に使用。現在は破断点の場合のみ、narrowing_var_chを指定。
     :disp_chart (bool)                グラフ表示; ショットごとの元波形と特徴量を表示。
     :**kwargs (可変キーワード引数)    funcに指定した関数に対応した引数を指定
-    :return (list, list)              indexリスト, 値リスト
+    :return (list, list, list)        indexリスト, 値リスト, デバッグリスト
     """
-    #     print(shot_data.head())
-    if spm is None:  # 最後のショットは次のショットが無いためspm計算不能, 80を想定する。
+#     print(shot_data.head())
+    cmap = plt.get_cmap("tab10") 
+    if spm is None:                  # 最後のショットは次のショットが無いためspm計算不能, 80を想定する。
         spm = 80.0
 
-    argmax = []
-    valmax = []
-    chs = ["load01", "load02", "load03", "load04"]
+    if narrowing is not None:
+        sub_start = narrowing[0] - NARROW_PADDING
+        sub_end = narrowing[1] + NARROW_PADDING
+    else:
+        if sub_func is not None:
+            sub_start, sub_end = sub_func(shot_data)
+            sub_start = sub_start - NARROW_PADDING
+            sub_end = sub_end + NARROW_PADDING
+        else:
+            sub_start = shot_data.index[0]
+            sub_end = shot_data.index[-1]
+
+    argmax = []; valmax = []; debugval = [];
+    chs = ['load01','load02','load03','load04']
     for ch in chs:
-        kwargs["ch"] = ch  # 可変キーワードにch追加
-        i, v = func(np.array(shot_data[ch]), spm, **kwargs)
-        argmax.append(i)
+        kwargs['ch'] = ch                                    # 可変キーワードにch追加
+        i,v,d = func(np.array(shot_data[ch][sub_start:sub_end]),spm,**kwargs)     # ここでnp.arrayになるのでindexがなくなる
+        argmax.append(i+sub_start)                  # funcはsubset中の相対indexを返してくるので、offsetを加える
         valmax.append(v)
+        debugval.append(d)
 
     if disp_chart:
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(12,6))
         for c in range(len(chs)):
-            plt.plot(shot_data[chs[c]], label=chs[c], alpha=0.3)  # plotはplotで、scatterはscatterで、それぞれcmapを順番に使うので、
-            plt.scatter(
-                [argmax[c]], [valmax[c]], marker="o", s=200, alpha=0.5
-            )  # plotもscatterもcolorを明示しなければたまたま同じ色になる。
-        if "shot" in kwargs:
-            shot = kwargs["shot"]  # 可変キーワード変数から拝借; 掟破り
+            plt.plot(shot_data.index,shot_data[chs[c]],label=chs[c],alpha=.3,c=cmap(c)) # 「流れ」があるのでscatterよりlineの方が見やすいと思う
+            #plt.scatter(shot_data.index,shot_data[chs[c]],label=chs[c],s=2,alpha=1.0,c=[cmap(c)]*len(shot_data))
+            plt.scatter([argmax[c]],[valmax[c]],marker='o',s=200,alpha=.5,c=[cmap(c)])  # plotとscatterのcolor mapを揃える
+        if 'shot' in kwargs:
+            shot = kwargs['shot']             # 可変キーワード変数から拝借; 掟破り
         else:
             shot = 9999
-        plt.title("%s shot:%d" % (func.__name__, shot))
-        plt.legend()
+        plt.title('%s shot:%d'%(func.__name__,shot)); plt.legend();
         if xlim[0] != 0 or xlim[1] != 0:
-            plt.xlim(np.array(argmax).min() + xlim[0], np.array(argmax).max() + xlim[1])
+            plt.xlim(np.array(argmax).min()+xlim[0],np.array(argmax).max()+xlim[1]);
         plt.show()
 
-    return argmax, valmax
+    return argmax,valmax,debugval
 
 
 if __name__ == "__main__":
     """ この部分は大塚の作業環境依存
     """
-    DATA_ROOT = "/data"
+    DATA_ROOT='/data'
 
     from pathlib import Path
+    p = Path(DATA_ROOT+'/H-One/20201127/shots/')
+    flist = list(sorted(p.glob('shots_*.csv')))
 
-    p = Path(DATA_ROOT + "/H-One/20201127/shots/")
-    flist = list(sorted(p.glob("shots_*.csv")))
-
-    features = []
-    for f in range(0, len(flist), 50):
-        #     print(f,flist[f])
+    features = []; debug_features = []
+    for f in range(0,len(flist),50):
+    #     print(f,flist[f])
         shot = int(os.path.basename(flist[f])[6:9])
 
         df1 = pd.read_csv(flist[f])
         if len(df1) == 0:
-            print("%s invalid" % flist[f])
+            print('%s invalid'%flist[f])
             continue
-
-        df1 = df1.rename(
-            {"v1": "load01", "v2": "load02", "v3": "load03", "v4": "load04", "c1": "displacement"}, axis=1
-        )
-
-        # argmax,valmax = extract_features(df1, 80.0, max_load)    # SPMここでは固定
-        # argmax,valmax = extract_features(df1, 80.0, breaking_varmax29)    # SPMここでは固定
-        # argmax,valmax = extract_features(df1, 80.0, breaking_varmax29idiff)    # SPMここでは固定
-        argmax, valmax = extract_features(df1, 80.0, breaking_varmax29idiff_tmpfix)  # SPMここでは固定
-        # argmax,valmax = extract_features(df1, 80.0, load_start)    # SPMここでは固定
-        argmax, valmax = extract_features(df1, 80.0, load_start3)  # SPMここでは固定
-        features.append([shot] + argmax + valmax + list(np.array(argmax).argsort() <= 1))
-
-    features = pd.DataFrame(
-        features,
-        columns=[
-            "shot",
-            "argmax01",
-            "argmax02",
-            "argmax03",
-            "argmax04",
-            "valmax01",
-            "valmax02",
-            "valmax03",
-            "valmax04",
-            "b01",
-            "b02",
-            "b03",
-            "b04",
-        ],
-    )
+	
+        df1 = df1.rename({'v1':'load01',
+			  'v2':'load02',
+			  'v3':'load03',
+			  'v4':'load04',
+			  'c1':'displacement'
+		   },axis=1)
+	
+        #argmax,valmax,debugval = extract_features(df1, 80.0, max_load)    # SPMここでは固定
+        #argmax,valmax,debugval = extract_features(df1, 80.0, breaking_varmax29)    # SPMここでは固定
+        #argmax,valmax,debugval = extract_features(df1, 80.0, breaking_varmax29idiff)    # SPMここでは固定
+        #argmax,valmax,debugval = extract_features(df1, 80.0, breaking_varmax29idiff_tmpfix)    # SPMここでは固定
+        argmax,valmax,debugval = extract_features(df1, 80.0, breaking_var_vrms, sub_func=narrowing_var_ch)    # SPMここでは固定
+        #argmax,valmax,debugval = extract_features(df1, 80.0, load_start)    # SPMここでは固定
+        #argmax,valmax,debugval = extract_features(df1, 80.0, load_start3)    # SPMここでは固定
+        features.append([shot] + argmax + valmax + list(np.array(argmax).argsort()<=1))    
+        debug_features.append([shot] + debugval)    
+	
+    features = pd.DataFrame(features,columns=['shot','argmax01','argmax02','argmax03','argmax04','valmax01','valmax02','valmax03','valmax04','b01','b02','b03','b04'])
     print(features)

@@ -24,7 +24,7 @@ import common
 logger = logging.getLogger(__name__)
 
 
-def apply(target: str, feature: str, func: Callable):
+def apply(target: str, feature: str, func: Callable, sub_func: Callable):
     """ 特定のロジックを3,000ショットに適用 """
 
     logger.info("apply start.")
@@ -37,12 +37,12 @@ def apply(target: str, feature: str, func: Callable):
     ElasticManager.delete_exists_index(index=feature_index)
 
     # NOTE: データ分割をNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
-    multi_process(target, feature_index, func)
+    multi_process(target, feature_index, func, sub_func)
 
     logger.info("apply finished.")
 
 
-def multi_process(target: str, feature_index: str, func: Callable) -> DataFrame:
+def multi_process(target: str, feature_index: str, func: Callable, sub_func: Callable) -> DataFrame:
     """ shots_dataインデックス読み取り """
 
     shots_meta_index: str = "shots-" + target + "-meta"
@@ -67,7 +67,7 @@ def multi_process(target: str, feature_index: str, func: Callable) -> DataFrame:
 
         proc: multiprocessing.context.Process = multiprocessing.Process(
             target=apply_logic,
-            args=(feature_index, shots_index, shots_meta_df, start_shot_number, end_shot_number, func),
+            args=(feature_index, shots_index, shots_meta_df, start_shot_number, end_shot_number, func, sub_func),
         )
         proc.start()
         procs.append(proc)
@@ -85,6 +85,7 @@ def apply_logic(
     start_shot_number: int,
     end_shot_number: int,
     func: Callable,
+    sub_func: Callable,
 ) -> List[dict]:
     """ ショットに対しロジック(func)適用 """
 
@@ -99,7 +100,7 @@ def apply_logic(
 
         indices: List[int]
         values: List[float]
-        indices, values = ef.extract_features(shot_df, spm, func)
+        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func)
 
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
             result.append(
@@ -115,7 +116,7 @@ def apply_logic(
     ElasticManager.bulk_insert(result, feature_index)
 
 
-def apply_all(target: str, max_func: Callable, start_func: Callable, break_func: Callable):
+def apply_all(target: str, max_func: Callable, start_func: Callable, break_func: Callable, sub_func: Callable = None):
     """ 3,000 ショット適用処理のエントリポイント """
 
     logger.info("apply start.")
@@ -141,6 +142,7 @@ def apply_all(target: str, max_func: Callable, start_func: Callable, break_func:
         max_func,
         start_func,
         break_func,
+        sub_func,
         common.NUM_OF_PROCESS,
     )
 
@@ -156,6 +158,7 @@ def multi_process_apply_analyze_logic(
     max_func: Callable,
     start_func: Callable,
     break_func: Callable,
+    sub_func: Callable,
     num_of_process: int,
 ):
     """ ショットデータをバッチにし、マルチプロセスで分析ロジック適用 """
@@ -186,6 +189,7 @@ def multi_process_apply_analyze_logic(
                 max_func,
                 start_func,
                 break_func,
+                sub_func,
             ),
         )
         proc.start()
@@ -208,6 +212,7 @@ def apply_all_analyze_logic(
     max_func: Callable,
     start_func: Callable,
     break_func: Callable,
+    sub_func: Callable,
 ):
     """ ショットのDataFrameに対し、最大荷重点、荷重開始点、破断点の算出ロジックを適用し、Elasticsearchに格納する """
 
@@ -222,20 +227,22 @@ def apply_all_analyze_logic(
         f"process {os.getpid()}: data read finished. shot_number: {start_shot_number} - {end_shot_number-1}. data count: {len(shots_df)}"
     )
 
-    max_points: List[dict] = apply_analyze_logic(shots_df, shots_meta_df, start_shot_number, end_shot_number, max_func)
+    max_points: List[dict] = apply_analyze_logic(
+        shots_df, shots_meta_df, start_shot_number, end_shot_number, max_func, sub_func
+    )
     ElasticManager.bulk_insert(max_points, max_point_index)
 
     logger.debug(f"PID: {os.getpid()}. max point recorded.")
 
     start_points: List[dict] = apply_analyze_logic(
-        shots_df, shots_meta_df, start_shot_number, end_shot_number, start_func
+        shots_df, shots_meta_df, start_shot_number, end_shot_number, start_func, sub_func
     )
     ElasticManager.bulk_insert(start_points, start_point_index)
 
     logger.debug(f"PID: {os.getpid()}. start point recorded.")
 
     break_points: List[dict] = apply_analyze_logic(
-        shots_df, shots_meta_df, start_shot_number, end_shot_number, break_func
+        shots_df, shots_meta_df, start_shot_number, end_shot_number, break_func, sub_func
     )
     ElasticManager.bulk_insert(break_points, break_point_index)
 
@@ -243,7 +250,12 @@ def apply_all_analyze_logic(
 
 
 def apply_analyze_logic(
-    shots_df: DataFrame, shots_meta_df: DataFrame, start_shot_number: int, end_shot_number: int, func: Callable
+    shots_df: DataFrame,
+    shots_meta_df: DataFrame,
+    start_shot_number: int,
+    end_shot_number: int,
+    func: Callable,
+    sub_func: Callable,
 ) -> List[dict]:
     """ ショットに対しロジック(func)適用 """
 
@@ -255,7 +267,7 @@ def apply_analyze_logic(
 
         indices: List[int]
         values: List[float]
-        indices, values = ef.extract_features(shot_df, spm, func)
+        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func)
 
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
             result.append(
@@ -289,5 +301,9 @@ if __name__ == "__main__":
 
     # apply(target="20201201010000", feature="max", func=ef.max_load)
     apply_all(
-        target="20201201010000", max_func=ef.max_load, start_func=ef.load_start2, break_func=ef.breaking_varmax29
+        target="20201201010000",
+        max_func=ef.max_load,
+        start_func=ef.load_start2,
+        break_func=ef.breaking_varmax29,
+        sub_func=None,
     )
