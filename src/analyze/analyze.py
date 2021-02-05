@@ -24,7 +24,6 @@ import common
 logger = logging.getLogger(__name__)
 
 
-@time_log
 def apply(target: str):
     """ 3,000 ショット適用処理のエントリポイント """
 
