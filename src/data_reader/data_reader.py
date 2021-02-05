@@ -43,16 +43,20 @@ class DataReader:
 
     @time_log
     def read_all(self, index: str) -> DataFrame:
-        """ 全件取得し、連番の昇順ソート結果を返す
-            NOTE: MultiprocessingはJupyterから実行すると正常動作しないため、使用していない。
-        """
+        """ 全件取得し、連番の昇順ソート結果を返す """
 
         logger.info("データを全件取得します。データ件数が多い場合、長時間かかる場合があります。")
 
-        query = {}
+        num_of_data: int = ElasticManager.count(index=index)
 
-        result: List[dict] = ElasticManager.scan_docs(index=index, query=query)
+        logger.info(f"データ件数: {num_of_data}")
+
+        result: List[dict] = ElasticManager.multi_process_range_scan(
+            index=index, num_of_data=num_of_data, num_of_process=common.NUM_OF_PROCESS
+        )
         result.sort(key=lambda x: x["sequential_number"])
+
+        logger.info("Data reading has finished.")
 
         df: DataFrame = pd.DataFrame(result)
         return df
