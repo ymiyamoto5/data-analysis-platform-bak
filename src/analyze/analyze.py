@@ -24,7 +24,98 @@ import common
 logger = logging.getLogger(__name__)
 
 
-def apply(target: str):
+def apply(target: str, feature: str, func: Callable):
+    """ 特定のロジックを3,000ショットに適用 """
+
+    logger.info("apply start.")
+
+    if feature not in ("max", "start", "break"):
+        logger.error(f"feature: {feature} is invalid.")
+        SystemExit()
+
+    feature_index: str = "shots-" + target + "-" + feature + "-point"
+    ElasticManager.delete_exists_index(index=feature_index)
+
+    # NOTE: データ分割をNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
+    multi_process(target, feature_index, func)
+
+    logger.info("apply finished.")
+
+
+def multi_process(target: str, feature_index: str, func: Callable) -> DataFrame:
+    """ shots_dataインデックス読み取り """
+
+    shots_meta_index: str = "shots-" + target + "-meta"
+    shots_index: str = "shots-" + target + "-data"
+
+    dr = DataReader()
+
+    shots_meta_df: DataFrame = dr.read_shots_meta(shots_meta_index)
+    num_of_shots: int = len(shots_meta_df)
+
+    # データをプロセッサの数に均等分配
+    shots_num_by_proc: List[int] = [(num_of_shots + i) // common.NUM_OF_PROCESS for i in range(common.NUM_OF_PROCESS)]
+    logger.debug(f"shots_num_by_proc: {shots_num_by_proc}")
+
+    procs: List[multiprocessing.context.Process] = []
+    start_shot_number: int = 1
+    # Nショット分をまとめてプロセスに割当。
+    for shots_num in shots_num_by_proc:
+        logger.debug(f"start_shot_number: {start_shot_number}")
+        end_shot_number: int = start_shot_number + shots_num
+        logger.debug(f"end_shot_number: {end_shot_number}")
+
+        proc: multiprocessing.context.Process = multiprocessing.Process(
+            target=apply_logic,
+            args=(feature_index, shots_index, shots_meta_df, start_shot_number, end_shot_number, func),
+        )
+        proc.start()
+        procs.append(proc)
+
+        start_shot_number: int = end_shot_number
+
+    for proc in procs:
+        proc.join()
+
+
+def apply_logic(
+    feature_index: str,
+    shots_index: str,
+    shots_meta_df: DataFrame,
+    start_shot_number: int,
+    end_shot_number: int,
+    func: Callable,
+) -> List[dict]:
+    """ ショットに対しロジック(func)適用 """
+
+    result: List[dict] = []
+
+    dr = DataReader()
+    shots_df_in_proc: DataFrame = dr.read_shots(shots_index, start_shot_number, end_shot_number)
+
+    for shot_number in range(start_shot_number, end_shot_number):
+        shot_df: DataFrame = shots_df_in_proc[shots_df_in_proc.shot_number == shot_number]
+        spm: float = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
+
+        indices: List[int]
+        values: List[float]
+        indices, values = ef.extract_features(shot_df, spm, func)
+
+        for i in range(0, common.NUM_OF_LOAD_SENSOR):
+            result.append(
+                {
+                    "shot_number": shot_number,
+                    "load": "load0" + str(i + 1),
+                    "sequential_number": shot_df.iloc[indices[i]].sequential_number,
+                    "sequential_number_by_shot": indices[i],
+                    "value": values[i],
+                }
+            )
+
+    ElasticManager.bulk_insert(result, feature_index)
+
+
+def apply_all(target: str, max_func: Callable, start_func: Callable, break_func: Callable):
     """ 3,000 ショット適用処理のエントリポイント """
 
     logger.info("apply start.")
@@ -42,7 +133,15 @@ def apply(target: str):
     ElasticManager.delete_exists_index(index=break_point_index)
 
     multi_process_apply_analyze_logic(
-        shots_index, shots_meta_index, max_point_index, start_point_index, break_point_index, common.NUM_OF_PROCESS
+        shots_index,
+        shots_meta_index,
+        max_point_index,
+        start_point_index,
+        break_point_index,
+        max_func,
+        start_func,
+        break_func,
+        common.NUM_OF_PROCESS,
     )
 
     logger.info("apply finished.")
@@ -54,6 +153,9 @@ def multi_process_apply_analyze_logic(
     max_point_index: str,
     start_point_index: str,
     break_point_index: str,
+    max_func: Callable,
+    start_func: Callable,
+    break_func: Callable,
     num_of_process: int,
 ):
     """ ショットデータをバッチにし、マルチプロセスで分析ロジック適用 """
@@ -81,6 +183,9 @@ def multi_process_apply_analyze_logic(
                 max_point_index,
                 start_point_index,
                 break_point_index,
+                max_func,
+                start_func,
+                break_func,
             ),
         )
         proc.start()
@@ -100,6 +205,9 @@ def apply_all_analyze_logic(
     max_point_index: str,
     start_point_index: str,
     break_point_index: str,
+    max_func: Callable,
+    start_func: Callable,
+    break_func: Callable,
 ):
     """ ショットのDataFrameに対し、最大荷重点、荷重開始点、破断点の算出ロジックを適用し、Elasticsearchに格納する """
 
@@ -114,22 +222,20 @@ def apply_all_analyze_logic(
         f"process {os.getpid()}: data read finished. shot_number: {start_shot_number} - {end_shot_number-1}. data count: {len(shots_df)}"
     )
 
-    max_points: List[dict] = apply_analyze_logic(
-        shots_df, shots_meta_df, start_shot_number, end_shot_number, ef.max_load
-    )
+    max_points: List[dict] = apply_analyze_logic(shots_df, shots_meta_df, start_shot_number, end_shot_number, max_func)
     ElasticManager.bulk_insert(max_points, max_point_index)
 
     logger.debug(f"PID: {os.getpid()}. max point recorded.")
 
     start_points: List[dict] = apply_analyze_logic(
-        shots_df, shots_meta_df, start_shot_number, end_shot_number, ef.load_start2
+        shots_df, shots_meta_df, start_shot_number, end_shot_number, start_func
     )
     ElasticManager.bulk_insert(start_points, start_point_index)
 
     logger.debug(f"PID: {os.getpid()}. start point recorded.")
 
     break_points: List[dict] = apply_analyze_logic(
-        shots_df, shots_meta_df, start_shot_number, end_shot_number, ef.breaking_varmax29
+        shots_df, shots_meta_df, start_shot_number, end_shot_number, break_func
     )
     ElasticManager.bulk_insert(break_points, break_point_index)
 
@@ -181,4 +287,7 @@ if __name__ == "__main__":
         ],
     )
 
-    apply(target="20201201010000")
+    # apply(target="20201201010000", feature="max", func=ef.max_load)
+    apply_all(
+        target="20201201010000", max_func=ef.max_load, start_func=ef.load_start2, break_func=ef.breaking_varmax29
+    )
