@@ -33,6 +33,8 @@ def apply(target: str, feature: str, func: Callable, sub_func: Callable):
         logger.error(f"feature: {feature} is invalid.")
         SystemExit()
 
+    sub_func: Optional[Callable] = None if feature != "break" else sub_func
+
     feature_index: str = "shots-" + target + "-" + feature + "-point"
     ElasticManager.delete_exists_index(index=feature_index)
 
@@ -85,7 +87,7 @@ def apply_logic(
     start_shot_number: int,
     end_shot_number: int,
     func: Callable,
-    sub_func: Callable,
+    sub_func: Callable = None,
 ) -> List[dict]:
     """ ショットに対しロジック(func)適用 """
 
@@ -95,12 +97,12 @@ def apply_logic(
     shots_df_in_proc: DataFrame = dr.read_shots(shots_index, start_shot_number, end_shot_number)
 
     for shot_number in range(start_shot_number, end_shot_number):
-        shot_df: DataFrame = shots_df_in_proc[shots_df_in_proc.shot_number == shot_number]
+        shot_df: DataFrame = shots_df_in_proc[shots_df_in_proc.shot_number == shot_number].reset_index()
         spm: float = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
 
         indices: List[int]
         values: List[float]
-        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func)
+        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func=sub_func)
 
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
             result.append(
@@ -227,15 +229,13 @@ def apply_all_analyze_logic(
         f"process {os.getpid()}: data read finished. shot_number: {start_shot_number} - {end_shot_number-1}. data count: {len(shots_df)}"
     )
 
-    max_points: List[dict] = apply_analyze_logic(
-        shots_df, shots_meta_df, start_shot_number, end_shot_number, max_func, sub_func
-    )
+    max_points: List[dict] = apply_analyze_logic(shots_df, shots_meta_df, start_shot_number, end_shot_number, max_func)
     ElasticManager.bulk_insert(max_points, max_point_index)
 
     logger.debug(f"PID: {os.getpid()}. max point recorded.")
 
     start_points: List[dict] = apply_analyze_logic(
-        shots_df, shots_meta_df, start_shot_number, end_shot_number, start_func, sub_func
+        shots_df, shots_meta_df, start_shot_number, end_shot_number, start_func
     )
     ElasticManager.bulk_insert(start_points, start_point_index)
 
@@ -255,19 +255,19 @@ def apply_analyze_logic(
     start_shot_number: int,
     end_shot_number: int,
     func: Callable,
-    sub_func: Callable,
+    sub_func: Callable = None,
 ) -> List[dict]:
     """ ショットに対しロジック(func)適用 """
 
     result: List[dict] = []
 
     for shot_number in range(start_shot_number, end_shot_number):
-        shot_df: DataFrame = shots_df[shots_df.shot_number == shot_number]
+        shot_df: DataFrame = shots_df[shots_df.shot_number == shot_number].reset_index()
         spm: float = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
 
         indices: List[int]
         values: List[float]
-        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func)
+        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func=sub_func)
 
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
             result.append(
@@ -281,6 +281,37 @@ def apply_analyze_logic(
             )
 
     return result
+
+
+def simple_apply(
+    target: str, shots_df: DataFrame, shots_meta_df: DataFrame, feature: str, func: Callable, sub_func: Callable = None
+):
+    """ シングルプロセスで全ショットににロジック適用。データ呼び出し側で用意する。 """
+
+    result: List[dict] = []
+
+    for shot_number in range(1, len(shots_meta_df) + 1):
+        shot_df = shots_df[shots_df.shot_number == shot_number].reset_index()
+        spm = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
+
+        indices: List[int]
+        values: List[float]
+        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func=sub_func)
+
+        for i in range(0, common.NUM_OF_LOAD_SENSOR):
+            result.append(
+                {
+                    "shot_number": shot_number,
+                    "load": "load0" + str(i + 1),
+                    "sequential_number": shot_df.iloc[indices[i]].sequential_number,
+                    "sequential_number_by_shot": indices[i],
+                    "value": values[i],
+                }
+            )
+
+    feature_index: str = "shots-" + target + "-" + feature + "-point"
+    ElasticManager.delete_exists_index(index=feature_index)
+    ElasticManager.bulk_insert(result, feature_index)
 
 
 if __name__ == "__main__":
@@ -299,11 +330,28 @@ if __name__ == "__main__":
         ],
     )
 
-    # apply(target="20201201010000", feature="max", func=ef.max_load)
-    apply_all(
-        target="20201201010000",
-        max_func=ef.max_load,
-        start_func=ef.load_start2,
-        break_func=ef.breaking_varmax29,
-        sub_func=None,
-    )
+    # apply(target="20201201010000", feature="max", func=ef.max_load, sub_func=ef.narrowing_var_ch)
+    # apply(target="20201201010000", feature="start", func=ef.load_start2)
+    apply(target="20201201010000", feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch)
+
+    # apply_all(
+    #     target="20201201010000",
+    #     max_func=ef.max_load,
+    #     start_func=ef.load_start2,
+    #     break_func=ef.breaking_varmax29
+    #     # break_func=ef.breaking_var_vrms,
+    #     # sub_func=ef.narrowing_var_ch,
+    # )
+
+    # target = "20201201010000"
+    # shots_data_index = "shots-" + target + "-data"
+
+    # dr = DataReader()
+    # shots_df = dr.read_all(shots_data_index)
+
+    # shots_meta_index = "shots-" + target + "-meta"
+    # shots_meta_df = dr.read_shots_meta(shots_meta_index)
+
+    # simple_apply(
+    #     target=target, shots_df=shots_df, shots_meta_df=shots_meta_df, feature="max", func=ef.max_load, sub_func=None,
+    # )
