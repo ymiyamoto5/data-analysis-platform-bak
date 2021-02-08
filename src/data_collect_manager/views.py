@@ -20,11 +20,11 @@ from utils.common import DisplayTime
 
 
 def _initialize_config_file() -> Tuple[bool, Optional[str]]:
-    """ 不正な状態が検出された場合、configファイルのstatusをstopにして初期化する """
+    """ 不正な状態が検出された場合、configファイルを初期化する """
 
     cfm = ConfigFileManager()
 
-    successful: bool = cfm.update({"status": "stop"})
+    successful: bool = cfm.create()
 
     message: str = None
     if not successful:
@@ -47,12 +47,15 @@ def show_manager():
                 response=json.dumps({"successful": successful, "message": "config file create failed"}), status=500
             )
 
-    # configファイルのgateway_resultが-1のときはエラー
+    # configファイルのgateway_resultが-1のときはconfigファイルを初期化後に初期画面へ遷移
     config: dict = cfm.read_config()
     if config["gateway_result"] == -1:
-        message = "The gateway status is abnormal. Please try again later."
+        message = "The gateway status is abnormal. Initialize config."
         app.logger.error(message)
-        return Response(response=json.dumps({"successful": False, "message": message}), status=500)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        return render_template("manager.html", status="stop")
 
     # 直近のevents_indexから状態判定
     latest_event_index: Optional[str] = ElasticManager.get_latest_events_index()

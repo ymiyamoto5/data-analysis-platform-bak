@@ -83,9 +83,9 @@ class ConfigFileManager:
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     current_config: dict = json.load(f)
+                    return current_config
                 finally:
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-                    return current_config
         except FileNotFoundError as e:
             logger.exception(str(e))
             raise FileNotFoundError
