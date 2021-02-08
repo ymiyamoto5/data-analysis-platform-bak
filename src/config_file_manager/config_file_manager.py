@@ -100,7 +100,7 @@ class ConfigFileManager:
 
         # 排他ロックを確保して書き込み
         try:
-            with open(self.config_file_path, "r+") as f:
+            with open(self.config_file_path, "w") as f:
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     f.write(config_str)
