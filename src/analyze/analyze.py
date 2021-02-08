@@ -7,7 +7,7 @@ import sys
 import logging
 import logging.handlers
 import pandas as pd
-from typing import Callable, Final, List, Optional
+from typing import Callable, Final, List, Optional, Tuple
 from pandas.core.frame import DataFrame
 
 import h_one_extract_features as ef
@@ -314,6 +314,19 @@ def simple_apply(
     ElasticManager.bulk_insert(result, feature_index)
 
 
+def extract_break_channels(values: List[float]) -> Tuple[str, str]:
+    """ 4ch分の破断点の荷重値リストを受け取り、破断側のチャネルセットを返す。 """
+
+    min_index = values.index(min(values))
+
+    # 最小値のindex = 0 or 1 のとき、ch01, ch02が破断側
+    if min_index in (0, 1):
+        return ("load01", "load02")
+    # 最小値のindex = 2 or 3 のとき、ch03, ch04が破断側
+    else:
+        return ("load03", "load04")
+
+
 if __name__ == "__main__":
     LOG_FILE: Final[str] = os.path.join(
         common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "analyze/analyze.log"
@@ -332,7 +345,7 @@ if __name__ == "__main__":
 
     # apply(target="20201201010000", feature="max", func=ef.max_load, sub_func=ef.narrowing_var_ch)
     # apply(target="20201201010000", feature="start", func=ef.load_start2)
-    apply(target="20201201010000", feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch)
+    # apply(target="20201201010000", feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch)
 
     # apply_all(
     #     target="20201201010000",
