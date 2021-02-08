@@ -12,26 +12,26 @@ class TestInitializeConfigFile:
     def test_normal(self, mocker):
         """ 正常系 """
 
-        mocker.patch.object(ConfigFileManager, "update", return_value=True)
+        mocker.patch.object(ConfigFileManager, "create", return_value=True)
 
         acutal: Tuple[bool, Optional[str]] = views._initialize_config_file()
         expected: Tuple[bool, Optional[str]] = True, None
 
         assert acutal == expected
 
-        ConfigFileManager.update.assert_called_once()
+        ConfigFileManager.create.assert_called_once()
 
     def test_config_file_update_fail_exception(self, mocker):
         """ 異常系：configファイルの更新失敗 """
 
-        mocker.patch.object(ConfigFileManager, "update", return_value=False)
+        mocker.patch.object(ConfigFileManager, "create", return_value=False)
 
         acutal: Tuple[bool, Optional[str]] = views._initialize_config_file()
         expected: Tuple[bool, str] = False, "config file update failed."
 
         assert acutal == expected
 
-        ConfigFileManager.update.assert_called_once()
+        ConfigFileManager.create.assert_called_once()
 
 
 class TestShowManager:
@@ -69,13 +69,14 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
+        mocker.patch.object(ConfigFileManager, "create", return_value=True)
 
         response = client.get("/")
         actual_code = response.status_code
-        expected_code = 500
+        expected_code = 200
 
         assert actual_code == expected_code
-        assert b'{"successful": false, "message": "The gateway status is abnormal. Please try again later."}' in response.data
+        assert b"initial-view" in response.data
 
     def test_event_index_not_found_exception(self, client, mocker):
         """ 異常系：event_indexが存在しない場合、初期化処理をして初期画面に戻す。 """
