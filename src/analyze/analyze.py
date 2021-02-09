@@ -6,7 +6,6 @@ import os
 import sys
 import logging
 import logging.handlers
-import pandas as pd
 from typing import Callable, Final, List, Optional, Tuple
 from pandas.core.frame import DataFrame
 
@@ -17,11 +16,14 @@ from elastic_manager.elastic_manager import ElasticManager
 from data_reader.data_reader import DataReader
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
-from time_logger import time_log
-from throughput_counter import throughput_counter
 import common
 
 logger = logging.getLogger(__name__)
+
+
+### 特定のロジックのみ適用
+### ショット分割範囲決定 -> 並列[データ読み取り -> ロジック適用 -> ELS格納]
+### TODO: jupyter[並列データ読み取り] -> 並列[データ絞り込み -> ロジック適用 -> ELS格納]
 
 
 def apply(target: str, feature: str, func: Callable, sub_func: Callable):
@@ -44,8 +46,8 @@ def apply(target: str, feature: str, func: Callable, sub_func: Callable):
     logger.info("apply finished.")
 
 
-def multi_process(target: str, feature_index: str, func: Callable, sub_func: Callable) -> DataFrame:
-    """ shots_dataインデックス読み取り """
+def multi_process(target: str, feature_index: str, func: Callable, sub_func: Callable) -> None:
+    """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
     shots_meta_index: str = "shots-" + target + "-meta"
     shots_index: str = "shots-" + target + "-data"
@@ -118,8 +120,12 @@ def apply_logic(
     ElasticManager.bulk_insert(result, feature_index)
 
 
+### 3特徴点すべて適用
+###
+
+
 def apply_all(target: str, max_func: Callable, start_func: Callable, break_func: Callable, sub_func: Callable = None):
-    """ 3,000 ショット適用処理のエントリポイント """
+    """ 3つの特徴点抽出ロジックを3,000 ショット適用処理 """
 
     logger.info("apply start.")
 
@@ -145,7 +151,6 @@ def apply_all(target: str, max_func: Callable, start_func: Callable, break_func:
         start_func,
         break_func,
         sub_func,
-        common.NUM_OF_PROCESS,
     )
 
     logger.info("apply finished.")
@@ -161,7 +166,6 @@ def multi_process_apply_analyze_logic(
     start_func: Callable,
     break_func: Callable,
     sub_func: Callable,
-    num_of_process: int,
 ):
     """ ショットデータをバッチにし、マルチプロセスで分析ロジック適用 """
 
@@ -171,7 +175,7 @@ def multi_process_apply_analyze_logic(
     num_of_shots: int = len(shots_meta_df)
 
     # データをプロセッサの数に均等分配
-    shots_num_by_proc: List[int] = [(num_of_shots + i) // num_of_process for i in range(num_of_process)]
+    shots_num_by_proc: List[int] = [(num_of_shots + i) // common.NUM_OF_PROCESS for i in range(common.NUM_OF_PROCESS)]
 
     procs: List[multiprocessing.context.Process] = []
     start_shot_number: int = 1
@@ -286,7 +290,7 @@ def apply_analyze_logic(
 def simple_apply(
     target: str, shots_df: DataFrame, shots_meta_df: DataFrame, feature: str, func: Callable, sub_func: Callable = None
 ):
-    """ シングルプロセスで全ショットににロジック適用。データ呼び出し側で用意する。 """
+    """ シングルプロセスで全ショットにロジック適用。データ呼び出し側で用意する。 """
 
     result: List[dict] = []
 
