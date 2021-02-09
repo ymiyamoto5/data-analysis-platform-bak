@@ -62,7 +62,7 @@ class TestShowManager:
         expected_code = 500
 
         assert actual_code == expected_code
-        assert b'{"successful": false, "message": "config file create failed"}' in response.data
+        assert b'{"successful": false, "message": "config file update failed."}' in response.data
 
     def test_gateway_result_invalid_exception(self, client, mocker):
         """ 異常系：configファイルのgateway_resultが-1 """
@@ -262,6 +262,36 @@ class TestSetup:
         assert actual_code == expected_code
         assert b'{"successful": true}' in response.data
 
+    def test_gateway_result_invalid_exception_1(self, client, mocker):
+        """ 異常系：gateway_result = -1のとき、更新リトライして成功 """
+
+        mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
+        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(ConfigFileManager, "update", return_value=True)
+
+        response = client.post("/setup")
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b'{"successful": true}' in response.data
+
+    def test_gateway_result_invalid_exception_2(self, client, mocker):
+        """ 異常系：gateway_result = -1のとき、更新リトライして失敗 """
+
+        mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
+        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(ConfigFileManager, "update", return_value=False)
+
+        response = client.post("/setup")
+        actual_code = response.status_code
+        expected_code = 500
+
+        assert actual_code == expected_code
+        assert b'{"successful": false, "message": "config file update failed."}' in response.data
+
     def test_events_index_create_fail_exception(self, client, mocker):
         """ 異常系：events_index作成失敗 """
 
@@ -436,6 +466,7 @@ class TestStop:
         """ 正常系 """
 
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
         mocker.patch.object(ElasticManager, "count", return_value=1)
         mocker.patch.object(ElasticManager, "create_doc", return_value=True)
@@ -446,6 +477,37 @@ class TestStop:
 
         assert actual_code == expected_code
         assert b'{"successful": true}' in response.data
+
+    def test_gateway_result_invalid_exception_1(self, client, mocker):
+        """ 異常系：gateway_result = -1のとき、更新リトライして成功 """
+
+        mocker.patch.object(ConfigFileManager, "update", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
+        mocker.patch.object(ConfigFileManager, "create", return_value=True)
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(ElasticManager, "count", return_value=1)
+        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+
+        response = client.post("/stop")
+        actual_code = response.status_code
+        expected_code = 200
+
+        assert actual_code == expected_code
+        assert b'{"successful": true}' in response.data
+
+    def test_gateway_result_invalid_exception_2(self, client, mocker):
+        """ 異常系：gateway_result = -1のとき、更新リトライして失敗 """
+
+        mocker.patch.object(ConfigFileManager, "update", return_value=True)
+        mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
+        mocker.patch.object(ConfigFileManager, "create", return_value=False)
+
+        response = client.post("/stop")
+        actual_code = response.status_code
+        expected_code = 500
+
+        assert actual_code == expected_code
+        assert b'{"successful": false, "message": "config file update failed."}' in response.data
 
     def test_config_file_update_fail_exception(self, client, mocker):
         """ 異常系：configファイルの更新失敗 """
