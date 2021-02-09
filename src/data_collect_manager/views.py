@@ -41,11 +41,10 @@ def show_manager():
 
     # conifgファイルがない場合、初期configを生成
     if not cfm.config_exists():
-        successful: bool = cfm.create()
+        message = "config file create failed"
+        successful, message = _initialize_config_file()
         if not successful:
-            return Response(
-                response=json.dumps({"successful": successful, "message": "config file create failed"}), status=500
-            )
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
 
     # configファイルのgateway_resultが-1のときはconfigファイルを初期化後に初期画面へ遷移
     config: dict = cfm.read_config()
@@ -118,6 +117,16 @@ def setup():
     params: dict = {"status": "running"}
     cfm = ConfigFileManager()
     successful: bool = cfm.update(params)
+
+    # configファイルのgateway_resultが-1のときは設定エラーのため初期化して更新リトライ
+    config: dict = cfm.read_config()
+    if config["gateway_result"] == -1:
+        message = "The gateway status is abnormal. Initialize config."
+        app.logger.error(message)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful: bool = cfm.update(params)
 
     if not successful:
         return Response(
@@ -215,6 +224,16 @@ def stop():
     params: dict = {"status": "stop"}
     cfm = ConfigFileManager()
     successful: bool = cfm.update(params)
+
+    # configファイルのgateway_resultが-1のときは設定エラーのため初期化して更新リトライ
+    config: dict = cfm.read_config()
+    if config["gateway_result"] == -1:
+        message = "The gateway status is abnormal. Initialize config."
+        app.logger.error(message)
+        successful, message = _initialize_config_file()
+        if not successful:
+            return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
+        successful: bool = cfm.update(params)
 
     if not successful:
         return Response(
