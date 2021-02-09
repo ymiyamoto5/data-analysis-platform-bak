@@ -55,8 +55,6 @@ class DataReader:
         )
         result.sort(key=lambda x: x["sequential_number"])
 
-        logger.info("Data reading has finished.")
-
         df: DataFrame = pd.DataFrame(result)
         return df
 
