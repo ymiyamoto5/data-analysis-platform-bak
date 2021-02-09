@@ -3,6 +3,7 @@ import pathlib
 from datetime import datetime, timedelta, timezone
 
 from data_recorder import data_recorder
+from elastic_manager.elastic_manager import ElasticManager
 
 from utils.common import TIMESTAMP_MAX
 
@@ -176,5 +177,50 @@ class TestGetNotTargetFiles:
         actual = data_recorder._get_not_target_files(file_infos, setup_time, end_time)
 
         expected = []
+
+        assert actual == expected
+
+
+class TestIsNowRecording:
+    def test_normal_event_is_recorded(self, mocker):
+        """ 正常系：event_typeがrecorded """
+
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "recorded"})
+
+        actual: bool = data_recorder._is_now_recording()
+        expected: bool = False
+
+        assert actual == expected
+
+    def test_normal_event_is_not_recorded(self, mocker):
+        """ 正常系：event_typeがrecorded """
+
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "stop"})
+
+        actual: bool = data_recorder._is_now_recording()
+        expected: bool = True
+
+        assert actual == expected
+
+    def test_events_index_not_exists_exception(self, mocker):
+        """ 異常系：events_indexが存在しない """
+
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+
+        actual: bool = data_recorder._is_now_recording()
+        expected: bool = True
+
+        assert actual == expected
+
+    def test_events_index_doc_not_exists_exception(self, mocker):
+        """ 異常系：events_indexのドキュメントがない """
+
+        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value=None)
+
+        actual: bool = data_recorder._is_now_recording()
+        expected: bool = True
 
         assert actual == expected
