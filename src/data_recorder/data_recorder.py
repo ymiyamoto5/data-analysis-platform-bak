@@ -309,6 +309,8 @@ def _is_now_recording() -> bool:
         logger.error(f"Exits because latest event is '{event_type}'. Latest event should be 'recorded'.")
         return True
 
+    return False
+
 
 def manual_record(target_dir: str, rawdata_dir_name: str):
     """ 手動での生データ取り込み。前提条件は以下。
@@ -321,10 +323,10 @@ def manual_record(target_dir: str, rawdata_dir_name: str):
 
     if files_info is None:
         logger.info(f"No files in {rawdata_dir_name}")
-        return
+        sys.exit(1)
 
     if _is_now_recording():
-        return
+        sys.exit(1)
 
     # events_index取得
     events_index: str = "events-" + rawdata_dir_name
