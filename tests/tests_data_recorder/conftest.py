@@ -3,6 +3,7 @@ import os
 import pytest
 import pathlib
 import dataclasses
+import struct
 
 sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../src/"))
 
@@ -27,11 +28,13 @@ def dat_files(tmp_path):
     tmp_dat_4: pathlib.Path = tmp_path / "AD-00_20201216-080101.620753.dat"
     tmp_dat_5: pathlib.Path = tmp_path / "AD-00_20201216-080102.620753.dat"
 
-    tmp_dat_1.write_text("")
-    tmp_dat_2.write_text("")
-    tmp_dat_3.write_text("")
-    tmp_dat_4.write_text("")
-    tmp_dat_5.write_text("")
+    binary = struct.pack("<ddddd", 10.0, 1.1, 2.2, 3.3, 4.4) + struct.pack("<ddddd", 9.0, 1.2, 2.3, 3.4, 4.5)
+
+    tmp_dat_1.write_bytes(binary)
+    tmp_dat_2.write_bytes(binary)
+    tmp_dat_3.write_bytes(binary)
+    tmp_dat_4.write_bytes(binary)
+    tmp_dat_5.write_bytes(binary)
 
     dat_files = DatFiles(tmp_path, tmp_dat_1, tmp_dat_2, tmp_dat_3, tmp_dat_4, tmp_dat_5)
 
