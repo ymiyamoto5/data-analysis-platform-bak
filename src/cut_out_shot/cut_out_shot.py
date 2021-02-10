@@ -622,7 +622,7 @@ class CutOutShot:
             if len(tag_events) > 0:
                 self._add_tags(tag_events)
 
-            logger.info(f"{len(self.__cut_out_targets)} shots detected in {pickle_file}.")
+            logger.info(f"{len(self.__cut_out_targets)} data cut out from {pickle_file}.")
 
             # 子プロセスのjoin
             procs = self.__join_process(procs)
@@ -709,17 +709,16 @@ if __name__ == "__main__":
     )
 
     # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
+    displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
     # 展開すると -8.75 * v + 87.5
-    # displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
     # displacement_func = lambda v: -8.75 * v + 87.5
 
-    # F(kN) = V / 10 * Range / 3.8 / 1000
-    # load01_func = lambda v: 2.5 / Vr * v * 1000
-    # load02_func = lambda v: 2.5 / Vr * v * 1000
-    # load03_func = lambda v: 2.5 / Vr * v * 1000
-    # load04_func = lambda v: 2.5 / Vr * v * 1000
+    Vr = 1.0
+    load01_func = lambda v: 2.5 / Vr * v * 1000
+    load02_func = lambda v: 2.5 / Vr * v * 1000
+    load03_func = lambda v: 2.5 / Vr * v * 1000
+    load04_func = lambda v: 2.5 / Vr * v * 1000
 
-    displacement_func = lambda v: v
     load01_func = lambda v: v
     load02_func = lambda v: v
     load03_func = lambda v: v
