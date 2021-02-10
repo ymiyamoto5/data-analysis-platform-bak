@@ -716,6 +716,7 @@ class TestGetPrecedingDf:
         expected = [
             # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
+                "sequential_number": 3,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
                 "displacement": 47.1,
                 "load01": 1.500,
@@ -725,6 +726,7 @@ class TestGetPrecedingDf:
             },
             # 切り出し区間1-3
             {
+                "sequential_number": 4,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
                 "displacement": 34.961,
                 "load01": -0.256,
@@ -734,6 +736,7 @@ class TestGetPrecedingDf:
             },
             # 切り出し区間後1
             {
+                "sequential_number": 5,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
                 "displacement": 30.599,
                 "load01": -0.130,
@@ -743,6 +746,7 @@ class TestGetPrecedingDf:
             },
             # 切り出し区間後2
             {
+                "sequential_number": 6,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp(),
                 "displacement": 24.867,
                 "load01": -0.052,
@@ -752,6 +756,7 @@ class TestGetPrecedingDf:
             },
             # 切り出し区間後3(変位にmargin=0.1を加算した場合、ショットの終了と見做されない変位値)
             {
+                "sequential_number": 7,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111).timestamp(),
                 "displacement": 47.100,
                 "load01": 0.155,
@@ -963,6 +968,7 @@ class TestApplyExprDisplacment:
 
         expected = [
             {
+                "sequential_number": 0,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
                 "displacement": 50.284,
                 "load01": 0.223,
@@ -972,6 +978,7 @@ class TestApplyExprDisplacment:
             },
             # 切り出し区間前2
             {
+                "sequential_number": 1,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
                 "displacement": 48.534,
                 "load01": 0.155,
@@ -981,6 +988,7 @@ class TestApplyExprDisplacment:
             },
             # 切り出し区間1-1
             {
+                "sequential_number": 2,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
                 "displacement": 48.0,
                 "load01": 1.574,
@@ -1014,6 +1022,7 @@ class TestApplyExprLoad:
 
         expected = [
             {
+                "sequential_number": 0,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
                 "displacement": 49.284,
                 "load01": 2.223,
@@ -1023,6 +1032,7 @@ class TestApplyExprLoad:
             },
             # 切り出し区間前2
             {
+                "sequential_number": 1,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
                 "displacement": 47.534,
                 "load01": 2.155,
@@ -1032,6 +1042,7 @@ class TestApplyExprLoad:
             },
             # 切り出し区間1-1
             {
+                "sequential_number": 2,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
                 "displacement": 47.0,
                 "load01": 3.574,
@@ -1042,6 +1053,110 @@ class TestApplyExprLoad:
         ]
 
         expected_df = pd.DataFrame(expected)
+
+        assert_frame_equal(actual_df, expected_df)
+
+
+class TestSetStartSequentialNumber:
+    def test_normal_1(self, target):
+        actual: int = target._set_start_sequential_number(start_sequential_number=None, rawdata_count=10)
+        assert actual == 0
+
+    def test_normal_2(self, target):
+        actual: int = target._set_start_sequential_number(start_sequential_number=3, rawdata_count=10)
+        assert actual == 3
+
+    def test_exception_1(self, target):
+        with pytest.raises(SystemExit):
+            target._set_start_sequential_number(start_sequential_number=10, rawdata_count=10)
+
+    def test_exception_2(self, target):
+        with pytest.raises(SystemExit):
+            target._set_start_sequential_number(start_sequential_number=-1, rawdata_count=10)
+
+
+class TestSetEndSequentialNumber:
+    def test_normal_1(self, target):
+        actual: int = target._set_end_sequential_number(
+            start_sequential_number=0, end_sequential_number=None, rawdata_count=10
+        )
+        assert actual == 10
+
+    def test_normal_2(self, target):
+        actual: int = target._set_end_sequential_number(
+            start_sequential_number=0, end_sequential_number=8, rawdata_count=10
+        )
+        assert actual == 8
+
+    def test_exception_1(self, target):
+        with pytest.raises(SystemExit):
+            target._set_end_sequential_number(start_sequential_number=0, end_sequential_number=10, rawdata_count=10)
+
+    def test_exception_2(self, target):
+        with pytest.raises(SystemExit):
+            target._set_end_sequential_number(start_sequential_number=0, end_sequential_number=0, rawdata_count=10)
+
+    def test_exception_3(self, target):
+        with pytest.raises(SystemExit):
+            target._set_end_sequential_number(start_sequential_number=5, end_sequential_number=3, rawdata_count=10)
+
+
+class TestExcludeNonTargetInterval:
+    def test_normal_1(self, target, rawdata_df):
+        actual_df = target._exclude_non_target_interval(rawdata_df, 3, 5)
+        actual_df = actual_df.reset_index(drop=True)
+
+        expected = [
+            {
+                "sequential_number": 3,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+            },
+            # 切り出し区間1-3
+            {
+                "sequential_number": 4,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+            },
+            # 切り出し区間後1
+            {
+                "sequential_number": 5,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
+                "displacement": 30.599,
+                "load01": -0.130,
+                "load02": 0.020,
+                "load03": 0.483,
+                "load04": 0.419,
+            },
+        ]
+
+        expected_df = pd.DataFrame(expected)
+
+        assert_frame_equal(actual_df, expected_df)
+
+    def test_normal_2(self, target, rawdata_df):
+        actual_df = target._exclude_non_target_interval(rawdata_df, 0, 12)
+        actual_df = actual_df.reset_index(drop=True)
+
+        expected_df = rawdata_df
+
+        assert_frame_equal(actual_df, expected_df)
+
+    def test_exception(self, target, rawdata_df):
+        """ 異常系：範囲外のsequential_number指定。通常はありえない """
+
+        actual_df = target._exclude_non_target_interval(rawdata_df, 0, 20)
+        actual_df = actual_df.reset_index(drop=True)
+
+        expected_df = rawdata_df
 
         assert_frame_equal(actual_df, expected_df)
 
