@@ -5,7 +5,7 @@ import logging
 import logging.handlers
 import pandas as pd
 import glob
-from typing import Callable, Final, List, Optional
+from typing import Callable, Final, List, Optional, Union
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
 
@@ -227,6 +227,15 @@ class CutOutShot:
 
         return pickle_file_list
 
+    def _exclude_non_target_interval(
+        self, df: DataFrame, start_sequential_number: int, end_sequential_number: int
+    ) -> DataFrame:
+        """ パラメータで指定された対象範囲に含まれないデータを除外 """
+
+        return df[
+            (start_sequential_number <= df["sequential_number"]) & (df["sequential_number"] <= end_sequential_number)
+        ]
+
     def _exclude_setup_interval(self, df: DataFrame, collect_start_time: float) -> DataFrame:
         """ 収集開始前(段取中)のデータを除外 """
 
@@ -409,7 +418,58 @@ class CutOutShot:
 
         return []
 
-    def cut_out_shot(self, rawdata_dir_name: str, start_displacement: float, end_displacement: float,) -> None:
+    def _set_start_sequential_number(self, start_sequential_number: int, rawdata_count: int) -> Union[int, Exception]:
+        """ パラメータ start_sequential_number の設定 """
+
+        if start_sequential_number is None:
+            return 0
+
+        if start_sequential_number >= rawdata_count:
+            logger.error(
+                f"start_sequential_number: {start_sequential_number} must be less than equal rawdata count ({rawdata_count})"
+            )
+            raise SystemExit
+
+        if start_sequential_number < 0:
+            logger.error(f"start_sequential_number: {start_sequential_number} must be greater than 0")
+            raise SystemExit
+
+        return start_sequential_number
+
+    def _set_end_sequential_number(
+        self, start_sequential_number: int, end_sequential_number: int, rawdata_count: int
+    ) -> Union[int, Exception]:
+        """ パラメータ end_sequential_number の設定 """
+
+        if end_sequential_number is None:
+            return rawdata_count
+
+        if end_sequential_number >= rawdata_count:
+            logger.error(
+                f"end_sequential_number: {end_sequential_number} must be less than rawdata count ({rawdata_count})"
+            )
+            raise SystemExit
+
+        if end_sequential_number <= 0:
+            logger.error(f"end_sequential_number: {end_sequential_number} must be greater than equal 0")
+            raise SystemExit
+
+        if end_sequential_number <= start_sequential_number:
+            logger.error(
+                f"end_sequential_number: {end_sequential_number} must be greater than equal start_sequential_number ({start_sequential_number})"
+            )
+            raise SystemExit
+
+        return end_sequential_number
+
+    def cut_out_shot(
+        self,
+        rawdata_dir_name: str,
+        start_displacement: float,
+        end_displacement: float,
+        start_sequential_number: Optional[int] = None,
+        end_sequential_number: Optional[int] = None,
+    ) -> None:
         """
         * ショット切り出し
         * 中断区間のデータ除外
@@ -442,6 +502,18 @@ class CutOutShot:
             raise SystemExit
 
         pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
+
+        # パラメータによる範囲フィルター設定
+        if start_sequential_number is not None or end_sequential_number is not None:
+            has_target_interval: bool = True
+            rawdata_index: str = "rawdata-" + rawdata_dir_name
+            rawdata_count: int = ElasticManager.count(index=rawdata_index)
+            start_sequential_number: int = self._set_start_sequential_number(start_sequential_number, rawdata_count)
+            end_sequential_number: int = self._set_end_sequential_number(
+                start_sequential_number, end_sequential_number, rawdata_count
+            )
+        else:
+            has_target_interval: bool = False
 
         shots_index: str = "shots-" + rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
@@ -483,6 +555,16 @@ class CutOutShot:
         # main loop
         for loop_count, pickle_file in enumerate(pickle_files):
             rawdata_df: DataFrame = pd.read_pickle(pickle_file)
+
+            # パラメータで指定された対象範囲に含まれないデータを除外
+            if has_target_interval:
+                rawdata_df = self._exclude_non_target_interval(
+                    rawdata_df, start_sequential_number, end_sequential_number
+                )
+
+            if len(rawdata_df) == 0:
+                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
+                continue
 
             # 段取区間の除外
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)

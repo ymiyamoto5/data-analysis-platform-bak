@@ -39,6 +39,7 @@ def rawdata_df():
     rawdata: List[dict] = [
         # 切り出し区間前1
         {
+            "sequential_number": 0,
             "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
             "displacement": 49.284,
             "load01": 0.223,
@@ -48,6 +49,7 @@ def rawdata_df():
         },
         # 切り出し区間前2
         {
+            "sequential_number": 1,
             "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
             "displacement": 47.534,
             "load01": 0.155,
@@ -57,6 +59,7 @@ def rawdata_df():
         },
         # 切り出し区間1-1
         {
+            "sequential_number": 2,
             "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
             "displacement": 47.0,
             "load01": 1.574,
@@ -66,6 +69,7 @@ def rawdata_df():
         },
         # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
         {
+            "sequential_number": 3,
             "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
             "displacement": 47.1,
             "load01": 1.500,
@@ -75,6 +79,7 @@ def rawdata_df():
         },
         # 切り出し区間1-3
         {
+            "sequential_number": 4,
             "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
             "displacement": 34.961,
             "load01": -0.256,
@@ -84,6 +89,7 @@ def rawdata_df():
         },
         # 切り出し区間後1
         {
+            "sequential_number": 5,
             "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
             "displacement": 30.599,
             "load01": -0.130,
@@ -93,6 +99,7 @@ def rawdata_df():
         },
         # 切り出し区間後2
         {
+            "sequential_number": 6,
             "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp(),
             "displacement": 24.867,
             "load01": -0.052,
@@ -102,6 +109,7 @@ def rawdata_df():
         },
         # 切り出し区間後3(変位にmargin=0.1を加算した場合、ショットの終了と見做されない変位値)
         {
+            "sequential_number": 7,
             "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111).timestamp(),
             "displacement": 47.100,
             "load01": 0.155,
@@ -111,6 +119,7 @@ def rawdata_df():
         },
         # 切り出し区間後4(ショット区間終了）
         {
+            "sequential_number": 8,
             "timestamp": datetime(2020, 12, 1, 10, 30, 18, 111111).timestamp(),
             "displacement": 47.150,
             "load01": 0.156,
@@ -120,6 +129,7 @@ def rawdata_df():
         },
         # 切り出し区間2-1
         {
+            "sequential_number": 9,
             "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
             "displacement": 47.0,
             "load01": 1.574,
@@ -129,6 +139,7 @@ def rawdata_df():
         },
         # 切り出し区間2-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
         {
+            "sequential_number": 10,
             "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
             "displacement": 47.1,
             "load01": 1.500,
@@ -138,6 +149,7 @@ def rawdata_df():
         },
         # 切り出し区間2-3
         {
+            "sequential_number": 11,
             "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
             "displacement": 34.961,
             "load01": -0.256,
@@ -147,6 +159,7 @@ def rawdata_df():
         },
         # 切り出し区間後
         {
+            "sequential_number": 12,
             "timestamp": datetime(2020, 12, 1, 10, 30, 22, 111111).timestamp(),
             "displacement": 30.599,
             "load01": -0.130,
