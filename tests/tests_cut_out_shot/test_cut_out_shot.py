@@ -1047,6 +1047,8 @@ class TestApplyExprLoad:
 
 
 class TestCutOutShot:
+    """ 切り出しテスト。物理変換後データでのテストとなっている。 """
+
     def test_normal_1(self, target, rawdata_df):
         """ 正常系：遡り件数1件, start_displacememt: 47.0, end_displacememt: 34.0。
             全13サンプル中8サンプルが切り出される。
@@ -1488,3 +1490,22 @@ class TestCutOutShot:
         expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
 
         assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
+
+    def test_parameter_exception_1(self, target):
+        """ 異常系：切り出し開始しきい値よりも終了しきい値のほうが大きい場合 """
+
+        with pytest.raises(SystemExit):
+            target.cut_out_shot("tmp", start_displacement=40.0, end_displacement=41.0)
+
+    def test_parameter_exception_2(self, target):
+        """ 異常系：切り出し開始しきい値=終了しきい値の場合 """
+
+        with pytest.raises(SystemExit):
+            target.cut_out_shot("tmp", start_displacement=40.0, end_displacement=40.0)
+
+    def test_dir_not_exists(self, target):
+        """ 異常系：対象データディレクトリが存在しない場合 """
+
+        with pytest.raises(SystemExit):
+            target.cut_out_shot("not_exists_dir", start_displacement=47.0, end_displacement=40.0)
+
