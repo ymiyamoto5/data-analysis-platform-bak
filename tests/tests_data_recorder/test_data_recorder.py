@@ -224,3 +224,39 @@ class TestIsNowRecording:
         expected: bool = True
 
         assert actual == expected
+
+
+class TestReadBinaryFiles:
+    def test_normal(self, dat_files):
+        """ 正常系：バイナリファイルが正常に読めること """
+
+        file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
+        file = file_infos[0]
+
+        actual = data_recorder._read_binary_files(file=file, sequential_number=0)
+
+        expected = (
+            [
+                {
+                    "sequential_number": 0,
+                    "timestamp": file.timestamp,
+                    "displacement": 10.0,
+                    "load01": 1.1,
+                    "load02": 2.2,
+                    "load03": 3.3,
+                    "load04": 4.4,
+                },
+                {
+                    "sequential_number": 1,
+                    "timestamp": file.timestamp + 0.000010,
+                    "displacement": 9.0,
+                    "load01": 1.2,
+                    "load02": 2.3,
+                    "load03": 3.4,
+                    "load04": 4.5,
+                },
+            ],
+            2,
+        )
+
+        assert actual == expected
