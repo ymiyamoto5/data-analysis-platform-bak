@@ -429,6 +429,20 @@ class CutOutShot:
 
         logger.info("Cut out shot start.")
 
+        if start_displacement <= end_displacement:
+            logger.error("start_displacement must be greater than end_displacement.")
+            raise SystemExit
+
+        # 取り込むpickleファイルのリストを取得
+        data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
+        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
+
+        if not os.path.exists(rawdata_dir_path):
+            logger.error(f"Directory not found. {rawdata_dir_path}")
+            raise SystemExit
+
+        pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
+
         shots_index: str = "shots-" + rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
         mapping_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_path")
@@ -465,11 +479,6 @@ class CutOutShot:
         processed_count: int = 0
 
         NOW: Final[datetime] = datetime.now()
-
-        # 取り込むpickleファイルのリストを取得
-        data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
-        pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 
         # main loop
         for loop_count, pickle_file in enumerate(pickle_files):
@@ -617,10 +626,11 @@ if __name__ == "__main__":
         ],
     )
 
-    # No13 3000shot拡張。切り出し後のデータ数：9,287,421
+    # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
+    # 展開すると -8.75 * v + 87.5
+    # displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
+    # displacement_func = lambda v: -8.75 * v + 87.5
 
-    Vr: Final[int] = 100_000
-    # displacement_func = lambda v: 135.0 - (v - 2.0) * 70.0 / 8.0
     # F(kN) = V / 10 * Range / 3.8 / 1000
     # load01_func = lambda v: 2.5 / Vr * v * 1000
     # load02_func = lambda v: 2.5 / Vr * v * 1000
@@ -629,15 +639,16 @@ if __name__ == "__main__":
 
     displacement_func = lambda v: v
     load01_func = lambda v: v
-    load02_func = lambda v: v * 2.0
-    load03_func = lambda v: v * 3.0
-    load04_func = lambda v: v * 4.0
+    load02_func = lambda v: v
+    load03_func = lambda v: v
+    load04_func = lambda v: v
+
+    # No13 3000shot拡張。切り出し後のデータ数：9,287,421
 
     cut_out_shot = CutOutShot(
         min_spm=15,
         back_seconds_for_tagging=120,
         previous_size=1_000,
-        # num_of_process=14,
         chunk_size=5_000,
         margin=0.1,
         displacement_func=displacement_func,
@@ -646,7 +657,7 @@ if __name__ == "__main__":
         load03_func=load03_func,
         load04_func=load04_func,
     )
-    cut_out_shot.cut_out_shot(rawdata_dir_name="20201201010000", start_displacement=47, end_displacement=34)
+    cut_out_shot.cut_out_shot(rawdata_dir_name="20201201010000", start_displacement=47.0, end_displacement=34.0)
 
     # 任意波形生成
     # cut_out_shot = CutOutShot(previous_size=10)
