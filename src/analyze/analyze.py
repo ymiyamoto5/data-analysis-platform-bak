@@ -6,7 +6,7 @@ import os
 import sys
 import logging
 import logging.handlers
-from typing import Callable, Final, List, Optional, Tuple
+from typing import Callable, Final, List, Tuple
 from pandas.core.frame import DataFrame
 
 import h_one_extract_features as ef
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def apply(
     target: str, shots_df: DataFrame, shots_meta_df: DataFrame, feature: str, func: Callable, sub_func: Callable = None
-):
+) -> None:
     """ 特定のロジックを3,000ショットに適用 """
 
     logger.info("apply start.")
@@ -36,18 +36,13 @@ def apply(
     ElasticManager.delete_exists_index(index=feature_index)
 
     # NOTE: データ分割をNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
-    multi_process(target, shots_df, shots_meta_df, feature_index, func, sub_func)
+    multi_process(shots_df, shots_meta_df, feature_index, func, sub_func)
 
     logger.info("apply finished.")
 
 
 def multi_process(
-    target: str,
-    shots_df: DataFrame,
-    shots_meta_df: DataFrame,
-    feature_index: str,
-    func: Callable,
-    sub_func: Callable = None,
+    shots_df: DataFrame, shots_meta_df: DataFrame, feature_index: str, func: Callable, sub_func: Callable = None,
 ) -> None:
     """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
@@ -86,7 +81,7 @@ def apply_logic(
     end_shot_number: int,
     func: Callable,
     sub_func: Callable = None,
-) -> List[dict]:
+) -> None:
     """ ショットに対しロジック(func)適用 """
 
     result: List[dict] = []
@@ -152,32 +147,32 @@ if __name__ == "__main__":
     dr = DataReader()
     shots_df = dr.read_all(shots_data_index)
 
-    # shots_meta_index = "shots-" + target + "-meta"
-    # shots_meta_df = dr.read_shots_meta(shots_meta_index)
+    shots_meta_index = "shots-" + target + "-meta"
+    shots_meta_df = dr.read_shots_meta(shots_meta_index)
 
-    # apply(
-    #     target="20201201010000",
-    #     shots_df=shots_df,
-    #     shots_meta_df=shots_meta_df,
-    #     feature="max",
-    #     func=ef.max_load,
-    #     sub_func=None,
-    # )
+    apply(
+        target="20201201010000",
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
+        feature="max",
+        func=ef.max_load,
+        sub_func=None,
+    )
 
-    # apply(
-    #     target="20201201010000",
-    #     shots_df=shots_df,
-    #     shots_meta_df=shots_meta_df,
-    #     feature="start",
-    #     func=ef.load_start2,
-    #     sub_func=None,
-    # )
+    apply(
+        target="20201201010000",
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
+        feature="start",
+        func=ef.load_start2,
+        sub_func=None,
+    )
 
-    # apply(
-    #     target="20201201010000",
-    #     shots_df=shots_df,
-    #     shots_meta_df=shots_meta_df,
-    #     feature="break",
-    #     func=ef.breaking_var_vrms,
-    #     sub_func=ef.narrowing_var_ch,
-    # )
+    apply(
+        target="20201201010000",
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
+        feature="break",
+        func=ef.breaking_var_vrms,
+        sub_func=ef.narrowing_var_ch,
+    )
