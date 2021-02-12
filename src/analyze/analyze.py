@@ -36,13 +36,18 @@ def apply(
     ElasticManager.delete_exists_index(index=feature_index)
 
     # NOTE: データ分割をNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
-    multi_process(shots_df, shots_meta_df, feature_index, func, sub_func)
+    multi_process(shots_df, shots_meta_df, feature_index, feature, func, sub_func)
 
     logger.info("apply finished.")
 
 
 def multi_process(
-    shots_df: DataFrame, shots_meta_df: DataFrame, feature_index: str, func: Callable, sub_func: Callable = None,
+    shots_df: DataFrame,
+    shots_meta_df: DataFrame,
+    feature_index: str,
+    feature: str,
+    func: Callable,
+    sub_func: Callable = None,
 ) -> None:
     """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
@@ -62,7 +67,7 @@ def multi_process(
 
         proc: multiprocessing.context.Process = multiprocessing.Process(
             target=apply_logic,
-            args=(feature_index, shots_df, shots_meta_df, start_shot_number, end_shot_number, func, sub_func),
+            args=(feature_index, shots_df, shots_meta_df, start_shot_number, end_shot_number, feature, func, sub_func),
         )
         proc.start()
         procs.append(proc)
@@ -79,6 +84,7 @@ def apply_logic(
     shots_meta_df: DataFrame,
     start_shot_number: int,
     end_shot_number: int,
+    feature: str,
     func: Callable,
     sub_func: Callable = None,
 ) -> None:
@@ -97,16 +103,21 @@ def apply_logic(
         # ロジック適用
         indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func=sub_func)
 
+        break_channels: Tuple[str, str] = extract_break_channels(values)
+
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
-            result.append(
-                {
-                    "shot_number": shot_number,
-                    "load": "load0" + str(i + 1),
-                    "sequential_number": shot_df.iloc[indices[i]].sequential_number,
-                    "sequential_number_by_shot": indices[i],
-                    "value": values[i],
-                }
-            )
+            d: dict = {
+                "shot_number": shot_number,
+                "load": "load0" + str(i + 1),
+                "sequential_number": shot_df.iloc[indices[i]].sequential_number,
+                "sequential_number_by_shot": indices[i],
+                "value": values[i],
+            }
+
+            if feature == "break":
+                d["break_channels"] = break_channels
+
+            result.append(d)
 
     # ELSに保存
     ElasticManager.bulk_insert(result, feature_index)
@@ -150,23 +161,23 @@ if __name__ == "__main__":
     shots_meta_index = "shots-" + target + "-meta"
     shots_meta_df = dr.read_shots_meta(shots_meta_index)
 
-    apply(
-        target="20201201010000",
-        shots_df=shots_df,
-        shots_meta_df=shots_meta_df,
-        feature="max",
-        func=ef.max_load,
-        sub_func=None,
-    )
+    # apply(
+    #     target="20201201010000",
+    #     shots_df=shots_df,
+    #     shots_meta_df=shots_meta_df,
+    #     feature="max",
+    #     func=ef.max_load,
+    #     sub_func=None,
+    # )
 
-    apply(
-        target="20201201010000",
-        shots_df=shots_df,
-        shots_meta_df=shots_meta_df,
-        feature="start",
-        func=ef.load_start2,
-        sub_func=None,
-    )
+    # apply(
+    #     target="20201201010000",
+    #     shots_df=shots_df,
+    #     shots_meta_df=shots_meta_df,
+    #     feature="start",
+    #     func=ef.load_start2,
+    #     sub_func=None,
+    # )
 
     apply(
         target="20201201010000",

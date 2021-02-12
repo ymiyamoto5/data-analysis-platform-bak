@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 import logging.handlers
+import numpy as np
 import pandas as pd
 import glob
 from typing import Callable, Final, List, Optional, Union
@@ -400,14 +401,22 @@ class CutOutShot:
     def _export_shots_meta_to_es(self, shots_meta_index: str):
         """ ショットメタデータをshots_metaインデックスに出力 """
 
+        # 最後のショットのメタデータを追加
+        d: dict = {
+            "shot_number": self.__shot_number,
+            "spm": None,
+            "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
+        }
+        self.__shots_meta_df = self.__shots_meta_df.append(d, ignore_index=True)
+        self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(self.__shots_meta_df["spm"].notna(), None)
+
         self.__shots_meta_df["shot_number"] = self.__shots_meta_df["shot_number"].astype(int)
 
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
-        procs = ElasticManager.multi_process_bulk_lazy_join(
-            data=shots_meta_data, index_to_import=shots_meta_index, num_of_process=self.__num_of_process
-        )
-        procs = self.__join_process(procs)
+        print(shots_meta_data[-1])
+
+        ElasticManager.bulk_insert(shots_meta_data, shots_meta_index)
 
     def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
         """ マルチプロセスの処理待ち """
@@ -426,7 +435,7 @@ class CutOutShot:
 
         if start_sequential_number >= rawdata_count:
             logger.error(
-                f"start_sequential_number: {start_sequential_number} must be less than equal rawdata count ({rawdata_count})"
+                f"start_sequential_number: {start_sequential_number} must be less than rawdata count ({rawdata_count})"
             )
             sys.exit(1)
 
@@ -709,9 +718,10 @@ if __name__ == "__main__":
     )
 
     # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
-    displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
+    # displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
     # 展開すると -8.75 * v + 87.5
     # displacement_func = lambda v: -8.75 * v + 87.5
+    displacement_func = lambda v: v
 
     Vr = 1.0
     load01_func = lambda v: 2.5 / Vr * v * 1000
@@ -719,10 +729,10 @@ if __name__ == "__main__":
     load03_func = lambda v: 2.5 / Vr * v * 1000
     load04_func = lambda v: 2.5 / Vr * v * 1000
 
-    load01_func = lambda v: v
-    load02_func = lambda v: v
-    load03_func = lambda v: v
-    load04_func = lambda v: v
+    # load01_func = lambda v: v
+    # load02_func = lambda v: v
+    # load03_func = lambda v: v
+    # load04_func = lambda v: v
 
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
 
