@@ -30,7 +30,7 @@ def apply(
 
     if feature not in ("max", "start", "break"):
         logger.error(f"feature: {feature} is invalid.")
-        SystemExit()
+        sys.exit(1)
 
     feature_index: str = "shots-" + target + "-" + feature + "-point"
     ElasticManager.delete_exists_index(index=feature_index)
