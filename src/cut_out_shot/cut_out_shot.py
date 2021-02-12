@@ -56,27 +56,27 @@ class CutOutShot:
 
         if displacement_func is None:
             logger.error("displacement_func is not defined.")
-            raise SystemExit
+            sys.exit(1)
         self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
 
         if load01_func is None:
             logger.error("load01_func is not defined.")
-            raise SystemExit
+            sys.exit(1)
         self.__load01_func: Optional[Callable[[float], float]] = load01_func
 
         if load02_func is None:
             logger.error("load02_func is not defined.")
-            raise SystemExit
+            sys.exit(1)
         self.__load02_func: Optional[Callable[[float], float]] = load02_func
 
         if load03_func is None:
             logger.error("load03_func is not defined.")
-            raise SystemExit
+            sys.exit(1)
         self.__load03_func: Optional[Callable[[float], float]] = load03_func
 
         if load04_func is None:
             logger.error("load04_func is not defined.")
-            raise SystemExit
+            sys.exit(1)
         self.__load04_func: Optional[Callable[[float], float]] = load04_func
 
     # テスト用の公開プロパティ
@@ -168,7 +168,7 @@ class CutOutShot:
 
         if len(start_events) == 0:
             logger.error("Data collection has not started yet.")
-            raise SystemExit
+            sys.exit(1)
 
         start_event: dict = start_events[0]
         collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
@@ -428,11 +428,11 @@ class CutOutShot:
             logger.error(
                 f"start_sequential_number: {start_sequential_number} must be less than equal rawdata count ({rawdata_count})"
             )
-            raise SystemExit
+            sys.exit(1)
 
         if start_sequential_number < 0:
             logger.error(f"start_sequential_number: {start_sequential_number} must be greater than 0")
-            raise SystemExit
+            sys.exit(1)
 
         return start_sequential_number
 
@@ -448,17 +448,17 @@ class CutOutShot:
             logger.error(
                 f"end_sequential_number: {end_sequential_number} must be less than rawdata count ({rawdata_count})"
             )
-            raise SystemExit
+            sys.exit(1)
 
         if end_sequential_number <= 0:
             logger.error(f"end_sequential_number: {end_sequential_number} must be greater than equal 0")
-            raise SystemExit
+            sys.exit(1)
 
         if end_sequential_number <= start_sequential_number:
             logger.error(
                 f"end_sequential_number: {end_sequential_number} must be greater than equal start_sequential_number ({start_sequential_number})"
             )
-            raise SystemExit
+            sys.exit(1)
 
         return end_sequential_number
 
@@ -491,7 +491,7 @@ class CutOutShot:
 
         if start_displacement <= end_displacement:
             logger.error("start_displacement must be greater than end_displacement.")
-            raise SystemExit
+            sys.exit(1)
 
         # 取り込むpickleファイルのリストを取得
         data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
@@ -499,7 +499,7 @@ class CutOutShot:
 
         if not os.path.exists(rawdata_dir_path):
             logger.error(f"Directory not found. {rawdata_dir_path}")
-            raise SystemExit
+            sys.exit(1)
 
         pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 

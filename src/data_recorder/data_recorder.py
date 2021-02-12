@@ -56,7 +56,7 @@ def _get_collect_start_time(events: List[dict]) -> Optional[float]:
 
     if len(setup_events) == 0:
         logger.error("Data collection has not started yet.")
-        raise SystemExit
+        raise sys.exit(1)
 
     setup_event: dict = setup_events[0]
     collect_start_time: float = datetime.fromisoformat(setup_event["occurred_time"]).timestamp()
@@ -85,7 +85,7 @@ def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
     start_time: float = _get_collect_start_time(events)
 
     if start_time is None:
-        raise SystemExit
+        sys.exit(1)
 
     end_time: float = _get_collect_end_time(events)
 
