@@ -251,7 +251,9 @@ class ElasticManager:
 
         num_of_data: int = len(data)
 
-        # データをプロセッサの数に均等分配
+        # NOTE: データをプロセッサの数に均等分配
+        # ex) 13個のデータを4プロセスに分割すると[3, 3, 3, 4]
+        #     [0:3]の3個, [3:6]の3個, [6:9]の3個, [9:13]の4個をプロセスごとに処理する。
         data_num_by_proc: List[int] = [(num_of_data + i) // num_of_process for i in range(num_of_process)]
 
         procs: List[multiprocessing.context.Process] = []
@@ -259,7 +261,7 @@ class ElasticManager:
         for proc_number, data_num in enumerate(data_num_by_proc):
             end_index: int = start_index + data_num
             target_data: list = data[start_index:end_index]
-            start_index += data_num
+            start_index: int = end_index
 
             logger.debug(f"process {proc_number} will execute {len(target_data)} data.")
 
