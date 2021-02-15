@@ -260,3 +260,22 @@ class TestReadBinaryFiles:
         )
 
         assert actual == expected
+
+
+class TestManualRecord:
+    def test_not_exits_file(self, mocker):
+        """ 対象ファイルがない場合、何もしない """
+
+        mocker.patch.object(data_recorder, "_create_files_info", return_value=None)
+
+        with pytest.raises(SystemExit):
+            data_recorder.manual_record("tmp_target_dir")
+
+    def test_is_now_recording(self, dat_files, mocker):
+        """ 現在データ収集中の場合、何もしない """
+
+        data_recorder._create_files_info(dat_files.tmp_path._str)
+        mocker.patch.object(data_recorder, "_is_now_recording", return_value=True)
+
+        with pytest.raises(SystemExit):
+            data_recorder.manual_record(dat_files.tmp_path._str)
