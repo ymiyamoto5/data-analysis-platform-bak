@@ -312,7 +312,7 @@ def _is_now_recording() -> bool:
     return False
 
 
-def manual_record(target_dir: str, rawdata_dir_name: str):
+def manual_record(target_dir: str):
     """ 手動での生データ取り込み。前提条件は以下。
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
         * 対応するevents_indexが存在すること。
@@ -322,23 +322,13 @@ def manual_record(target_dir: str, rawdata_dir_name: str):
     files_info: Optional[List[FileInfo]] = _create_files_info(target_dir)
 
     if files_info is None:
-        logger.info(f"No files in {rawdata_dir_name}")
+        logger.info(f"No files in {target_dir}")
         sys.exit(1)
 
     if _is_now_recording():
         sys.exit(1)
 
-    # events_index取得
-    events_index: str = "events-" + rawdata_dir_name
-    query: dict = {"sort": {"event_id": {"order": "asc"}}}
-    events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
-
-    # 最後のイベントが記録済み(recorded)であることが前提
-    if events[-1]["event_type"] != "recorded":
-        logger.error("Exits because the status is not recorded.")
-        return
-
-    # Elasticsearch rawdataインデックス名
+    rawdata_dir_name: str = os.path.basename(target_dir)
     rawdata_index: str = "rawdata-" + rawdata_dir_name
 
     # インデックスが存在すれば再作成
@@ -383,4 +373,4 @@ if __name__ == "__main__":
         if not os.path.isdir(target_dir):
             logger.error(f"{args.dir} is not exists.")
             sys.exit(1)
-        manual_record(target_dir, args.dir)
+        manual_record(target_dir)
