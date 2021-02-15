@@ -3,7 +3,6 @@ import os
 import sys
 import logging
 import logging.handlers
-import numpy as np
 import pandas as pd
 import glob
 from typing import Callable, Final, List, Optional, Union
@@ -14,7 +13,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
-from time_logger import time_log
 from throughput_counter import throughput_counter
 import common
 
@@ -717,24 +715,24 @@ if __name__ == "__main__":
         ],
     )
 
+    ### 本番用
     # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
-    # displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
-    # 展開すると -8.75 * v + 87.5
-    # displacement_func = lambda v: -8.75 * v + 87.5
-    displacement_func = lambda v: v
+    displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
 
+    # 荷重値換算
     Vr = 1.0
     load01_func = lambda v: 2.5 / Vr * v * 1000
     load02_func = lambda v: 2.5 / Vr * v * 1000
     load03_func = lambda v: 2.5 / Vr * v * 1000
     load04_func = lambda v: 2.5 / Vr * v * 1000
 
-    # load01_func = lambda v: v
-    # load02_func = lambda v: v
-    # load03_func = lambda v: v
-    # load04_func = lambda v: v
-
+    ### テスト用
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
+    displacement_func = lambda v: v
+    load01_func = lambda v: v
+    load02_func = lambda v: v
+    load03_func = lambda v: v
+    load04_func = lambda v: v
 
     cut_out_shot = CutOutShot(
         min_spm=15,
@@ -750,6 +748,3 @@ if __name__ == "__main__":
     )
     cut_out_shot.cut_out_shot(rawdata_dir_name="20201201010000", start_displacement=47.0, end_displacement=34.0)
 
-    # 任意波形生成
-    # cut_out_shot = CutOutShot(previous_size=10)
-    # cut_out_shot.cut_out_shot("20201216165900", 4.8, 3.4, 20, 12)
