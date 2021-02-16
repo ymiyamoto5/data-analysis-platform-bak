@@ -412,8 +412,6 @@ class CutOutShot:
 
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
-        print(shots_meta_data[-1])
-
         ElasticManager.bulk_insert(shots_meta_data, shots_meta_index)
 
     def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
@@ -728,11 +726,11 @@ if __name__ == "__main__":
 
     ### テスト用
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
-    displacement_func = lambda v: v
-    load01_func = lambda v: v
-    load02_func = lambda v: v
-    load03_func = lambda v: v
-    load04_func = lambda v: v
+    # displacement_func = lambda v: v
+    # load01_func = lambda v: v
+    # load02_func = lambda v: v
+    # load03_func = lambda v: v
+    # load04_func = lambda v: v
 
     cut_out_shot = CutOutShot(
         min_spm=15,
