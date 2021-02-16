@@ -290,7 +290,7 @@ def main() -> None:
     # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして5秒待つ
     time.sleep(5)
 
-    _data_record(rawdata_index, target_files, started_timestamp, processed_dir_path)
+    _data_record(rawdata_index, target_files, processed_dir_path, started_timestamp)
 
     logger.info("all file processed.")
 
