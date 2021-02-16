@@ -109,13 +109,12 @@ def _get_not_target_files(files_info: List[FileInfo], start_time: float, end_tim
     return list(filter(lambda x: (x.timestamp < start_time or x.timestamp > end_time), files_info))
 
 
-def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dict], int]:
+def _read_binary_files(file: FileInfo, sequential_number: int, timestamp: float) -> Tuple[List[dict], int, float]:
     """ バイナリファイルを読んで、そのデータをリストにして返す """
 
     ROW_BYTE_SIZE: Final = 8 * 5  # 8 byte * 5 column
 
     dataset_number: int = 0  # ファイル内での連番
-    timestamp: float = file.timestamp
     samples: List[dict] = []
 
     with open(file.file_path, "rb") as f:
@@ -150,7 +149,7 @@ def _read_binary_files(file: FileInfo, sequential_number: int) -> Tuple[List[dic
 
         timestamp += common.SAMPLING_INTERVAL  # 100k sample固定
 
-    return samples, sequential_number
+    return samples, sequential_number, timestamp
 
 
 def _create_files_info(data_dir: str) -> Optional[List[FileInfo]]:
@@ -184,11 +183,12 @@ def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: s
 
 
 def _data_record(
-    rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str, is_manual: bool = False
+    rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str, is_manual: bool = False,
 ) -> None:
     """ バイナリファイル読み取りおよびES/pkl出力 """
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
+    timestamp: float = target_files[0].timestamp  # 最初のファイルを基準時刻とする
 
     procs: List[multiprocessing.context.Process] = []
 
@@ -196,7 +196,7 @@ def _data_record(
         # バイナリファイルを読み取り、データリストを取得
         samples: List[dict]
         sequential_number: int
-        samples, sequential_number = _read_binary_files(file, sequential_number)
+        samples, sequential_number, timestamp = _read_binary_files(file, sequential_number, timestamp)
 
         if len(procs) > 0:
             for p in procs:
@@ -288,30 +288,6 @@ def main() -> None:
     logger.info("all file processed.")
 
 
-def _is_now_recording() -> bool:
-    """ 多重記録防止のため、現在データ収集中かを判断する。直近のevents_indexのdocがrecordedでなければ記録中。 """
-
-    latest_events_index: Optional[str] = ElasticManager.get_latest_events_index()
-
-    if latest_events_index is None:
-        logger.error("Exits because latest events index not exists.")
-        return True
-
-    latest_events_index_doc: Optional[dict] = ElasticManager.get_latest_events_index_doc(latest_events_index)
-
-    if latest_events_index_doc is None:
-        logger.error("Exits because latest events index doc not exists.")
-        return True
-
-    event_type: str = latest_events_index_doc["event_type"]
-
-    if event_type != "recorded":
-        logger.error(f"Exits because latest event is '{event_type}'. Latest event should be 'recorded'.")
-        return True
-
-    return False
-
-
 def manual_record(target_dir: str):
     """ 手動での生データ取り込み。前提条件は以下。
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
@@ -323,10 +299,16 @@ def manual_record(target_dir: str):
 
     if files_info is None:
         logger.info(f"No files in {target_dir}")
-        sys.exit(1)
+        return
 
-    if _is_now_recording():
-        sys.exit(1)
+    events_index: str = "events-" + os.path.basename(target_dir)
+    query: dict = {"sort": {"event_id": {"order": "asc"}}}
+    events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+
+    # 直近のイベントがrecordedでない（データ収集が完了していない）場合は、手動実行させない。
+    if events[-1]["event_type"] != "recorded":
+        logger.error("Latest event should be 'recorded'.")
+        return
 
     rawdata_dir_name: str = os.path.basename(target_dir)
     rawdata_index: str = "rawdata-" + rawdata_dir_name

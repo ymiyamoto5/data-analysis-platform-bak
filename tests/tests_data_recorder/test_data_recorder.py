@@ -181,51 +181,6 @@ class TestGetNotTargetFiles:
         assert actual == expected
 
 
-class TestIsNowRecording:
-    def test_normal_event_is_recorded(self, mocker):
-        """ 正常系：event_typeがrecorded """
-
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "recorded"})
-
-        actual: bool = data_recorder._is_now_recording()
-        expected: bool = False
-
-        assert actual == expected
-
-    def test_normal_event_is_not_recorded(self, mocker):
-        """ 正常系：event_typeがrecorded """
-
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value={"event_type": "stop"})
-
-        actual: bool = data_recorder._is_now_recording()
-        expected: bool = True
-
-        assert actual == expected
-
-    def test_events_index_not_exists_exception(self, mocker):
-        """ 異常系：events_indexが存在しない """
-
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
-
-        actual: bool = data_recorder._is_now_recording()
-        expected: bool = True
-
-        assert actual == expected
-
-    def test_events_index_doc_not_exists_exception(self, mocker):
-        """ 異常系：events_indexのドキュメントがない """
-
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_latest_events_index_doc", return_value=None)
-
-        actual: bool = data_recorder._is_now_recording()
-        expected: bool = True
-
-        assert actual == expected
-
-
 class TestReadBinaryFiles:
     def test_normal(self, dat_files):
         """ 正常系：バイナリファイルが正常に読めること """
@@ -233,7 +188,7 @@ class TestReadBinaryFiles:
         file_infos = data_recorder._create_files_info(dat_files.tmp_path._str)
         file = file_infos[0]
 
-        actual = data_recorder._read_binary_files(file=file, sequential_number=0)
+        actual = data_recorder._read_binary_files(file=file, sequential_number=0, timestamp=file.timestamp)
 
         expected = (
             [
@@ -257,25 +212,8 @@ class TestReadBinaryFiles:
                 },
             ],
             2,
+            file.timestamp + 0.000010 + 0.000010,
         )
 
         assert actual == expected
 
-
-class TestManualRecord:
-    def test_not_exits_file(self, mocker):
-        """ 対象ファイルがない場合、何もしない """
-
-        mocker.patch.object(data_recorder, "_create_files_info", return_value=None)
-
-        with pytest.raises(SystemExit):
-            data_recorder.manual_record("tmp_target_dir")
-
-    def test_is_now_recording(self, dat_files, mocker):
-        """ 現在データ収集中の場合、何もしない """
-
-        data_recorder._create_files_info(dat_files.tmp_path._str)
-        mocker.patch.object(data_recorder, "_is_now_recording", return_value=True)
-
-        with pytest.raises(SystemExit):
-            data_recorder.manual_record(dat_files.tmp_path._str)
