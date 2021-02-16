@@ -183,12 +183,17 @@ def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: s
 
 
 def _data_record(
-    rawdata_index: str, target_files: List[FileInfo], processed_dir_path: str, is_manual: bool = False,
+    rawdata_index: str,
+    target_files: List[FileInfo],
+    processed_dir_path: str,
+    started_timestamp: float,
+    is_manual: bool = False,
 ) -> None:
     """ バイナリファイル読み取りおよびES/pkl出力 """
 
-    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイルを跨いだ連番
-    timestamp: float = target_files[0].timestamp  # 最初のファイルを基準時刻とする
+    sequential_number: int = ElasticManager.count(rawdata_index)  # ファイル（プロセス）を跨いだ連番
+    # ファイル（プロセス）を跨いだタイムスタンプ。データ取得日時を起点に、サンプルごとに10マイクロ秒加算。
+    timestamp: float = started_timestamp + sequential_number * common.SAMPLING_INTERVAL
 
     procs: List[multiprocessing.context.Process] = []
 
@@ -244,6 +249,8 @@ def main() -> None:
         logger.info("Exits because the latest event is 'recorded'. May be data collect has not started yet.")
         return
 
+    started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
+
     start_time: float
     end_time: float
     start_time, end_time = _get_target_interval(events)
@@ -283,7 +290,7 @@ def main() -> None:
     # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして5秒待つ
     time.sleep(5)
 
-    _data_record(rawdata_index, target_files, processed_dir_path)
+    _data_record(rawdata_index, target_files, started_timestamp, processed_dir_path)
 
     logger.info("all file processed.")
 
@@ -310,6 +317,8 @@ def manual_record(target_dir: str):
         logger.error("Latest event should be 'recorded'.")
         return
 
+    started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
+
     rawdata_dir_name: str = os.path.basename(target_dir)
     rawdata_index: str = "rawdata-" + rawdata_dir_name
 
@@ -320,7 +329,7 @@ def manual_record(target_dir: str):
         setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
         ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
-    _data_record(rawdata_index, files_info, target_dir, is_manual=True)
+    _data_record(rawdata_index, files_info, target_dir, started_timestamp, is_manual=True)
 
     logger.info("manual import finished.")
 
