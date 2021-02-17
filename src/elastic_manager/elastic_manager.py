@@ -67,6 +67,15 @@ class ElasticManager:
         return result["hits"]["hits"][0]["_source"]
 
     @classmethod
+    def get_latest_rawdata_index_doc(cls, rawdata_index: str) -> Optional[dict]:
+
+        body = {"sort": {"sequential_number": {"order": "desc"}}}
+        result = cls.es.search(index=rawdata_index, body=body, size=1)
+        if len(result["hits"]["hits"]) == 0:
+            return None
+        return result["hits"]["hits"][0]["_source"]
+
+    @classmethod
     def get_docs(cls, index: str, query: dict) -> List[dict]:
         """ 対象インデックスのdocumentを返す """
 

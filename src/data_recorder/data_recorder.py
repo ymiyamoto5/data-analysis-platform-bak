@@ -193,9 +193,13 @@ def _data_record(
     """ バイナリファイル読み取りおよびES/pkl出力 """
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイル（プロセス）を跨いだ連番
-    # ファイル（プロセス）を跨いだタイムスタンプ。データ取得日時を起点に、サンプルごとに10マイクロ秒加算。
-    timestamp: float = started_timestamp + sequential_number * common.SAMPLING_INTERVAL
-    logger.info(f"first target:{target_files[0]}, started:{started_timestamp}, timestamp:{timestamp}")
+    # プロセス跨ぎのタイムスタンプ。rawdataインデックスの最新データから取得（なければデータ収集開始時間）
+    latest_rawdata: Optional[dict] = ElasticManager.get_latest_rawdata_index_doc(rawdata_index)
+    timestamp: float = started_timestamp if latest_rawdata is None else latest_rawdata[
+        "timestamp"
+    ] + common.SAMPLING_INTERVAL
+
+    logger.info(f"sequential_number(count):{sequential_number}, started:{started_timestamp}, timestamp:{timestamp}")
 
     procs: List[multiprocessing.context.Process] = []
 
