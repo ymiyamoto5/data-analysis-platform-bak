@@ -318,7 +318,9 @@ class CutOutShot:
     def _calculate_spm(self, timestamp: float) -> float:
         """ spm (shot per minute) 計算。ショット検出時、前ショットの開始時間との差分を計算する。 """
 
-        spm: float = 60.0 / (timestamp - self.__previous_shot_start_time)
+        # NOTE: 小数点以下計算に誤差があるため、下2桁で丸め
+        spm: float = 60.0 / round((timestamp - self.__previous_shot_start_time), 2)
+
         logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
         self.__previous_shot_start_time = timestamp
         return spm

@@ -68,6 +68,7 @@ class ElasticManager:
 
     @classmethod
     def get_latest_rawdata_index_doc(cls, rawdata_index: str) -> Optional[dict]:
+        """ rawdata_indexの最新ドキュメントを取得 """
 
         body = {"sort": {"sequential_number": {"order": "desc"}}}
         result = cls.es.search(index=rawdata_index, body=body, size=1)

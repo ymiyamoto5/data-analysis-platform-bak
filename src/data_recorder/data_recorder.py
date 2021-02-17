@@ -199,7 +199,7 @@ def _data_record(
         "timestamp"
     ] + common.SAMPLING_INTERVAL
 
-    logger.info(f"sequential_number(count):{sequential_number}, started:{started_timestamp}, timestamp:{timestamp}")
+    logger.debug(f"sequential_number(count):{sequential_number}, started:{started_timestamp}, timestamp:{timestamp}")
 
     procs: List[multiprocessing.context.Process] = []
 
