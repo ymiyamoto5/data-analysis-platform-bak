@@ -36,7 +36,7 @@ class TestGetTargetInterval:
 
         actual = data_recorder._get_target_interval(events)
 
-        expected = (setup_time.timestamp(), end_time.timestamp())
+        expected = (setup_time.timestamp(), end_time.timestamp() + 5.0)
 
         assert actual == expected
 
