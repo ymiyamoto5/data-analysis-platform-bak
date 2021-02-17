@@ -74,7 +74,8 @@ def _get_collect_end_time(events: List[dict]) -> float:
         end_time: float = common.TIMESTAMP_MAX
     else:
         end_event: dict = end_events[0]
-        end_time: float = datetime.fromisoformat(end_event["occurred_time"]).timestamp()
+        BUFFER: Final[float] = 5.0  # 安全バッファ
+        end_time: float = datetime.fromisoformat(end_event["occurred_time"]).timestamp() + BUFFER
 
     return end_time
 
@@ -194,6 +195,7 @@ def _data_record(
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイル（プロセス）を跨いだ連番
     # ファイル（プロセス）を跨いだタイムスタンプ。データ取得日時を起点に、サンプルごとに10マイクロ秒加算。
     timestamp: float = started_timestamp + sequential_number * common.SAMPLING_INTERVAL
+    logger.info(f"first target:{target_files[0]}, started:{started_timestamp}, timestamp:{timestamp}")
 
     procs: List[multiprocessing.context.Process] = []
 
