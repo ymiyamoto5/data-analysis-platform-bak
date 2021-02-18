@@ -68,21 +68,21 @@ def show_manager():
 
     # events_indexの最新documentから状態判定
     query: dict = {"sort": {"event_id": {"order": "desc"}}}
-    latest_events_index_doc: Optional[dict] = ElasticManager.get_docs(index=latest_event_index, query=query, size=1)
+    latest_events_index_docs: Optional[dict] = ElasticManager.get_docs(index=latest_event_index, query=query, size=1)
 
     # 最新のevents_indexがあるのにdocumentがない例外パターン
-    if latest_events_index_doc is None:
+    if len(latest_events_index_docs) == 0:
         app.logger.error("events_index exists, but document not found.")
         successful, message = _initialize_config_file()
         if not successful:
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return render_template("manager.html", status="stop")
 
-    event_type: str = latest_events_index_doc["event_type"]
+    event_type: str = latest_events_index_docs[0]["event_type"]
 
     # pause状態の場合、pauseのままなのか再開されたかによって状態変更
     if event_type == "pause":
-        if latest_events_index_doc.get("end_time") is not None:
+        if latest_events_index_docs[0].get("end_time") is not None:
             event_type = "start"
 
     # 状態に応じて画面を戻す
