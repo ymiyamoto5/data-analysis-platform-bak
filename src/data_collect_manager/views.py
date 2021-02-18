@@ -294,7 +294,7 @@ def record_tag():
 
 
 # NOTE: ローカル変数はmockできないのでglobalで定義
-WAIT_SECONDS: Final[int] = 5
+WAIT_SECONDS: Final[int] = 1
 
 
 @app.route("/check", methods=["GET"])
