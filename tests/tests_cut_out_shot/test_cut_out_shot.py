@@ -810,7 +810,7 @@ class TestGetPrecedingDf:
 
 
 class TestCalculateSpm:
-    def test_normal(self, target):
+    def test_normal_1(self, target):
 
         # 前回のショット検知時と今回のショット検知時が1秒差
         target.previous_shot_start_time = datetime(2020, 12, 1, 10, 29, 11, 111111).timestamp()
@@ -820,6 +820,19 @@ class TestCalculateSpm:
 
         # 1ショットに1秒、つまり60spm
         expected = 60.0
+
+        assert actual == expected
+
+    def test_normal_2(self, target):
+
+        # 前回のショット検知時と今回のショット検知時が2秒差
+        target.previous_shot_start_time = datetime(2020, 12, 1, 10, 29, 11, 111111).timestamp()
+        timestamp: float = datetime(2020, 12, 1, 10, 29, 13, 111111).timestamp()
+
+        actual: float = target._calculate_spm(timestamp)
+
+        # 1ショットに2秒、つまり30spm
+        expected = 30.0
 
         assert actual == expected
 
