@@ -183,6 +183,21 @@ def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: s
     df.to_pickle(pickle_filepath)
 
 
+def _set_timestamp(rawdata_index: str, started_timestamp: float) -> float:
+    """ プロセス跨ぎのタイムスタンプ設定。
+        rawdataインデックスの最新データから取得（なければデータ収集開始時間）
+    """
+
+    query: dict = {"sort": {"sequential_number": {"order": "desc"}}}
+    latest_rawdata: List[dict] = ElasticManager.get_docs(index=rawdata_index, query=query, size=1)
+
+    timestamp: float = started_timestamp if len(latest_rawdata) == 0 else latest_rawdata[0][
+        "timestamp"
+    ] + common.SAMPLING_INTERVAL
+
+    return timestamp
+
+
 def _data_record(
     rawdata_index: str,
     target_files: List[FileInfo],
@@ -193,13 +208,7 @@ def _data_record(
     """ バイナリファイル読み取りおよびES/pkl出力 """
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイル（プロセス）を跨いだ連番
-    # プロセス跨ぎのタイムスタンプ。rawdataインデックスの最新データから取得（なければデータ収集開始時間）
-    query: dict = {"sort": {"sequential_number": {"order": "desc"}}}
-    latest_rawdata: List[dict] = ElasticManager.get_docs(index=rawdata_index, query=query, size=1)
-
-    timestamp: float = started_timestamp if len(latest_rawdata) == 0 else latest_rawdata[0][
-        "timestamp"
-    ] + common.SAMPLING_INTERVAL
+    timestamp: float = _set_timestamp(rawdata_index, started_timestamp)
 
     logger.debug(f"sequential_number(count):{sequential_number}, started:{started_timestamp}, timestamp:{timestamp}")
 

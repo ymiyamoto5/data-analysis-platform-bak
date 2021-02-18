@@ -181,6 +181,33 @@ class TestGetNotTargetFiles:
         assert actual == expected
 
 
+class TestSetTimestamp:
+    def test_first_process(self, mocker):
+        """ 正常系：データ収集開始後、最初のプロセス """
+
+        mocker.patch.object(ElasticManager, "get_docs", return_value=[])
+        started_timestamp: float = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
+
+        actual: float = data_recorder._set_timestamp(rawdata_index="tmp", started_timestamp=started_timestamp)
+        expected: float = started_timestamp
+
+        assert actual == expected
+
+    def test_not_first_prcess(self, mocker):
+        """ 正常系：データ収集開始後、2回目以降のプロセス """
+
+        return_value = [{"timestamp": datetime(2020, 12, 16, 8, 1, 58, 0).timestamp()}]
+
+        mocker.patch.object(ElasticManager, "get_docs", return_value=return_value)
+        started_timestamp: float = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
+
+        actual: float = data_recorder._set_timestamp(rawdata_index="tmp", started_timestamp=started_timestamp)
+        # 前回プロセスで記録された最新生データのタイムスタンプに10マイクロ秒加算した値
+        expected: float = datetime(2020, 12, 16, 8, 1, 58, 10).timestamp()
+
+        assert actual == expected
+
+
 class TestReadBinaryFiles:
     def test_normal(self, dat_files):
         """ 正常系：バイナリファイルが正常に読めること """
