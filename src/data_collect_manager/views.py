@@ -67,7 +67,8 @@ def show_manager():
         return render_template("manager.html", status="stop")
 
     # events_indexの最新documentから状態判定
-    latest_events_index_doc: Optional[dict] = ElasticManager.get_latest_events_index_doc(latest_event_index)
+    query: dict = {"sort": {"event_id": {"order": "desc"}}}
+    latest_events_index_doc: Optional[dict] = ElasticManager.get_docs(index=latest_event_index, query=query, size=1)
 
     # 最新のevents_indexがあるのにdocumentがない例外パターン
     if latest_events_index_doc is None:

@@ -194,7 +194,8 @@ def _data_record(
 
     sequential_number: int = ElasticManager.count(rawdata_index)  # ファイル（プロセス）を跨いだ連番
     # プロセス跨ぎのタイムスタンプ。rawdataインデックスの最新データから取得（なければデータ収集開始時間）
-    latest_rawdata: Optional[dict] = ElasticManager.get_latest_rawdata_index_doc(rawdata_index)
+    query: dict = {"sort": {"sequential_number": {"order": "desc"}}}
+    latest_rawdata: Optional[dict] = ElasticManager.get_docs(index=rawdata_index, query=query, size=1)
     timestamp: float = started_timestamp if latest_rawdata is None else latest_rawdata[
         "timestamp"
     ] + common.SAMPLING_INTERVAL
@@ -249,6 +250,10 @@ def main() -> None:
     events_index: str = "events-" + suffix
     query: dict = {"sort": {"event_id": {"order": "asc"}}}
     events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+
+    if len(events) == 0:
+        logger.error("Exits because no events.")
+        return
 
     # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
     if events[-1]["event_type"] == "recorded":
@@ -317,6 +322,10 @@ def manual_record(target_dir: str):
     events_index: str = "events-" + os.path.basename(target_dir)
     query: dict = {"sort": {"event_id": {"order": "asc"}}}
     events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+
+    if len(events) == 0:
+        logger.error("Exits because no events.")
+        return
 
     # 直近のイベントがrecordedでない（データ収集が完了していない）場合は、手動実行させない。
     if events[-1]["event_type"] != "recorded":
