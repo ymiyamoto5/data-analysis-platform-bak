@@ -10,7 +10,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
-from time_logger import time_log
 import common
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,12 @@ class DataReader:
 
         query: dict = {"query": {"term": {"shot_number": {"value": shot_number}}}}
 
-        result: List[dict] = ElasticManager.get_docs(index=index, query=query)
+        result: List[dict] = ElasticManager.scan_docs(index=index, query=query)
+
+        if len(result) == 0:
+            logger.error("No data.")
+            return
+
         result.sort(key=lambda x: x["sequential_number"])
 
         df: DataFrame = pd.DataFrame(result)
@@ -36,6 +40,11 @@ class DataReader:
         query: dict = {"query": {"range": {"shot_number": {"gte": start_shot_number, "lte": end_shot_number - 1}}}}
 
         result: List[dict] = ElasticManager.scan_docs(index=index, query=query)
+
+        if len(result) == 0:
+            logger.error("No data.")
+            return
+
         result.sort(key=lambda x: x["sequential_number"])
 
         df: DataFrame = pd.DataFrame(result)
@@ -53,6 +62,11 @@ class DataReader:
         result: List[dict] = ElasticManager.multi_process_range_scan(
             index=index, num_of_data=num_of_data, num_of_process=common.NUM_OF_PROCESS
         )
+
+        if len(result) == 0:
+            logger.error("No data.")
+            return
+
         result.sort(key=lambda x: x["sequential_number"])
 
         df: DataFrame = pd.DataFrame(result)
@@ -68,6 +82,11 @@ class DataReader:
         logger.info(f"データ件数: {num_of_data}")
 
         result: List[dict] = ElasticManager.scan_docs(index=index, query={})
+
+        if len(result) == 0:
+            logger.error("No data.")
+            return
+
         result.sort(key=lambda x: x["sequential_number"])
 
         logger.info("Data reading has finished.")
@@ -80,6 +99,10 @@ class DataReader:
 
         query: dict = {"sort": {"shot_number": {"order": "asc"}}}
         result: List[dict] = ElasticManager.get_docs(index=index, query=query)
+
+        if len(result) == 0:
+            logger.error("No data.")
+            return
 
         df: DataFrame = pd.DataFrame(result)
         return df

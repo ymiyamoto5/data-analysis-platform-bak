@@ -53,36 +53,12 @@ class ElasticManager:
         return _indices[-1]
 
     @classmethod
-    def get_latest_events_index_doc(cls, latest_events_index: str) -> Optional[dict]:
-        """ 最新のevents_indexの一番最後に記録されたdocumentを返す。
-            events_indexにdocumentが無い場合はNoneを返す。
+    def get_docs(cls, index: str, query: dict, size: int = common.ELASTIC_MAX_DOC_SIZE) -> List[dict]:
+        """ 対象インデックスのdocumentを返す。documentがない場合は空のリストを返す。
+            取得件数はデフォルトで10,000件。
         """
 
-        if cls.count(latest_events_index) == 0:
-            return None
-
-        body = {"sort": {"event_id": {"order": "desc"}}}
-
-        result = cls.es.search(index=latest_events_index, body=body, size=1)
-        return result["hits"]["hits"][0]["_source"]
-
-    @classmethod
-    def get_latest_rawdata_index_doc(cls, rawdata_index: str) -> Optional[dict]:
-        """ rawdata_indexの最新ドキュメントを取得 """
-
-        body = {"sort": {"sequential_number": {"order": "desc"}}}
-        result = cls.es.search(index=rawdata_index, body=body, size=1)
-        if len(result["hits"]["hits"]) == 0:
-            return None
-        return result["hits"]["hits"][0]["_source"]
-
-    @classmethod
-    def get_docs(cls, index: str, query: dict) -> List[dict]:
-        """ 対象インデックスのdocumentを返す """
-
-        body = query
-        result = cls.es.search(index=index, body=body, size=10_000)
-
+        result = cls.es.search(index=index, body=query, size=size)
         return [x["_source"] for x in result["hits"]["hits"]]
 
     @classmethod

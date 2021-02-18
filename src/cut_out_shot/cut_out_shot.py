@@ -541,6 +541,10 @@ class CutOutShot:
         query: dict = {"sort": {"event_id": {"order": "asc"}}}
         events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
 
+        if len(events) == 0:
+            logger.error("Exits because no events.")
+            return
+
         # 最後のイベントが記録済み(recorded)であることが前提
         if events[-1]["event_type"] != "recorded":
             logger.error("Exits because the status is not recorded.")
