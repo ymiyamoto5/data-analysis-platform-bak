@@ -196,7 +196,8 @@ def _data_record(
     # プロセス跨ぎのタイムスタンプ。rawdataインデックスの最新データから取得（なければデータ収集開始時間）
     query: dict = {"sort": {"sequential_number": {"order": "desc"}}}
     latest_rawdata: Optional[dict] = ElasticManager.get_docs(index=rawdata_index, query=query, size=1)
-    timestamp: float = started_timestamp if latest_rawdata is None else latest_rawdata[
+
+    timestamp: float = started_timestamp if len(latest_rawdata) == 0 else latest_rawdata[
         "timestamp"
     ] + common.SAMPLING_INTERVAL
 
