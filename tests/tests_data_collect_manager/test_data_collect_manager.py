@@ -114,7 +114,7 @@ class TestShowManager:
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value=None)
+        mocker.patch.object(ElasticManager, "get_docs", return_value=[])
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.get("/")
@@ -132,7 +132,7 @@ class TestShowManager:
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value={"event_type": "stop"})
+        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "stop"}])
 
         response = client.get("/")
 
@@ -150,7 +150,7 @@ class TestShowManager:
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value={"event_type": "setup"})
+        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "setup"}])
 
         response = client.get("/")
 
@@ -168,7 +168,7 @@ class TestShowManager:
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value={"event_type": "start"})
+        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "start"}])
 
         response = client.get("/")
 
@@ -186,7 +186,7 @@ class TestShowManager:
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value={"event_type": "tag"})
+        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "tag"}])
 
         response = client.get("/")
 
@@ -208,7 +208,7 @@ class TestShowManager:
         mocker.patch.object(
             ElasticManager,
             "get_docs",
-            return_value={"event_type": "pause", "start_time": start_time},
+            return_value=[{"event_type": "pause", "start_time": start_time}],
         )
 
         response = client.get("/")
@@ -232,7 +232,7 @@ class TestShowManager:
         mocker.patch.object(
             ElasticManager,
             "get_docs",
-            return_value={"event_type": "pause", "start_time": start_time, "end_time": end_time},
+            return_value=[{"event_type": "pause", "start_time": start_time, "end_time": end_time}],
         )
 
         response = client.get("/")
