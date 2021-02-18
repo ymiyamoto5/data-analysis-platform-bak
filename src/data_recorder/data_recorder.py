@@ -20,8 +20,6 @@ from elastic_manager.elastic_manager import ElasticManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
-from utils.common import DisplayTime
-from time_logger import time_log
 
 logger = logging.getLogger(__name__)
 
