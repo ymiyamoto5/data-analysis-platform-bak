@@ -67,7 +67,7 @@ class ElasticManager:
 
         is_valid_index: bool
         message: str
-        is_valid_index, message = ElasticManager.__check_index(index)
+        is_valid_index, message = ElasticManager._check_index(index)
 
         if not is_valid_index:
             logger.error(message)
@@ -86,7 +86,7 @@ class ElasticManager:
 
         is_valid_index: bool
         message: str
-        is_valid_index, message = ElasticManager.__check_index(index)
+        is_valid_index, message = ElasticManager._check_index(index)
 
         if not is_valid_index:
             logger.error(message)
@@ -118,7 +118,7 @@ class ElasticManager:
 
         is_valid_index: bool
         message: str
-        is_valid_index, message = ElasticManager.__check_index(index)
+        is_valid_index, message = ElasticManager._check_index(index)
 
         if not is_valid_index:
             logger.error(message)
@@ -126,6 +126,7 @@ class ElasticManager:
 
         if shot_number < 0:
             logger.error("ショット番号が不正です。")
+            return
 
         body: dict = {"query": {"term": {"shot_number": shot_number}}}
 
@@ -140,7 +141,7 @@ class ElasticManager:
         logger.info(f"Delete was successful. {result['deleted']} docs deleted.")
 
     @classmethod
-    def __check_index(cls, index: str) -> Tuple[bool, str]:
+    def _check_index(cls, index: str) -> Tuple[bool, str]:
         """ インデックスが指定されているかチェックする """
 
         if index == "":
