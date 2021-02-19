@@ -1,9 +1,6 @@
 import builtins
-from _pytest.config import Config
 import pytest
-import os
 import json
-from datetime import datetime
 
 from config_file_manager.config_file_manager import ConfigFileManager
 
