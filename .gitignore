@@ -14,7 +14,6 @@ frontend/dist
 .ipynb_checkpoints
 *.csv
 *.CSV
-notebooks/bak
 
 # local env files
 .env.local
@@ -36,7 +35,6 @@ pnpm-debug.log*
 *.sw?
 
 log
-testprogram.py
 src/data_collect_manager/node_modules
 shared
 .coverage
@@ -44,6 +42,5 @@ htmlcov
 *.log
 node_modules
 notebooks/analyze-Copy1.ipynb
-tmp_open_excel.py
 cron_job.sh
 src/utils/rawdata_importer.py
