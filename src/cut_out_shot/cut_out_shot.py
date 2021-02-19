@@ -724,11 +724,11 @@ if __name__ == "__main__":
     displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
 
     # 荷重値換算
-    Vr = 1.0
-    load01_func = lambda v: 2.5 / Vr * v * 1000
-    load02_func = lambda v: 2.5 / Vr * v * 1000
-    load03_func = lambda v: 2.5 / Vr * v * 1000
-    load04_func = lambda v: 2.5 / Vr * v * 1000
+    Vr = 2.5
+    load01_func = lambda v: 2.5 / Vr * v
+    load02_func = lambda v: 2.5 / Vr * v
+    load03_func = lambda v: 2.5 / Vr * v
+    load04_func = lambda v: 2.5 / Vr * v
 
     ### テスト用
     # No13 3000shot拡張。切り出し後のデータ数：9,287,421
