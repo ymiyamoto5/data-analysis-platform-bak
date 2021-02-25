@@ -136,6 +136,20 @@ def extract_break_channels(values: List[float]) -> Tuple[str, str]:
         return ("load03", "load04")
 
 
+def df_to_els(df: DataFrame, index: str):
+    """ DataFrameをList[dict]に変換し、指定したindex名でElasticsearchに登録する """
+
+    if ElasticManager.exists_index(index):
+        ElasticManager.delete_index(index)
+    ElasticManager.create_index(index)
+
+    data_list: List[dict] = df.to_dict(orient="records")
+
+    ElasticManager.bulk_insert(data_list, index)
+
+    logger.info(f"{index} created.")
+
+
 if __name__ == "__main__":
     LOG_FILE: Final[str] = os.path.join(
         common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "analyze/analyze.log"
@@ -161,23 +175,23 @@ if __name__ == "__main__":
     shots_meta_index = "shots-" + target + "-meta"
     shots_meta_df = dr.read_shots_meta(shots_meta_index)
 
-    # apply(
-    #     target="20201201010000",
-    #     shots_df=shots_df,
-    #     shots_meta_df=shots_meta_df,
-    #     feature="max",
-    #     func=ef.max_load,
-    #     sub_func=None,
-    # )
+    apply(
+        target="20201201010000",
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
+        feature="max",
+        func=ef.max_load,
+        sub_func=None,
+    )
 
-    # apply(
-    #     target="20201201010000",
-    #     shots_df=shots_df,
-    #     shots_meta_df=shots_meta_df,
-    #     feature="start",
-    #     func=ef.load_start2,
-    #     sub_func=None,
-    # )
+    apply(
+        target="20201201010000",
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
+        feature="start",
+        func=ef.load_start2,
+        sub_func=None,
+    )
 
     apply(
         target="20201201010000",
