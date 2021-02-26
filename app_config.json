@@ -1,6 +1,6 @@
 {
     "config_file_path": "/datadrive/data/conf_GW-TEST-01.cnf",
-    "initial_config_file_path": "/datadrive/data/initial_config.json",
+    "initial_config_file_path": "/home/hone/h-one-experimental-system/initial_config.json",
     "data_dir": "/datadrive/data",
     "log_dir": "/home/hone/h-one-experimental-system/log/",
     "elastic_url": "localhost:9200",
