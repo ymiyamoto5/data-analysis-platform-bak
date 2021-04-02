@@ -18,7 +18,7 @@ argmaxではなくidxmaxを使えば、0.25/0.21共通の仕様に。
 だったらargmax廃止しちゃえば良いのに、その後どこかの時点でargmaxも
 本来望ましい仕様に変更して、今はidxmaxとargmaxは同じ仕様に。
 ということみたい。
-結論としては、idxmax使っておけば、pandas0.21移行の環境であれば動くはず。
+結論としては、idxmax使っておけば、pandas0.21以降の環境であれば動くはず。
 https://pandas-docs.github.io/pandas-docs-travis/reference/api/pandas.Series.argmax.html
 https://stackoverflow.com/questions/47596390/can-i-use-idxmax-instead-of-argmax-in-all-cases
 """
@@ -35,20 +35,23 @@ def _idiff(x):
 
 NARROW_PADDING = 50
 
-def narrowing_var_ch(shot,disp_narrowing = False):
+def narrowing_var_ch(shot_df,disp_narrowing = False,shot=9999):
     """ 検索範囲限定のためのヘルパー関数 (破断点専用)
     荷重4ch(load01,load02,load03,load04)を含むshot dataを受け取り、
     4ch間の分散を考慮することにより、最小限の検索範囲を返す。
     破断の前に、破断側/非破断側間の同期が崩れ、分散が増大することを利用している。
     
-    :shot (pd.DataFrame)        shotデータを含むDataFrame
+    :shot_df (pd.DataFrame)     shotデータを含むDataFrame
     :disp_narrowing (bool)      グラフ表示
+    :shot (int)                 shot番号
     :return (int,int)           検索範囲の左端と右端のindex
+
+    ToDo: 341(破断前のch間分散が極端に小さいケース; 破断/非破断の判別は辛うじてできている)
     """
     SVAR_CRITERIA = 0.2   # 0.3だと破断後になるケースあり(shot#425)
-    df = shot.copy()
-    df['var'] = df[['load01','load02','load03','load04']].var(axis=1)
-    df['var'] = df['var'].rolling(49,min_periods=1,center=True).mean()
+    df = shot_df.copy()
+    df['var_raw'] = df[['load01','load02','load03','load04']].var(axis=1)
+    df['var'] = df['var_raw'].rolling(49,min_periods=1,center=True).mean()
     l_max = df['var'].max()
     l_min = df['var'].min()
     df['svar'] = (df['var'] - l_min) / (l_max - l_min)
@@ -65,43 +68,57 @@ def narrowing_var_ch(shot,disp_narrowing = False):
         var_end = np.min([df.index[-1],var_start+300])    # 分散が.2以下に降りてこないケース; これはあり得る。
 
     if disp_narrowing == True:
-        df[['load01','load02','load03','load04','svar']].plot(subplots=True,figsize=(12,8))
-        plt.axvspan(var_start,var_end,color='g',alpha=.3)
-        plt.xlim([var_start-200,var_end+200]);
+        plt.figure(figsize=(12,6))
+        ax1 = plt.subplot(311)
+        df[['load01','load02','load03','load04']].plot(ax=ax1)
+        ax2 = plt.subplot(312,sharex=ax1)
+        df[['var_raw']].plot(ax=ax2)
+        ax3 = plt.subplot(313,sharex=ax1)
+        df[['svar']].plot(ax=ax3)
+        ax3.axvspan(var_start,var_end,color='r',alpha=.2)
+        ax3.axhline(SVAR_CRITERIA,color='g',alpha=.5)
+        plt.xlim([var_start-1500,var_end+800]);
+        plt.suptitle('variance on 4ch  shot:%d'%shot)
         plt.show()
 
     return var_start, var_end
 
 
-def breaking_var_vrms(d, spm, fs=100000,low=0, high=8000,r_window=1,Debug=False,shot=9999,ch='loadxx'):
+def breaking_var_vrms(d, spm, fs=100000,low=0, high=8000,r_window=1,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-100,100]):
     """ 破断点
     29点移動分散の最大点(varmax)と5点移動RMSの最大点(rmsmax)に挟まれた範囲の加速度最小点を返す。
-    
+       d:       元波形に対して0-8000Hzのバンドパス
+       var29:   29点移動分散
+       var29_v: var29 * 速度<=0  速度が負の区間のみ有効
+       vrms:    速度RMS(速度5点実効値)
+       v:       速度(dを微分)
+       a:        加速度(vを微分)
+
     移動分散は、移動平均と同様にrolling windowの範囲に分散を適用する手法。
     分散の増大はwindow内の値の変化が大きくなることを意味し、破断による急落を含む区間が大きくなる。
     windowを広め(29区間)に取ることで、ピークが破断の手前に来ることを期待。
     移動RMSも同様に、rolling windowの範囲に速度RMSを適用。
     破断の衝撃による振動エネルギー(荷重センサーだが)の増大が、破断後の速度RMSピークとして現れることを期待している。
-    
+
     実際には、速度RMSピークは期待よりも後方に現れることがしばしばあり、
     最小加速度検索範囲の右端は、[ 速度RMS最大点、速度最小点、荷重最小点、移動分散最小点+50 ]の中の最も左にある点としている。
 
     :d (np.array)        荷重系列データ
-    :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
+    :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用
     :fs (int)            サンプリング周波数(Hz)
     :low (int)           バンドパスフィルタ下限周波数
-    :high (float)        バンドパスフィルタ上限周波数    
+    :high (float)        バンドパスフィルタ上限周波数
     :r_window (int)      移動平均ウィンドウ範囲
     :Debug (bool)        グラフ表示
     :shot (int)          デバッグ表示用
     :ch (str)            デバッグ表示用
     :return (int,float,*)  最大荷重点index, 最大荷重値
-    
+
     ToDo:  502, 327:3
     """
     df = pd.DataFrame({'o':d})
     s,f,p = fft_spectrum(df.o,fs=fs)                      # FFT
-    df['d'] = bandpass_ifft(s,f,low,high).real    
+    df['d'] = bandpass_ifft(s,f,low,high).real
     df = df[NARROW_PADDING:-NARROW_PADDING].reset_index()                           # FFT後のデータ両端は信用できないのでPADDING分を切り捨て
     df['v'] = df.d.diff().rolling(r_window,center=True,min_periods=1).mean()        # 速度
     df['a'] = df.v.diff().rolling(r_window,center=True,min_periods=1).mean()        # 加速度
@@ -126,14 +143,160 @@ def breaking_var_vrms(d, spm, fs=100000,low=0, high=8000,r_window=1,Debug=False,
         ax[3].axvline(rmsmax,color='r')
         ax[5].axvspan(varmax,rmsmax,color='g',alpha=.3)
         ax[5].axvline(h,color='r')
-        plt.xlim(h-100,h+100)
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
 
     # 破断点の場合は、df.d[h]ではなくdf.o[h]を返すべきか?
     return h+NARROW_PADDING, df.d[h], [h-varmax,rmsmax-h]      # dfは50:-50の範囲でreset_indexされているので、df.dのindexはh+50である必要は無い
 
-
-def breaking_varmax29(d, spm, low=0, high=8000,r_window=1,Debug=False,shot=999,ch='loadxx',debug_xlim=[-100,100]):
+def breaking_rmean_dmin(d, spm, fs=100000,low=0, high=8000,r_window=1,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-100,100]):
     """ 破断点
+    破断後の最下点=break throughが特定できれば、破断点の検索範囲を
+    break through以前に限定することができ、アルゴリズムの堅牢性、
+    実行効率ともに向上が期待できる。
+
+    [破断後の最下点=break through]
+    移動平均によりトレンドを求め、元波形からトレンド成分を除去する。
+       m:   39点移動平均 (グレーが元波形、グレーと青の距離がo_mとなる)
+       o_m: 元波形 - 39点移動平均;
+    バンドパスと同じ考え方だが、FFTの副作用が無くコントロールしやすい。
+    破断以前の動きの緩やかな区間では、元波形とトレンド成分はほぼ同期しており、
+    破断後の急降下がより大きく表れる。
+    破断後の第二波、第三波の落ち込みの方が絶対値としては大きいケースがしばしばあるが、
+    第一波の落ち込みによりトレンド成分も下降を始めているため、
+    第二波、第三波の落ち込みは抑制される。
+    つまり、第二波が来るタイミングで、第一波の影響がトレンドに表れるような移動平均範囲の設定が必要。
+
+    [破断点]
+    破断後最下点を終端として、その前方20pointの範囲の加速度最小点を破断点とする。
+    破断後の急降下、その後のリバウンドは自由落下的な動きをしていると想定され、
+    SPMに依存していないと考えられ、破断点検索範囲の設定は固定長で事足りると思われる。
+       d:   元波形に対して0-8000Hzのバンドパス
+       v:   速度(dを微分)
+       a:   加速度(vを微分)
+            o_mの最小位置-20:o_mの最小位置]の範囲を緑網掛け->加速度検索範囲
+
+    :d (np.array)        荷重系列データ
+    :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
+    :fs (int)            サンプリング周波数(Hz)
+    :low (int)           バンドパスフィルタ下限周波数
+    :high (float)        バンドパスフィルタ上限周波数    
+    :r_window (int)      移動平均ウィンドウ範囲
+    :Debug (bool)        グラフ表示
+    :shot (int)          デバッグ表示用
+    :ch (str)            デバッグ表示用
+    :return (int,float,*)  最大荷重点index, 最大荷重値
+
+    ToDo: 502:1,3
+    """
+    df = pd.DataFrame({'o':d})
+    df['m'] = df.rolling(39,center=False).mean()
+    df['o_m'] = df.o - df.m                              # 移動平均線からの乖離; 急激な変動だけが浮かび上がる
+    
+    s,f,p = fft_spectrum(df.o,fs=fs)                      # FFT
+    df['d'] = bandpass_ifft(s,f,low,high).real            # バンドパス
+    df = df[NARROW_PADDING:-NARROW_PADDING].reset_index()                           # FFT後のデータ両端は信用できないのでPADDING分を切り捨て
+    df['v'] = df.d.diff().rolling(r_window,center=True,min_periods=1).mean()        # 速度
+    df['a'] = df.v.diff().rolling(r_window,center=True,min_periods=1).mean()        # 加速度
+    
+    break_through = df.o_m.idxmin()                          # 移動平均線からの乖離における最小点が破断後の最下点
+    search_start = np.max([df.index[0],break_through-20])    # 破断後最下点の前方20point、もしくはデータの先頭を検索開始点とする
+    if search_start == break_through:                        # 破断後最下点と検索開始が一致した場合は、そこを破断点として処理
+        h = break_through                                    # あり得ないケースだが、検索範囲長:0のidxmin()を取ることになりエラーとなる
+    else:
+        h = df[search_start:break_through]['a'].idxmin()     # 検索範囲における加速度最小が破断点
+    
+    if Debug is True:
+        ax = df[['m','o_m','d','v','a']].plot(figsize=(10,8),subplots=True,c='b',
+                                   title='%s shot:%d ch:%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black',label='o'); plt.legend()
+        ax[0].axvline(h,c='r')
+        ax[1].axvline(break_through,color='r')
+        ax[4].axvline(h,c='r'); ax[4].axvspan(break_through-20,break_through,color='g',alpha=.3)      
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
+
+    # 破断点の場合は、df.d[h]ではなくdf.o[h]を返すべきか?
+    return h+NARROW_PADDING, df.d[h], [break_through-20+NARROW_PADDING,break_through+NARROW_PADDING]
+
+def breaking_vmin(d, spm, fs=100000,low=0, high=8000,r_window=1,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-100,100]):
+    """ 破断点
+    [破断後の最下点=break through]
+    荷重開始から最大荷重に至る動きは低周波であり、破断後の動きは高周波なので、
+    バンドパスで低周波をカットしてやると最大荷重の山は無くなり、破断後の落ち込みは残る。
+    結果、破断後の落ち込みが最小点になる
+       o:   元波形
+       b:   oに対して700-5000Hzのバンドパス; 低周波のトレンドと高周波のノイズをカット
+
+    [破断点]
+    breaking_rmean_dminと同様、break throughを終端としてその前方20点の加速度最小を破断点とする。
+       d:   元波形に対して0-8000Hzのバンドパス
+       v:   速度(dを微分)
+       a:   加速度(vを微分)
+            bの最小位置-20:bの最小位置]の範囲を緑網掛け->加速度検索範囲
+
+    :d (np.array)        荷重系列データ
+    :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
+    :fs (int)            サンプリング周波数(Hz)
+    :low (int)           バンドパスフィルタ下限周波数
+    :high (float)        バンドパスフィルタ上限周波数    
+    :r_window (int)      移動平均ウィンドウ範囲
+    :Debug (bool)        グラフ表示
+    :shot (int)          デバッグ表示用
+    :ch (str)            デバッグ表示用
+    :return (int,float,*)  最大荷重点index, 最大荷重値
+    
+    ToDo: 298:4,  502:4,  826:2,4
+    """
+    BP_LOW = 700; BP_HIGH = 5000
+    df = pd.DataFrame({'o':d})
+    s,f,p = fft_spectrum(df.o,fs=fs)                      # FFT
+    df['b'] = bandpass_ifft(s,f,BP_LOW,BP_HIGH).real    
+    df['d'] = bandpass_ifft(s,f,low,high).real    
+    df = df[NARROW_PADDING:-NARROW_PADDING].reset_index()                           # FFT後のデータ両端は信用できないのでPADDING分を切り捨て
+    df['v'] = df.d.diff().rolling(r_window,center=True,min_periods=1).mean()        # 速度
+    df['a'] = df.v.diff().rolling(r_window,center=True,min_periods=1).mean()        # 加速度
+
+    break_through = df.b.idxmin()
+    search_start = np.max([df.index[0],break_through-20])    # 破断後最下点の前方20point、もしくはデータの先頭を検索開始点とする
+    if search_start == break_through:                        # 破断後最下点と検索開始が一致した場合は、そこを破断点として処理
+        h = break_through                                    # あり得ないケースだが、検索範囲長:0のidxmin()を取ることになりエラーとなる
+    else:
+        h = df[search_start:break_through]['a'].idxmin()     # 検索範囲における加速度最小が破断点
+    
+    if Debug is True:
+        ax = df[['o','b','d','v','a']].plot(figsize=(10,8),subplots=True,c='b',
+                                   title='%s shot:%d ch:%s'%(sys._getframe().f_code.co_name,shot,ch))
+        df.o.plot(ax=ax[0],alpha=.3,c='black');
+        ax[0].axvline(h,c='r')
+        ax[1].axvline(break_through,color='r')
+        ax[4].axvline(h,color='r'); ax[4].axvspan(break_through-20,break_through,color='g',alpha=.3)
+        plt.xlim(h+debug_xlim[0],h+debug_xlim[1])
+
+    # 破断点の場合は、df.d[h]ではなくdf.o[h]を返すべきか?
+    return h+NARROW_PADDING, df.d[h], None
+
+def breaking_varmax29(d, spm, fs=100000,low=0, high=8000,r_window=1,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-100,100]):
+    """ 破断点
+    移動平均で使用するrolling window範囲内の分散は、破断点前後で大きくなる。
+    この「移動分散」の破断点付近におけるピークは、
+    rolling windowの範囲を広く採れば広く緩やかなものとなり、
+    rolling windowの範囲を狭く採れば鋭いものとなる。
+    この性質を利用し、29点移動分散ピークと9点移動分散ピークに挟まれた区間を検索範囲とし、
+    加速度最小点を求める。
+       d:     元波形に対して0-8000Hzのバンドパス
+       var9:  9点移動分散
+       var29: 29点移動分散
+       v:     速度(dを微分)
+       a:     加速度(vを微分)
+              max(var9)とmax(var29)の間を緑網掛け
+
+    :d (np.array)        荷重系列データ
+    :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
+    :fs (int)            サンプリング周波数(Hz)
+    :low (int)           バンドパスフィルタ下限周波数
+    :high (float)        バンドパスフィルタ上限周波数    
+    :r_window (int)      移動平均ウィンドウ範囲
+    :Debug (bool)        グラフ表示
+    :return (int,float,*)  最大荷重点index, 最大荷重値
     
 
     """
@@ -168,6 +331,21 @@ def breaking_varmax29(d, spm, low=0, high=8000,r_window=1,Debug=False,shot=999,c
 
 def breaking_varmax29idiff(d, spm, fs=100000,low=0, high=8000, r_window=19,Debug=False,shot=9999,ch='loadxx',debug_xlim=[-100,100]):
     """ 破断点
+    breaking_varmax29で行っている検索範囲の限定は、前方のvar29は概ねうまくいくものの、後方のvar9は安定しない。
+    破断直後の荷重最小点前後にピークが立つことを期待しているが、第二波、第三波がより大きくなってしまうケースが多い。
+    これを抑制するため、破断前は正、破断後は負となるような成分をかけ合わせたい。
+       b:     元波形に対して0-8000Hzのバンドパス
+       d:     元波形に対して0-8000Hzのバンドパス
+       v9:    9点移動分散 * -9点積分階差
+       v29:   29点移動分散 * -29点積分階差
+       v:     速度(dを微分)
+       a:     加速度(vを微分)
+              max(v9)とmax(v29)の間を緑網掛け
+    このため、9点移動分散、29点移動分散にそれぞれ9点積分階差、29点積分階差を符号反転してかけ合わせたものをv9,v29とし、
+    そのピークを加速度検索範囲とする。積分階差は、よりノイズ除去効果の高い移動平均と考えて良く、
+    判断後の荷重最小点以降、大きなトレンドとしては上昇して元の水準に復帰していく傾向が期待できるなら、
+    第二波、第三波によるvar9のピークを符号反転して抑制してくれるはずである。
+    
     :d (np.array)        荷重系列データ
     :spm (float)         SPM(shots per minutes)、荷重開始→最大→破断の推移の速度にほぼ反比例すると考えられる。今のところ未使用。
     :fs (int)            サンプリング周波数(Hz)
@@ -329,7 +507,11 @@ def load_start2(d, spm, r_window=399,Debug=False,shot=999,ch='loadxx',debug_xlim
 #     h = df[df.d.argmax()-1200:][df.sv>0.2].index[0]        # 最大点-1200の範囲で、標準化速度が0.2を超えた最初の点
     sd_start = df[100:df.d.idxmax()].sd.idxmin()           # 100:最大荷重の範囲の荷重最小点 -> sd_start
     sd_end = df[100:df.d.idxmax()][df.sd>0.2].index[0]     # 標準化変位が0.2を超えた -> sd_end
-    h = df[sd_start:sd_end][df.sv>0.2].index[0]            # sd_start:sd_endの範囲で、標準化速度が0.2を超えた最初の点    
+    if sd_start >= sd_end:
+        h = sd_start
+    else:
+        h = df[sd_start:sd_end][df.sv>0.2].index[0]            # sd_start:sd_endの範囲で、標準化速度が0.2を超えた最初の点    
+
     if Debug is True:
         ax = df[['d','sd','v','sv']].plot(figsize=(10,8),subplots=True,c='b',
                 title='%s shot:%d,ch=%s'%(sys._getframe().f_code.co_name,shot,ch))
@@ -420,7 +602,7 @@ def max_load(d, spm, fs=100000,low=0, high=2000, r_window=19,Debug=False,shot=99
     # indexと併せて(ノイズ除去後の)値も返す仕様とする。
     return h, df.m[h], None
 
-def extract_features(shot_data, spm, func, narrowing = None, sub_func=None, disp_chart=False,xlim=[0,0],**kwargs):
+def extract_features(shot_data, spm, func, narrowing = None, sub_func=None, disp_narrowing=False,disp_chart=False,xlim=[0,0],**kwargs):
     """ 特徴抽出ハンドラ関数
     変位をトリガーに切り出した1ショットのデータをpd.DataFrame(shot_data)として受け取り、
     抽出した特徴値を返す。
@@ -444,6 +626,7 @@ def extract_features(shot_data, spm, func, narrowing = None, sub_func=None, disp
     :func (*function)                 関数ポインタ; 求めたい特徴値により対応する関数を指定
     :sub_func (*function)             関数ポインタ; 処理効率改善のため時系列検索範囲を限定する必要があり、
                                       4ch共通の範囲を指定したい場合に使用。現在は破断点の場合のみ、narrowing_var_chを指定。
+    :disp_narrowing (bool)            sub_funcで指定した関数に渡され、グラフ表示を制御する
     :disp_chart (bool)                グラフ表示; ショットごとの元波形と特徴量を表示。
     :**kwargs (可変キーワード引数)    funcに指定した関数に対応した引数を指定
     :return (list, list, list)        indexリスト, 値リスト, デバッグリスト
@@ -453,14 +636,25 @@ def extract_features(shot_data, spm, func, narrowing = None, sub_func=None, disp
     if spm is None:                  # 最後のショットは次のショットが無いためspm計算不能, 80を想定する。
         spm = 80.0
 
+    if 'shot' in kwargs:
+        shot = kwargs['shot']             # 可変キーワード変数から拝借; 掟破り
+    else:
+        shot = 9999
+
     if narrowing is not None:
         sub_start = narrowing[0] - NARROW_PADDING
         sub_end = narrowing[1] + NARROW_PADDING
     else:
         if sub_func is not None:
-            sub_start, sub_end = sub_func(shot_data)
-            sub_start = sub_start - NARROW_PADDING
-            sub_end = sub_end + NARROW_PADDING
+            sub_start, sub_end = sub_func(shot_data,disp_narrowing,shot)
+            # NARROW_PADDING考慮の上で限定範囲がデータの先頭/終端を超える場合、
+            # また限定範囲が50より狭い場合は範囲限定を無効にする。
+            if sub_start - NARROW_PADDING < 0 or sub_end + NARROW_PADDING > shot_data.index[-1] or sub_end - sub_start < 50:
+                sub_start = shot_data.index[0]
+                sub_end = shot_data.index[-1]
+            else:
+                sub_start = sub_start - NARROW_PADDING
+                sub_end = sub_end + NARROW_PADDING
         else:
             sub_start = shot_data.index[0]
             sub_end = shot_data.index[-1]
@@ -480,10 +674,6 @@ def extract_features(shot_data, spm, func, narrowing = None, sub_func=None, disp
             plt.plot(shot_data.index,shot_data[chs[c]],label=chs[c],alpha=.3,c=cmap(c)) # 「流れ」があるのでscatterよりlineの方が見やすいと思う
             #plt.scatter(shot_data.index,shot_data[chs[c]],label=chs[c],s=2,alpha=1.0,c=[cmap(c)]*len(shot_data))
             plt.scatter([argmax[c]],[valmax[c]],marker='o',s=200,alpha=.5,c=[cmap(c)])  # plotとscatterのcolor mapを揃える
-        if 'shot' in kwargs:
-            shot = kwargs['shot']             # 可変キーワード変数から拝借; 掟破り
-        else:
-            shot = 9999
         plt.title('%s shot:%d'%(func.__name__,shot)); plt.legend();
         if xlim[0] != 0 or xlim[1] != 0:
             plt.xlim(np.array(argmax).min()+xlim[0],np.array(argmax).max()+xlim[1]);

@@ -22,12 +22,12 @@ logger = logging.getLogger(__name__)
 class CutOutShot:
     def __init__(
         self,
-        previous_size: int = 1_000,
+        previous_size: int = 1000,
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
-        margin: int = 0.1,
+        margin: int = 0.3,
         displacement_func: Optional[Callable[[float], float]] = None,
         load01_func: Optional[Callable[[float], float]] = None,
         load02_func: Optional[Callable[[float], float]] = None,
@@ -318,8 +318,12 @@ class CutOutShot:
     def _calculate_spm(self, timestamp: float) -> float:
         """ spm (shot per minute) 計算。ショット検出時、前ショットの開始時間との差分を計算する。 """
 
-        # NOTE: 小数点以下計算に誤差があるため、下2桁で丸め
-        spm: float = 60.0 / round((timestamp - self.__previous_shot_start_time), 2)
+        try:
+            # NOTE: 小数点以下計算に誤差があるため、下2桁で丸め
+            spm: float = 60.0 / round((timestamp - self.__previous_shot_start_time), 2)
+        except ZeroDivisionError:
+            logger.error(f"ZeroDivisionError. shot_number: {self.__shot_number}")
+            spm = None
 
         logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
         self.__previous_shot_start_time = timestamp
@@ -346,6 +350,7 @@ class CutOutShot:
             "timestamp": rawdata.timestamp,
             "sequential_number": self.__sequential_number,
             "sequential_number_by_shot": self.__sequential_number_by_shot,
+            "rawdata_sequential_number": rawdata.sequential_number,
             "displacement": rawdata.displacement,
             "load01": rawdata.load01,
             "load02": rawdata.load02,
@@ -376,6 +381,8 @@ class CutOutShot:
             return df
 
         over_sample_shot_numbers: List[float] = list(over_sample_df.shot_number)
+
+        logger.debug(f"over_sample_shot detected. shot_numbers: {over_sample_shot_numbers}")
 
         return df.query("shot_number not in @over_sample_shot_numbers")
 
@@ -678,6 +685,20 @@ class CutOutShot:
                         ignore_index=True,
                     )
 
+                    # SPMが大きすぎる場合、不正データが疑われる
+                    MAX_SPM: Final[float] = 85.0
+                    if spm >= MAX_SPM:
+                        logger.error(
+                            f"Invalid spm. shot_number: {self.__shot_number}, spm: {spm}, rawdata_sequential_number: {rawdata.sequential_number}"
+                        )
+
+                    # ショットに含まれるサンプル数が少なすぎる場合、不正データが疑われる
+                    MIN_SAMPLE_IN_SHOT: Final[int] = 100
+                    if self.__sequential_number_by_shot <= MIN_SAMPLE_IN_SHOT:
+                        logger.error(
+                            f"Invalid shot. shot_number: {self.__shot_number}, samples: {self.__sequential_number_by_shot}, rawdata_sequential_number: {rawdata.sequential_number}"
+                        )
+
                 self._initialize_when_shot_detected()
 
                 # 荷重開始点取りこぼし防止
@@ -743,12 +764,12 @@ if __name__ == "__main__":
         back_seconds_for_tagging=120,
         previous_size=1_000,
         chunk_size=5_000,
-        margin=0.1,
+        margin=0.3,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,
         load03_func=load03_func,
         load04_func=load04_func,
     )
-    cut_out_shot.cut_out_shot(rawdata_dir_name="20201201010000", start_displacement=47.0, end_displacement=34.0)
+    cut_out_shot.cut_out_shot(rawdata_dir_name="20210327141514", start_displacement=47.0, end_displacement=34.0)
 
