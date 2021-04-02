@@ -51,7 +51,9 @@ class DataReader:
         return df
 
     def multi_process_read_all(self, index: str) -> DataFrame:
-        """ マルチプロセスで全件取得し、連番の昇順ソート結果を返す """
+        """ マルチプロセスで全件取得し、連番の昇順ソート結果を返す。
+        　　 本関数が利用可能なインデックスは連番(sequential_number)フィールドを持つインデックスだけであることに注意。
+        """
 
         logger.info("データを全件取得します。データ件数が多い場合、長時間かかる場合があります。")
 
@@ -125,4 +127,4 @@ if __name__ == "__main__":
     )
 
     data_reader = DataReader()
-    data_reader.read_all("shots-20201201010000-data")
+    data_reader.multi_process_read_all("shots-20201201010000-meta")

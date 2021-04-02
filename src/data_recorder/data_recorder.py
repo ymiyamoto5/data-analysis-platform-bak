@@ -346,11 +346,10 @@ def manual_record(target_dir: str):
     rawdata_index: str = "rawdata-" + rawdata_dir_name
 
     # インデックスが存在すれば再作成
-    if ElasticManager.exists_index(rawdata_index):
-        ElasticManager.delete_exists_index(index=rawdata_index)
-        mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
-        setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-        ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+    ElasticManager.delete_exists_index(index=rawdata_index)
+    mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
+    setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
+    ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
 
     _data_record(rawdata_index, files_info, target_dir, started_timestamp, is_manual=True)
 
