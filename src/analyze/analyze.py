@@ -4,6 +4,7 @@ warnings.simplefilter("ignore")
 import multiprocessing
 import os
 import sys
+import traceback
 import logging
 import logging.handlers
 from typing import Callable, Final, List, Tuple
@@ -21,9 +22,7 @@ import common
 logger = logging.getLogger(__name__)
 
 
-def apply(
-    target: str, shots_df: DataFrame, shots_meta_df: DataFrame, feature: str, func: Callable, sub_func: Callable = None
-) -> None:
+def apply(target: str, feature: str, func: Callable, sub_func: Callable = None) -> None:
     """ 特定のロジックを3,000ショットに適用 """
 
     logger.info("apply start.")
@@ -35,23 +34,23 @@ def apply(
     feature_index: str = "shots-" + target + "-" + feature + "-point"
     ElasticManager.delete_exists_index(index=feature_index)
 
-    # NOTE: データ分割をNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
-    multi_process(shots_df, shots_meta_df, feature_index, feature, func, sub_func)
+    # NOTE: Nショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
+    multi_process(target, feature_index, feature, func, sub_func)
 
     logger.info("apply finished.")
 
 
-def multi_process(
-    shots_df: DataFrame,
-    shots_meta_df: DataFrame,
-    feature_index: str,
-    feature: str,
-    func: Callable,
-    sub_func: Callable = None,
-) -> None:
+def multi_process(target: str, feature_index: str, feature: str, func: Callable, sub_func: Callable = None,) -> None:
     """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
-    num_of_shots: int = len(shots_meta_df)
+    shots_data_index = "shots-" + target + "-data"
+    shots_meta_index = "shots-" + target + "-meta"
+
+    dr = DataReader()
+    shots_meta_df = dr.read_shots_meta(shots_meta_index)
+
+    # NOTE: ショット番号に歯抜けがある可能性があるため、countではなく最終ショット番号を採用
+    num_of_shots: int = shots_meta_df.shot_number.iloc[-1]
 
     # データをプロセッサの数に均等分配
     shots_num_by_proc: List[int] = [(num_of_shots + i) // common.NUM_OF_PROCESS for i in range(common.NUM_OF_PROCESS)]
@@ -67,7 +66,16 @@ def multi_process(
 
         proc: multiprocessing.context.Process = multiprocessing.Process(
             target=apply_logic,
-            args=(feature_index, shots_df, shots_meta_df, start_shot_number, end_shot_number, feature, func, sub_func),
+            args=(
+                feature_index,
+                shots_data_index,
+                shots_meta_df,
+                start_shot_number,
+                end_shot_number,
+                feature,
+                func,
+                sub_func,
+            ),
         )
         proc.start()
         procs.append(proc)
@@ -80,7 +88,7 @@ def multi_process(
 
 def apply_logic(
     feature_index: str,
-    shots_df: DataFrame,
+    shots_data_index: str,
     shots_meta_df: DataFrame,
     start_shot_number: int,
     end_shot_number: int,
@@ -92,16 +100,29 @@ def apply_logic(
 
     result: List[dict] = []
 
+    dr = DataReader()
+    shots_df: DataFrame = dr.read_shots(shots_data_index, start_shot_number, end_shot_number)
+
     for shot_number in range(start_shot_number, end_shot_number):
         # 特定ショット番号のデータを抽出
-        shot_df: DataFrame = shots_df[shots_df.shot_number == shot_number].reset_index()
+        shot_df: DataFrame = shots_df[shots_df.shot_number == shot_number]
+
+        if len(shot_df) == 0:
+            logger.info(f"shot_number: {shot_number} not found.")
+            continue
+
+        shot_df = shot_df.reset_index()
         spm: float = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
 
         indices: List[int]
         values: List[float]
         debug_values: List[float]
         # ロジック適用
-        indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func=sub_func)
+        try:
+            indices, values, debug_values = ef.extract_features(shot_df, spm, func, sub_func=sub_func)
+        except Exception:
+            logger.error(f"Failed to apply logic. shot_number: {shot_number}. \n{traceback.format_exc()}")
+            continue
 
         break_channels: Tuple[str, str] = extract_break_channels(values)
 
@@ -166,38 +187,16 @@ if __name__ == "__main__":
         ],
     )
 
-    target = "20201201010000"
-    shots_data_index = "shots-" + target + "-data"
+    target = "20210327141514"
 
-    dr = DataReader()
-    shots_df = dr.read_all(shots_data_index)
+    # apply(
+    #     target=target, feature="max", func=ef.max_load, sub_func=None,
+    # )
 
-    shots_meta_index = "shots-" + target + "-meta"
-    shots_meta_df = dr.read_shots_meta(shots_meta_index)
-
-    apply(
-        target="20201201010000",
-        shots_df=shots_df,
-        shots_meta_df=shots_meta_df,
-        feature="max",
-        func=ef.max_load,
-        sub_func=None,
-    )
+    # apply(
+    #     target=target, feature="start", func=ef.load_start2, sub_func=None,
+    # )
 
     apply(
-        target="20201201010000",
-        shots_df=shots_df,
-        shots_meta_df=shots_meta_df,
-        feature="start",
-        func=ef.load_start2,
-        sub_func=None,
-    )
-
-    apply(
-        target="20201201010000",
-        shots_df=shots_df,
-        shots_meta_df=shots_meta_df,
-        feature="break",
-        func=ef.breaking_var_vrms,
-        sub_func=ef.narrowing_var_ch,
+        target=target, feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch,
     )
