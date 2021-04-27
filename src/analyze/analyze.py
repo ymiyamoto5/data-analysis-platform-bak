@@ -22,7 +22,9 @@ import common
 logger = logging.getLogger(__name__)
 
 
-def apply(target: str, feature: str, func: Callable, sub_func: Callable = None) -> None:
+def apply(
+    target: str, feature: str, func: Callable, sub_func: Callable = None, exclude_shots: Tuple[int] = None
+) -> None:
     """ 特定のロジックを3,000ショットに適用 """
 
     logger.info("apply start.")
@@ -35,12 +37,19 @@ def apply(target: str, feature: str, func: Callable, sub_func: Callable = None) 
     ElasticManager.delete_exists_index(index=feature_index)
 
     # NOTE: Nショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
-    multi_process(target, feature_index, feature, func, sub_func)
+    multi_process(target, feature_index, feature, func, sub_func, exclude_shots)
 
     logger.info("apply finished.")
 
 
-def multi_process(target: str, feature_index: str, feature: str, func: Callable, sub_func: Callable = None,) -> None:
+def multi_process(
+    target: str,
+    feature_index: str,
+    feature: str,
+    func: Callable,
+    sub_func: Callable = None,
+    exclude_shots: Tuple[int] = None,
+) -> None:
     """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
     shots_data_index = "shots-" + target + "-data"
@@ -75,6 +84,7 @@ def multi_process(target: str, feature_index: str, feature: str, func: Callable,
                 feature,
                 func,
                 sub_func,
+                exclude_shots,
             ),
         )
         proc.start()
@@ -95,6 +105,7 @@ def apply_logic(
     feature: str,
     func: Callable,
     sub_func: Callable = None,
+    exclude_shots: Tuple[int] = None,
 ) -> None:
     """ ショットに対しロジック(func)適用 """
 
@@ -104,15 +115,21 @@ def apply_logic(
     shots_df: DataFrame = dr.read_shots(shots_data_index, start_shot_number, end_shot_number)
 
     for shot_number in range(start_shot_number, end_shot_number):
+        # 除外ショットはスキップ
+        if exclude_shots is not None:
+            if shot_number in exclude_shots:
+                logger.info(f"shot_number: {shot_number} was excluded.")
+                continue
+
         # 特定ショット番号のデータを抽出
         shot_df: DataFrame = shots_df[shots_df.shot_number == shot_number]
 
         if len(shot_df) == 0:
-            logger.info(f"shot_number: {shot_number} not found.")
+            logger.info(f"shot_number: {shot_number} was not found.")
             continue
 
         shot_df = shot_df.reset_index()
-        spm: float = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
+        spm: float = float(shots_meta_df[shots_meta_df.shot_number == shot_number].spm)
 
         indices: List[int]
         values: List[float]
@@ -124,7 +141,8 @@ def apply_logic(
             logger.error(f"Failed to apply logic. shot_number: {shot_number}. \n{traceback.format_exc()}")
             continue
 
-        break_channels: Tuple[str, str] = extract_break_channels(values)
+        if feature == "break":
+            break_channels: Tuple[str, str] = extract_break_channels(values)
 
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
             d: dict = {
@@ -189,13 +207,13 @@ if __name__ == "__main__":
 
     target = "20210327141514"
 
+    exclude_shots = (1227, 1228, 1229)
+
     # apply(
     #     target=target, feature="max", func=ef.max_load, sub_func=None,
     # )
 
-    # apply(
-    #     target=target, feature="start", func=ef.load_start2, sub_func=None,
-    # )
+    apply(target=target, feature="start", func=ef.load_start3, sub_func=None, exclude_shots=exclude_shots)
 
     apply(
         target=target, feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch,
