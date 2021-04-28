@@ -58,7 +58,7 @@ def multi_process(
     dr = DataReader()
     shots_meta_df = dr.read_shots_meta(shots_meta_index)
 
-    # NOTE: ショット番号に歯抜けがある可能性があるため、countではなく最終ショット番号を採用
+    # NOTE: ショットを削除した場合、ショット番号に歯抜けになるため、countではなく最終ショット番号を採用
     num_of_shots: int = shots_meta_df.shot_number.iloc[-1]
 
     # データをプロセッサの数に均等分配
@@ -206,15 +206,7 @@ if __name__ == "__main__":
     )
 
     target = "20210327141514"
-
     exclude_shots = (1227, 1228, 1229)
-
-    # apply(
-    #     target=target, feature="max", func=ef.max_load, sub_func=None,
-    # )
-
+    apply(target=target, feature="max", func=ef.max_load, sub_func=None)
     apply(target=target, feature="start", func=ef.load_start3, sub_func=None, exclude_shots=exclude_shots)
-
-    apply(
-        target=target, feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch,
-    )
+    apply(target=target, feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch)
