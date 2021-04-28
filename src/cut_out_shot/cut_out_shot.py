@@ -685,20 +685,6 @@ class CutOutShot:
                         ignore_index=True,
                     )
 
-                    # SPMが大きすぎる場合、不正データが疑われる
-                    MAX_SPM: Final[float] = 85.0
-                    if spm >= MAX_SPM:
-                        logger.error(
-                            f"Invalid spm. shot_number: {self.__shot_number}, spm: {spm}, rawdata_sequential_number: {rawdata.sequential_number}"
-                        )
-
-                    # ショットに含まれるサンプル数が少なすぎる場合、不正データが疑われる
-                    MIN_SAMPLE_IN_SHOT: Final[int] = 100
-                    if self.__sequential_number_by_shot <= MIN_SAMPLE_IN_SHOT:
-                        logger.error(
-                            f"Invalid shot. shot_number: {self.__shot_number}, samples: {self.__sequential_number_by_shot}, rawdata_sequential_number: {rawdata.sequential_number}"
-                        )
-
                 self._initialize_when_shot_detected()
 
                 # 荷重開始点取りこぼし防止
@@ -740,7 +726,6 @@ if __name__ == "__main__":
         ],
     )
 
-    ### 本番用
     # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
     displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
 
@@ -750,14 +735,6 @@ if __name__ == "__main__":
     load02_func = lambda v: 2.5 / Vr * v
     load03_func = lambda v: 2.5 / Vr * v
     load04_func = lambda v: 2.5 / Vr * v
-
-    ### テスト用
-    # No13 3000shot拡張。切り出し後のデータ数：9,287,421
-    # displacement_func = lambda v: v
-    # load01_func = lambda v: v
-    # load02_func = lambda v: v
-    # load03_func = lambda v: v
-    # load04_func = lambda v: v
 
     cut_out_shot = CutOutShot(
         min_spm=15,
@@ -772,4 +749,3 @@ if __name__ == "__main__":
         load04_func=load04_func,
     )
     cut_out_shot.cut_out_shot(rawdata_dir_name="20210327141514", start_displacement=47.0, end_displacement=34.0)
-
