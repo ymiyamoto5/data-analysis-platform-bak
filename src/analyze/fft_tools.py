@@ -1,4 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+ ==================================
+  fft_tools.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
 
 try:
     __IPYTHON__   # Jupyter/IPythonでインタラクティブにグラフ描画可能な環境でのみ実行。__IPYTHON__が定義されていない環境ではNameErrorが発生し以下は実行されない。

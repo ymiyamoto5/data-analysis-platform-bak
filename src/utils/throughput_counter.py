@@ -1,3 +1,14 @@
+"""
+ ==================================
+  throughput_counter.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 from datetime import datetime, timedelta
 import logging
 
@@ -13,4 +24,3 @@ def throughput_counter(processed_count: int, dt_old: datetime) -> None:
     throughput: int = int(processed_count / total_sec)
 
     logger.info(f"Thoughput: {throughput} doc/sec, processed_count: {processed_count}")
-    # print(f"[{now}] Thoughput: {throughput} doc/sec, processed_count: {processed_count}")
