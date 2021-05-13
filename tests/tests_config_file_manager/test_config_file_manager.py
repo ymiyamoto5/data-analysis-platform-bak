@@ -1,3 +1,14 @@
+"""
+ ==================================
+  test_config_file_manager.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 import builtins
 import pytest
 import json
