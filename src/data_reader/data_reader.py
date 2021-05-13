@@ -1,3 +1,14 @@
+"""
+ ==================================
+  data_reader.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 from typing import Final, List
 from pandas.core.frame import DataFrame
 import os

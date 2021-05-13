@@ -1,3 +1,14 @@
+"""
+ ==================================
+  cut_out_shot.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 import multiprocessing
 import os
 import sys

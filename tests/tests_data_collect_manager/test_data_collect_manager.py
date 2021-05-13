@@ -1,3 +1,14 @@
+"""
+ ==================================
+  test_data_collect_manager.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 import pytest
 from typing import Tuple, Optional
 from datetime import datetime, timedelta

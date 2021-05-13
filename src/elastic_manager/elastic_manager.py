@@ -1,4 +1,13 @@
-""" Elasticsearchへの各種処理を行うwrapperモジュール """
+"""
+ ==================================
+  elastic_manager.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
 
 from elasticsearch import Elasticsearch
 from elasticsearch import exceptions

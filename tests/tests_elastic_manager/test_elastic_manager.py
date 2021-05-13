@@ -1,3 +1,14 @@
+"""
+ ==================================
+  test_elastic_manager.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 import elasticsearch
 from elastic_manager.elastic_manager import ElasticManager
 
