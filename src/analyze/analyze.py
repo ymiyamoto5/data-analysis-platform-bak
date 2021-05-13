@@ -144,6 +144,7 @@ def apply_logic(
         if feature == "break":
             break_channels: Tuple[str, str] = extract_break_channels(values)
 
+        # 荷重センサー毎にdict化
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
             d: dict = {
                 "shot_number": shot_number,
@@ -151,6 +152,7 @@ def apply_logic(
                 "sequential_number": shot_df.iloc[indices[i]].sequential_number,
                 "sequential_number_by_shot": indices[i],
                 "value": values[i],
+                "displacement": shot_df.iloc[indices[i]].displacement,
             }
 
             if feature == "break":
@@ -206,7 +208,13 @@ if __name__ == "__main__":
     )
 
     target = "20210327141514"
-    exclude_shots = (1227, 1228, 1229)
-    apply(target=target, feature="max", func=ef.max_load, sub_func=None)
+    exclude_shots = (983, 1227, 1228, 1229, 1369, 1381)
+    apply(target=target, feature="max", func=ef.max_load, sub_func=None, exclude_shots=exclude_shots)
     apply(target=target, feature="start", func=ef.load_start3, sub_func=None, exclude_shots=exclude_shots)
-    apply(target=target, feature="break", func=ef.breaking_var_vrms, sub_func=ef.narrowing_var_ch)
+    apply(
+        target=target,
+        feature="break",
+        func=ef.breaking_vmin_amin,
+        sub_func=ef.narrowing_v4min_mab,
+        exclude_shots=exclude_shots,
+    )
