@@ -1,3 +1,14 @@
+"""
+ ==================================
+  data_recorder.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 import multiprocessing
 import os
 import sys

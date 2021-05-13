@@ -1,3 +1,14 @@
+"""
+ ==================================
+  views.py
+ ==================================
+
+  Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+
 import os
 import sys
 import time
