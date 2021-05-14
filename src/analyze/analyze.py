@@ -161,7 +161,6 @@ def apply_logic(
                 "sequential_number": shot_df.iloc[indices[i]].sequential_number,
                 "sequential_number_by_shot": indices[i],
                 "value": values[i],
-                "displacement": shot_df.iloc[indices[i]].displacement,
             }
 
             if feature == "break":
