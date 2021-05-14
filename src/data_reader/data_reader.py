@@ -70,8 +70,6 @@ class DataReader:
 
         num_of_data: int = ElasticManager.count(index=index)
 
-        logger.info(f"データ件数: {num_of_data}")
-
         result: List[dict] = ElasticManager.multi_process_range_scan(
             index=index, num_of_data=num_of_data, num_of_process=common.NUM_OF_PROCESS
         )

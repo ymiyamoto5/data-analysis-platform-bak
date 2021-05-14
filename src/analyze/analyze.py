@@ -34,7 +34,13 @@ logger = logging.getLogger(__name__)
 
 
 def apply(
-    target: str, feature: str, func: Callable, sub_func: Callable = None, exclude_shots: Tuple[int] = None
+    target: str,
+    shots_df: DataFrame,
+    shots_meta_df: DataFrame,
+    feature: str,
+    func: Callable,
+    sub_func: Callable = None,
+    exclude_shots: Tuple[int] = None,
 ) -> None:
     """ 特定のロジックを3,000ショットに適用 """
 
@@ -48,13 +54,14 @@ def apply(
     ElasticManager.delete_exists_index(index=feature_index)
 
     # NOTE: Nショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
-    multi_process(target, feature_index, feature, func, sub_func, exclude_shots)
+    multi_process(shots_df, shots_meta_df, feature_index, feature, func, sub_func, exclude_shots)
 
     logger.info("apply finished.")
 
 
 def multi_process(
-    target: str,
+    shots_df: DataFrame,
+    shots_meta_df: DataFrame,
     feature_index: str,
     feature: str,
     func: Callable,
@@ -62,12 +69,6 @@ def multi_process(
     exclude_shots: Tuple[int] = None,
 ) -> None:
     """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
-
-    shots_data_index = "shots-" + target + "-data"
-    shots_meta_index = "shots-" + target + "-meta"
-
-    dr = DataReader()
-    shots_meta_df = dr.read_shots_meta(shots_meta_index)
 
     # NOTE: ショットを削除した場合、ショット番号に歯抜けになるため、countではなく最終ショット番号を採用
     num_of_shots: int = shots_meta_df.shot_number.iloc[-1]
@@ -88,7 +89,7 @@ def multi_process(
             target=apply_logic,
             args=(
                 feature_index,
-                shots_data_index,
+                shots_df,
                 shots_meta_df,
                 start_shot_number,
                 end_shot_number,
@@ -109,7 +110,7 @@ def multi_process(
 
 def apply_logic(
     feature_index: str,
-    shots_data_index: str,
+    shots_df: DataFrame,
     shots_meta_df: DataFrame,
     start_shot_number: int,
     end_shot_number: int,
@@ -121,9 +122,6 @@ def apply_logic(
     """ ショットに対しロジック(func)適用 """
 
     result: List[dict] = []
-
-    dr = DataReader()
-    shots_df: DataFrame = dr.read_shots(shots_data_index, start_shot_number, end_shot_number)
 
     for shot_number in range(start_shot_number, end_shot_number):
         # 除外ショットはスキップ
@@ -219,11 +217,37 @@ if __name__ == "__main__":
     )
 
     target = "20210327141514"
+    shots_data_index = "shots-" + target + "-data"
+    shots_meta_index = "shots-" + target + "-meta"
+
+    dr = DataReader()
+    shots_df: DataFrame = dr.multi_process_read_all(shots_data_index)
+    shots_meta_df = dr.read_shots_meta(shots_meta_index)
+
     exclude_shots = (983, 1227, 1228, 1229, 1369, 1381)
-    apply(target=target, feature="max", func=ef.max_load, sub_func=None, exclude_shots=exclude_shots)
-    apply(target=target, feature="start", func=ef.load_start3, sub_func=None, exclude_shots=exclude_shots)
+
     apply(
         target=target,
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
+        feature="max",
+        func=ef.max_load,
+        sub_func=None,
+        exclude_shots=exclude_shots,
+    )
+    apply(
+        target=target,
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
+        feature="start",
+        func=ef.load_start3,
+        sub_func=None,
+        exclude_shots=exclude_shots,
+    )
+    apply(
+        target=target,
+        shots_df=shots_df,
+        shots_meta_df=shots_meta_df,
         feature="break",
         func=ef.breaking_vmin_amin,
         sub_func=ef.narrowing_v4min_mab,
