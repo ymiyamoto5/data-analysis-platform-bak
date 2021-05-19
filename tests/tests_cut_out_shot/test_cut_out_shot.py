@@ -848,15 +848,18 @@ class TestCalculateSpm:
         assert actual == expected
 
     def test_zero_divide_exception(self, target):
-        """ 異常系：前回のショット検知時と今回のショット検知時の時差がないとき、0割り例外。
+        """ 異常系：前回のショット検知時と今回のショット検知時の時差がないとき、0割り例外でspm=Noneが返る。
             通常は発生しえない。
         """
 
         target.previous_shot_start_time = datetime(2020, 12, 1, 10, 29, 11, 111111).timestamp()
         timestamp: float = datetime(2020, 12, 1, 10, 29, 11, 111111).timestamp()
 
-        with pytest.raises(ZeroDivisionError):
-            target._calculate_spm(timestamp)
+        actual = target._calculate_spm(timestamp)
+
+        expected = None
+
+        assert actual == expected
 
 
 class TestIncludePreviousData:
@@ -902,6 +905,7 @@ class TestAddCutOutTarget:
             "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
             "sequential_number": 0,
             "sequential_number_by_shot": 0,
+            "rawdata_sequential_number": 2,
             "displacement": 47.0,
             "load01": 1.574,
             "load02": 1.308,
@@ -1194,6 +1198,7 @@ class TestCutOutShot:
         """
 
         target.previous_size = 1
+        target.margin = 0.1
         target._cut_out_shot(rawdata_df, 47.0, 34.0)
 
         actual: List[dict] = target.cut_out_targets
@@ -1205,6 +1210,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 1,
                 "displacement": 47.534,
                 "load01": 0.155,
                 "load02": 0.171,
@@ -1218,6 +1224,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 2,
                 "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
@@ -1231,6 +1238,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 3,
                 "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
@@ -1244,6 +1252,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
+                "rawdata_sequential_number": 4,
                 "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
@@ -1257,6 +1266,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 18, 111111).timestamp(),
                 "sequential_number": 4,
                 "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 8,
                 "displacement": 47.150,
                 "load01": 0.156,
                 "load02": 0.172,
@@ -1270,6 +1280,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
                 "sequential_number": 5,
                 "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 9,
                 "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
@@ -1283,6 +1294,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
                 "sequential_number": 6,
                 "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 10,
                 "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
@@ -1296,6 +1308,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
                 "sequential_number": 7,
                 "sequential_number_by_shot": 3,
+                "rawdata_sequential_number": 11,
                 "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
@@ -1327,6 +1340,7 @@ class TestCutOutShot:
         """
 
         target.previous_size = 0
+        target.margin = 0.1
         target._cut_out_shot(rawdata_df, 46.9, 34.0)
 
         actual: List[dict] = target.cut_out_targets
@@ -1338,6 +1352,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 4,
                 "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
@@ -1351,6 +1366,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 11,
                 "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
@@ -1384,6 +1400,7 @@ class TestCutOutShot:
         """
 
         target.previous_size = 0
+        target.margin = 0.1
         target._cut_out_shot(rawdata_df, 50.0, 34.0)
 
         actual: List[dict] = target.cut_out_targets
@@ -1395,6 +1412,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 0,
                 "displacement": 49.284,
                 "load01": 0.223,
                 "load02": 0.211,
@@ -1408,6 +1426,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 1,
                 "displacement": 47.534,
                 "load01": 0.155,
                 "load02": 0.171,
@@ -1421,6 +1440,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 2,
                 "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
@@ -1434,6 +1454,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
+                "rawdata_sequential_number": 3,
                 "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
@@ -1447,6 +1468,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
                 "sequential_number": 4,
                 "sequential_number_by_shot": 4,
+                "rawdata_sequential_number": 4,
                 "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
@@ -1477,6 +1499,7 @@ class TestCutOutShot:
         """
 
         target.previous_size = 0
+        target.margin = 0.1
         target._cut_out_shot(rawdata_df, 47.0, 20.0)
 
         actual: List[dict] = target.cut_out_targets
@@ -1488,6 +1511,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 2,
                 "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
@@ -1501,6 +1525,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 3,
                 "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
@@ -1514,6 +1539,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 4,
                 "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
@@ -1527,6 +1553,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
+                "rawdata_sequential_number": 5,
                 "displacement": 30.599,
                 "load01": -0.130,
                 "load02": 0.020,
@@ -1540,6 +1567,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp(),
                 "sequential_number": 4,
                 "sequential_number_by_shot": 4,
+                "rawdata_sequential_number": 6,
                 "displacement": 24.867,
                 "load01": -0.052,
                 "load02": 0.035,
@@ -1553,6 +1581,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111).timestamp(),
                 "sequential_number": 5,
                 "sequential_number_by_shot": 5,
+                "rawdata_sequential_number": 7,
                 "displacement": 47.100,
                 "load01": 0.155,
                 "load02": 0.171,
@@ -1566,6 +1595,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
                 "sequential_number": 6,
                 "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 9,
                 "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
@@ -1579,6 +1609,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
                 "sequential_number": 7,
                 "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 10,
                 "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
@@ -1592,6 +1623,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
                 "sequential_number": 8,
                 "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 11,
                 "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
@@ -1604,6 +1636,7 @@ class TestCutOutShot:
                 "timestamp": datetime(2020, 12, 1, 10, 30, 22, 111111).timestamp(),
                 "sequential_number": 9,
                 "sequential_number_by_shot": 3,
+                "rawdata_sequential_number": 12,
                 "displacement": 30.599,
                 "load01": -0.130,
                 "load02": 0.020,
