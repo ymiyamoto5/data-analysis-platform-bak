@@ -131,8 +131,6 @@ def apply_logic(
                 continue
 
         # 特定ショット番号のデータを抽出
-        shot_df: DataFrame = shots_df[shots_df.shot_number == shot_number].reset_index()
-
         shot_df: DataFrame = shots_df[shots_df.shot_number == shot_number]
 
         if len(shot_df) == 0:
