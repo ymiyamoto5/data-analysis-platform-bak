@@ -53,7 +53,7 @@ def apply(
     feature_index: str = "shots-" + target + "-" + feature + "-point"
     ElasticManager.delete_exists_index(index=feature_index)
 
-    # NOTE: Nショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
+    # NOTE: データ分割をNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
     multi_process(shots_df, shots_meta_df, feature_index, feature, func, sub_func, exclude_shots)
 
     logger.info("apply finished.")
@@ -138,6 +138,7 @@ def apply_logic(
             continue
 
         shot_df = shot_df.reset_index()
+
         spm: float = float(shots_meta_df[shots_meta_df.shot_number == shot_number].spm)
 
         indices: List[int]
