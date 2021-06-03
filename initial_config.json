@@ -1,0 +1,15 @@
+{
+    "sequence_number": 1,
+    "gateway_result": 0,
+    "status": "stop",
+    "gateway_id": "GW-01",
+    "Log_Level": 5,
+    "ADC_0": {
+        "handler_id": "AD-USB-1608",
+        "handler_type": "USB_1608HS",
+        "ADC_SerialNum": "01F3D39C",
+        "sampling_frequency": 100000,
+        "sampling_chnum": 5,
+        "filewrite_time": 1
+    }
+}

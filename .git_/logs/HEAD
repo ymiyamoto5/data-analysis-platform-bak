@@ -1,0 +1,74 @@
+0000000000000000000000000000000000000000 fd07d767db45581d40086f039f388a080c378fab ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1602742609 +0900	commit (initial): first commit
+fd07d767db45581d40086f039f388a080c378fab 55afe7dccbbfc4d34f305d2872e3b50fb3bd91f7 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1602748865 +0900	commit: いったんコミット
+55afe7dccbbfc4d34f305d2872e3b50fb3bd91f7 d982fad00f07887d334392b5ac6cb92dcc5c8813 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1602749096 +0900	commit: いったんコミット
+d982fad00f07887d334392b5ac6cb92dcc5c8813 d760510d04a6b151c7e45ed313dc41e60ec5b7aa ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1602751694 +0900	commit: いったんコミット
+d760510d04a6b151c7e45ed313dc41e60ec5b7aa bf9288c0496f6db1eee99a2eb6e8e1e442e35d5a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1602833385 +0900	commit: いったんコミット
+bf9288c0496f6db1eee99a2eb6e8e1e442e35d5a e0605c8c7bd52276ec508fe472663abbdb7098a6 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1602837503 +0900	commit: 同期処理でのバックエンドロジック実装。非同期化が必要。
+e0605c8c7bd52276ec508fe472663abbdb7098a6 96eb2bc18138eae7d67d3ee41b1b62d7da6086bd ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603081507 +0900	commit: いったんコミット
+96eb2bc18138eae7d67d3ee41b1b62d7da6086bd 02a147398e0b55612c557b73baf5266540211896 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603087145 +0900	commit: いったんコミット
+02a147398e0b55612c557b73baf5266540211896 7e93a841f4f3951d1a098fde69a0bbbe8a2e6d27 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603170066 +0900	commit: いったんコミット（model改造前）
+7e93a841f4f3951d1a098fde69a0bbbe8a2e6d27 06c32b57f3c262430f05e9cc2e91c1d29fc9e5e4 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603176336 +0900	commit: 非同期化を一時断念。同期処理に戻した。
+06c32b57f3c262430f05e9cc2e91c1d29fc9e5e4 8d9eb95b6e4d41586602c784105f78140526b61c ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603183554 +0900	commit: 非同期化。開始時と停止時でスレッド番号が違い、停止ができない。
+8d9eb95b6e4d41586602c784105f78140526b61c 18a95843f696dbeb883da9552a8cb6c66c523470 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603247418 +0900	commit: いったんコミット。ここから共同開発。
+18a95843f696dbeb883da9552a8cb6c66c523470 bf2e66f6c2b9f6ee7a2b53b0e5d38f96d032fbac ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603329897 +0900	commit: data_recorder追加
+bf2e66f6c2b9f6ee7a2b53b0e5d38f96d032fbac 6f6c9230850c450caa9d926ccfcca5a587c4423f ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603345418 +0900	commit: いったんコミット。ここからbranchを切って対応する。
+6f6c9230850c450caa9d926ccfcca5a587c4423f 6f6c9230850c450caa9d926ccfcca5a587c4423f ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603346193 +0900	checkout: moving from master to feature_3_change_frontend_to_vue
+6f6c9230850c450caa9d926ccfcca5a587c4423f 0cc5f0c18acdbacf06afbf28185e8183978351e0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603353752 +0900	commit: #3 vueサンプルのfront+既存のflask backendを連携
+0cc5f0c18acdbacf06afbf28185e8183978351e0 35e7f65262e06738de8fd0add8c490bd54e00488 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603354247 +0900	commit: #3 ディレクトリ名変更の修正漏れを訂正
+35e7f65262e06738de8fd0add8c490bd54e00488 5ced2b7f9e6a3c68d7c0174b4b58312b2f0022fd ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603354572 +0900	commit: #3 requirements.txt更新
+5ced2b7f9e6a3c68d7c0174b4b58312b2f0022fd 6f47f3c796f8cd0357c47119f4c43bd4bca83f58 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603432562 +0900	commit: #3 TypeScriptを含めるために再導入実施
+6f47f3c796f8cd0357c47119f4c43bd4bca83f58 d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603440349 +0900	commit: #3 仮画面作成
+d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 6f6c9230850c450caa9d926ccfcca5a587c4423f ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603441085 +0900	checkout: moving from feature_3_change_frontend_to_vue to master
+6f6c9230850c450caa9d926ccfcca5a587c4423f d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603441126 +0900	merge feature_3_change_frontend_to_vue: Fast-forward
+d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603442634 +0900	checkout: moving from master to feature_6_implement_monitoring
+d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 1e44f3ed5feb0d406b155942b14487e0c9385fdb ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603762480 +0900	checkout: moving from feature_6_implement_monitoring to feature_2_Add_Reporting_Page
+1e44f3ed5feb0d406b155942b14487e0c9385fdb d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603764054 +0900	checkout: moving from feature_2_Add_Reporting_Page to feature_6_implement_monitoring
+d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 1e44f3ed5feb0d406b155942b14487e0c9385fdb ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603764697 +0900	checkout: moving from feature_6_implement_monitoring to feature_2_Add_Reporting_Page
+1e44f3ed5feb0d406b155942b14487e0c9385fdb 4b3fe344818fcb83476f4868d24bc16762dc43d9 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603764722 +0900	pull --tags origin feature_2_Add_Reporting_Page: Fast-forward
+4b3fe344818fcb83476f4868d24bc16762dc43d9 d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603764964 +0900	checkout: moving from feature_2_Add_Reporting_Page to master
+d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 4b3fe344818fcb83476f4868d24bc16762dc43d9 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603764994 +0900	merge feature_2_Add_Reporting_Page: Fast-forward
+4b3fe344818fcb83476f4868d24bc16762dc43d9 d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603766582 +0900	checkout: moving from master to feature_6_implement_monitoring
+d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 4b3fe344818fcb83476f4868d24bc16762dc43d9 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603766594 +0900	merge master: Fast-forward
+4b3fe344818fcb83476f4868d24bc16762dc43d9 df82cf02760e9fe43de79e9d4c99004a8cbeda05 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603782745 +0900	commit: #6 リクエストループ実装
+df82cf02760e9fe43de79e9d4c99004a8cbeda05 a5f340085440db05a31fba7d97ac4d25af3a4399 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603791755 +0900	commit: #6 sessionがうまく動作しないのでVue側の変数でevent_idを保持
+a5f340085440db05a31fba7d97ac4d25af3a4399 364bb4da371c8f4f50060c0e780a5cfc924e5b55 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603845848 +0900	commit: #6 modalサンプル追加
+364bb4da371c8f4f50060c0e780a5cfc924e5b55 8bbd0eb40d65e061d5cb53cd34a56e890842bd8c ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603850211 +0900	commit: #6 ダイアログをviewに追加（コンポーネント化は別途検討）
+8bbd0eb40d65e061d5cb53cd34a56e890842bd8c f644c6b841c873b67eca145e75325b3aca371d87 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603860648 +0900	commit: #6 停止と記録を分離
+f644c6b841c873b67eca145e75325b3aca371d87 3334f983ffe59d170d67f0419ce42be2a9e1b3ac ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603867712 +0900	commit: #6 基本ロジック完成
+3334f983ffe59d170d67f0419ce42be2a9e1b3ac 43a22d1ddce42e3b70629861e951d1b6bace678a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603870155 +0900	commit: #6 微修正
+43a22d1ddce42e3b70629861e951d1b6bace678a 58150d7836e5ed2ae7f274aeb21c9889dd2a3adf ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603872709 +0900	commit: #6 微修正
+58150d7836e5ed2ae7f274aeb21c9889dd2a3adf faba34c519336d046ba7f6fbc84a58f9f03cbac4 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603939141 +0900	commit: #6 ループ処理をsetIntervalに変更
+faba34c519336d046ba7f6fbc84a58f9f03cbac4 ecdf2b67d73d69c393c948d0e8a3e7d1b896075a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604034843 +0900	commit: #6 既定の停止理由を未記録ステータスに設定
+ecdf2b67d73d69c393c948d0e8a3e7d1b896075a 4b3fe344818fcb83476f4868d24bc16762dc43d9 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604034870 +0900	checkout: moving from feature_6_implement_monitoring to master
+4b3fe344818fcb83476f4868d24bc16762dc43d9 ecdf2b67d73d69c393c948d0e8a3e7d1b896075a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604034923 +0900	merge feature_6_implement_monitoring: Fast-forward
+ecdf2b67d73d69c393c948d0e8a3e7d1b896075a ecdf2b67d73d69c393c948d0e8a3e7d1b896075a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604036154 +0900	checkout: moving from master to master
+ecdf2b67d73d69c393c948d0e8a3e7d1b896075a 827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604036206 +0900	checkout: moving from master to feature_5_add_pytest
+827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604036857 +0900	checkout: moving from feature_5_add_pytest to feature_5_add_pytest
+827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604039782 +0900	checkout: moving from feature_5_add_pytest to feature_5_add_pytest
+827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 ecdf2b67d73d69c393c948d0e8a3e7d1b896075a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604039831 +0900	checkout: moving from feature_5_add_pytest to master
+ecdf2b67d73d69c393c948d0e8a3e7d1b896075a 5d98175f9cbbe1b91f96c20e57ded1aa0ec8b698 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604041169 +0900	merge feature_5_add_pytest: Merge made by the 'recursive' strategy.
+5d98175f9cbbe1b91f96c20e57ded1aa0ec8b698 f78b909517f51937011a97e35cf6ce99ce093b5d ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604043953 +0900	commit: pytest導入中。postパラメータの読み取りでエラーになる。
+f78b909517f51937011a97e35cf6ce99ce093b5d 804fc25085e13b2d97eecd64d99568e054ccc8e4 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604046811 +0900	commit: withCredentialをいったん削除
+804fc25085e13b2d97eecd64d99568e054ccc8e4 804fc25085e13b2d97eecd64d99568e054ccc8e4 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604279594 +0900	checkout: moving from master to feature_9_fix_CORS_error
+804fc25085e13b2d97eecd64d99568e054ccc8e4 2999047b4f2e9880a1b94d2cd1bf37cc9a57bee6 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604281642 +0900	commit: #9 修正完了
+2999047b4f2e9880a1b94d2cd1bf37cc9a57bee6 804fc25085e13b2d97eecd64d99568e054ccc8e4 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604281782 +0900	checkout: moving from feature_9_fix_CORS_error to master
+804fc25085e13b2d97eecd64d99568e054ccc8e4 2999047b4f2e9880a1b94d2cd1bf37cc9a57bee6 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604281824 +0900	merge feature_9_fix_CORS_error: Fast-forward
+2999047b4f2e9880a1b94d2cd1bf37cc9a57bee6 113075aa04d3a3e967a9039aea71950f10f4c22f ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604283285 +0900	commit: 使用していないsessionの削除
+113075aa04d3a3e967a9039aea71950f10f4c22f 113075aa04d3a3e967a9039aea71950f10f4c22f ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604294913 +0900	checkout: moving from master to feature_12_fix_els_doc_create_error
+113075aa04d3a3e967a9039aea71950f10f4c22f c8fd62dc081fc0a9d24408554bb568c37f57fc57 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604295423 +0900	commit: #12 createをupsertに変更して対処
+c8fd62dc081fc0a9d24408554bb568c37f57fc57 113075aa04d3a3e967a9039aea71950f10f4c22f ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604295458 +0900	checkout: moving from feature_12_fix_els_doc_create_error to master
+113075aa04d3a3e967a9039aea71950f10f4c22f c8fd62dc081fc0a9d24408554bb568c37f57fc57 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604295470 +0900	merge feature_12_fix_els_doc_create_error: Fast-forward
+c8fd62dc081fc0a9d24408554bb568c37f57fc57 c8fd62dc081fc0a9d24408554bb568c37f57fc57 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604299495 +0900	checkout: moving from master to feature_4_fix_data_recorder
+c8fd62dc081fc0a9d24408554bb568c37f57fc57 331da97954e80ad62f40fc46209d2e9daed7c7a7 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604301663 +0900	commit: #4 ファイル監視の実装
+331da97954e80ad62f40fc46209d2e9daed7c7a7 c8fd62dc081fc0a9d24408554bb568c37f57fc57 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604541969 +0900	checkout: moving from feature_4_fix_data_recorder to master
+c8fd62dc081fc0a9d24408554bb568c37f57fc57 827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604542278 +0900	checkout: moving from master to feature_5_add_pytest
+827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 c66487e0966b626da669263e98dbe66cd9df15a7 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604542310 +0900	pull --tags origin feature_5_add_pytest: Fast-forward
+c66487e0966b626da669263e98dbe66cd9df15a7 c66487e0966b626da669263e98dbe66cd9df15a7 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604542398 +0900	checkout: moving from feature_5_add_pytest to feature_5_add_pytest
+c66487e0966b626da669263e98dbe66cd9df15a7 c66487e0966b626da669263e98dbe66cd9df15a7 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604542488 +0900	checkout: moving from feature_5_add_pytest to feature_5_add_pytest
+c66487e0966b626da669263e98dbe66cd9df15a7 c8fd62dc081fc0a9d24408554bb568c37f57fc57 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604542495 +0900	checkout: moving from feature_5_add_pytest to master
+c8fd62dc081fc0a9d24408554bb568c37f57fc57 c66487e0966b626da669263e98dbe66cd9df15a7 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604542501 +0900	checkout: moving from master to feature_5_add_pytest
+c66487e0966b626da669263e98dbe66cd9df15a7 309a23ca6ab216f5d716af349e21a070ae589372 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604544546 +0900	commit: 未使用のモジュールimport削除
+309a23ca6ab216f5d716af349e21a070ae589372 c8fd62dc081fc0a9d24408554bb568c37f57fc57 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604544569 +0900	checkout: moving from feature_5_add_pytest to master
+c8fd62dc081fc0a9d24408554bb568c37f57fc57 309a23ca6ab216f5d716af349e21a070ae589372 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604544583 +0900	merge feature_5_add_pytest: Fast-forward
+309a23ca6ab216f5d716af349e21a070ae589372 d14169b5e2001b81126453d5c7f2ce5a1850d635 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604630826 +0900	commit: Initial commit
+d14169b5e2001b81126453d5c7f2ce5a1850d635 309a23ca6ab216f5d716af349e21a070ae589372 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604631158 +0900	reset: moving to HEAD^
