@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603442634 +0900	branch: Created from HEAD
+d9a6d92b42f240ed577b6bc2e5cb95949cd0edd0 4b3fe344818fcb83476f4868d24bc16762dc43d9 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603766594 +0900	merge master: Fast-forward
+4b3fe344818fcb83476f4868d24bc16762dc43d9 df82cf02760e9fe43de79e9d4c99004a8cbeda05 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603782745 +0900	commit: #6 リクエストループ実装
+df82cf02760e9fe43de79e9d4c99004a8cbeda05 a5f340085440db05a31fba7d97ac4d25af3a4399 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603791755 +0900	commit: #6 sessionがうまく動作しないのでVue側の変数でevent_idを保持
+a5f340085440db05a31fba7d97ac4d25af3a4399 364bb4da371c8f4f50060c0e780a5cfc924e5b55 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603845848 +0900	commit: #6 modalサンプル追加
+364bb4da371c8f4f50060c0e780a5cfc924e5b55 8bbd0eb40d65e061d5cb53cd34a56e890842bd8c ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603850211 +0900	commit: #6 ダイアログをviewに追加（コンポーネント化は別途検討）
+8bbd0eb40d65e061d5cb53cd34a56e890842bd8c f644c6b841c873b67eca145e75325b3aca371d87 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603860648 +0900	commit: #6 停止と記録を分離
+f644c6b841c873b67eca145e75325b3aca371d87 3334f983ffe59d170d67f0419ce42be2a9e1b3ac ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603867712 +0900	commit: #6 基本ロジック完成
+3334f983ffe59d170d67f0419ce42be2a9e1b3ac 43a22d1ddce42e3b70629861e951d1b6bace678a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603870155 +0900	commit: #6 微修正
+43a22d1ddce42e3b70629861e951d1b6bace678a 58150d7836e5ed2ae7f274aeb21c9889dd2a3adf ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603872709 +0900	commit: #6 微修正
+58150d7836e5ed2ae7f274aeb21c9889dd2a3adf faba34c519336d046ba7f6fbc84a58f9f03cbac4 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1603939141 +0900	commit: #6 ループ処理をsetIntervalに変更
+faba34c519336d046ba7f6fbc84a58f9f03cbac4 ecdf2b67d73d69c393c948d0e8a3e7d1b896075a ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604034843 +0900	commit: #6 既定の停止理由を未記録ステータスに設定

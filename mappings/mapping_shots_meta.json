@@ -1,0 +1,10 @@
+{
+    "properties": {
+        "shot_number": {
+            "type": "long"
+        },
+        "spm": {
+            "type": "long"
+        }
+    }
+}
