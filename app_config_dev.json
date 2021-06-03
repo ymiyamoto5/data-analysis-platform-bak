@@ -9,7 +9,9 @@
     "mapping_rawdata_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_rawdata.json",
     "mapping_shots_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_shots.json",
     "mapping_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_shots_meta.json",
+    "mapping_resample_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/mapping_resample.json",
     "setting_rawdata_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_rawdata.json",
     "setting_shots_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_shots.json",
-    "setting_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_shots_meta.json"
+    "setting_shots_meta_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_shots_meta.json",
+    "setting_resample_path": "/home/ymiyamoto5/h-one-experimental-system/mappings/setting_resample.json"
 }
