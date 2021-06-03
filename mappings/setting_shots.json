@@ -1,7 +1,0 @@
-{
-    "index": {
-        "refresh_interval": "30s",
-        "number_of_replicas": 0,
-        "max_result_window": 15000
-    }
-}
