@@ -358,7 +358,7 @@ class CutOutShot:
         """ 切り出し対象としてデータを追加 """
 
         cut_out_target: dict = {
-            "timestamp": rawdata.timestamp,
+            "timestamp": datetime.fromtimestamp(rawdata.timestamp),
             "sequential_number": self.__sequential_number,
             "sequential_number_by_shot": self.__sequential_number_by_shot,
             "rawdata_sequential_number": rawdata.sequential_number,
