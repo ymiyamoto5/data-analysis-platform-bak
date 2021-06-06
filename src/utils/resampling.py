@@ -38,7 +38,7 @@ if __name__ == "__main__":
     target = "20210327141514"
     shots_data_index = "shots-" + target + "-data"
     shots_meta_index = "shots-" + target + "-meta"
-    resample_index = "shots-" + target + "-summary"
+    resample_index = "shots-" + target + "-resample"
 
     dr = DataReader()
     shots_df: DataFrame = dr.multi_process_read_all(shots_data_index)
