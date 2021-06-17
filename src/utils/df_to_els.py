@@ -11,7 +11,7 @@ from elastic_manager.elastic_manager import ElasticManager
 logger = logging.getLogger(__name__)
 
 
-def df_to_els(df: DataFrame, index: str, mapping: str, setting: str):
+def df_to_els(df: DataFrame, index: str, mapping: str = None, setting: str = None):
     """ DataFrameをList[dict]に変換し、指定したindex名でElasticsearchに登録する """
 
     if ElasticManager.exists_index(index):
