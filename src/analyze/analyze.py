@@ -157,6 +157,7 @@ def apply_logic(
         # 荷重センサー毎にdict化
         for i in range(0, common.NUM_OF_LOAD_SENSOR):
             d: dict = {
+                "timestamp": shot_df.iloc[indices[i]].timestamp,
                 "shot_number": shot_number,
                 "load": "load0" + str(i + 1),
                 "sequential_number": shot_df.iloc[indices[i]].sequential_number,
