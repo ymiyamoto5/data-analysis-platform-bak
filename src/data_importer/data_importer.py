@@ -33,7 +33,7 @@ class DataImporter:
         self.dir = dir
         self.start_time = start_time
 
-    def process(self, exists_timestamp: bool, use_cols, cols_name) -> None:
+    def process(self, exists_timestamp: bool, use_cols, cols_name, sampling_interval) -> None:
         """ """
 
         files: List[str] = glob.glob(os.path.join(self.dir, "*.csv"))
@@ -54,7 +54,7 @@ class DataImporter:
 
             # timestampと連番付与
             if not exists_timestamp:
-                df, seq_num = self.add_timestamp(df, seq_num)
+                df, seq_num = self.add_timestamp(df, seq_num, sampling_interval)
 
             # 並べ替え
             cols = ["sequential_number", "timestamp"] + cols_name
@@ -62,7 +62,7 @@ class DataImporter:
 
             self.to_pickle(df, file)
 
-    def add_timestamp(self, df: DataFrame, seq_num):
+    def add_timestamp(self, df: DataFrame, seq_num, sampling_interval):
         """ timestamp列追加
             FIXME: ついでに連番も付けているが、本来は別メソッドにすべき。
         """
@@ -70,7 +70,7 @@ class DataImporter:
         seq_nums = []
         datetime_list = []
         for _ in df.itertuples():
-            time = self.start_time + timedelta(microseconds=10) * seq_num
+            time = self.start_time + timedelta(microseconds=sampling_interval) * seq_num
             datetime_list.append(time.timestamp() - 9 * 60 * 60)
             seq_nums.append(seq_num)
             seq_num += 1
@@ -92,5 +92,8 @@ if __name__ == "__main__":
     # 何列目を使うか。
     use_cols: List[int] = [0, 6, 7, 8, 9]
     cols_name: List[str] = ["displacement", "load01", "load02", "load03", "load04"]
+    # sampling_interval = 10 # 100k
+    sampling_interval = 1000  # 1k
+
     di = DataImporter(dir, start_time)
-    di.process(exists_timestamp=False, use_cols=use_cols, cols_name=cols_name)
+    di.process(exists_timestamp=False, use_cols=use_cols, cols_name=cols_name, sampling_interval=sampling_interval)
