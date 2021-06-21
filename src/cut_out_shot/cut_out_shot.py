@@ -62,7 +62,9 @@ class CutOutShot:
         self.__previous_df_tail: DataFrame = pd.DataFrame(
             index=[], columns=("timestamp", "displacement", "load01", "load02", "load03", "load04")
         )
-        self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("shot_number", "spm", "num_of_samples_in_cut_out"))
+        self.__shots_meta_df: DataFrame = pd.DataFrame(
+            columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
+        )
 
         if displacement_func is None:
             logger.error("displacement_func is not defined.")
@@ -337,7 +339,7 @@ class CutOutShot:
             spm = None
 
         logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
-        self.__previous_shot_start_time = timestamp
+
         return spm
 
     def _initialize_when_shot_detected(self) -> None:
@@ -361,7 +363,7 @@ class CutOutShot:
             "timestamp": datetime.fromtimestamp(rawdata.timestamp),
             "sequential_number": self.__sequential_number,
             "sequential_number_by_shot": self.__sequential_number_by_shot,
-            "rawdata_sequential_number": rawdata.sequential_number,
+            "rawdata_sequential_number": int(rawdata.sequential_number),
             "displacement": rawdata.displacement,
             "load01": rawdata.load01,
             "load02": rawdata.load02,
@@ -421,6 +423,7 @@ class CutOutShot:
 
         # 最後のショットのメタデータを追加
         d: dict = {
+            "timestamp": datetime.fromtimestamp(self.__previous_shot_start_time),
             "shot_number": self.__shot_number,
             "spm": None,
             "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
@@ -428,7 +431,7 @@ class CutOutShot:
         self.__shots_meta_df = self.__shots_meta_df.append(d, ignore_index=True)
         self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(self.__shots_meta_df["spm"].notna(), None)
 
-        self.__shots_meta_df["shot_number"] = self.__shots_meta_df["shot_number"].astype(int)
+        self.__shots_meta_df = self.__shots_meta_df.astype({"shot_number": int, "num_of_samples_in_cut_out": int})
 
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
@@ -689,12 +692,14 @@ class CutOutShot:
                     spm: float = self._calculate_spm(rawdata.timestamp)
                     self.__shots_meta_df = self.__shots_meta_df.append(
                         {
+                            "timestamp": datetime.fromtimestamp(self.__previous_shot_start_time),
                             "shot_number": self.__shot_number,
                             "spm": spm,
                             "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
                         },
                         ignore_index=True,
                     )
+                    self.__previous_shot_start_time = rawdata.timestamp
 
                 self._initialize_when_shot_detected()
 
