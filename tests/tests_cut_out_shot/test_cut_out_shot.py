@@ -868,7 +868,7 @@ class TestIncludePreviousData:
 
         target._include_previous_data(rawdata_df[:2])
 
-        assert target.cut_out_targets[0]["timestamp"] == rawdata_df.iloc[0].timestamp
+        assert target.cut_out_targets[0]["timestamp"] == datetime.fromtimestamp(rawdata_df.iloc[0].timestamp)
         assert target.cut_out_targets[0]["sequential_number"] == 0
         assert target.cut_out_targets[0]["sequential_number_by_shot"] == 0
         assert target.cut_out_targets[0]["displacement"] == rawdata_df.iloc[0].displacement
@@ -879,7 +879,7 @@ class TestIncludePreviousData:
         assert target.cut_out_targets[0]["shot_number"] == 0
         assert target.cut_out_targets[0]["tags"] == []
 
-        assert target.cut_out_targets[1]["timestamp"] == rawdata_df.iloc[1].timestamp
+        assert target.cut_out_targets[1]["timestamp"] == datetime.fromtimestamp(rawdata_df.iloc[1].timestamp)
         assert target.cut_out_targets[1]["sequential_number"] == 1
         assert target.cut_out_targets[1]["sequential_number_by_shot"] == 1
         assert target.cut_out_targets[1]["displacement"] == rawdata_df.iloc[1].displacement
@@ -902,7 +902,7 @@ class TestAddCutOutTarget:
         actual: List[dict] = target.cut_out_targets
 
         expected = {
-            "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+            "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111),
             "sequential_number": 0,
             "sequential_number_by_shot": 0,
             "rawdata_sequential_number": 2,
@@ -1207,7 +1207,7 @@ class TestCutOutShot:
         expected = [
             # 切り出し区間前2（遡りにより切り出し区間に含まれる）
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 1,
@@ -1221,7 +1221,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-1
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 2,
@@ -1235,7 +1235,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111),
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 3,
@@ -1249,7 +1249,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-3
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111),
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 4,
@@ -1263,7 +1263,7 @@ class TestCutOutShot:
             },
             # 切り出し区間後4(ショット区間終了）（遡りにより切り出し区間に含まれる）
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 18, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 18, 111111),
                 "sequential_number": 4,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 8,
@@ -1277,7 +1277,7 @@ class TestCutOutShot:
             },
             # 切り出し区間2-1
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111),
                 "sequential_number": 5,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 9,
@@ -1291,7 +1291,7 @@ class TestCutOutShot:
             },
             # 切り出し区間2-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111),
                 "sequential_number": 6,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 10,
@@ -1305,7 +1305,7 @@ class TestCutOutShot:
             },
             # 切り出し区間2-3
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111),
                 "sequential_number": 7,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 11,
@@ -1328,9 +1328,18 @@ class TestCutOutShot:
 
         # 最後のショットの情報は得られないので記録されない。
         expected_shots_meta = [
-            {"shot_number": 1.0, "spm": 8.571429, "num_of_samples_in_cut_out": 4.0},
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111),
+                "shot_number": 1,
+                "spm": 8.571429,
+                "num_of_samples_in_cut_out": 4,
+            },
         ]
         expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
+        # NOTE: actualがobject型になってしまうので変換
+        expected_shots_meta_df = expected_shots_meta_df.astype(
+            {"shot_number": object, "num_of_samples_in_cut_out": object}
+        )
 
         assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
 
@@ -1349,7 +1358,7 @@ class TestCutOutShot:
         expected = [
             # 切り出し区間1-3
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 4,
@@ -1363,7 +1372,7 @@ class TestCutOutShot:
             },
             # 切り出し区間2-3
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 11,
@@ -1386,9 +1395,19 @@ class TestCutOutShot:
 
         # 最後のショットの情報は得られないので記録されない。
         expected_shots_meta = [
-            {"shot_number": 1.0, "spm": 8.571429, "num_of_samples_in_cut_out": 1.0},
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111),
+                "shot_number": 1,
+                "spm": 8.571429,
+                "num_of_samples_in_cut_out": 1,
+            },
         ]
+
         expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
+        # NOTE: actualがobject型になってしまうので変換
+        expected_shots_meta_df = expected_shots_meta_df.astype(
+            {"shot_number": object, "num_of_samples_in_cut_out": object}
+        )
 
         assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
 
@@ -1409,7 +1428,7 @@ class TestCutOutShot:
         expected = [
             # 切り出し区間前1
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 0,
@@ -1423,7 +1442,7 @@ class TestCutOutShot:
             },
             # 切り出し区間前2
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 1,
@@ -1437,7 +1456,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-1
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111),
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 2,
@@ -1451,7 +1470,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111),
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 3,
@@ -1465,7 +1484,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-3
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111),
                 "sequential_number": 4,
                 "sequential_number_by_shot": 4,
                 "rawdata_sequential_number": 4,
@@ -1487,7 +1506,7 @@ class TestCutOutShot:
         actual_shots_meta_df: DataFrame = target.shots_meta_df
 
         # ショットが1つしかなく、次のショットが見つからないのでメタ情報は得られない。
-        expected_shots_meta_df = pd.DataFrame(columns=("shot_number", "spm", "num_of_samples_in_cut_out"))
+        expected_shots_meta_df = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
 
         assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
 
@@ -1508,7 +1527,7 @@ class TestCutOutShot:
         expected = [
             # 切り出し区間1-1
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111),
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 2,
@@ -1522,7 +1541,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111),
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 3,
@@ -1536,7 +1555,7 @@ class TestCutOutShot:
             },
             # 切り出し区間1-3
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111),
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 4,
@@ -1550,7 +1569,7 @@ class TestCutOutShot:
             },
             # 切り出し区間後1
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111),
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 5,
@@ -1564,7 +1583,7 @@ class TestCutOutShot:
             },
             # 切り出し区間後2
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111),
                 "sequential_number": 4,
                 "sequential_number_by_shot": 4,
                 "rawdata_sequential_number": 6,
@@ -1578,7 +1597,7 @@ class TestCutOutShot:
             },
             # 切り出し区間後3(変位にmargin=0.1を加算した場合、ショットの終了と見做されない変位値)
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111),
                 "sequential_number": 5,
                 "sequential_number_by_shot": 5,
                 "rawdata_sequential_number": 7,
@@ -1592,7 +1611,7 @@ class TestCutOutShot:
             },
             # 切り出し区間2-1
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111),
                 "sequential_number": 6,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 9,
@@ -1606,7 +1625,7 @@ class TestCutOutShot:
             },
             # 切り出し区間2-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111),
                 "sequential_number": 7,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 10,
@@ -1620,7 +1639,7 @@ class TestCutOutShot:
             },
             # 切り出し区間2-3
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111),
                 "sequential_number": 8,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 11,
@@ -1633,7 +1652,7 @@ class TestCutOutShot:
                 "tags": [],
             },
             {
-                "timestamp": datetime(2020, 12, 1, 10, 30, 22, 111111).timestamp(),
+                "timestamp": datetime(2020, 12, 1, 10, 30, 22, 111111),
                 "sequential_number": 9,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 12,
@@ -1657,9 +1676,18 @@ class TestCutOutShot:
         # ショットが1つしかなく、次のショットが見つからないのでメタ情報は得られない。
         # 最後のショットの情報は得られないので記録されない。
         expected_shots_meta = [
-            {"shot_number": 1.0, "spm": 8.571429, "num_of_samples_in_cut_out": 6.0},
+            {
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111),
+                "shot_number": 1.0,
+                "spm": 8.571429,
+                "num_of_samples_in_cut_out": 6.0,
+            },
         ]
         expected_shots_meta_df = pd.DataFrame(expected_shots_meta)
+        # NOTE: actualがobject型になってしまうので変換
+        expected_shots_meta_df = expected_shots_meta_df.astype(
+            {"shot_number": object, "num_of_samples_in_cut_out": object}
+        )
 
         assert_frame_equal(actual_shots_meta_df, expected_shots_meta_df)
 
