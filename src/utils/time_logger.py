@@ -21,7 +21,7 @@ RT = TypeVar("RT")
 def time_log(func: Callable[..., RT]) -> Callable[..., RT]:
     """ 開始・終了・経過時間を表示するデコレータ """
 
-    def wrapper(*args, **kwargs) -> RT:
+    def wrapper(*args, **kwargs):
         start = datetime.now()
         func(*args, **kwargs)
         end = datetime.now()

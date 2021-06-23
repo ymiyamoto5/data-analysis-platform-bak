@@ -24,7 +24,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
-from throughput_counter import throughput_counter
+from throughput_counter import throughput_counter  # type: ignore
 import common
 
 logger = logging.getLogger(__name__)

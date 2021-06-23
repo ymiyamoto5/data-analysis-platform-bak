@@ -26,9 +26,9 @@ APP_CONFIG_PATH: Final[str] = os.getenv("APP_CONFIG_PATH", "/home/hone/h-one-exp
 MAX_LOG_SIZE: Final[int] = 1024 * 1024  # 1MB
 BACKUP_COUNT: Final[int] = 5
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
-MARGIN: Final[int] = 0.1
+MARGIN: Final[float] = 0.1
 SAMPLING_RATE: Final[int] = 100_000
-SAMPLING_INTERVAL: Final[int] = 0.000010
+SAMPLING_INTERVAL: Final[float] = 0.000010
 TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
 NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
 NUM_OF_LOAD_SENSOR: Final[int] = 4

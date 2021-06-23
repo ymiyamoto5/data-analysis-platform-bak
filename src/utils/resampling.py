@@ -10,10 +10,10 @@ from data_reader.data_reader import DataReader
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
-from df_to_els import df_to_els
+from df_to_els import df_to_els  # type: ignore
 
 
-def resampling(shots_df: DataFrame, resampling_rate: int, exclude_shots: Tuple[int]):
+def resampling(shots_df: DataFrame, resampling_rate: int, exclude_shots: Tuple[int, ...]):
     """ 指定したrateでリサンプリング """
 
     print("resampling start...")
