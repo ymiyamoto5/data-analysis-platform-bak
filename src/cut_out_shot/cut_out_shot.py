@@ -38,7 +38,7 @@ class CutOutShot:
         back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
-        margin: int = 0.3,
+        margin: float = 0.3,
         displacement_func: Optional[Callable[[float], float]] = None,
         load01_func: Optional[Callable[[float], float]] = None,
         load02_func: Optional[Callable[[float], float]] = None,
@@ -50,7 +50,7 @@ class CutOutShot:
         self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
-        self.__margin: int = margin
+        self.__margin: float = margin
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * common.SAMPLING_RATE  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
@@ -277,7 +277,7 @@ class CutOutShot:
         tags: List[str] = []
 
         for d in self.__cut_out_targets:
-            tags: List[str] = self._get_tags(d["timestamp"], tag_events)
+            tags = self._get_tags(d["timestamp"], tag_events)
             if len(tags) > 0:
                 d["tags"].extend(tags)
 
@@ -303,7 +303,7 @@ class CutOutShot:
         """ 現在のchunkの末尾を保持する """
 
         N: Final[int] = self.__previous_size
-        self.__previous_df_tail: DataFrame = df[-N:].copy()
+        self.__previous_df_tail = df[-N:].copy()
 
     def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame) -> DataFrame:
         """ ショット開始点からN件遡ったデータを取得する """
@@ -324,16 +324,20 @@ class CutOutShot:
 
         # 遡って取得するデータが現在のDataFrameに含まれない場合
         # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
-        start_index: int = row_number
-        end_index: int = row_number
+        start_index = row_number
+        end_index = row_number
         return pd.concat([self.__previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
 
-    def _calculate_spm(self, timestamp: float) -> float:
+    def _calculate_spm(self, timestamp: float) -> Optional[float]:
         """ spm (shot per minute) 計算。ショット検出時、前ショットの開始時間との差分を計算する。 """
+
+        if self.__previous_shot_start_time is None:
+            logger.error("Invalid process. previous_shot_start_time is None.")
+            sys.exit(1)
 
         try:
             # NOTE: 小数点以下計算に誤差があるため、下2桁で丸め
-            spm: float = 60.0 / round((timestamp - self.__previous_shot_start_time), 2)
+            spm: Optional[float] = 60.0 / round((timestamp - self.__previous_shot_start_time), 2)
         except ZeroDivisionError:
             logger.error(f"ZeroDivisionError. shot_number: {self.__shot_number}")
             spm = None
@@ -418,8 +422,12 @@ class CutOutShot:
 
         return df
 
-    def _export_shots_meta_to_es(self, shots_meta_index: str):
+    def _export_shots_meta_to_es(self, shots_meta_index: str) -> None:
         """ ショットメタデータをshots_metaインデックスに出力 """
+
+        if self.__previous_shot_start_time is None:
+            logger.error("self.__previous_shot_start_time should not be None.")
+            sys.exit(1)
 
         # 最後のショットのメタデータを追加
         d: dict = {
@@ -446,7 +454,7 @@ class CutOutShot:
 
         return []
 
-    def _set_start_sequential_number(self, start_sequential_number: int, rawdata_count: int) -> Union[int, Exception]:
+    def _set_start_sequential_number(self, start_sequential_number: Optional[int], rawdata_count: int) -> int:
         """ パラメータ start_sequential_number の設定 """
 
         if start_sequential_number is None:
@@ -465,9 +473,13 @@ class CutOutShot:
         return start_sequential_number
 
     def _set_end_sequential_number(
-        self, start_sequential_number: int, end_sequential_number: int, rawdata_count: int
-    ) -> Union[int, Exception]:
+        self, start_sequential_number: Optional[int], end_sequential_number: Optional[int], rawdata_count: int
+    ) -> int:
         """ パラメータ end_sequential_number の設定 """
+
+        if start_sequential_number is None:
+            logger.error("start_sequential_number should not be None.")
+            sys.exit(1)
 
         if end_sequential_number is None:
             return rawdata_count
@@ -536,12 +548,12 @@ class CutOutShot:
             has_target_interval: bool = True
             rawdata_index: str = "rawdata-" + rawdata_dir_name
             rawdata_count: int = ElasticManager.count(index=rawdata_index)
-            start_sequential_number: int = self._set_start_sequential_number(start_sequential_number, rawdata_count)
-            end_sequential_number: int = self._set_end_sequential_number(
+            start_sequential_number = self._set_start_sequential_number(start_sequential_number, rawdata_count)
+            end_sequential_number = self._set_end_sequential_number(
                 start_sequential_number, end_sequential_number, rawdata_count
             )
         else:
-            has_target_interval: bool = False
+            has_target_interval = False
 
         shots_index: str = "shots-" + rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
@@ -590,6 +602,12 @@ class CutOutShot:
 
             # パラメータで指定された対象範囲に含まれないデータを除外
             if has_target_interval:
+                if start_sequential_number is None:
+                    logger.error("start_sequential_number should not be None.")
+                    sys.exit(1)
+                if end_sequential_number is None:
+                    logger.error("end_sequential_number should not be None.")
+                    sys.exit(1)
                 rawdata_df = self._exclude_non_target_interval(
                     rawdata_df, start_sequential_number, end_sequential_number
                 )
@@ -638,17 +656,17 @@ class CutOutShot:
             cut_out_df: DataFrame = pd.DataFrame(self.__cut_out_targets)
 
             # 最大サンプル数を超えたショットの削除
-            cut_out_df: DataFrame = self._exclude_over_sample(cut_out_df)
+            cut_out_df = self._exclude_over_sample(cut_out_df)
 
             if len(cut_out_df) == 0:
                 logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
 
             # 荷重値に変換式を適用
-            cut_out_df: DataFrame = self._apply_expr_load(cut_out_df)
+            cut_out_df = self._apply_expr_load(cut_out_df)
 
             # Elasticsearchに格納するため、dictに戻す
-            self.__cut_out_targets: List[dict] = cut_out_df.to_dict(orient="records")
+            self.__cut_out_targets = cut_out_df.to_dict(orient="records")
 
             # タグ付け
             if len(tag_events) > 0:
@@ -686,10 +704,15 @@ class CutOutShot:
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
             if self._detect_shot_start(rawdata.displacement, start_displacement, end_displacement):
                 if self.__shot_number == 0:
-                    self.__previous_shot_start_time: float = rawdata.timestamp
+                    self.__previous_shot_start_time = rawdata.timestamp
                 # 2つめ以降のショット検知時は、1つ前のショットのspmを計算して記録する
                 else:
-                    spm: float = self._calculate_spm(rawdata.timestamp)
+                    spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
+
+                    if self.__previous_shot_start_time is None:
+                        logger.error("self.__previous_shot_start_time should not be None.")
+                        sys.exit(1)
+
                     self.__shots_meta_df = self.__shots_meta_df.append(
                         {
                             "timestamp": datetime.fromtimestamp(self.__previous_shot_start_time),
