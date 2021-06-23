@@ -14,7 +14,7 @@ import sys
 import json
 import logging
 import fcntl
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Dict, Any
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
