@@ -40,7 +40,7 @@ def apply(
     feature: str,
     func: Callable,
     sub_func: Callable = None,
-    exclude_shots: Tuple[int] = None,
+    exclude_shots: Tuple[int, ...] = None,
 ) -> None:
     """ 特定のロジックを3,000ショットに適用 """
 
@@ -66,7 +66,7 @@ def multi_process(
     feature: str,
     func: Callable,
     sub_func: Callable = None,
-    exclude_shots: Tuple[int] = None,
+    exclude_shots: Tuple[int, ...] = None,
 ) -> None:
     """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
@@ -102,7 +102,7 @@ def multi_process(
         proc.start()
         procs.append(proc)
 
-        start_shot_number: int = end_shot_number
+        start_shot_number = end_shot_number
 
     for proc in procs:
         proc.join()
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     shots_df: DataFrame = dr.multi_process_read_all(shots_data_index)
     shots_meta_df = dr.read_shots_meta(shots_meta_index)
 
-    exclude_shots = (983, 1227, 1228, 1229, 1369, 1381)
+    exclude_shots: Tuple[int, ...] = (983, 1227, 1228, 1229, 1369, 1381)
 
     apply(
         target=target,
