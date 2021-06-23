@@ -16,7 +16,7 @@ import os
 import sys
 import pandas as pd
 import json
-from typing import Iterable, Tuple, List, Optional, Final
+from typing import Iterable, Tuple, List, Optional, Final, Generator, Collection, Dict, Any
 import multiprocessing
 import logging
 
@@ -55,10 +55,11 @@ class ElasticManager:
     def get_latest_events_index(cls) -> Optional[str]:
         """ 最新のevents_indexの名前を返す """
 
-        _indices = cls.es.cat.indices(index="events-*", s="index", h="index").splitlines()
+        _indices: List[str] = cls.es.cat.indices(index="events-*", s="index", h="index").splitlines()
         if len(_indices) == 0:
             logger.error("events index not found.")
             return None
+
         return _indices[-1]
 
     @classmethod
@@ -257,7 +258,7 @@ class ElasticManager:
         for proc_number, data_num in enumerate(data_num_by_proc):
             end_index: int = start_index + data_num
             target_data: list = data[start_index:end_index]
-            start_index: int = end_index
+            start_index = end_index
 
             logger.debug(f"process {proc_number} will execute {len(target_data)} data.")
 
@@ -279,12 +280,14 @@ class ElasticManager:
         # https://github.com/elastic/elasticsearch-py/issues/638
         es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
-        actions: Tuple[dict] = ({"_index": index_to_import, "_source": x} for x in data_list)
+        actions: Generator[Dict[str, Collection[Any]], None, None] = (
+            {"_index": index_to_import, "_source": x} for x in data_list
+        )
         helpers.bulk(es, actions, chunk_size=chunk_size, stats_only=True, raise_on_error=False)
 
     @classmethod
     def count(cls, index: str) -> int:
-        result: dict = cls.es.count(index=index)
+        result: Dict[str, int] = cls.es.count(index=index)
         return result["count"]
 
     @classmethod
@@ -300,7 +303,7 @@ class ElasticManager:
 
         # マルチプロセスの結果格納用
         manager = multiprocessing.Manager()
-        return_dict = manager.dict()
+        return_dict: Dict[int, List[dict]] = manager.dict()
 
         procs: List[multiprocessing.context.Process] = []
         start_index: int = 0
@@ -313,15 +316,15 @@ class ElasticManager:
             proc.start()
             procs.append(proc)
 
-            start_index: int = end_index
+            start_index = end_index
 
         for proc in procs:
             proc.join()
 
         # マルチプロセスの結果をマージする
         result = []
-        for proc in range(num_of_process):
-            for data in return_dict[proc]:
+        for proc_number in range(num_of_process):
+            for data in return_dict[proc_number]:
                 result.append(data)
 
         return result
