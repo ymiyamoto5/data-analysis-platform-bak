@@ -38,7 +38,7 @@ class DataReader:
             logger.error("No data.")
             return
 
-        result.sort(key=lambda x: x["sequential_number"])
+        result.sort(key=lambda x: x["sequential_number"])  # type: ignore
 
         df: DataFrame = pd.DataFrame(result)
         return df
@@ -56,7 +56,7 @@ class DataReader:
             logger.error("No data.")
             return
 
-        result.sort(key=lambda x: x["sequential_number"])
+        result.sort(key=lambda x: x["sequential_number"])  # type: ignore
 
         df: DataFrame = pd.DataFrame(result)
         return df
@@ -78,7 +78,7 @@ class DataReader:
             logger.error("No data.")
             return
 
-        result.sort(key=lambda x: x["sequential_number"])
+        result.sort(key=lambda x: x["sequential_number"])  # type: ignore
 
         df: DataFrame = pd.DataFrame(result)
         return df
@@ -98,7 +98,7 @@ class DataReader:
             logger.error("No data.")
             return
 
-        result.sort(key=lambda x: x["sequential_number"])
+        result.sort(key=lambda x: x["sequential_number"])  # type: ignore
 
         logger.info("Data reading has finished.")
 
