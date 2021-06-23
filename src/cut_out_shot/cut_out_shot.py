@@ -16,7 +16,7 @@ import logging
 import logging.handlers
 import pandas as pd
 import glob
-from typing import Callable, Final, List, Optional, Union
+from typing import Callable, Final, List, Optional
 from datetime import datetime, timedelta
 from pandas.core.frame import DataFrame
 
