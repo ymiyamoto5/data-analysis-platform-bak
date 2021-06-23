@@ -37,9 +37,9 @@ def _initialize_config_file() -> Tuple[bool, Optional[str]]:
 
     successful: bool = cfm.create()
 
-    message: str = None
+    message: Optional[str] = None
     if not successful:
-        message: str = "config file update failed."
+        message = "config file update failed."
 
     return successful, message
 
