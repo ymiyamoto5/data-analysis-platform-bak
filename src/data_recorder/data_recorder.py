@@ -22,7 +22,7 @@ import logging.handlers
 import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
-from typing import Final, Tuple, List, Mapping, Optional
+from typing import Final, Tuple, List, Mapping, Optional, Any
 import dataclasses
 import argparse
 
@@ -84,7 +84,7 @@ def _get_collect_end_time(events: List[dict]) -> float:
     else:
         end_event: dict = end_events[0]
         BUFFER: Final[float] = 5.0  # 安全バッファ
-        end_time: float = datetime.fromisoformat(end_event["occurred_time"]).timestamp() + BUFFER
+        end_time = datetime.fromisoformat(end_event["occurred_time"]).timestamp() + BUFFER
 
     return end_time
 
@@ -92,7 +92,7 @@ def _get_collect_end_time(events: List[dict]) -> float:
 def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
     """ 処理対象となる区間（開始/終了時刻）を取得する """
 
-    start_time: float = _get_collect_start_time(events)
+    start_time: Optional[float] = _get_collect_start_time(events)
 
     if start_time is None:
         sys.exit(1)
@@ -139,7 +139,7 @@ def _read_binary_files(file: FileInfo, sequential_number: int, timestamp: float)
         if len(binary_dataset) == 0:
             break
 
-        dataset: Tuple[float, float, float, float, float] = struct.unpack("<ddddd", binary_dataset)
+        dataset: Tuple[Any, ...] = struct.unpack("<ddddd", binary_dataset)
         logger.debug(dataset)
 
         sample: dict = {
@@ -173,7 +173,7 @@ def _create_files_info(data_dir: str) -> Optional[List[FileInfo]]:
     file_list.sort()
 
     # ファイルリストから時刻データを生成
-    files_timestamp: Mapping = map(_create_file_timestamp, file_list)
+    files_timestamp: map[float] = map(_create_file_timestamp, file_list)
     # リストを作成 [{"file_path": "xxx", "timestamp": "yyy"},...]
     files_info: List[FileInfo] = [
         FileInfo(file_path=row[0], timestamp=row[1]) for row in zip(file_list, files_timestamp)
@@ -226,7 +226,7 @@ def _data_record(
     for file in target_files:
         # バイナリファイルを読み取り、データリストを取得
         samples: List[dict]
-        sequential_number: int
+        sequential_number
         samples, sequential_number, timestamp = _read_binary_files(file, sequential_number, timestamp)
 
         if len(procs) > 0:
