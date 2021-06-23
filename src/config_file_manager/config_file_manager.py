@@ -14,7 +14,7 @@ import sys
 import json
 import logging
 import fcntl
-from typing import Tuple, Optional, Union
+from typing import Optional, Union, Dict, Any
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
@@ -26,7 +26,7 @@ class ConfigFileManager:
     def __init__(self, app_config_path: str = None):
         """ app_config.jsonからconfigファイルのパスを取得 """
 
-        app_config_path: str = common.APP_CONFIG_PATH if app_config_path is None else app_config_path
+        app_config_path = common.APP_CONFIG_PATH if app_config_path is None else app_config_path
 
         self.config_file_path = common.get_config_value(app_config_path, "config_file_path")
 
@@ -41,7 +41,7 @@ class ConfigFileManager:
         logger.info("Creating config file.")
 
         if initial_config_path is None:
-            initial_config_path: str = common.get_config_value(common.APP_CONFIG_PATH, "initial_config_file_path")
+            initial_config_path = common.get_config_value(common.APP_CONFIG_PATH, "initial_config_file_path")
 
         try:
             initial_config: dict = self.read_config(initial_config_path)
@@ -83,11 +83,11 @@ class ConfigFileManager:
 
         return successful
 
-    def read_config(self, config_file_path: str = None) -> Union[dict, FileNotFoundError, Exception]:
+    def read_config(self, config_file_path: str = None) -> dict:
         """ configファイルを読み取り、dictで返す """
 
         if config_file_path is None:
-            config_file_path: str = self.config_file_path
+            config_file_path = self.config_file_path
 
         try:
             with open(config_file_path, "r") as f:
@@ -99,10 +99,10 @@ class ConfigFileManager:
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except FileNotFoundError as e:
             logger.exception(str(e))
-            raise FileNotFoundError
+            sys.exit(1)
         except Exception as e:
             logger.exception(str(e))
-            raise Exception
+            sys.exit(1)
 
     def _dump_config_file(self, config: dict) -> bool:
         """ configファイルに吐き出す """
@@ -120,7 +120,7 @@ class ConfigFileManager:
                     return True
         except FileNotFoundError as e:
             logger.exception(str(e))
-            raise FileNotFoundError
+            return False
         except Exception as e:
             logger.exception(str(e))
-            raise Exception
+            return False
