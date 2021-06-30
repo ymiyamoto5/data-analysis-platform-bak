@@ -45,4 +45,4 @@ src/utils/rawdata_importer.py
 app_config_dev.json
 src/utils/contour_data.py
 notebooks/jupyter2kibana
-notebooks/cut_out_shot-Copy1.ipynb
+notebooks/*-Copy*.ipynb
