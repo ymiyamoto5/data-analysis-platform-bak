@@ -226,8 +226,8 @@ class CutOutShot:
                 tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
                 tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=self.__back_seconds_for_tagging)
                 # datetime to unixtime
-                tag_event["start_time"] = tag_event["start_time"].timestamp()
-                tag_event["end_time"] = tag_event["end_time"].timestamp()
+                # tag_event["start_time"] = tag_event["start_time"].timestamp()
+                # tag_event["end_time"] = tag_event["end_time"].timestamp()
 
         return tag_events
 
@@ -787,4 +787,17 @@ if __name__ == "__main__":
         load03_func=load03_func,
         load04_func=load04_func,
     )
-    cut_out_shot.cut_out_shot(rawdata_dir_name="20210327141514", start_displacement=47.0, end_displacement=34.0)
+    cut_out_shot.cut_out_shot(rawdata_dir_name="20210101000000", start_displacement=150.0, end_displacement=25.0)
+    # cut_out_shot = CutOutShot(
+    #     min_spm=15,
+    #     back_seconds_for_tagging=120,
+    #     previous_size=1_000,
+    #     chunk_size=5_000,
+    #     margin=0.3,
+    #     displacement_func=displacement_func,
+    #     load01_func=load01_func,
+    #     load02_func=load02_func,
+    #     load03_func=load03_func,
+    #     load04_func=load04_func,
+    # )
+    # cut_out_shot.cut_out_shot(rawdata_dir_name="20210327141514", start_displacement=47.0, end_displacement=34.0)
