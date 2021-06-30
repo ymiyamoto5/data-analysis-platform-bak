@@ -18,7 +18,7 @@ import sys
 import traceback
 import logging
 import logging.handlers
-from typing import Callable, Final, List, Tuple
+from typing import Callable, Final, List, Tuple, Optional
 from pandas.core.frame import DataFrame
 
 import h_one_extract_features as ef
@@ -139,7 +139,9 @@ def apply_logic(
 
         shot_df = shot_df.reset_index()
 
-        spm: float = float(shots_meta_df[shots_meta_df.shot_number == shot_number].spm)
+        spm: Optional[float] = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
+        # TODO: 後続エラー回避のため、暫定対処としてNoneのときは80.0としている
+        spm = float(spm) if spm.iloc[0] is not None else 80.0
 
         indices: List[int]
         values: List[float]
