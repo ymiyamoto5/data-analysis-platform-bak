@@ -58,8 +58,10 @@ class TestDumpConfigFile:
         config: dict = {"dummy_config": "dummy_config"}
 
         mocker.patch.object(builtins, "open", side_effect=Exception)
-        with pytest.raises(Exception):
-            cfm._dump_config_file(config)
+        actual: bool = cfm._dump_config_file(config)
+        expected = False
+
+        assert actual == expected
 
 
 class TestReadConfig:
@@ -101,10 +103,8 @@ class TestCreate:
 
         cfm = ConfigFileManager(app_config_file._str)
 
-        actual: bool = cfm.create("not_exists_file_path")
-        expected: bool = False
-
-        assert actual == expected
+        with pytest.raises(SystemExit):
+            cfm.create("not_exists_file_path")
 
     def test_invalid_json_exception(self, app_config_file, config_file):
         """ 初期configファイルが不正なJSONだった場合、Falseが返ること """
@@ -115,10 +115,8 @@ class TestCreate:
 
         cfm = ConfigFileManager(app_config_file._str)
 
-        actual: bool = cfm.create(config_file._str)
-        expected: bool = False
-
-        assert actual == expected
+        with pytest.raises(SystemExit):
+            cfm.create(config_file._str)
 
 
 class TestUpdate:

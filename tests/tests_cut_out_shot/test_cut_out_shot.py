@@ -187,8 +187,8 @@ class TestGetTagEvent:
         target.back_seconds_for_tagging = 120
         actual = target._get_tag_events(events)
 
-        expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
-        expected_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
+        expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456)
+        expected_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456)
 
         expected = [
             {"event_type": "tag", "tags": "tag1", "start_time": expected_start_time, "end_time": expected_end_time},
@@ -210,10 +210,10 @@ class TestGetTagEvent:
         target.back_seconds_for_tagging = 120
         actual = target._get_tag_events(events)
 
-        expected_tag1_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
-        expected_tag1_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
-        expected_tag2_start_time = datetime(2020, 12, 1, 0, 16, 0, 123456).timestamp()
-        expected_tag2_end_time = datetime(2020, 12, 1, 0, 18, 0, 123456).timestamp()
+        expected_tag1_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456)
+        expected_tag1_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456)
+        expected_tag2_start_time = datetime(2020, 12, 1, 0, 16, 0, 123456)
+        expected_tag2_end_time = datetime(2020, 12, 1, 0, 18, 0, 123456)
 
         expected = [
             {
@@ -990,7 +990,7 @@ class TestApplyExprDisplacment:
         )
 
         # 全データを見る必要はないので一部スライス
-        target_df: DataFrame = rawdata_df[:3]
+        target_df: DataFrame = rawdata_df[:3].copy()
 
         actual_df: DataFrame = cut_out_shot._apply_expr_displacement(target_df)
 
@@ -1044,7 +1044,7 @@ class TestApplyExprLoad:
         )
 
         # 全データを見る必要はないので一部スライス
-        target_df: DataFrame = rawdata_df[:3]
+        target_df: DataFrame = rawdata_df[:3].copy()
 
         actual_df: DataFrame = cut_out_shot._apply_expr_load(target_df)
 
