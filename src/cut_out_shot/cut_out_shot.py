@@ -22,6 +22,7 @@ from pandas.core.frame import DataFrame
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
+from tag_manager.tag_manager import TagManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from throughput_counter import throughput_counter  # type: ignore
@@ -209,28 +210,6 @@ class CutOutShot:
 
         return pause_events
 
-    def _get_tag_events(self, events: List[dict]) -> List[dict]:
-        """ events_indexからタグ付け区間を取得。
-            記録された時刻（end_time）からN秒前(back_seconds_for_tagging)に遡り、start_timeとする。
-        """
-
-        tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
-        logger.debug(tag_events)
-
-        if len(tag_events) > 0:
-            for tag_event in tag_events:
-                if tag_event.get("end_time") is None:
-                    logger.exception("Invalid status in tag event. Not found [end_time] key.")
-                    raise KeyError
-
-                tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
-                tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=self.__back_seconds_for_tagging)
-                # datetime to unixtime
-                # tag_event["start_time"] = tag_event["start_time"].timestamp()
-                # tag_event["end_time"] = tag_event["end_time"].timestamp()
-
-        return tag_events
-
     def _get_pickle_list(self, rawdata_dir_path: str) -> List[str]:
         """ 取り込むファイルのリストを取得する """
 
@@ -260,26 +239,6 @@ class CutOutShot:
             df = df[(df["timestamp"] < pause_event["start_time"]) | (pause_event["end_time"] < df["timestamp"])]
 
         return df
-
-    def _get_tags(self, rawdata_timestamp: datetime, tag_events: List[dict]) -> List[str]:
-        """ 対象サンプルが事象記録範囲にあるか判定し、範囲内であれば事象タグを返す """
-
-        tags: List[str] = []
-        for tag_event in tag_events:
-            if tag_event["start_time"] <= rawdata_timestamp <= tag_event["end_time"]:
-                tags.append(tag_event["tag"])
-
-        return tags
-
-    def _add_tags(self, tag_events: List[dict]) -> None:
-        """ ショットデータにタグ付け """
-
-        tags: List[str] = []
-
-        for d in self.__cut_out_targets:
-            tags = self._get_tags(d["timestamp"], tag_events)
-            if len(tags) > 0:
-                d["tags"].extend(tags)
 
     def _detect_shot_start(self, displacement: float, start_displacement: float, end_displacement: float) -> bool:
         """ ショット開始検知。ショットが未検出かつ変位値が終了しきい値以上開始しきい値以下の場合、ショット開始とみなす。 """
@@ -364,7 +323,7 @@ class CutOutShot:
         """ 切り出し対象としてデータを追加 """
 
         cut_out_target: dict = {
-            "timestamp": datetime.fromtimestamp(rawdata.timestamp),
+            "timestamp": rawdata.timestamp,
             "sequential_number": self.__sequential_number,
             "sequential_number_by_shot": self.__sequential_number_by_shot,
             "rawdata_sequential_number": int(rawdata.sequential_number),
@@ -589,7 +548,7 @@ class CutOutShot:
             return
 
         pause_events: List[dict] = self._get_pause_events(events)
-        tag_events: List[dict] = self._get_tag_events(events)
+        # tag_events: List[dict] = self._get_tag_events(events)
 
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
@@ -665,12 +624,15 @@ class CutOutShot:
             # 荷重値に変換式を適用
             cut_out_df = self._apply_expr_load(cut_out_df)
 
+            # タグ付け
+            tm = TagManager(back_seconds_for_tagging=self.__back_seconds_for_tagging)
+            cut_out_df = tm.add_tags_from_events(cut_out_df, events)
+
+            # timestampをdatetimeに変換する
+            cut_out_df["timestamp"] = cut_out_df["timestamp"].apply(lambda x: datetime.fromtimestamp(x))
+
             # Elasticsearchに格納するため、dictに戻す
             self.__cut_out_targets = cut_out_df.to_dict(orient="records")
-
-            # タグ付け
-            if len(tag_events) > 0:
-                self._add_tags(tag_events)
 
             logger.info(f"{len(self.__cut_out_targets)} data cut out from {pickle_file}.")
 
@@ -765,10 +727,17 @@ if __name__ == "__main__":
         ],
     )
 
-    # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
-    displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
+    # # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
+    # displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
 
-    # 荷重値換算
+    # # 荷重値換算
+    # Vr = 2.5
+    # load01_func = lambda v: 2.5 / Vr * v
+    # load02_func = lambda v: 2.5 / Vr * v
+    # load03_func = lambda v: 2.5 / Vr * v
+    # load04_func = lambda v: 2.5 / Vr * v
+
+    displacement_func = lambda v: v
     Vr = 2.5
     load01_func = lambda v: 2.5 / Vr * v
     load02_func = lambda v: 2.5 / Vr * v
@@ -776,18 +745,16 @@ if __name__ == "__main__":
     load04_func = lambda v: 2.5 / Vr * v
 
     cut_out_shot = CutOutShot(
-        min_spm=15,
-        back_seconds_for_tagging=120,
-        previous_size=1_000,
-        chunk_size=5_000,
-        margin=0.3,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,
         load03_func=load03_func,
         load04_func=load04_func,
+        previous_size=5,
+        margin=0.01,
     )
     cut_out_shot.cut_out_shot(rawdata_dir_name="20210101000000", start_displacement=150.0, end_displacement=25.0)
+
     # cut_out_shot = CutOutShot(
     #     min_spm=15,
     #     back_seconds_for_tagging=120,
