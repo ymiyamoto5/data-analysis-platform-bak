@@ -292,7 +292,7 @@ class ElasticManager:
 
     @classmethod
     def multi_process_range_scan(
-        cls, index: str, num_of_data: int, num_of_process: int = common.NUM_OF_PROCESS
+        cls, index: str, start_index: int, num_of_data: int, num_of_process: int = common.NUM_OF_PROCESS
     ) -> List[dict]:
         """ マルチプロセスでrange scanする。 """
 
@@ -306,7 +306,7 @@ class ElasticManager:
         return_dict: Dict[int, List[dict]] = manager.dict()
 
         procs: List[multiprocessing.context.Process] = []
-        start_index: int = 0
+
         for proc_number, data_num in enumerate(data_num_by_proc):
             end_index: int = start_index + data_num
 
