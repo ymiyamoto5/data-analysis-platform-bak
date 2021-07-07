@@ -70,18 +70,37 @@ class DataReader:
 
         num_of_data: int = ElasticManager.count(index=index)
 
-        result: List[dict] = ElasticManager.multi_process_range_scan(
-            index=index, num_of_data=num_of_data, num_of_process=common.NUM_OF_PROCESS
-        )
+        # 100万件毎のバッチに分割
+        # ex) 2_500_000 -> [1_000_000, 1_000_000, 500_000]
+        batch_size: int = 1_000_000
+        remain_num_of_data = num_of_data
+        num_of_data_by_batch: List[int] = []
+        while True:
+            if remain_num_of_data >= batch_size:
+                num_of_data_by_batch.append(batch_size)
+            else:
+                num_of_data_by_batch.append(remain_num_of_data)
+                break
+            remain_num_of_data -= batch_size
 
-        if len(result) == 0:
+        results: DataFrame = pd.DataFrame([])
+        start_index: int = 0
+        for num_of_data in num_of_data_by_batch:
+            result: List[dict] = ElasticManager.multi_process_range_scan(
+                index=index, start_index=start_index, num_of_data=num_of_data, num_of_process=common.NUM_OF_PROCESS,
+            )
+
+            result.sort(key=lambda x: x["sequential_number"])  # type: ignore
+            df: DataFrame = pd.DataFrame(result)
+            results = pd.concat([results, df], axis=0, ignore_index=True)
+
+            start_index += num_of_data
+
+        if len(results) == 0:
             logger.error("No data.")
             return
 
-        result.sort(key=lambda x: x["sequential_number"])  # type: ignore
-
-        df: DataFrame = pd.DataFrame(result)
-        return df
+        return results
 
     def read_all(self, index: str) -> DataFrame:
         """ シングルプロセスで全件取得し、連番の昇順ソート結果を返す """
@@ -136,4 +155,5 @@ if __name__ == "__main__":
     )
 
     data_reader = DataReader()
-    data_reader.multi_process_read_all("shots-20201201010000-meta")
+    df = data_reader.multi_process_read_all("shots-20210617130000-data")
+    # logger.info(df.info())
