@@ -180,7 +180,9 @@ class DataImporter:
         shots_meta_df["time_diff"] = shots_meta_df.timestamp.diff(-1)
         shots_meta_df["spm"] = round(60.0 / abs(shots_meta_df.time_diff), 2)
         # NOTE: Noneに置き換えないとそのレコードがElasticsearchに弾かれる。
-        shots_meta_df["spm"] = shots_meta_df["spm"].where(shots_meta_df["spm"].notna(), None)
+        # shots_meta_df["spm"] = shots_meta_df["spm"].where(shots_meta_df["spm"].notna(), None)
+        # NOTE: おそらくpandasのバージョン依存で、ver1.3.0では上のコードでは置き換えができない
+        shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
         shots_meta_df.drop(columns=["time_diff"], inplace=True)
         # NOTE: 一度datetimeからtimestampに変換し、再度datetimeに戻すとJSTになってしまうため、-9時間してUTCにする。
         shots_meta_df["timestamp"] = shots_meta_df["timestamp"].apply(
