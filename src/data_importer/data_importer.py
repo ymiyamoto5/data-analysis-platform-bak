@@ -206,7 +206,7 @@ if __name__ == "__main__":
     di = DataImporter()
 
     # npyをショット毎のcsvファイルに分割
-    # split_np_array_by_shot(
+    # di.split_np_array_by_shot(
     #     "/home/ymiyamoto5/h-one-experimental-system/shared/data/all_sensors_201905standardized.npy", target_date
     # )
 
