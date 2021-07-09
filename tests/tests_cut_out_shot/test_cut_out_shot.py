@@ -699,13 +699,14 @@ class TestSetToNoneForLowSpm:
         actual_df: DataFrame = target.shots_meta_df
 
         expected = [
-            {"shot_number": 1, "spm": None, "num_of_samples_in_cut_out": 400000},
+            {"shot_number": 1, "spm": np.nan, "num_of_samples_in_cut_out": 400001},
             {"shot_number": 2, "spm": 80.0, "num_of_samples_in_cut_out": 3000},
             {"shot_number": 3, "spm": 40.0, "num_of_samples_in_cut_out": 6000},
             {"shot_number": 4, "spm": 60.0, "num_of_samples_in_cut_out": 4000},
         ]
 
-        expected_df = pd.DataFrame(expected).replace({np.nan: None})
+        # expected_df = pd.DataFrame(expected).replace({np.nan: None})
+        expected_df = pd.DataFrame(expected)
 
         assert_frame_equal(actual_df, expected_df)
 
