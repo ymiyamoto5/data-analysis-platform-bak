@@ -23,8 +23,16 @@ from tag_manager.tag_manager import TagManager
 class TestGetTagEvent:
     """ イベント情報を取得するテスト """
 
+    events_normal_1 = (
+        [
+            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
+            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
+            {"event_type": "tag", "tag": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
+        ],
+    )
+
+    @pytest.mark.parametrize("events", events_normal_1)
     def test_normal_single_tag_event(self, events):
-        """ 正常系。正常系データはFixtureを用意している。"""
         tm = TagManager()
         actual = tm._get_tag_events(events)
 
@@ -32,7 +40,7 @@ class TestGetTagEvent:
         expected_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
 
         expected = [
-            {"event_type": "tag", "tags": "tag1", "start_time": expected_start_time, "end_time": expected_end_time},
+            {"event_type": "tag", "tag": "tag1", "start_time": expected_start_time, "end_time": expected_end_time},
         ]
 
         assert actual == expected
@@ -41,8 +49,8 @@ class TestGetTagEvent:
         [
             {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
             {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
-            {"event_type": "tag", "tags": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
-            {"event_type": "tag", "tags": "tag2", "end_time": "2020-12-01T00:18:00.123456"},
+            {"event_type": "tag", "tag": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
+            {"event_type": "tag", "tag": "tag2", "end_time": "2020-12-01T00:18:00.123456"},
         ],
     )
 
@@ -59,13 +67,13 @@ class TestGetTagEvent:
         expected = [
             {
                 "event_type": "tag",
-                "tags": "tag1",
+                "tag": "tag1",
                 "start_time": expected_tag1_start_time,
                 "end_time": expected_tag1_end_time,
             },
             {
                 "event_type": "tag",
-                "tags": "tag2",
+                "tag": "tag2",
                 "start_time": expected_tag2_start_time,
                 "end_time": expected_tag2_end_time,
             },
@@ -100,7 +108,7 @@ class TestGetTagEvent:
                 "start_time": "2020-12-01T00:15:00.123456",
                 "end_time": "2020-12-01T00:16:00.123456",
             },
-            {"event_type": "tag", "tags": "tag1"},
+            {"event_type": "tag", "tag": "tag1"},
             {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
         ],
     )
@@ -113,125 +121,295 @@ class TestGetTagEvent:
             tm._get_tag_events(events)
 
 
-# class TestGetTags:
-#     def test_normal_one_tag_event(self, target):
-#         """ 正常系：事象記録が1回あり、対象サンプルがその事象区間に含まれる """
+class TestAddTagsFromEvents:
+    def test_normal_no_tags_in_range(self, shots_df, events_not_range):
+        tm = TagManager()
+        tag_events = tm._get_tag_events(events_not_range)
+        actual_df = tm._add_tags_from_events(shots_df, tag_events)
 
-#         rawdata_timestamp: float = datetime(2020, 12, 1, 10, 30, 10, 000000).timestamp()
-#         start_time: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
-#         end_time: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        expected = [
+            # 切り出し区間1-1
+            {
+                "shot_number": 1,
+                "sequential_number": 0,
+                "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 2,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "tags": [],
+            },
+            # 切り出し区間1-2
+            {
+                "shot_number": 1,
+                "sequential_number": 1,
+                "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 3,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "tags": [],
+            },
+            # 切り出し区間1-3
+            {
+                "shot_number": 1,
+                "sequential_number": 2,
+                "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 4,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "tags": [],
+            },
+            # 切り出し区間2-1
+            {
+                "shot_number": 2,
+                "sequential_number": 3,
+                "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 9,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "tags": [],
+            },
+            # 切り出し区間2-2
+            {
+                "shot_number": 2,
+                "sequential_number": 4,
+                "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 10,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "tags": [],
+            },
+            # 切り出し区間2-3
+            {
+                "shot_number": 2,
+                "sequential_number": 5,
+                "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 11,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "tags": [],
+            },
+        ]
 
-#         tag_events = [
-#             {"event_type": "tag", "tag": "異常A", "start_time": start_time, "end_time": end_time},
-#         ]
+        expected_df = pd.DataFrame(expected)
 
-#         actual: List[str] = target._get_tags(rawdata_timestamp, tag_events)
+        assert_frame_equal(actual_df, expected_df)
 
-#         expected: List[str] = ["異常A"]
+    def test_normal_one_tags_in_range(self, shots_df, events_in_range_1):
+        """ 最初の2サンプルに対し1つのtagを付与する """
 
-#         assert actual == expected
+        tm = TagManager()
+        tag_events = tm._get_tag_events(events_in_range_1)
+        actual_df = tm._add_tags_from_events(shots_df, tag_events)
 
-#     def test_normal_two_tag_events(self, target):
-#         """ 正常系：事象記録が2回あり、対象サンプルが両方の事象区間に含まれる """
+        expected = [
+            # 切り出し区間1-1
+            {
+                "shot_number": 1,
+                "sequential_number": 0,
+                "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 2,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "tags": ["tag1"],
+            },
+            # 切り出し区間1-2
+            {
+                "shot_number": 1,
+                "sequential_number": 1,
+                "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 3,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "tags": ["tag1"],
+            },
+            # 切り出し区間1-3
+            {
+                "shot_number": 1,
+                "sequential_number": 2,
+                "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 4,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "tags": [],
+            },
+            # 切り出し区間2-1
+            {
+                "shot_number": 2,
+                "sequential_number": 3,
+                "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 9,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "tags": [],
+            },
+            # 切り出し区間2-2
+            {
+                "shot_number": 2,
+                "sequential_number": 4,
+                "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 10,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "tags": [],
+            },
+            # 切り出し区間2-3
+            {
+                "shot_number": 2,
+                "sequential_number": 5,
+                "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 11,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "tags": [],
+            },
+        ]
 
-#         rawdata_timestamp: float = datetime(2020, 12, 1, 10, 30, 10, 000000).timestamp()
+        expected_df = pd.DataFrame(expected)
 
-#         start_time_1: float = datetime(2020, 12, 1, 10, 28, 10, 111111).timestamp()
-#         end_time_1: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
-#         start_time_2: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
-#         end_time_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
+        assert_frame_equal(actual_df, expected_df)
 
-#         tag_events = [
-#             {"event_type": "tag", "tag": "異常A", "start_time": start_time_1, "end_time": end_time_1},
-#             {"event_type": "tag", "tag": "異常B", "start_time": start_time_2, "end_time": end_time_2},
-#         ]
+    def test_normal_two_tags_in_range(self, shots_df, events_in_range_2):
+        """ 最初の2サンプルに対し1つのtagを付与する """
 
-#         actual: List[str] = target._get_tags(rawdata_timestamp, tag_events)
+        tm = TagManager()
+        tag_events = tm._get_tag_events(events_in_range_2)
+        actual_df = tm._add_tags_from_events(shots_df, tag_events)
 
-#         expected: List[str] = ["異常A", "異常B"]
+        expected = [
+            # 切り出し区間1-1
+            {
+                "shot_number": 1,
+                "sequential_number": 0,
+                "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 2,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "tags": ["tag1", "tag2"],
+            },
+            # 切り出し区間1-2
+            {
+                "shot_number": 1,
+                "sequential_number": 1,
+                "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 3,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "tags": ["tag1", "tag2"],
+            },
+            # 切り出し区間1-3
+            {
+                "shot_number": 1,
+                "sequential_number": 2,
+                "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 4,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "tags": ["tag2"],
+            },
+            # 切り出し区間2-1
+            {
+                "shot_number": 2,
+                "sequential_number": 3,
+                "sequential_number_by_shot": 0,
+                "rawdata_sequential_number": 9,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
+                "displacement": 47.0,
+                "load01": 1.574,
+                "load02": 1.308,
+                "load03": 1.363,
+                "load04": 1.432,
+                "tags": ["tag2"],
+            },
+            # 切り出し区間2-2
+            {
+                "shot_number": 2,
+                "sequential_number": 4,
+                "sequential_number_by_shot": 1,
+                "rawdata_sequential_number": 10,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
+                "displacement": 47.1,
+                "load01": 1.500,
+                "load02": 1.200,
+                "load03": 1.300,
+                "load04": 1.400,
+                "tags": ["tag2"],
+            },
+            # 切り出し区間2-3
+            {
+                "shot_number": 2,
+                "sequential_number": 5,
+                "sequential_number_by_shot": 2,
+                "rawdata_sequential_number": 11,
+                "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
+                "displacement": 34.961,
+                "load01": -0.256,
+                "load02": -0.078,
+                "load03": 0.881,
+                "load04": 0.454,
+                "tags": [],
+            },
+        ]
 
-#         assert actual == expected
+        expected_df = pd.DataFrame(expected)
 
-#     def test_normal_not_include_tag_range(self, target):
-#         """ 正常系：事象記録が1回あり、対象サンプルがその事象区間に含まれない """
-
-#         rawdata_timestamp: float = datetime(2020, 12, 1, 10, 35, 10, 000000).timestamp()
-#         start_time: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
-#         end_time: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
-
-#         tag_events = [
-#             {"event_type": "tag", "tag": "異常A", "start_time": start_time, "end_time": end_time},
-#         ]
-
-#         actual: List[str] = target._get_tags(rawdata_timestamp, tag_events)
-
-#         expected: List[str] = []
-
-#         assert actual == expected
-
-
-# class TestAddTags:
-#     def test_normal_one_target(self, target, mocker):
-#         """ 正常系： cut_out_target 1件に対してタグ付け """
-
-#         timestamp: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
-#         target.cut_out_targets = [
-#             {"timestamp": timestamp, "tags": []},
-#         ]
-
-#         tags: List[str] = ["異常A", "異常B"]
-
-#         mocker.patch.object(CutOutShot, "_get_tags", return_value=tags)
-
-#         # mockするので実際は使われない。
-#         start_time_1: float = datetime(2020, 12, 1, 10, 28, 10, 111111).timestamp()
-#         end_time_1: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
-#         start_time_2: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
-#         end_time_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
-#         tag_events = [
-#             {"event_type": "tag", "tag": "異常A", "start_time": start_time_1, "end_time": end_time_1},
-#             {"event_type": "tag", "tag": "異常B", "start_time": start_time_2, "end_time": end_time_2},
-#         ]
-
-#         target._add_tags(tag_events)
-#         actual = target.cut_out_targets
-
-#         expected = [
-#             {"timestamp": timestamp, "tags": ["異常A", "異常B"]},
-#         ]
-
-#         assert actual == expected
-
-#     def test_normal_two_targets(self, target, mocker):
-#         """ 正常系： cut_out_target 2件に対してタグ付け """
-
-#         timestamp_1: float = datetime(2020, 12, 1, 10, 30, 11, 000000).timestamp()
-#         timestamp_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
-#         target.cut_out_targets = [
-#             {"timestamp": timestamp_1, "tags": []},
-#             {"timestamp": timestamp_2, "tags": []},
-#         ]
-
-#         tags: List[str] = ["異常A", "異常B"]
-
-#         mocker.patch.object(CutOutShot, "_get_tags", return_value=tags)
-
-#         # mockするので実際は使われない。
-#         start_time_1: float = datetime(2020, 12, 1, 10, 28, 10, 111111).timestamp()
-#         end_time_1: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
-#         start_time_2: float = datetime(2020, 12, 1, 10, 28, 11, 111111).timestamp()
-#         end_time_2: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
-#         tag_events = [
-#             {"event_type": "tag", "tag": "異常A", "start_time": start_time_1, "end_time": end_time_1},
-#             {"event_type": "tag", "tag": "異常B", "start_time": start_time_2, "end_time": end_time_2},
-#         ]
-
-#         target._add_tags(tag_events)
-#         actual = target.cut_out_targets
-
-#         expected = [
-#             {"timestamp": timestamp_1, "tags": ["異常A", "異常B"]},
-#             {"timestamp": timestamp_2, "tags": ["異常A", "異常B"]},
-#         ]
-
-#         assert actual == expected
+        assert_frame_equal(actual_df, expected_df)

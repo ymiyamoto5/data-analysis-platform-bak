@@ -36,6 +36,10 @@ class TagManager:
         return tag_events
 
     def _add_tags_from_events(self, df: DataFrame, tag_events: List[dict]) -> DataFrame:
+
+        # tags列を空のリストで初期化
+        df["tags"] = pd.Series([[] for _ in range(len(df))])
+
         # tag_eventsのstart-end範囲内であればtag付けする
         for tag_event in tag_events:
             start_time: float = tag_event["start_time"]  # noqa
@@ -67,9 +71,6 @@ class TagManager:
 
     def tagging(self, df: DataFrame, events: List[dict]) -> DataFrame:
         """ tagイベントからタグ付けする """
-
-        # tags列を空のリストで初期化
-        df["tags"] = pd.Series([[] for _ in range(len(df))])
 
         # イベント情報リストからタグイベントを取得
         tag_events: List[dict] = self._get_tag_events(events)

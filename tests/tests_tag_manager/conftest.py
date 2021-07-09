@@ -19,15 +19,50 @@ from tag_manager.tag_manager import TagManager
 
 
 @pytest.fixture
-def events():
-    """ tagを含んだevents_indexのデータfixture。 """
+def events_not_range():
+    """ tagを含んだevents_indexのデータfixture。tagはshotデータの時刻範囲内に含まれない """
 
     events: List[dict] = [
         {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
         {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
         {"event_type": "pause", "start_time": "2020-12-01T00:15:00.123456", "end_time": "2020-12-01T00:16:00.123456"},
-        {"event_type": "tag", "tags": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
+        {"event_type": "tag", "tag": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
+        {"event_type": "tag", "tag": "tag2", "end_time": "2020-12-01T00:18:00.123456"},
         {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
+    ]
+
+    yield events
+
+    del events
+
+
+@pytest.fixture
+def events_in_range_1():
+    """ tagを含んだevents_indexのデータfixture。tag1はshotデータの時刻範囲内に含まれる """
+
+    events: List[dict] = [
+        {"event_type": "setup", "occurred_time": "2020-12-01T10:0:00.123456"},
+        {"event_type": "start", "occurred_time": "2020-12-01T10:10:00.123456"},
+        {"event_type": "tag", "tag": "tag1", "end_time": "2020-12-01T10:30:13.123456"},
+        {"event_type": "tag", "tag": "tag2", "end_time": "2020-12-01T10:40:00.123456"},
+        {"event_type": "stop", "occurred_time": "2020-12-01T10:20:00.123456"},
+    ]
+
+    yield events
+
+    del events
+
+
+@pytest.fixture
+def events_in_range_2():
+    """ tagを含んだevents_indexのデータfixture。tag1とtag2がshotデータの時刻範囲内に含まれる """
+
+    events: List[dict] = [
+        {"event_type": "setup", "occurred_time": "2020-12-01T10:0:00.123456"},
+        {"event_type": "start", "occurred_time": "2020-12-01T10:10:00.123456"},
+        {"event_type": "tag", "tag": "tag1", "end_time": "2020-12-01T10:30:13.123456"},
+        {"event_type": "tag", "tag": "tag2", "end_time": "2020-12-01T10:30:20.123456"},
+        {"event_type": "stop", "occurred_time": "2020-12-01T10:20:00.123456"},
     ]
 
     yield events
@@ -39,7 +74,7 @@ def events():
 def shots_df():
     """ ショット切り出ししたDataFrame fixture """
 
-    shots: List[dict] = [
+    shots_data: List[dict] = [
         # 切り出し区間1-1
         {
             "shot_number": 1,
@@ -120,7 +155,7 @@ def shots_df():
         },
     ]
 
-    shots_df: DataFrame = pd.DataFrame(shots)
+    shots_df: DataFrame = pd.DataFrame(shots_data)
     yield shots_df
 
     del shots_df
