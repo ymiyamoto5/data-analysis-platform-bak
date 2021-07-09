@@ -626,7 +626,7 @@ class CutOutShot:
 
             # タグ付け
             tm = TagManager(back_seconds_for_tagging=self.__back_seconds_for_tagging)
-            cut_out_df = tm.add_tags_from_events(cut_out_df, events)
+            cut_out_df = tm.tagging(cut_out_df, events)
 
             # timestampをdatetimeに変換する
             cut_out_df["timestamp"] = cut_out_df["timestamp"].apply(lambda x: datetime.fromtimestamp(x))
