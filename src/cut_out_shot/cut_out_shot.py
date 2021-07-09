@@ -344,7 +344,7 @@ class CutOutShot:
         """ 切り出したショットの内、最低spmを下回るショットのspmはNoneに設定する """
 
         self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(
-            self.__shots_meta_df["spm"] >= self.__min_spm, None
+            self.__shots_meta_df["spm"] >= self.__min_spm, np.nan
         )
 
     def _exclude_over_sample(self, df: DataFrame) -> DataFrame:
