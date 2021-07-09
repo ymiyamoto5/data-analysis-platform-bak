@@ -197,11 +197,13 @@ class DataImporter:
 
 if __name__ == "__main__":
     # テスト用のインデックス
-    target_date = "20210708113000"
-    start_time = datetime(2021, 7, 8, 11, 30, 0)
+    target_date = "20210701180000"
+    start_time = datetime(2021, 7, 1, 18, 0, 0)
+    # target_date = "20210708113000"
+    # start_time = datetime(2021, 7, 8, 11, 30, 0)
     # 何列目を使うか。
     use_cols = [2, 6, 7, 11, 57]
-    cols_name: List[str] = ["displacement", "load01", "load02", "load03", "load04"]
+    cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
     # sampling_interval = 10 # 100k
     sampling_interval = 1000  # 1k
 
