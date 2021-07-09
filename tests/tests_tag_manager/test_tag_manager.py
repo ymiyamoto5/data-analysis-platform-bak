@@ -21,23 +21,10 @@ from tag_manager.tag_manager import TagManager
 
 
 class TestGetTagEvent:
+    """ イベント情報を取得するテスト """
 
-    events_normal_1 = (
-        [
-            {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
-            {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
-            {
-                "event_type": "pause",
-                "start_time": "2020-12-01T00:15:00.123456",
-                "end_time": "2020-12-01T00:16:00.123456",
-            },
-            {"event_type": "tag", "tags": "tag1", "end_time": "2020-12-01T00:17:00.123456"},
-            {"event_type": "stop", "occurred_time": "2020-12-01T00:20:00.123456"},
-        ],
-    )
-
-    @pytest.mark.parametrize("events", events_normal_1)
     def test_normal_single_tag_event(self, events):
+        """ 正常系。正常系データはFixtureを用意している。"""
         tm = TagManager()
         actual = tm._get_tag_events(events)
 
