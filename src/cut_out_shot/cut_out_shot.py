@@ -14,10 +14,11 @@ import os
 import sys
 import logging
 import logging.handlers
+import numpy as np
 import pandas as pd
 import glob
 from typing import Callable, Final, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from pandas.core.frame import DataFrame
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
@@ -396,7 +397,8 @@ class CutOutShot:
             "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
         }
         self.__shots_meta_df = self.__shots_meta_df.append(d, ignore_index=True)
-        self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(self.__shots_meta_df["spm"].notna(), None)
+        # self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(self.__shots_meta_df["spm"].notna(), None)
+        self.__shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
 
         self.__shots_meta_df = self.__shots_meta_df.astype({"shot_number": int, "num_of_samples_in_cut_out": int})
 
