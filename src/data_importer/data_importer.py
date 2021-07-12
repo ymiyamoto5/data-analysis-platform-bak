@@ -9,7 +9,9 @@
 
 """
 
-from typing import List
+# NOTE: 本来の仕様外の処理のため、ややアドホックな記述にしている。
+
+from typing import List, Optional
 from pandas.core.frame import DataFrame
 import os
 import sys
@@ -71,22 +73,48 @@ class DataImporter:
         return file_dir
 
     def process_csv_files(
-        self, target_date: str, exists_timestamp: bool, start_time: datetime, use_cols, cols_name, sampling_interval
+        self,
+        target_date: str,
+        exists_timestamp: bool,
+        start_time: Optional[datetime],
+        use_cols,
+        cols_name,
+        sampling_interval,
+        timestamp_file=None,
     ) -> DataFrame:
         """ csvファイルのデータを加工する """
 
         file_dir = self._get_target_date_dir(target_date)
         files = self._get_files(file_dir, pattern="*.csv")
 
+        if timestamp_file is not None:
+            timestamp_df = pd.read_csv(timestamp_file, header=None, names=("file_number", "timestamp"))
+            # NOTE: timestampにした時点で+9時間してしまうため、あらかじめ-9時間にしておく
+            timestamp_df["timestamp"] = timestamp_df["timestamp"].apply(
+                lambda x: datetime.strptime(x, "%Y/%m/%d-%H%M%S") + timedelta(hours=-9)
+            )
+
         seq_num = 0  # ファイル跨ぎの連番
         for file in files:
             # FIXME: ヘッダーありの場合等の考慮
             df = pd.read_csv(file, header=None, skiprows=0, usecols=use_cols)
+            # 5列に満たない時
+            if len(use_cols) != 5:
+                for i in range(5 - len(use_cols)):  # use_colsが1列しかないときは0～3までの4回列コピー
+                    df[i + 1] = df[0]
+
             df = df.set_axis(cols_name, axis="columns")
 
-            # timestampと連番付与
+            # timestampがなければ付与
             if not exists_timestamp:
-                df, start_time, seq_num = self._add_timestamp(df, start_time, seq_num, sampling_interval)
+                df, start_time = self._add_timestamp(df, start_time, sampling_interval)
+            # timestampがある場合。ここではショット毎のタイムスタンプを記録したcsvがある前提
+            else:
+                file_number = int(os.path.splitext(os.path.basename(file))[0])
+                df = self._add_timestamp_from_file(df, file_number, timestamp_df, sampling_interval)
+
+            # 連番付与
+            df, seq_num = self._add_seq_num(df, seq_num)
 
             # 並べ替え
             cols = ["sequential_number", "timestamp"] + cols_name
@@ -94,23 +122,41 @@ class DataImporter:
 
             self._to_pickle(df, file_dir, file)
 
-    def _add_timestamp(self, df: DataFrame, start_time, seq_num, sampling_interval):
-        """ timestamp列追加
-            FIXME: ついでに連番も付けているが、本来は別メソッドにすべき。
-        """
+    def _add_timestamp_from_file(
+        self, df: DataFrame, file_number: int, timestamp_df: DataFrame, sampling_interval: float
+    ):
+        """ ショット毎のタイムスタンプが記録されたDFを使って、元のDFのサンプルデータにタイムスタンプを付与する """
 
-        seq_nums = []
+        start_time = timestamp_df[timestamp_df.file_number == file_number].timestamp.iloc[0]
+
+        df, _ = self._add_timestamp(df, start_time, sampling_interval)
+
+        return df
+
+    def _add_timestamp(self, df: DataFrame, start_time, sampling_interval):
+        """ timestamp列追加 """
+
         datetime_list = []
-        for _ in df.itertuples():
-            time = start_time + timedelta(microseconds=sampling_interval) * seq_num
-            datetime_list.append(time.timestamp() - 9 * 60 * 60)
+        for i in range(len(df)):
+            time = start_time + timedelta(microseconds=sampling_interval) * i
+            datetime_list.append(time.timestamp() - 9 * 60 * 60)  # UTCにする
+
+        df["timestamp"] = datetime_list
+
+        time += timedelta(microseconds=sampling_interval)
+
+        return df, time
+
+    def _add_seq_num(self, df: DataFrame, seq_num):
+        seq_nums = []
+
+        for _ in range(len(df)):
             seq_nums.append(seq_num)
             seq_num += 1
 
         df["sequential_number"] = seq_nums
-        df["timestamp"] = datetime_list
 
-        return df, start_time, seq_num
+        return df, seq_num
 
     def _to_pickle(self, df: DataFrame, file_dir: str, file: str):
         """ DataFrameをpickleに変換 """
@@ -141,17 +187,20 @@ class DataImporter:
         file_dir = self._get_target_date_dir(target_date)
         files = self._get_files(file_dir, "*.pkl")
 
-        all_df = pd.DataFrame([])
+        shots_index = "shots-" + target_date + "-data"
+
         shots_meta_records = []
         shot_number = 1
         start = 0
+
+        print("shots_index bulk insert starting...")
         for file in files:
+            print(f"{file}")
             df = pd.read_pickle(file)
             df["shot_number"] = shot_number
             df["sequential_number_by_shot"] = pd.RangeIndex(0, len(df), 1)
             df["rawdata_sequential_number"] = pd.RangeIndex(start, start + len(df), 1)
             df["tags"] = pd.Series([[] for _ in range(len(df))])  # tagsは[]で初期化
-            all_df = pd.concat([all_df, df], axis=0, ignore_index=True)
 
             timestamp = df.timestamp.iloc[0]
             shots_meta_records.append(
@@ -162,15 +211,15 @@ class DataImporter:
                 }
             )
 
+            df["timestamp"] = df["timestamp"].apply(lambda x: datetime.fromtimestamp(x))
+            shots_dict = df.to_dict(orient="records")
+
+            # NOTE: 並列化すると遅かったため、シングルプロセス
+            ElasticManager.bulk_insert(shots_dict, shots_index)
+
             shot_number += 1
             start += len(df)
 
-        all_df["timestamp"] = all_df["timestamp"].apply(lambda x: datetime.fromtimestamp(x))
-        shots_dict = all_df.to_dict(orient="records")
-        shots_index = "shots-" + target_date + "-data"
-
-        print("shots_index bulk insert starting...")
-        ElasticManager.bulk_insert(shots_dict, shots_index)
         print("shots_index bulk insert finished.")
 
         # TODO: メソッド化して、cut_out_shotと共有
@@ -196,33 +245,48 @@ class DataImporter:
 
 
 if __name__ == "__main__":
-    # テスト用のインデックス
-    target_date = "20210701180000"
-    start_time = datetime(2021, 7, 1, 18, 0, 0)
+    # 射出成形
+    target_date = "20190523094129"
+    start_time = None
+
+    # デバッグ用少量データ
     # target_date = "20210708113000"
     # start_time = datetime(2021, 7, 8, 11, 30, 0)
+
+    # ダミーデータ
+    # target_date = "20210709190000"
+    # start_time = datetime(2021, 7, 9, 19, 0, 0)
+
+    # target_file_path = "/home/ymiyamoto5/h-one-experimental-system/shared/data/press_senario.npy"
+
     # 何列目を使うか。
     use_cols = [2, 6, 7, 11, 57]
     cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
-    # sampling_interval = 10 # 100k
+    # use_cols = [0]
+    # cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
+
+    # sampling_interval = 10  # 100k
     sampling_interval = 1000  # 1k
 
     di = DataImporter()
 
     # npyをショット毎のcsvファイルに分割
-    # di.split_np_array_by_shot(
-    #     "/home/ymiyamoto5/h-one-experimental-system/shared/data/all_sensors_201905standardized.npy", target_date
-    # )
+    # di.split_np_array_by_shot(target_file_path, target_date)
 
+    timestamp_file = "/home/ymiyamoto5/h-one-experimental-system/shared/data/all_sensors_201905_timelist.csv"
+
+    print("process csv files starting...")
     # csvを加工してpklにする
-    # di.process_csv_files(
-    #     target_date=target_date,
-    #     exists_timestamp=False,
-    #     start_time=start_time,
-    #     use_cols=use_cols,
-    #     cols_name=cols_name,
-    #     sampling_interval=sampling_interval,
-    # )
+    di.process_csv_files(
+        target_date=target_date,
+        exists_timestamp=True,
+        start_time=start_time,
+        use_cols=use_cols,
+        cols_name=cols_name,
+        sampling_interval=sampling_interval,
+        timestamp_file=timestamp_file,
+    )
+    print("process csv files finished")
 
     # pklをelasticsearchに格納
     di.import_by_shot_pkl(target_date)
