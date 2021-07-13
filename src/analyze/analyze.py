@@ -141,7 +141,7 @@ def apply_logic(
 
         spm: Optional[float] = shots_meta_df[shots_meta_df.shot_number == shot_number].spm
         # TODO: 後続エラー回避のため、暫定対処としてNoneのときは80.0としている
-        spm = float(spm) if spm.iloc[0] is not None else 80.0
+        spm = float(spm) if spm.iloc[0] is not None else 80.0  # type: ignore
 
         indices: List[int]
         values: List[float]
