@@ -64,7 +64,7 @@ class Analyzer:
         """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
         # NOTE: ショットを削除した場合、ショット番号に歯抜けになるため、countではなく最終ショット番号を採用
-        num_of_shots: int = shots_meta_df.shot_number.iloc[-1]
+        num_of_shots: int = self.__shots_meta_df.shot_number.iloc[-1]
 
         # データをプロセッサの数に均等分配
         shots_num_by_proc: List[int] = [
@@ -172,7 +172,7 @@ class Analyzer:
 
 if __name__ == "__main__":
     LOG_FILE: Final[str] = os.path.join(
-        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "analyze/analyze.log"
+        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "analyzer/analyzer.log"
     )
 
     logging.basicConfig(
