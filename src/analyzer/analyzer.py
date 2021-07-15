@@ -1,6 +1,6 @@
 """
  ==================================
-  analyze.py
+  analyzer.py
  ==================================
 
   Copyright(c) 2021 UNIADEX, Ltd. All Rights Reserved.
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 class Analyzer:
     def __init__(
-        self, target: str, shots_df: DataFrame, shots_meta_df: DataFrame, exclude_shots: Optional[Tuple[int]]
+        self, target: str, shots_df: DataFrame, shots_meta_df: DataFrame, exclude_shots: Optional[Tuple[int, ...]]
     ):
         self.__target = target
         self.__shots_df = shots_df
@@ -55,7 +55,7 @@ class Analyzer:
         feature_index: str = "shots-" + self.__target + "-" + feature + "-point"
         ElasticManager.delete_exists_index(index=feature_index)
 
-        # NOTE: データ分割をNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
+        # NOTE: データをNショット毎に分割/ロジック適用/ELS保存。並列処理の関係上1メソッドにまとめた。
         self._multi_process(feature_index, feature, func, sub_func)
 
         logger.info("apply finished.")
@@ -63,7 +63,7 @@ class Analyzer:
     def _multi_process(self, feature_index: str, feature: str, func: Callable, sub_func: Callable = None,) -> None:
         """ データを複数ショット単位で読み込み、ロジック適用、ELS格納 """
 
-        # NOTE: ショットを削除した場合、ショット番号に歯抜けになるため、countではなく最終ショット番号を採用
+        # NOTE: ショットを削除した場合ショット番号が歯抜けになるため、countではなく最終ショット番号を採用
         num_of_shots: int = self.__shots_meta_df.shot_number.iloc[-1]
 
         # データをプロセッサの数に均等分配
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     shots_df: DataFrame = dr.multi_process_read_all(shots_data_index)
     shots_meta_df = dr.read_shots_meta(shots_meta_index)
 
-    # exclude_shots: Tuple[int, ...] = (983, 1227, 1228, 1229, 1369, 1381)
+    # exclude_shots: Optional[Tuple[int, ...]] = (983, 1227, 1228, 1229, 1369, 1381)
     exclude_shots: Optional[Tuple[int]] = None
 
     analyzer = Analyzer(target, shots_df, shots_meta_df, exclude_shots)
