@@ -46,4 +46,3 @@ app_config_dev.json
 src/utils/contour_data.py
 notebooks/jupyter2kibana
 notebooks/*-Copy*.ipynb
-notebooks/分析基盤デモ.ipynb
