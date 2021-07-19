@@ -16,9 +16,7 @@ import multiprocessing
 import os
 import sys
 import traceback
-import logging
-import logging.handlers
-from typing import Callable, Final, List, Tuple, Optional
+from typing import Callable, List, Tuple, Optional
 from pandas.core.frame import DataFrame
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "./"))
@@ -31,7 +29,11 @@ from data_reader.data_reader import DataReader
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
 
-logger = logging.getLogger(__name__)
+from logger.logger import init_logger, get_logger
+
+module_name: str = os.path.splitext(os.path.basename(__file__))[0]
+init_logger(module_name)
+logger = get_logger(module_name)
 
 
 class Analyzer:
@@ -171,21 +173,6 @@ class Analyzer:
 
 
 if __name__ == "__main__":
-    LOG_FILE: Final[str] = os.path.join(
-        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "analyzer/analyzer.log"
-    )
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.handlers.RotatingFileHandler(
-                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
-            ),
-            logging.StreamHandler(),
-        ],
-    )
-
     # target = "20210327141514"
     target = "20210708113000"
     shots_data_index = "shots-" + target + "-data"

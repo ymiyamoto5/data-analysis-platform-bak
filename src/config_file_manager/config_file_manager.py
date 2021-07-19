@@ -19,7 +19,11 @@ from typing import Optional, Dict, Any
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
 
-logger = logging.getLogger(__name__)
+from logger.logger import init_logger, get_logger
+
+module_name: str = os.path.splitext(os.path.basename(__file__))[0]
+init_logger(module_name)
+logger = get_logger(module_name)
 
 
 class ConfigFileManager:

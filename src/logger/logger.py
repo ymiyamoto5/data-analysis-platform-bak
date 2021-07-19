@@ -8,14 +8,8 @@ from typing import Final
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
 
-# MODULE_NAME = ""
-# CONFIG = {}
-
 
 def init_logger(module_name):
-
-    # global MODULE_NAME
-    # MODULE_NAME = modlue_name
 
     LOG_DIR: Final[str] = os.path.join(common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), module_name)
     LOG_FILE: Final[str] = os.path.join(LOG_DIR, module_name + ".log")
