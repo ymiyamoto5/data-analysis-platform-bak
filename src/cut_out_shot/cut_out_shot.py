@@ -12,9 +12,6 @@
 import multiprocessing
 import os
 import sys
-
-# import logging
-# import logging.handlers
 import numpy as np
 import pandas as pd
 import glob
@@ -30,7 +27,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from throughput_counter import throughput_counter  # type: ignore
 import common
 
-# logger = logging.getLogger(__name__)
 from logger.logger import init_logger, get_logger
 
 module_name: str = os.path.splitext(os.path.basename(__file__))[0]
@@ -720,21 +716,6 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    # LOG_FILE: Final[str] = os.path.join(
-    #     common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "cut_out_shot/cut_out_shot.log"
-    # )
-
-    # logging.basicConfig(
-    #     level=logging.INFO,
-    #     format="%(asctime)s [%(levelname)s] %(message)s",
-    #     handlers=[
-    #         logging.handlers.RotatingFileHandler(
-    #             LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
-    #         ),
-    #         logging.StreamHandler(),
-    #     ],
-    # )
-
     # # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
     # displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
 

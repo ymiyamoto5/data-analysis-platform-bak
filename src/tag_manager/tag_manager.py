@@ -1,12 +1,15 @@
+import os
 import numpy as np
 import pandas as pd
-import logging
-import logging.handlers
 from typing import List
 from pandas.core.frame import DataFrame
 from datetime import datetime, timedelta
 
-logger = logging.getLogger(__name__)
+from logger.logger import init_logger, get_logger
+
+module_name: str = os.path.splitext(os.path.basename(__file__))[0]
+init_logger(module_name)
+logger = get_logger(module_name)
 
 
 class TagManager:
@@ -19,7 +22,7 @@ class TagManager:
         """
 
         tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
-        logger.debug(tag_events)
+        logger.info(tag_events)
 
         if len(tag_events) > 0:
             for tag_event in tag_events:
@@ -51,6 +54,7 @@ class TagManager:
             )
 
             if len(tags_df) == 0:
+                logger.info("No tags.")
                 continue
 
             # タグ追加用の列を用意し、タグ内容で初期化する

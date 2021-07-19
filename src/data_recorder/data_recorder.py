@@ -22,7 +22,7 @@ import logging.handlers
 import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
-from typing import Final, Tuple, List, Mapping, Optional, Any
+from typing import Final, Tuple, List, Optional, Any
 import dataclasses
 import argparse
 
@@ -32,7 +32,11 @@ from elastic_manager.elastic_manager import ElasticManager
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
 
-logger = logging.getLogger(__name__)
+from logger.logger import init_logger, get_logger
+
+module_name: str = os.path.splitext(os.path.basename(__file__))[0]
+init_logger(module_name)
+logger = get_logger(module_name)
 
 
 @dataclasses.dataclass
@@ -368,21 +372,6 @@ def manual_record(target_dir: str):
 
 
 if __name__ == "__main__":
-    LOG_FILE: Final[str] = os.path.join(
-        common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_recorder/data_recorder.log"
-    )
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.handlers.RotatingFileHandler(
-                LOG_FILE, maxBytes=common.MAX_LOG_SIZE, backupCount=common.BACKUP_COUNT
-            ),
-            logging.StreamHandler(),
-        ],
-    )
-
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--dir", help="set import directory (manual import)")
     args = parser.parse_args()
