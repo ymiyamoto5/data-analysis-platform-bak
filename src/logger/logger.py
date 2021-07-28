@@ -1,6 +1,5 @@
 import os
 import sys
-import inspect
 from logging import getLogger
 from logging.config import dictConfig
 from typing import Final
