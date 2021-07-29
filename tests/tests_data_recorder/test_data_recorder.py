@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from data_recorder import data_recorder
 from elastic_manager.elastic_manager import ElasticManager
+from event_manager.event_manager import EventManager
 
 from utils.common import TIMESTAMP_MAX
 
@@ -32,7 +33,7 @@ class TestCreateFileTimestamp:
 
 
 class TestGetTargetInterval:
-    def test_setup_end_are_set(self):
+    def test_setup_end_are_set(self, mocker):
         """ start_timeとend_timeの設定が正しく行われること """
 
         setup_time: datetime = datetime.now()
