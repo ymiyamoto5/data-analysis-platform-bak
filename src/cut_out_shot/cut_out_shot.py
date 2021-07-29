@@ -178,42 +178,6 @@ class CutOutShot:
     def shots_meta_df(self, shots_meta_df: DataFrame):
         self.__shots_meta_df = shots_meta_df
 
-    def _get_collect_start_time(self, events: List[dict]) -> Optional[float]:
-        """ events_indexから収集開始時間を取得 """
-
-        start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
-
-        if len(start_events) == 0:
-            logger.error("Data collection has not started yet.")
-            sys.exit(1)
-
-        start_event: dict = start_events[0]
-        collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
-
-        return collect_start_time
-
-    def _get_pause_events(self, events: List[dict]) -> List[dict]:
-        """ events_indexから中断イベントを取得。時刻はunixtimeに変換する。 """
-
-        pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
-        if len(pause_events) > 0:
-            for pause_event in pause_events:
-                if pause_event.get("start_time") is None:
-                    logger.exception("Invalid status in pause event. Not found [start_time] key.")
-                    raise KeyError
-
-                if pause_event.get("end_time") is None:
-                    logger.exception("Pause event does not finished. Please retry after finish pause.")
-                    raise KeyError
-                # str to datetime
-                pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
-                pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
-                # datetime to unixtime
-                pause_event["start_time"] = pause_event["start_time"].timestamp()
-                pause_event["end_time"] = pause_event["end_time"].timestamp()
-
-        return pause_events
-
     def _get_pickle_list(self, rawdata_dir_path: str) -> List[str]:
         """ 取り込むファイルのリストを取得する """
 
@@ -535,8 +499,6 @@ class CutOutShot:
 
         # event_indexから各種イベント情報を取得する
         events_index: str = "events-" + rawdata_dir_name
-        # query: dict = {"sort": {"event_id": {"order": "asc"}}}
-        # events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
         events: List[dict] = EventManager.fetch_events(events_index)
 
         if len(events) == 0:
@@ -548,13 +510,12 @@ class CutOutShot:
             logger.error("Exits because the status is not recorded.")
             return
 
-        collect_start_time: Optional[float] = self._get_collect_start_time(events)
+        collect_start_time: Optional[float] = EventManager.get_collect_start_time(events)
         if collect_start_time is None:
             logger.error("Exits because collect time is not recorded.")
             return
 
-        pause_events: List[dict] = self._get_pause_events(events)
-        # tag_events: List[dict] = self._get_tag_events(events)
+        pause_events: List[dict] = EventManager.get_pause_events(events)
 
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
