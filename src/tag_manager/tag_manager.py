@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from typing import List
 from pandas.core.frame import DataFrame
-from datetime import datetime, timedelta
+from event_manager.event_manager import EventManager
 
 from logger.logger import init_logger, get_logger
 
@@ -15,28 +15,6 @@ logger = get_logger(module_name)
 class TagManager:
     def __init__(self, back_seconds_for_tagging: int = 120):
         self.__back_seconds_for_tagging = back_seconds_for_tagging  # 何秒遡ってタグ付けするか
-
-    def _get_tag_events(self, events: List[dict]) -> List[dict]:
-        """ events_indexからタグ付け区間を取得。
-            記録された時刻（end_time）からN秒前(back_seconds_for_tagging)に遡り、start_timeとする。
-        """
-
-        tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
-        logger.info(tag_events)
-
-        if len(tag_events) > 0:
-            for tag_event in tag_events:
-                if tag_event.get("end_time") is None:
-                    logger.exception("Invalid status in tag event. Not found [end_time] key.")
-                    raise KeyError
-
-                tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
-                tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=self.__back_seconds_for_tagging)
-                # DataFrameのtimestampと比較するため、datetimeからtimestampに変換
-                tag_event["start_time"] = tag_event["start_time"].timestamp()
-                tag_event["end_time"] = tag_event["end_time"].timestamp()
-
-        return tag_events
 
     def _add_tags_from_events(self, df: DataFrame, tag_events: List[dict]) -> DataFrame:
 
@@ -77,7 +55,7 @@ class TagManager:
         """ tagイベントからタグ付けする """
 
         # イベント情報リストからタグイベントを取得
-        tag_events: List[dict] = self._get_tag_events(events)
+        tag_events: List[dict] = EventManager.get_tag_events(events, self.__back_seconds_for_tagging)
 
         if len(tag_events) == 0:
             return df

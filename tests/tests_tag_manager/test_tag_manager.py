@@ -9,15 +9,14 @@
 
 """
 
-import pytest
+import pytest  # type: ignore
 import pandas as pd
 from datetime import datetime
-from typing import List
-from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
-import numpy as np
+from typing import List, Tuple, Dict, Any
 
 from tag_manager.tag_manager import TagManager
+from event_manager.event_manager import EventManager
 
 
 class TestGetTagEvent:
@@ -33,8 +32,7 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_normal_1)
     def test_normal_single_tag_event(self, events):
-        tm = TagManager()
-        actual = tm._get_tag_events(events)
+        actual = EventManager.get_tag_events(events)
 
         expected_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
         expected_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
@@ -56,8 +54,7 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_normal_2)
     def test_normal_multi_tag_event(self, events):
-        tm = TagManager()
-        actual = tm._get_tag_events(events)
+        actual = EventManager.get_tag_events(events)
 
         expected_tag1_start_time = datetime(2020, 12, 1, 0, 15, 0, 123456).timestamp()
         expected_tag1_end_time = datetime(2020, 12, 1, 0, 17, 0, 123456).timestamp()
@@ -81,7 +78,7 @@ class TestGetTagEvent:
 
         assert actual == expected
 
-    events_none = (
+    events_none: Tuple[List[Dict[str, str]], List[Any]] = (
         [
             {"event_type": "setup", "occurred_time": "2020-12-01T00:00:00.123456"},
             {"event_type": "start", "occurred_time": "2020-12-01T00:10:00.123456"},
@@ -92,8 +89,7 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_none)
     def test_no_tag_event(self, events):
-        tm = TagManager()
-        actual = tm._get_tag_events(events)
+        actual = EventManager.get_tag_events(events)
 
         expected = []
 
@@ -115,16 +111,14 @@ class TestGetTagEvent:
 
     @pytest.mark.parametrize("events", events_exception)
     def test_no_end_time(self, events):
-        tm = TagManager()
-
         with pytest.raises(KeyError):
-            tm._get_tag_events(events)
+            EventManager.get_tag_events(events)
 
 
 class TestAddTagsFromEvents:
     def test_normal_no_tags_in_range(self, shots_df, events_not_range):
         tm = TagManager()
-        tag_events = tm._get_tag_events(events_not_range)
+        tag_events = EventManager.get_tag_events(events_not_range)
         actual_df = tm._add_tags_from_events(shots_df, tag_events)
 
         expected = [
@@ -222,7 +216,7 @@ class TestAddTagsFromEvents:
         """ 最初の2サンプルに対し1つのtagを付与する """
 
         tm = TagManager()
-        tag_events = tm._get_tag_events(events_in_range_1)
+        tag_events = EventManager.get_tag_events(events_in_range_1)
         actual_df = tm._add_tags_from_events(shots_df, tag_events)
 
         expected = [
@@ -320,7 +314,7 @@ class TestAddTagsFromEvents:
         """ 最初の2サンプルに対し1つのtagを付与する """
 
         tm = TagManager()
-        tag_events = tm._get_tag_events(events_in_range_2)
+        tag_events = EventManager.get_tag_events(events_in_range_2)
         actual_df = tm._add_tags_from_events(shots_df, tag_events)
 
         expected = [
