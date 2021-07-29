@@ -22,6 +22,7 @@ from pandas.core.frame import DataFrame
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from elastic_manager.elastic_manager import ElasticManager
 from tag_manager.tag_manager import TagManager
+from event_manager.event_manager import EventManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 from throughput_counter import throughput_counter  # type: ignore
@@ -534,8 +535,9 @@ class CutOutShot:
 
         # event_indexから各種イベント情報を取得する
         events_index: str = "events-" + rawdata_dir_name
-        query: dict = {"sort": {"event_id": {"order": "asc"}}}
-        events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+        # query: dict = {"sort": {"event_id": {"order": "asc"}}}
+        # events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+        events: List[dict] = EventManager.fetch_events(events_index)
 
         if len(events) == 0:
             logger.error("Exits because no events.")
