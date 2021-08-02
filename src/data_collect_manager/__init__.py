@@ -2,6 +2,8 @@ import os
 import sys
 from flask import Flask
 from logging.config import dictConfig
+from data_collect_manager.models.db import register_db
+from data_collect_manager.apis.machines import machines
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
@@ -35,6 +37,9 @@ dictConfig(
 )
 
 app = Flask(__name__)
+db = register_db(app)
+
+app.register_blueprint(machines, url_prefix="/api/v1")
 
 # config
 config_type = {
