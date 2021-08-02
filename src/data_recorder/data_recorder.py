@@ -232,15 +232,14 @@ def main() -> None:
         return
 
     # 直近のevents_indexからイベント取得
-    latest_events_index: Optional[str] = ElasticManager.get_latest_events_index()
+    latest_events_index: Optional[str] = EventManager.get_latest_events_index()
     if latest_events_index is None:
         logger.error("events_index is not found.")
         return
 
     suffix: str = latest_events_index.split("-")[1]
     events_index: str = "events-" + suffix
-    query: dict = {"sort": {"event_id": {"order": "asc"}}}
-    events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+    events: List[dict] = EventManager.fetch_events(events_index)
 
     if len(events) == 0:
         logger.error("Exits because no events.")
@@ -311,8 +310,7 @@ def manual_record(target_dir: str):
         return
 
     events_index: str = "events-" + os.path.basename(target_dir)
-    query: dict = {"sort": {"event_id": {"order": "asc"}}}
-    events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+    events: List[dict] = EventManager.fetch_events(events_index)
 
     if len(events) == 0:
         logger.error("Exits because no events.")
