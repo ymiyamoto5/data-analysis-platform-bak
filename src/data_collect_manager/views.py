@@ -9,6 +9,7 @@
 
 """
 
+from multiprocessing import Event
 import os
 import sys
 import time
@@ -22,7 +23,7 @@ from werkzeug import exceptions
 from data_collect_manager import app
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-from elastic_manager.elastic_manager import ElasticManager
+from event_manager.event_manager import EventManager
 from config_file_manager.config_file_manager import ConfigFileManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils/"))
@@ -68,7 +69,7 @@ def show_manager():
         return render_template("manager.html", status="stop")
 
     # 直近のevents_indexから状態判定
-    latest_event_index: Optional[str] = ElasticManager.get_latest_events_index()
+    latest_event_index: Optional[str] = EventManager.get_latest_events_index()
 
     # 直近のevents_indexがない場合、初期化処理後に初期画面へ遷移
     if latest_event_index is None:
@@ -78,8 +79,7 @@ def show_manager():
         return render_template("manager.html", status="stop")
 
     # events_indexの最新documentから状態判定
-    query: dict = {"sort": {"event_id": {"order": "desc"}}}
-    latest_events_index_docs: Optional[dict] = ElasticManager.get_docs(index=latest_event_index, query=query, size=1)
+    latest_events_index_docs: List[dict] = EventManager.get_latest_event(latest_event_index)
 
     # 最新のevents_indexがあるのにdocumentがない例外パターン
     if len(latest_events_index_docs) == 0:
@@ -108,9 +108,10 @@ def setup():
     utc_now: datetime = datetime.utcnow()
     jst_now: DisplayTime = DisplayTime(utc_now)
 
-    # events_index作成
-    events_index: str = "events-" + jst_now.to_string()
-    successful: bool = ElasticManager.create_index(events_index)
+    # 現在日時名のevents_index作成
+    successful: bool
+    events_index: str
+    successful, events_index = EventManager.create_events_index(jst_now.to_string())
 
     if not successful:
         return Response(
@@ -118,9 +119,7 @@ def setup():
         )
 
     # events_indexに段取り開始(setup)を記録
-    doc_id = 0
-    query = {"event_id": doc_id, "event_type": "setup", "occurred_time": utc_now}
-    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+    successful: bool = EventManager.record_event(events_index, event_type="setup", occurred_time=utc_now)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
@@ -154,8 +153,7 @@ def start():
 
     utc_now: datetime = datetime.utcnow()
 
-    # events_indexに開始イベントを記録
-    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+    events_index: Optional[str] = EventManager.get_latest_events_index()
 
     if events_index is None:
         app.logger.error("events_index not found.")
@@ -164,9 +162,8 @@ def start():
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return render_template("manager.html", status="stop")
 
-    doc_id: int = ElasticManager.count(events_index)
-    query: dict = {"event_id": doc_id, "event_type": "start", "occurred_time": utc_now}
-    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+    # events_indexに開始イベントを記録
+    successful: bool = EventManager.record_event(events_index, event_type="start", occurred_time=utc_now)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
@@ -180,8 +177,7 @@ def pause():
 
     utc_now: datetime = datetime.utcnow()
 
-    # 中断イベントの記録。中断終了時刻は現在時刻を仮置き。
-    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+    events_index: Optional[str] = EventManager.get_latest_events_index()
 
     if events_index is None:
         app.logger.error("events_index not found.")
@@ -190,9 +186,8 @@ def pause():
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return render_template("manager.html", status="stop")
 
-    doc_id: int = ElasticManager.count(events_index)
-    query: dict = {"event_id": doc_id, "event_type": "pause", "start_time": utc_now}
-    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+    # 中断イベントの記録。中断終了時刻は現在時刻を仮置き。
+    successful: bool = EventManager.record_event(events_index, event_type="pause", occurred_time=utc_now)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
@@ -207,7 +202,7 @@ def resume():
     utc_now: datetime = datetime.utcnow()
 
     # 再開時は中断時に記録されたイベントを更新
-    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+    events_index: Optional[str] = EventManager.get_latest_events_index()
 
     if events_index is None:
         app.logger.error("events_index not found.")
@@ -216,9 +211,7 @@ def resume():
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return render_template("manager.html", status="stop")
 
-    doc_id: int = ElasticManager.count(events_index) - 1  # 更新対象は最新のdocument（pause）イベントである前提
-    query: dict = {"end_time": utc_now}
-    successful: bool = ElasticManager.update_doc(events_index, doc_id, query)
+    successful: bool = EventManager.update_pause_event(events_index, occurred_time=utc_now)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
@@ -253,7 +246,7 @@ def stop():
         )
 
     # events_indexに停止イベントを記録
-    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+    events_index: Optional[str] = EventManager.get_latest_events_index()
 
     if events_index is None:
         app.logger.error("events_index not found.")
@@ -262,9 +255,7 @@ def stop():
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return render_template("manager.html", status="stop")
 
-    doc_id = ElasticManager.count(events_index)
-    query = {"event_id": doc_id, "event_type": "stop", "occurred_time": utc_now}
-    successful = ElasticManager.create_doc(events_index, doc_id, query)
+    successful: bool = EventManager.record_event(events_index, event_type="stop", occurred_time=utc_now)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
@@ -285,7 +276,7 @@ def record_tag():
     utc_now: datetime = datetime.utcnow()
 
     # events_indexに事象記録
-    events_index: Optional[str] = ElasticManager.get_latest_events_index()
+    events_index: Optional[str] = EventManager.get_latest_events_index()
 
     if events_index is None:
         app.logger.error("events_index not found.")
@@ -294,9 +285,7 @@ def record_tag():
             return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
         return render_template("manager.html", status="stop")
 
-    doc_id: int = ElasticManager.count(events_index)
-    query: dict = {"event_id": doc_id, "event_type": "tag", "tag": tag, "end_time": utc_now}
-    successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+    successful: bool = EventManager.record_tag_event(events_index, tag=tag, occurred_time=utc_now)
 
     if not successful:
         return Response(response=json.dumps({"successful": successful, "message": "save to ES failed."}), status=500)
@@ -321,7 +310,7 @@ def check_record_finished():
             successful: bool = True
 
             # events_indexに記録完了イベントを記録
-            events_index: Optional[str] = ElasticManager.get_latest_events_index()
+            events_index: Optional[str] = EventManager.get_latest_events_index()
 
             if events_index is None:
                 app.logger.error("events_index not found.")
@@ -330,11 +319,8 @@ def check_record_finished():
                     return Response(response=json.dumps({"successful": successful, "message": message}), status=500)
                 return render_template("manager.html", status="recorded")
 
-            doc_id = ElasticManager.count(events_index)
             utc_now: datetime = datetime.utcnow()
-
-            query = {"event_id": doc_id, "event_type": "recorded", "occurred_time": utc_now}
-            successful = ElasticManager.create_doc(events_index, doc_id, query)
+            successful: bool = EventManager.record_event(events_index, event_type="recorded", occurred_time=utc_now)
 
             if not successful:
                 return Response(
@@ -346,4 +332,3 @@ def check_record_finished():
             )
 
         time.sleep(WAIT_SECONDS)
-
