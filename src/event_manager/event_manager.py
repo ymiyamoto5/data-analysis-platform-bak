@@ -94,7 +94,7 @@ class EventManager:
 
         if len(setup_events) == 0:
             logger.error("Data collection has not setup yet.")
-            raise sys.exit(1)
+            sys.exit(1)
 
         setup_event: dict = setup_events[0]
         collect_start_time: float = datetime.fromisoformat(setup_event["occurred_time"]).timestamp()
@@ -137,21 +137,24 @@ class EventManager:
         """ events_indexから中断イベントを取得し、timestampにして返却する。 """
 
         pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
-        if len(pause_events) > 0:
-            for pause_event in pause_events:
-                if pause_event.get("start_time") is None:
-                    logger.exception("Invalid status in pause event. Not found [start_time] key.")
-                    raise KeyError
 
-                if pause_event.get("end_time") is None:
-                    logger.exception("Pause event does not finished. Please retry after finish pause.")
-                    raise KeyError
-                # str to datetime
-                pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
-                pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
-                # datetime to unixtime
-                pause_event["start_time"] = pause_event["start_time"].timestamp()
-                pause_event["end_time"] = pause_event["end_time"].timestamp()
+        if len(pause_events) == 0:
+            return []
+
+        for pause_event in pause_events:
+            if pause_event.get("start_time") is None:
+                logger.exception("Invalid status in pause event. Not found [start_time] key.")
+                raise KeyError
+
+            if pause_event.get("end_time") is None:
+                logger.exception("Pause event does not finished. Please retry after finish pause.")
+                raise KeyError
+            # str to datetime
+            pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
+            pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
+            # datetime to unixtime
+            pause_event["start_time"] = pause_event["start_time"].timestamp()
+            pause_event["end_time"] = pause_event["end_time"].timestamp()
 
         return pause_events
 
@@ -164,16 +167,18 @@ class EventManager:
         tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
         logger.info(tag_events)
 
-        if len(tag_events) > 0:
-            for tag_event in tag_events:
-                if tag_event.get("end_time") is None:
-                    logger.exception("Invalid status in tag event. Not found [end_time] key.")
-                    raise KeyError
+        if len(tag_events) == 0:
+            return []
 
-                tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
-                tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
-                # DataFrameのtimestampと比較するため、datetimeからtimestampに変換
-                tag_event["start_time"] = tag_event["start_time"].timestamp()
-                tag_event["end_time"] = tag_event["end_time"].timestamp()
+        for tag_event in tag_events:
+            if tag_event.get("end_time") is None:
+                logger.exception("Invalid status in tag event. Not found [end_time] key.")
+                raise KeyError
+
+            tag_event["end_time"] = datetime.fromisoformat(tag_event["end_time"])
+            tag_event["start_time"] = tag_event["end_time"] - timedelta(seconds=back_seconds_for_tagging)
+            # DataFrameのtimestampと比較するため、datetimeからtimestampに変換
+            tag_event["start_time"] = tag_event["start_time"].timestamp()
+            tag_event["end_time"] = tag_event["end_time"].timestamp()
 
         return tag_events
