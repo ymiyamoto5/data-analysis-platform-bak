@@ -13,7 +13,7 @@ import elasticsearch
 from elastic_manager.elastic_manager import ElasticManager
 
 
-class TestGetLatestEventsIndex:
+class TestGetLatestIndex:
     def test_normal(self, mocker):
         """ 正常系：events_indexの最新が取得できる """
 
@@ -23,7 +23,7 @@ class TestGetLatestEventsIndex:
             return_value="events-20201201123456\nevents-20201201133456\nevents-20201201143456",
         )
 
-        actual: str = ElasticManager.get_latest_events_index()
+        actual: str = ElasticManager.get_latest_index("events-*")
         expected: str = "events-20201201143456"
 
         assert actual == expected
@@ -35,7 +35,7 @@ class TestGetLatestEventsIndex:
             elasticsearch.client.CatClient, "indices", return_value="",
         )
 
-        actual = ElasticManager.get_latest_events_index()
+        actual = ElasticManager.get_latest_index("events-*")
         expected = None
 
         assert actual == expected

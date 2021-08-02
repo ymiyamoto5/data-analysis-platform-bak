@@ -52,12 +52,12 @@ class ElasticManager:
         return df
 
     @classmethod
-    def get_latest_events_index(cls) -> Optional[str]:
-        """ 最新のevents_indexの名前を返す """
+    def get_latest_index(cls, index) -> Optional[str]:
+        """ 引数で指定したindexに一致する最新のインデックス名を返す """
 
-        _indices: List[str] = cls.es.cat.indices(index="events-*", s="index", h="index").splitlines()
+        _indices: List[str] = cls.es.cat.indices(index=index, s="index", h="index").splitlines()
         if len(_indices) == 0:
-            logger.error("events index not found.")
+            logger.error("Index not found.")
             return None
 
         return _indices[-1]
@@ -203,7 +203,7 @@ class ElasticManager:
         return True
 
     @classmethod
-    def create_doc(cls, index: str, doc_id: str, query: dict) -> bool:
+    def create_doc(cls, index: str, doc_id: int, query: dict) -> bool:
         """ documentの作成 """
 
         if not cls.exists_index(index):
@@ -219,7 +219,7 @@ class ElasticManager:
             return False
 
     @classmethod
-    def update_doc(cls, index: str, doc_id: str, query: dict) -> bool:
+    def update_doc(cls, index: str, doc_id: int, query: dict) -> bool:
         """ documentの更新 """
 
         if not cls.exists_index(index):

@@ -1,7 +1,7 @@
 import os
 import sys
 from datetime import datetime, timedelta
-from typing import List, Optional, Final
+from typing import List, Optional, Final, Tuple
 
 import logging
 
@@ -17,6 +17,64 @@ import common  # noqa
 
 
 class EventManager:
+    @staticmethod
+    def create_events_index(datetime_str: str) -> Tuple[bool, str]:
+        """ 日時文字列をsuffixとするevents_indexを作成する """
+
+        events_index: str = "events-" + datetime_str
+        successful: bool = ElasticManager.create_index(events_index)
+
+        return successful, events_index
+
+    @staticmethod
+    def record_event(events_index: str, event_type: str, occurred_time: datetime) -> bool:
+        """ イベントをevents_indexに保存する """
+
+        doc_id: int = ElasticManager.count(events_index)
+        query = {"event_id": doc_id, "event_type": event_type, "occurred_time": occurred_time}
+        successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+
+        return successful
+
+    @staticmethod
+    def record_tag_event(events_index: str, tag: str, occurred_time: datetime) -> bool:
+        """ タグイベントをevents_indexに保存する """
+
+        doc_id: int = ElasticManager.count(events_index)
+        query: dict = {"event_id": doc_id, "event_type": "tag", "tag": tag, "end_time": occurred_time}
+        successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+
+        return successful
+
+    @staticmethod
+    def update_pause_event(events_index: str, occurred_time: datetime) -> bool:
+        """ 中断イベントを更新する """
+
+        # 更新対象は最新のdocument（pause）イベントである前提
+        latest_event_type: str = EventManager.get_latest_event(events_index)[0]["event_type"]
+        # TODO: エラーハンドリング
+        if latest_event_type != "pause":
+            logger.error(f"latest event type is invalid status {latest_event_type}")
+
+        doc_id: int = ElasticManager.count(events_index) - 1
+        query: dict = {"end_time": occurred_time}
+        successful: bool = ElasticManager.update_doc(events_index, doc_id, query)
+
+        return successful
+
+    @staticmethod
+    def get_latest_events_index() -> Optional[str]:
+        """ 最新のevents_indexの名前を返す """
+
+        return ElasticManager.get_latest_index("events-*")
+
+    @staticmethod
+    def get_latest_event(events_index: str) -> List[dict]:
+        """ 最新イベントを返す """
+
+        query: dict = {"sort": {"event_id": {"order": "desc"}}}
+        return ElasticManager.get_docs(index=events_index, query=query, size=1)
+
     @staticmethod
     def fetch_events(events_index: str) -> List[dict]:
         """ events_index からイベント情報を取得し、返却する """

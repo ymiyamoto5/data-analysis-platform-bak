@@ -16,7 +16,7 @@ import glob
 
 from data_collect_manager import views
 from config_file_manager.config_file_manager import ConfigFileManager
-from elastic_manager.elastic_manager import ElasticManager
+from event_manager.event_manager import EventManager
 
 
 class TestInitializeConfigFile:
@@ -52,7 +52,7 @@ class TestShowManager:
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=False)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
         mocker.patch.object(ConfigFileManager, "create", return_value=True)
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.get("/")
@@ -94,7 +94,7 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.get("/")
@@ -109,7 +109,7 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.get("/")
@@ -124,8 +124,8 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value=[])
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "get_latest_event", return_value=[])
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.get("/")
@@ -142,8 +142,8 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "stop"}])
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "get_latest_event", return_value=[{"event_type": "stop"}])
 
         response = client.get("/")
 
@@ -160,8 +160,8 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "setup"}])
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "get_latest_event", return_value=[{"event_type": "setup"}])
 
         response = client.get("/")
 
@@ -178,8 +178,8 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "start"}])
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "get_latest_event", return_value=[{"event_type": "start"}])
 
         response = client.get("/")
 
@@ -196,8 +196,8 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "get_docs", return_value=[{"event_type": "tag"}])
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "get_latest_event", return_value=[{"event_type": "tag"}])
 
         response = client.get("/")
 
@@ -214,11 +214,11 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
         start_time: datetime = datetime.utcnow()
         mocker.patch.object(
-            ElasticManager,
-            "get_docs",
+            EventManager,
+            "get_latest_event",
             return_value=[{"event_type": "pause", "start_time": start_time}],
         )
 
@@ -237,12 +237,12 @@ class TestShowManager:
 
         mocker.patch.object(ConfigFileManager, "config_exists", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
         start_time: datetime = datetime.utcnow()
         end_time: datetime = start_time + timedelta(seconds=60)
         mocker.patch.object(
-            ElasticManager,
-            "get_docs",
+            EventManager,
+            "get_latest_event",
             return_value=[{"event_type": "pause", "start_time": start_time, "end_time": end_time}],
         )
 
@@ -261,9 +261,9 @@ class TestSetup:
             また、configファイルにstart_timeを記録。
         """
 
-        mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "record_event", return_value=True)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.post("/setup")
@@ -276,9 +276,9 @@ class TestSetup:
     def test_gateway_result_invalid_exception_1(self, client, mocker):
         """ 異常系：gateway_result = -1のとき、更新リトライして成功 """
 
-        mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "record_event", return_value=True)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.post("/setup")
@@ -291,9 +291,9 @@ class TestSetup:
     def test_gateway_result_invalid_exception_2(self, client, mocker):
         """ 異常系：gateway_result = -1のとき、更新リトライして失敗 """
 
-        mocker.patch.object(ElasticManager, "create_index", return_value=True)
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "record_event", return_value=True)
         mocker.patch.object(ConfigFileManager, "update", return_value=False)
 
         response = client.post("/setup")
@@ -306,7 +306,7 @@ class TestSetup:
     def test_events_index_create_fail_exception(self, client, mocker):
         """ 異常系：events_index作成失敗 """
 
-        mocker.patch.object(ElasticManager, "create_index", return_value=False)
+        mocker.patch.object(EventManager, "create_events_index", return_value=(False, "tmp_events_index"))
 
         response = client.post("/setup")
         actual_code = response.status_code
@@ -315,11 +315,11 @@ class TestSetup:
         assert actual_code == expected_code
         assert b'{"successful": false, "message": "create ES index failed."}' in response.data
 
-    def test_events_index_create_doc_fail_exception(self, client, mocker):
+    def test_events_index_record_event_fail_exception(self, client, mocker):
         """ 異常系：events_indexのdocument作成失敗 """
 
-        mocker.patch.object(ElasticManager, "create_index", return_value=True)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=False)
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
+        mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post("/setup")
         actual_code = response.status_code
@@ -331,8 +331,8 @@ class TestSetup:
     def test_config_file_update_fail_exception(self, client, mocker):
         """ 異常系：configファイルの更新失敗 """
 
-        mocker.patch.object(ElasticManager, "create_index", return_value=True)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
+        mocker.patch.object(EventManager, "record_event", return_value=True)
         mocker.patch.object(ConfigFileManager, "update", return_value=False)
 
         response = client.post("/setup")
@@ -347,9 +347,8 @@ class TestStart:
     def test_normal(self, client, mocker):
         """ 正常系 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=True)
 
         response = client.post("/start")
         actual_code = response.status_code
@@ -361,7 +360,7 @@ class TestStart:
     def test_events_index_not_found_exception(self, client, mocker):
         """ 異常系：最新のevents_indexがない場合 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.post("/start")
@@ -371,12 +370,11 @@ class TestStart:
         assert actual_code == expected_code
         assert b"initial-view" in response.data
 
-    def test_events_index_create_doc_fail_exception(self, client, mocker):
+    def test_events_index_record_event_fail_exception(self, client, mocker):
         """ 異常系：events_index更新失敗 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=False)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post("/start")
         actual_code = response.status_code
@@ -390,9 +388,8 @@ class TestPause:
     def test_normal(self, client, mocker):
         """ 正常系 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=True)
 
         response = client.post("/pause")
         actual_code = response.status_code
@@ -404,7 +401,7 @@ class TestPause:
     def test_events_index_not_found_exception(self, client, mocker):
         """ 異常系：最新のevents_indexがない場合 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.post("/pause")
@@ -414,12 +411,11 @@ class TestPause:
         assert actual_code == expected_code
         assert b"initial-view" in response.data
 
-    def test_events_index_create_doc_fail_exception(self, client, mocker):
+    def test_events_index_record_event_fail_exception(self, client, mocker):
         """ 異常系：events_index更新失敗 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=False)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post("/pause")
         actual_code = response.status_code
@@ -433,9 +429,8 @@ class TestResume:
     def test_normal(self, client, mocker):
         """ 正常系 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "update_doc", return_value=True)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "update_pause_event", return_value=True)
 
         response = client.post("/resume")
         actual_code = response.status_code
@@ -447,7 +442,7 @@ class TestResume:
     def test_events_index_not_found_exception(self, client, mocker):
         """ 異常系：最新のevents_indexがない場合 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.post("/resume")
@@ -457,12 +452,11 @@ class TestResume:
         assert actual_code == expected_code
         assert b"initial-view" in response.data
 
-    def test_events_index_create_doc_fail_exception(self, client, mocker):
+    def test_events_index_record_event_fail_exception(self, client, mocker):
         """ 異常系：events_index更新失敗 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "update_doc", return_value=False)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "update_pause_event", return_value=False)
 
         response = client.post("/resume")
         actual_code = response.status_code
@@ -478,9 +472,8 @@ class TestStop:
 
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": 1})
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=True)
 
         response = client.post("/stop")
         actual_code = response.status_code
@@ -495,9 +488,8 @@ class TestStop:
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
         mocker.patch.object(ConfigFileManager, "read_config", return_value={"gateway_result": -1})
         mocker.patch.object(ConfigFileManager, "create", return_value=True)
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=True)
 
         response = client.post("/stop")
         actual_code = response.status_code
@@ -536,7 +528,7 @@ class TestStop:
         """ 異常系：最新のevents_indexがない場合 """
 
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.post("/stop")
@@ -546,13 +538,12 @@ class TestStop:
         assert actual_code == expected_code
         assert b"initial-view" in response.data
 
-    def test_events_index_create_doc_fail_exception(self, client, mocker):
+    def test_events_index_record_event_fail_exception(self, client, mocker):
         """ 異常系：events_index更新失敗 """
 
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=False)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post("/stop")
         actual_code = response.status_code
@@ -566,9 +557,8 @@ class TestRecordTag:
     def test_normal(self, client, mocker):
         """ 正常系 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_tag_event", return_value=True)
 
         response = client.post("/record_tag", data={"tag": "異常A"})
         actual_code = response.status_code
@@ -594,7 +584,7 @@ class TestRecordTag:
     def test_events_index_not_found_exception(self, client, mocker):
         """ 異常系：最新のevents_indexがない場合 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value=None)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=None)
         mocker.patch.object(ConfigFileManager, "update", return_value=True)
 
         response = client.post("/record_tag", data={"tag": "異常A"})
@@ -604,12 +594,11 @@ class TestRecordTag:
         assert actual_code == expected_code
         assert b"initial-view" in response.data
 
-    def test_events_index_create_doc_fail_exception(self, client, mocker):
+    def test_events_index_record_event_fail_exception(self, client, mocker):
         """ 異常系：events_index更新失敗 """
 
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=False)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_tag_event", return_value=False)
 
         response = client.post("/record_tag", data={"tag": "異常A"})
         actual_code = response.status_code
@@ -624,9 +613,8 @@ class TestCheck:
         """ 正常系：datファイルがすべて処理済み。 """
 
         mocker.patch.object(glob, "glob", return_value=[])
-        mocker.patch.object(ElasticManager, "get_latest_events_index", return_value="tmp_events_index")
-        mocker.patch.object(ElasticManager, "count", return_value=1)
-        mocker.patch.object(ElasticManager, "create_doc", return_value=True)
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value="tmp_events_index")
+        mocker.patch.object(EventManager, "record_event", return_value=True)
 
         response = client.get("/check")
         actual_code = response.status_code
