@@ -1,6 +1,7 @@
 import os
 import sys
 from flask import Flask
+from flask_cors import CORS
 from logging.config import dictConfig
 from data_collect_manager.models.db import register_db
 from data_collect_manager.apis.machines import machines
@@ -43,7 +44,10 @@ app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 
 db = register_db(app)
+
 app.register_blueprint(machines, url_prefix="/api/v1")
+
+CORS(app)
 
 # config
 config_type = {
