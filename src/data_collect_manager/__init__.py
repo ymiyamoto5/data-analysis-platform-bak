@@ -37,8 +37,12 @@ dictConfig(
 )
 
 app = Flask(__name__)
-db = register_db(app)
 
+# NOTE: jsonifyのUnicodeエスケープを回避する
+# https://datalove.hatenadiary.jp/entry/flask-jsonify-how-to-encode-japanese
+app.config["JSON_AS_ASCII"] = False
+
+db = register_db(app)
 app.register_blueprint(machines, url_prefix="/api/v1")
 
 # config
@@ -50,4 +54,4 @@ config_type = {
 
 app.config.from_object(config_type.get(os.getenv("FLASK_APP_ENV", "production")))
 
-import data_collect_manager.views
+import data_collect_manager.views  # noqa
