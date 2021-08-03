@@ -20,16 +20,16 @@ machine_type_02 = MachineType(machine_type_name="圧力プレート")
 db.session.add(machine_type_01)
 db.session.add(machine_type_02)
 
-machine_01 = Machine(machine_name="テストプレス01", machine_type_id=1)
-machine_02 = Machine(machine_name="テストプレス02", machine_type_id=1)
-machine_03 = Machine(machine_name="テスト圧力プレート01", machine_type_id=2)
+machine_01 = Machine(machine_id="テストプレス01", machine_type_id=1)
+machine_02 = Machine(machine_id="テストプレス02", machine_type_id=1)
+machine_03 = Machine(machine_id="テスト圧力プレート01", machine_type_id=2)
 
-gateway_01 = Gateway(gateway_name="GW-01", sequence_number=1, gateway_result=0, status="stop", log_level=5)
-gateway_02 = Gateway(gateway_name="GW-02", sequence_number=1, gateway_result=0, status="running", log_level=5)
-gateway_03 = Gateway(gateway_name="GW-03", sequence_number=1, gateway_result=0, status="stop", log_level=5)
+gateway_01 = Gateway(gateway_id="GW-01", sequence_number=1, gateway_result=0, status="stop", log_level=5)
+gateway_02 = Gateway(gateway_id="GW-02", sequence_number=1, gateway_result=0, status="running", log_level=5)
+gateway_03 = Gateway(gateway_id="GW-03", sequence_number=1, gateway_result=0, status="stop", log_level=5)
 
 handler_01 = Handler(
-    handler_name="AD-USB-1608",
+    handler_id="AD-USB-1608",
     handler_type="USB_1608HS",
     adc_serial_num="01F3D39C",
     sampling_frequency=100000,
@@ -38,7 +38,7 @@ handler_01 = Handler(
 )
 
 handler_02 = Handler(
-    handler_name="AD-USB-xxxx",
+    handler_id="AD-USB-xxxx",
     handler_type="USB_xxxxHS",
     adc_serial_num="ZZZZZZZ",
     sampling_frequency=1000,
@@ -47,7 +47,7 @@ handler_02 = Handler(
 )
 
 handler_03 = Handler(
-    handler_name="AD-USB-yyyy",
+    handler_id="AD-USB-yyyy",
     handler_type="USB_yyyyHS",
     adc_serial_num="YYYYYYYY",
     sampling_frequency=1000,

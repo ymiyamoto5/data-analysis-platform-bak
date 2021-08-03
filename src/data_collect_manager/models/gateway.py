@@ -9,8 +9,7 @@ from data_collect_manager.models.handler import Handler
 class Gateway(db.Model):
     __tablename__ = "gateways"
 
-    id: int
-    gateway_name: str
+    gateway_id: str
     sequence_number: int
     gateway_result: int
     status: str
@@ -18,8 +17,7 @@ class Gateway(db.Model):
 
     handlers: Handler
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    gateway_name = db.Column(db.String(255), unique=True, nullable=False)
+    gateway_id = db.Column(db.String(255), primary_key=True)
     sequence_number = db.Column(db.Integer)
     gateway_result = db.Column(db.Integer)
     status = db.Column(db.String(255))
