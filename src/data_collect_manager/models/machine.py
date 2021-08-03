@@ -8,13 +8,12 @@ from data_collect_manager.models.machine_gateway_mapping import MachineGatewayMa
 class Machine(db.Model):
     __tablename__ = "machines"
 
-    id: int
-    machine_name: str
+    # NOTE: これらの定義は必須。無いとquery時にエラーになる。
+    machine_id: str
     machine_type_id: int
     gateways: Gateway
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    machine_name = db.Column(db.String(255), unique=True, nullable=False)
+    machine_id = db.Column(db.String(255), primary_key=True)
     machine_type_id = db.Column(db.Integer, db.ForeignKey("machine_types.id"))
 
     machine_type = db.relationship("MachineType")

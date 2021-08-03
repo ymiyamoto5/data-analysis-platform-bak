@@ -7,16 +7,14 @@ from data_collect_manager.models.gateway_handler_mapping import GatewayHandlerMa
 class Handler(db.Model):
     __tablename__ = "handlers"
 
-    id: int
-    handler_name: str
+    handler_id: str
     handler_type: str
     adc_serial_num: str
     sampling_frequency: int
     sampling_ch_num: int
     filewrite_time: int
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    handler_name = db.Column(db.String(255), unique=True, nullable=False)
+    handler_id = db.Column(db.String(255), primary_key=True)
     handler_type = db.Column(db.String(255))
     adc_serial_num = db.Column(db.String(255))
     sampling_frequency = db.Column(db.Integer)
