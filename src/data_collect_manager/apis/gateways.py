@@ -1,5 +1,4 @@
-import json
-from flask import Blueprint, jsonify, request, Response
+from flask import Blueprint, jsonify, request
 from data_collect_manager.models.gateway import Gateway
 from data_collect_manager.models.db import db
 
@@ -44,26 +43,26 @@ def update_status(id):
         status: str = request.json["status"]
     except KeyError:
         message: str = "Invalid request key."
-        return Response(response=json.dumps({"successful": False, "message": message}), status=400)
+        return jsonify({"error": message}), 400
 
     if (status is None) or (status not in ("running", "stop")):
         message: str = f"The status '{status}' is invalid."
         logger.error(message)
-        return Response(response=json.dumps({"successful": False, "message": message}), status=400)
+        return jsonify({"error": message}), 400
 
     gateway = Gateway.query.get(id)
 
     if gateway is None:
         message: str = f"The gateway '{gateway}' is not found."
         logger.error(message)
-        return Response(response=json.dumps({"successful": False, "message": message}), status=404)
+        return jsonify({"error": message}), 404
 
     try:
         gateway.status = status
         db.session.commit()
-        return Response(response=json.dumps({"successful": True}), status=200)
+        return jsonify({}), 200
     except Exception as e:
         message: str = f"Update gateway {id} failed."
         logger.error(str(e))
-        return Response(response=json.dumps({"successful": False, "message": message}), status=404)
+        return jsonify({"error": message}), 404
 
