@@ -12,12 +12,11 @@ machines = Blueprint("machines", __name__)
 
 @machines.route("/machines", methods=["GET"])
 def fetch_machines():
-    """ MachineTypeを起点に関連エンティティを全結合したデータを返す。
-        NOTE: machine_type_nameも含めるため、最上位エンティティであるMachineTypeから引いている。
+    """ Machineを起点に関連エンティティを全結合したデータを返す。
     """
 
     try:
-        machines = MachineType.query.all()
+        machines = Machine.query.all()
     except Exception as e:
         logger.error(str(e))
 
