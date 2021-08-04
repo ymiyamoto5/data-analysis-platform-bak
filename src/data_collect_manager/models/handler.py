@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from data_collect_manager.models.db import db
 from data_collect_manager.models.gateway_handler_mapping import GatewayHandlerMapping
+from data_collect_manager.models.handler_sensor_mapping import HandlerSensorMapping
+from data_collect_manager.models.sensor import Sensor
 
 
 @dataclass
@@ -14,6 +16,8 @@ class Handler(db.Model):
     sampling_ch_num: int
     filewrite_time: int
 
+    sensors: Sensor
+
     handler_id = db.Column(db.String(255), primary_key=True)
     handler_type = db.Column(db.String(255))
     adc_serial_num = db.Column(db.String(255))
@@ -22,3 +26,4 @@ class Handler(db.Model):
     filewrite_time = db.Column(db.Integer)
 
     gateways = db.relationship("Gateway", secondary=GatewayHandlerMapping.__tablename__, back_populates="handlers")
+    sensors = db.relationship("Sensor", secondary=HandlerSensorMapping.__tablename__, back_populates="handlers")
