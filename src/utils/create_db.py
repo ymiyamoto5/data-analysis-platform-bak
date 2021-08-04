@@ -20,9 +20,9 @@ machine_type_02 = MachineType(machine_type_name="圧力プレート")
 db.session.add(machine_type_01)
 db.session.add(machine_type_02)
 
-machine_01 = Machine(machine_id="テストプレス01", machine_type_id=1)
-machine_02 = Machine(machine_id="テストプレス02", machine_type_id=1)
-machine_03 = Machine(machine_id="テスト圧力プレート01", machine_type_id=2)
+machine_01 = Machine(machine_name="テストプレス01", machine_type_id=1)
+machine_02 = Machine(machine_name="テストプレス02", machine_type_id=1)
+machine_03 = Machine(machine_name="テスト圧力プレート01", machine_type_id=2)
 
 gateway_01 = Gateway(gateway_id="GW-01", sequence_number=1, gateway_result=0, status="stop", log_level=5)
 gateway_02 = Gateway(gateway_id="GW-02", sequence_number=1, gateway_result=0, status="running", log_level=5)

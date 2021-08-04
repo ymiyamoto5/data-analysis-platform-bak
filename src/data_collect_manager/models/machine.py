@@ -9,11 +9,13 @@ class Machine(db.Model):
     __tablename__ = "machines"
 
     # NOTE: これらの定義は必須。無いとquery時にエラーになる。
-    machine_id: str
+    id: int
+    machine_name: str
     machine_type_id: int
     gateways: Gateway
 
-    machine_id = db.Column(db.String(255), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    machine_name = db.Column(db.String(255), unique=True, nullable=False)
     machine_type_id = db.Column(db.Integer, db.ForeignKey("machine_types.id"))
 
     machine_type = db.relationship("MachineType")
