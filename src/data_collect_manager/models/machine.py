@@ -21,5 +21,7 @@ class Machine(db.Model):
     machine_name = db.Column(db.String(255), unique=True, nullable=False)
     machine_type_id = db.Column(db.Integer, db.ForeignKey("machine_types.id"))
 
+    # NOTE: MachineとGatewayはMany to Many
     gateways = db.relationship("Gateway", secondary=MachineGatewayMapping.__tablename__, back_populates="machines")
+    # NOTE: MachineとMachineTypeはMany to One
     machine_type = db.relationship("MachineType", back_populates="machines")
