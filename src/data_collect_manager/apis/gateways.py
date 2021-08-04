@@ -10,7 +10,7 @@ logger = logging.getLogger("data_collect_manager")
 gateways = Blueprint("gateways", __name__)
 
 
-@gateways.route("/gateway", methods=["GET"])
+@gateways.route("/gateways", methods=["GET"])
 def fetch_gateways():
     """ Gatewayを起点に関連エンティティを全結合したデータを返す。"""
 
@@ -19,7 +19,7 @@ def fetch_gateways():
     return jsonify(gateways)
 
 
-@gateways.route("/gateway/<string:gateway_id>", methods=["GET"])
+@gateways.route("/gateways/<string:gateway_id>", methods=["GET"])
 def fetch_gateway(gateway_id):
     """ 指定Gatewayの情報を取得 """
 
@@ -28,21 +28,7 @@ def fetch_gateway(gateway_id):
     return jsonify(gateway)
 
 
-# @gateways.route("/gateway/<string:gateway_name>", methods=["GET"])
-# def get_gateway_by_name(gateway_name):
-#     """ 指定Gatewayの情報をGateway名から取得 """
-
-#     gateway = Gateway.query.filter_by(gateway_name=gateway_name).first()
-
-#     if gateway is None:
-#         message: str = f"The gateway '{gateway_name}' is not found."
-#         logger.error(message)
-#         return jsonify({"error": message}), 404
-
-#     return jsonify(gateway)
-
-
-@gateways.route("/gateway", methods=["POST"])
+@gateways.route("/gateways", methods=["POST"])
 def create():
     """ Gatewayの作成 """
 
@@ -84,7 +70,7 @@ def create():
         return jsonify({"error": message}), 500
 
 
-@gateways.route("/gateway/<string:gateway_id>/update_status", methods=["POST"])
+@gateways.route("/gateways/<string:gateway_id>/update_status", methods=["POST"])
 def update_status(gateway_id):
     """ 指定Gatewayのstatus更新。同時にsequence_numberがインクリメントされる。 """
 
