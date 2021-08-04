@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-
-# from data_collect_manager.models.sensor import Sensor
 from data_collect_manager.models.db import db
 
 
@@ -10,7 +8,6 @@ class SensorType(db.Model):
 
     id: int
     sensor_type_name: str
-    # sensors: Sensor
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     sensor_type_name = db.Column(db.String(255), unique=True, nullable=False)
