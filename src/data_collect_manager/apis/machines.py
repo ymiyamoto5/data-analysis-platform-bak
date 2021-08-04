@@ -7,7 +7,7 @@ machines = Blueprint("machines", __name__)
 
 
 @machines.route("/machines", methods=["GET"])
-def get_machines():
+def fetch_machines():
     """ MachineTypeを起点に関連エンティティを全結合したデータを返す。"""
 
     # machines = db.session.query(Machine).join(MachineType)
