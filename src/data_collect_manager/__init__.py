@@ -7,6 +7,7 @@ from data_collect_manager.models.db import register_db
 from data_collect_manager.apis.machines import machines
 from data_collect_manager.apis.gateways import gateways
 from data_collect_manager.apis.handlers import handlers
+from data_collect_manager.apis.sensors import sensors
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../utils"))
 import common
@@ -50,6 +51,7 @@ db = register_db(app)
 app.register_blueprint(machines, url_prefix="/api/v1")
 app.register_blueprint(gateways, url_prefix="/api/v1")
 app.register_blueprint(handlers, url_prefix="/api/v1")
+app.register_blueprint(sensors, url_prefix="/api/v1")
 
 CORS(app)
 
