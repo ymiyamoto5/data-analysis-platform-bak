@@ -17,7 +17,7 @@ import multiprocessing
 from typing import Final, List
 from datetime import datetime, timedelta
 from pytz import timezone
-
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,11 @@ NUM_OF_LOAD_SENSOR: Final[int] = 4
 LOG_LEVEL: List[str] = ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
 DEFAULT_LOG_LEVEL: Final[str] = "INFO"
 USER_CHOICE: List[str] = LOG_LEVEL + list(map(lambda w: w.lower(), LOG_LEVEL))
+
+
+class STATUS(Enum):
+    STOP = "stop"
+    RUNNING = "running"
 
 
 def get_config_value(file_path: str, key: str):
