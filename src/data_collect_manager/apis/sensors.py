@@ -4,7 +4,7 @@ from data_collect_manager.models.db import db
 import logging
 
 # TODO: data_collect_managerのloggerを引き継ぐように設定したい。
-logger = logging.getLogger("data_collect_manager")
+logger = logging.getLogger(__name__)
 
 sensors = Blueprint("sensors", __name__)
 
