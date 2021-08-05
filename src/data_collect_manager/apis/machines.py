@@ -14,12 +14,7 @@ machines = Blueprint("machines", __name__)
 def fetch_machines():
     """ Machineを起点に関連エンティティを全結合したデータを返す """
 
-    try:
-        machines = Machine.query.all()
-    except Exception as e:
-        message: str = f"次のエラーが発生しました。{str(e)}"
-        logger.error(str(e))
-        return jsonify({"message": message}), 400
+    machines = Machine.query.all()
 
     return jsonify(machines)
 
