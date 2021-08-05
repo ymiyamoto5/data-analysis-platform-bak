@@ -32,14 +32,14 @@ import common  # noqa
 
 
 class DataImporter:
-    """ DataFrameで提供されるデータをElasticsearchに格納するためのクラス """
+    """DataFrameで提供されるデータをElasticsearchに格納するためのクラス"""
 
     def __init__(self):
         pass
 
     # TODO: 共通化
     def _get_files(self, file_dir, pattern: str):
-        """ pattern に一致するファイルをdirから取得する """
+        """pattern に一致するファイルをdirから取得する"""
 
         files: List[str] = glob.glob(os.path.join(file_dir, pattern))
 
@@ -52,8 +52,8 @@ class DataImporter:
         return files
 
     def split_np_array_by_shot(self, target_file_path: str, target_date: str):
-        """ numpy arrayのデータファイルをloadし、ショット毎に1csvファイルとして分割する。
-            numpy arrayは3次元データとし、0次元がショット軸であることが前提である。
+        """numpy arrayのデータファイルをloadし、ショット毎に1csvファイルとして分割する。
+        numpy arrayは3次元データとし、0次元がショット軸であることが前提である。
         """
 
         arr = np.load(target_file_path)
@@ -69,7 +69,7 @@ class DataImporter:
         print("output csv finished.")
 
     def _get_target_date_dir(self, target_date: str) -> str:
-        """ ファイル出力先のパスを取得する """
+        """ファイル出力先のパスを取得する"""
 
         data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
         file_dir: str = os.path.join(data_dir, target_date)
@@ -86,7 +86,7 @@ class DataImporter:
         sampling_interval,
         timestamp_file=None,
     ) -> DataFrame:
-        """ csvファイルのデータを加工する """
+        """csvファイルのデータを加工する"""
 
         file_dir = self._get_target_date_dir(target_date)
         files = self._get_files(file_dir, pattern="*.csv")
@@ -133,7 +133,7 @@ class DataImporter:
     def _add_timestamp_from_file(
         self, df: DataFrame, file_number: int, timestamp_df: DataFrame, sampling_interval: float
     ):
-        """ ショット毎のタイムスタンプが記録されたDFを使って、元のDFのサンプルデータにタイムスタンプを付与する """
+        """ショット毎のタイムスタンプが記録されたDFを使って、元のDFのサンプルデータにタイムスタンプを付与する"""
 
         start_time = timestamp_df[timestamp_df.file_number == file_number].timestamp.iloc[0]
 
@@ -142,8 +142,8 @@ class DataImporter:
         return df
 
     def _add_timestamp(self, df: DataFrame, start_time, sampling_interval):
-        """ timestamp列追加
-            NOTE: start_timeはタイムゾーンUTCのdatetimeを前提とする。
+        """timestamp列追加
+        NOTE: start_timeはタイムゾーンUTCのdatetimeを前提とする。
         """
 
         datetime_list = []
@@ -169,14 +169,14 @@ class DataImporter:
         return df, seq_num
 
     def _to_pickle(self, df: DataFrame, file_dir: str, file: str):
-        """ DataFrameをpickleに変換 """
+        """DataFrameをpickleに変換"""
 
         pickle_filename: str = os.path.splitext(os.path.basename(file))[0]
         pickle_filepath: str = os.path.join(file_dir, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
 
     def import_by_shot_pkl(self, target_date: str):
-        """ ショット毎に分割されたpickleファイルからElasticsearchにインポートする """
+        """ショット毎に分割されたpickleファイルからElasticsearchにインポートする"""
 
         # TODO: メソッド化
         shots_index: str = "shots-" + target_date + "-data"
@@ -254,57 +254,57 @@ class DataImporter:
 
 if __name__ == "__main__":
     # 射出成形
-    target_date = "20190523094129"
-    start_time = None
+    # target_date = "20190523094129"
+    # start_time = None
 
     # デバッグ用少量データ
     # target_date = "20210708113000"
     # start_time = datetime(2021, 7, 8, 11, 30, 0)
 
     # ダミーデータ
-    # target_date = "20210709190000"
-    # start_time = datetime(2021, 7, 9, 19, 0, 0)
+    target_date = "20210709190000"
+    start_time = datetime(2021, 7, 9, 19, 0, 0)
 
-    # target_file_path = "/home/ymiyamoto5/h-one-experimental-system/shared/data/press_senario.npy"
+    target_file_path = "/mnt/datadrive/data/press_senario.npy"
 
     # 何列目を使うか。
-    use_cols = [2, 6, 7, 11, 57]
-    cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
-    # use_cols = [0]
+    # use_cols = [2, 6, 7, 11, 57]
     # cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
+    use_cols = [0]
+    cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
 
-    # sampling_interval = 10  # 100k
-    sampling_interval = 1000  # 1k
+    sampling_interval = 10  # 100k
+    # sampling_interval = 1000  # 1k
 
     di = DataImporter()
 
     # npyをショット毎のcsvファイルに分割
-    # di.split_np_array_by_shot(target_file_path, target_date)
+    di.split_np_array_by_shot(target_file_path, target_date)
 
-    timestamp_file = "/home/ymiyamoto5/h-one-experimental-system/shared/data/all_sensors_201905_timelist.csv"
+    # timestamp_file = "/home/ymiyamoto5/h-one-experimental-system/shared/data/all_sensors_201905_timelist.csv"
 
     print("process csv files starting...")
     # csvを加工してpklにする
     # timestampファイルがある場合
-    di.process_csv_files(
-        target_date=target_date,
-        exists_timestamp=True,
-        start_time=start_time,
-        use_cols=use_cols,
-        cols_name=cols_name,
-        sampling_interval=sampling_interval,
-        timestamp_file=timestamp_file,
-    )
-
-    # timestampファイルがない場合
     # di.process_csv_files(
     #     target_date=target_date,
-    #     exists_timestamp=False,
+    #     exists_timestamp=True,
     #     start_time=start_time,
     #     use_cols=use_cols,
     #     cols_name=cols_name,
     #     sampling_interval=sampling_interval,
+    #     timestamp_file=timestamp_file,
     # )
+
+    # timestampファイルがない場合
+    di.process_csv_files(
+        target_date=target_date,
+        exists_timestamp=False,
+        start_time=start_time,
+        use_cols=use_cols,
+        cols_name=cols_name,
+        sampling_interval=sampling_interval,
+    )
 
     print("process csv files finished")
 
