@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from data_collect_manager.models.gateway import Handler
+from data_collect_manager.models.handler import Handler
 from data_collect_manager.models.db import db
 from marshmallow import Schema, fields, ValidationError, validate
 import traceback
@@ -96,3 +96,55 @@ def create():
         message: str = ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL, str(e))
         return jsonify({"message": message}), 500
 
+
+@handlers.route("/handlers/<string:handler_id>/update", methods=["POST"])
+def update(handler_id):
+    """ Handlerの更新。更新対象のフィールドをパラメータとして受け取る。"""
+
+    json_data = request.get_json()
+
+    if not json_data:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.NO_INPUT_DATA)
+
+    try:
+        data = handler_update_schema.load(json_data)
+    except ValidationError as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.VALUE_ERROR, e.messages)
+        return jsonify({"message": message}), 400
+
+    handler = Handler.query.get(handler_id)
+
+    if handler is None:
+        message: str = ErrorMessage.generate_message(ErrorTypes.NOT_EXISTS, gateway_id)
+        logger.error(message)
+        return jsonify({"message": message}), 404
+
+    # 更新対象のプロパティをセット
+    for key, value in data.items():
+        setattr(handler, key, value)
+
+    try:
+        db.session.commit()
+        return jsonify({}), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL, str(e))
+        return jsonify({"message": message}), 500
+
+
+@handlers.route("/handlers/<string:handler_id>/delete", methods=["POST"])
+def delete(handler_id):
+    """ Handlerの削除 """
+
+    handler = Handler.query.get(handler_id)
+
+    try:
+        db.session.delete(handler)
+        db.session.commit()
+        return jsonify({}), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL, str(e))
+        return jsonify({"message": message}), 500
