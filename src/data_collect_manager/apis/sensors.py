@@ -13,12 +13,7 @@ sensors = Blueprint("sensors", __name__)
 def fetch_sensors():
     """ Sensorを起点に関連エンティティを全結合したデータを返す """
 
-    try:
-        sensors = Sensor.query.all()
-    except Exception as e:
-        message: str = f"次のエラーが発生しました。{str(e)}"
-        logger.error(str(e))
-        return jsonify({"message": message}), 400
+    sensors = Sensor.query.all()
 
     return jsonify(sensors)
 
@@ -27,11 +22,6 @@ def fetch_sensors():
 def fetch_sensor(id):
     """ 指定Sensorの情報を取得 """
 
-    try:
-        sensor = Sensor.query.get(id)
-    except Exception as e:
-        message: str = f"次のエラーが発生しました。{str(e)}"
-        logger.error(str(e))
-        return jsonify({"message": message}), 400
+    sensor = Sensor.query.get(id)
 
     return jsonify(sensor)
