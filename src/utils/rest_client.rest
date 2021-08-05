@@ -46,5 +46,38 @@ GET http://localhost:5000/api/v1/handlers
 ### get single
 GET http://localhost:5000/api/v1/handlers/AD-USB-1608
 
+### create
+POST http://localhost:5000/api/v1/handlers HTTP/1.1
+content-type: application/json
 
+{
+    "handler_id": "TEST-HANDLER-001",
+    "adc_serial_num": "ABCDEFG",
+    "handler_type": "handler_type-001",
+    "sampling_frequency": 1000,
+    "sampling_ch_num": 16,
+    "filewrite_time": 5
+}
+
+### get new
+GET http://localhost:5000/api/v1/handlers/TEST-HANDLER-001
+
+### update
+POST http://localhost:5000/api/v1/handlers/TEST-HANDLER-001/update HTTP/1.1
+content-type: application/json
+
+{
+  "adc_serial_num": "ZZZZAAAA",
+  "filewrite_time": 1,
+  "handler_type": "handler_type-001",
+  "sampling_ch_num": 5,
+  "sampling_frequency": 100000
+}
+
+### get updated
+GET http://localhost:5000/api/v1/handlers/TEST-HANDLER-001
+
+### delete
+POST http://localhost:5000/api/v1/handlers/TEST-HANDLER-001/delete HTTP/1.1
+content-type: application/json
 
