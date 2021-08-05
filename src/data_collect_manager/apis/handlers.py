@@ -5,7 +5,7 @@ import re
 import logging
 
 # TODO: data_collect_managerのloggerを引き継ぐように設定したい。
-logger = logging.getLogger("data_collect_manager")
+logger = logging.getLogger(__name__)
 
 handlers = Blueprint("handlers", __name__)
 

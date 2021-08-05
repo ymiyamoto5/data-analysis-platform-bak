@@ -13,6 +13,8 @@ class ErrorTypes(Enum):
     UPDATE_FAIL = "更新に失敗しました"
     DELETE_FAIL = "削除に失敗しました"
     NOT_EXISTS = "対象が存在しません"
+    VALID_ERROR = "検証に失敗しました"
+    NO_INPUT_DATA = "入力データがありません"
 
 
 class ErrorMessage:
@@ -38,3 +40,7 @@ class ErrorMessage:
             return f"{ErrorTypes.DELETE_FAIL.value}: {target}"
         if error_type == ErrorTypes.NOT_EXISTS:
             return f"{ErrorTypes.NOT_EXISTS.value}: {target}"
+        if error_type == ErrorTypes.VALID_ERROR:
+            return f"{ErrorTypes.VALID_ERROR.value}: {target}"
+        if error_type == ErrorTypes.NO_INPUT_DATA:
+            return f"{ErrorTypes.NO_INPUT_DATA.value}"
