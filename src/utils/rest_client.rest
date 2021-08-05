@@ -1,0 +1,50 @@
+# HOW_TO_USE
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# gateways
+### get list
+GET http://localhost:5000/api/v1/gateways
+
+### get single
+GET http://localhost:5000/api/v1/gateways/GW-01
+
+### create
+POST http://localhost:5000/api/v1/gateways HTTP/1.1
+content-type: application/json
+
+{
+    "gateway_id": "TEST-GW-001",
+    "log_level": 5
+}
+
+### get new
+GET http://localhost:5000/api/v1/gateways/TEST-GW-001
+
+### update
+POST http://localhost:5000/api/v1/gateways/TEST-GW-001/update HTTP/1.1
+content-type: application/json
+
+{
+    "sequence_number": 2,
+    "gateway_result": 0,
+    "status": "running",
+    "log_level": 5
+}
+
+### get updated
+GET http://localhost:5000/api/v1/gateways/TEST-GW-001
+
+### delete
+POST http://localhost:5000/api/v1/gateways/TEST-GW-001/delete HTTP/1.1
+content-type: application/json
+
+
+# handlers
+### get list
+GET http://localhost:5000/api/v1/handlers
+
+### get single
+GET http://localhost:5000/api/v1/handlers/AD-USB-1608
+
+
+

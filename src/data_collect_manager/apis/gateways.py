@@ -59,6 +59,7 @@ def create():
     if not json_data:
         logger.error(traceback.format_exc())
         message: str = ErrorMessage.generate_message(ErrorTypes.NO_INPUT_DATA)
+        return jsonify({"message": message}), 400
 
     try:
         data = gateway_create_schema.load(json_data)
