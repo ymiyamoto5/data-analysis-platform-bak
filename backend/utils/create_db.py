@@ -2,13 +2,13 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-from data_collect_manager.models.machine_type import MachineType
-from data_collect_manager.models.machine import Machine
-from data_collect_manager.models.gateway import Gateway
-from data_collect_manager.models.handler import Handler
-from data_collect_manager.models.sensor_type import SensorType
-from data_collect_manager.models.sensor import Sensor
-from data_collect_manager.models.db import register_db
+from backend.data_collect_manager.models.machine_type import MachineType
+from backend.data_collect_manager.models.machine import Machine
+from backend.data_collect_manager.models.gateway import Gateway
+from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.sensor_type import SensorType
+from backend.data_collect_manager.models.sensor import Sensor
+from backend.data_collect_manager.models.db import register_db
 from flask import Flask
 
 app = Flask("app")
@@ -111,4 +111,3 @@ db.session.commit()
 [print(vars(x)) for x in Handler.query.all()]
 [print(vars(x)) for x in Sensor.query.all()]
 [print(vars(x)) for x in SensorType.query.all()]
-

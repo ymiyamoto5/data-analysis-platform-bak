@@ -1,0 +1,109 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "env": {
+                // モジュール走査パス
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            // "debugOptions": [
+            //     "Sudo"
+            // ]
+        },
+        {
+            "name": "analyzer",
+            "type": "python",
+            "module": "backend.analyzer.analyzer",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "cut_out_shot",
+            "type": "python",
+            "module": "backend.cut_out_shot.cut_out_shot",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "data_importer",
+            "type": "python",
+            "module": "backend.data_importer.data_importer",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "data_reader",
+            "type": "python",
+            "module": "backend.data_reader.data_reader",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "data_recorder",
+            "type": "python",
+            "module": "backend.data_recorder.data_recorder",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "elastic_manager",
+            "type": "python",
+            "module": "backend.elastic_manager.elastic_manager",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "event_manager",
+            "type": "python",
+            "module": "backend.event_manager.event_manager",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "tag_manager",
+            "type": "python",
+            "module": "backend.tag_manager.tag_manager",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Flask",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "module": "flask",
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "FLASK_APP": "${workspaceRoot}/backend/manage.py"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ]
+        },
+        {
+            "name": "Debug Tests",
+            "type": "python",
+            "request": "test",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}
