@@ -34,12 +34,10 @@ pnpm-debug.log*
 
 log
 src/data_collect_manager/node_modules
-shared
 .coverage
 htmlcov
 *.log
 node_modules
-notebooks/analyze-Copy1.ipynb
 cron_job.sh
 src/utils/rawdata_importer.py
 app_config_dev.json
