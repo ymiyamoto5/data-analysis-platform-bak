@@ -33,15 +33,15 @@ pnpm-debug.log*
 *.sw?
 
 log
-src/data_collect_manager/node_modules
+data_analysis_platform/data_collect_manager/node_modules
 .coverage
 htmlcov
 *.log
 node_modules
 cron_job.sh
-src/utils/rawdata_importer.py
+data_analysis_platform/utils/rawdata_importer.py
 app_config_dev.json
-src/utils/contour_data.py
+data_analysis_platform/utils/contour_data.py
 notebooks/jupyter2kibana
 notebooks/*-Copy*.ipynb
 notebooks/adhoc
