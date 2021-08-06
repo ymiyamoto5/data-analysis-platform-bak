@@ -1,7 +1,10 @@
-# H-One実験システム
+# データ分析基盤
 ## プロジェクト構成
-### src
-#### analyze
+
+### frontend
+
+### backend
+#### analyzer
 分析ロジックの適用を行う。
 
 #### config_file_manager
