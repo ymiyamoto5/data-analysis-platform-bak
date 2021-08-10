@@ -165,6 +165,7 @@ ttystatus==0.38
 Twisted==18.9.0
 typed-ast==1.4.1
 types-python-dateutil==0.1.4
+types-PyYAML==5.4.6
 typing-extensions==3.10.0.0
 ubuntu-advantage-tools==20.3
 ubuntu-drivers-common==0.0.0
