@@ -3,12 +3,9 @@ from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.db import db
 from marshmallow import Schema, fields, ValidationError, validate
 import traceback
-import logging
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.error_message import ErrorMessage, ErrorTypes
-
-# TODO: data_collect_managerのloggerを引き継ぐように設定したい。
-logger = logging.getLogger(__name__)
+from backend.common.common_logger import logger
 
 handlers = Blueprint("handlers", __name__)
 

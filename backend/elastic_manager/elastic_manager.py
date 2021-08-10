@@ -16,13 +16,7 @@ import pandas as pd
 import json
 from typing import Iterable, Tuple, List, Optional, Final, Generator, Collection, Dict, Any
 import multiprocessing
-import logging
-
-es_logger = logging.getLogger("elasticsearch")
-es_logger.setLevel(logging.WARNING)
-
-logger = logging.getLogger(__name__)
-
+from backend.common.common_logger import logger
 from backend.common import common
 
 ELASTIC_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_url")

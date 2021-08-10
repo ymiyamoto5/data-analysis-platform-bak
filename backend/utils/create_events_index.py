@@ -31,5 +31,6 @@ def create_events_index(start_datetime_jst: datetime) -> None:
 
 if __name__ == "__main__":
     prefix = "events-"
-    start_datetime_jst = datetime(2021, 7, 9, 19, 0, 0, 0)
+    # start_datetime_jst = datetime(2021, 7, 9, 19, 0, 0, 0)
+    start_datetime_jst = datetime(2021, 1, 1, 0, 0, 0, 0)
     create_events_index(start_datetime_jst)

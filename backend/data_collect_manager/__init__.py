@@ -1,41 +1,11 @@
 import os
 from flask import Flask
 from flask_cors import CORS  # type: ignore
-from logging.config import dictConfig
 from backend.data_collect_manager.models.db import register_db
 from backend.data_collect_manager.apis.machines import machines
 from backend.data_collect_manager.apis.gateways import gateways
 from backend.data_collect_manager.apis.handlers import handlers
 from backend.data_collect_manager.apis.sensors import sensors
-from backend.common import common
-
-LOG_FILE = os.path.join(
-    common.get_config_value(common.APP_CONFIG_PATH, "log_dir"), "data_collect_manager/data_collect_manager.log"
-)
-
-# logging
-dictConfig(
-    {
-        "version": 1,
-        "formatters": {"default": {"format": "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"}},
-        "handlers": {
-            "wsgi": {
-                "class": "logging.StreamHandler",
-                "stream": "ext://flask.logging.wsgi_errors_stream",
-                "formatter": "default",
-            },
-            "file": {
-                "class": "logging.handlers.RotatingFileHandler",
-                "filename": LOG_FILE,
-                "formatter": "default",
-                "encoding": "utf-8",
-                "maxBytes": common.MAX_LOG_SIZE,
-                "backupCount": common.BACKUP_COUNT,
-            },
-        },
-        "root": {"level": "INFO", "handlers": ["wsgi", "file"]},
-    }
-)
 
 app = Flask(__name__)
 

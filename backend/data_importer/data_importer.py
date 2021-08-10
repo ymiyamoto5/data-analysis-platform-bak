@@ -26,6 +26,7 @@ UTC = tz.gettz("UTC")
 
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.common import common
+from backend.common.common_logger import logger
 
 
 class DataImporter:
@@ -41,7 +42,7 @@ class DataImporter:
         files: List[str] = glob.glob(os.path.join(file_dir, pattern))
 
         if len(files) == 0:
-            print("File not found.")
+            logger.info("File not found.")
             sys.exit(1)
 
         files.sort()
@@ -54,7 +55,7 @@ class DataImporter:
         """
 
         arr = np.load(target_file_path)
-        print(f"shape：{arr.shape}")
+        logger.info(f"shape：{arr.shape}")
 
         file_dir = self._get_target_date_dir(target_date)
 
@@ -63,7 +64,7 @@ class DataImporter:
             df = pd.DataFrame(arr[i])
             df.to_csv(os.path.join(file_dir, str_i) + ".csv", header=False, index=False)
 
-        print("output csv finished.")
+        logger.info("output csv finished.")
 
     def _get_target_date_dir(self, target_date: str) -> str:
         """ファイル出力先のパスを取得する"""
@@ -200,9 +201,9 @@ class DataImporter:
         shot_number = 1
         start = 0
 
-        print("shots_index bulk insert starting...")
+        logger.info("shots_index bulk insert starting...")
         for file in files:
-            print(f"import {file} starting...")
+            logger.info(f"import {file} starting...")
             df = pd.read_pickle(file)
             df["shot_number"] = shot_number
             df["sequential_number_by_shot"] = pd.RangeIndex(0, len(df), 1)
@@ -227,7 +228,7 @@ class DataImporter:
             shot_number += 1
             start += len(df)
 
-        print("shots_index bulk insert finished.")
+        logger.info("shots_index bulk insert finished.")
 
         # TODO: メソッド化して、cut_out_shotと共有
         shots_meta_df = pd.DataFrame(shots_meta_records)
@@ -246,7 +247,7 @@ class DataImporter:
         shots_meta_dict = shots_meta_df.to_dict(orient="records")
         shots_meta_index = "shots-" + target_date + "-meta"
         ElasticManager.bulk_insert(shots_meta_dict, shots_meta_index)
-        print("shots_meta_index bulk insert finished.")
+        logger.info("shots_meta_index bulk insert finished.")
 
 
 if __name__ == "__main__":
@@ -280,7 +281,7 @@ if __name__ == "__main__":
 
     # timestamp_file = "/home/ymiyamoto5/h-one-experimental-system/shared/data/all_sensors_201905_timelist.csv"
 
-    print("process csv files starting...")
+    logger.info("process csv files starting...")
     # csvを加工してpklにする
     # timestampファイルがある場合
     # di.process_csv_files(
@@ -303,7 +304,7 @@ if __name__ == "__main__":
         sampling_interval=sampling_interval,
     )
 
-    print("process csv files finished")
+    logger.info("process csv files finished")
 
     # pklをelasticsearchに格納
     di.import_by_shot_pkl(target_date)

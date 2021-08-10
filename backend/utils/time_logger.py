@@ -11,15 +11,13 @@
 
 from typing import Callable, TypeVar
 from datetime import datetime
-import logging
-
-logger = logging.getLogger(__name__)
+from backend.common.common_logger import logger
 
 RT = TypeVar("RT")
 
 
 def time_log(func: Callable[..., RT]) -> Callable[..., RT]:
-    """ 開始・終了・経過時間を表示するデコレータ """
+    """開始・終了・経過時間を表示するデコレータ"""
 
     def wrapper(*args, **kwargs):
         start = datetime.now()
