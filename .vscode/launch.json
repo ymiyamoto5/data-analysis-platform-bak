@@ -90,13 +90,14 @@
             "module": "flask",
             "cwd": "${workspaceFolder}/backend",
             "env": {
-                "FLASK_APP": "${workspaceRoot}/backend/manage.py"
+                "FLASK_APP": "${workspaceRoot}/backend/data_collect_manager/main.py"
             },
             "args": [
                 "run",
                 "--no-debugger",
                 "--no-reload"
-            ]
+            ],
+            "jinja": true
         },
         {
             "name": "Debug Tests",
