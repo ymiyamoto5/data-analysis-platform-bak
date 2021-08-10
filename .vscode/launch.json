@@ -105,6 +105,69 @@
             "request": "test",
             "console": "integratedTerminal",
             "justMyCode": false
+        },
+        // frontend
+        // Node DevServerを予め起動しておくこと
+        {
+            "name": "chrome",
+            // "breakOnLoad": true,
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:8080",
+            "webRoot": "${workspaceFolder}/frontend/src",
+            "sourceMapPathOverrides": {
+                "webpack:///src/*": "${webRoot}/*", // hit for *.vue
+                "webpack:///./src/*.js": "${webRoot}/*.js", // hit for main.js, store.js
+                "webpack:///./src/mixins/*.js": "${webRoot}/mixins/*.js",
+                "webpack:///./src/api/*.js": "${webRoot}/api/*.js",
+                "webpack:///./src/store/*.js": "${webRoot}/store/*.js",
+                "webpack:///./src/store/modules/*.js": "${webRoot}/store/modules/*.js",
+                "webpack:///./node_modules/*.js": "${webRoot}/../node_modules/*.js",
+            },
+            "userDataDir": "C:\\dev\\chrome_nlp_dev_profile",
+            // "preLaunchTask": "delay5sec",
+            // "runtimeExecutable": "${workspaceFolder}/_devtools/start_dev_web.sh"
+        },
+        // 全てのテストを実行：package.json にある、scripts/test:unit を実行
+        {
+            "name": "Jest all",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/frontend/",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "test:unit",
+            ],
+            "sourceMaps": true,
+            "console": "integratedTerminal"
+        },
+        // エディタで開いているテストファイルのみをデバック実行する：これはpackage.jsonは無関係
+        {
+            "name": "Jest Current",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/frontend/",
+            "runtimeExecutable": "node",
+            "runtimeArgs": [
+                "--inspect-brk",
+                "./node_modules/.bin/vue-cli-service",
+                "test:unit",
+                "--runInBand",
+                "${file}"
+            ],
+            "sourceMaps": true,
+            "port": 9229,
+            "console": "integratedTerminal"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full-stack",
+            "configurations": [
+                "Flask",
+                "chrome"
+            ]
         }
     ]
 }
