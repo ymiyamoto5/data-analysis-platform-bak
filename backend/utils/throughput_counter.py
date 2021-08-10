@@ -10,13 +10,11 @@
 """
 
 from datetime import datetime, timedelta
-import logging
-
-logger = logging.getLogger(__name__)
+from backend.common.common_logger import logger
 
 
 def throughput_counter(processed_count: int, dt_old: datetime) -> None:
-    """ スループット（秒間の処理件数）の表示 """
+    """スループット（秒間の処理件数）の表示"""
 
     now: datetime = datetime.now()
     dt_delta: timedelta = now - dt_old

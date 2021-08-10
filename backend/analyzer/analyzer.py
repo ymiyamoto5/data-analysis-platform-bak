@@ -13,7 +13,6 @@ import warnings
 
 warnings.simplefilter("ignore")
 import multiprocessing
-import os
 import sys
 import traceback
 from typing import Callable, List, Tuple, Optional
@@ -22,11 +21,7 @@ import backend.analyzer.h_one_extract_features as ef
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.data_reader.data_reader import DataReader
 from backend.common import common
-from backend.logger.logger import init_logger, get_logger
-
-module_name: str = os.path.splitext(os.path.basename(__file__))[0]
-init_logger(module_name)
-logger = get_logger(module_name)
+from backend.common.common_logger import logger
 
 
 class Analyzer:

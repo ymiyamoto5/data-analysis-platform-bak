@@ -1,14 +1,9 @@
-import os
 import numpy as np
 import pandas as pd
 from typing import List
 from pandas.core.frame import DataFrame
 from backend.event_manager.event_manager import EventManager
-from backend.logger.logger import init_logger, get_logger
-
-module_name: str = os.path.splitext(os.path.basename(__file__))[0]
-init_logger(module_name)
-logger = get_logger(module_name)
+from backend.common.common_logger import logger
 
 
 class TagManager:
@@ -31,7 +26,7 @@ class TagManager:
             )
 
             if len(tags_df) == 0:
-                logger.info("No tags.")
+                logger.debug("No tags.")
                 continue
 
             # タグ追加用の列を用意し、タグ内容で初期化する

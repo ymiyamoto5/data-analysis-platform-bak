@@ -1,13 +1,7 @@
 import sys
 from datetime import datetime, timedelta
 from typing import List, Optional, Final, Tuple
-
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
-
+from backend.common.common_logger import logger
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.common import common  # noqa
 
@@ -161,7 +155,7 @@ class EventManager:
         """
 
         tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
-        logger.info(tag_events)
+        logger.debug(tag_events)
 
         if len(tag_events) == 0:
             return []

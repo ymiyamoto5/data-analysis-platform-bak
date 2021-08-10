@@ -2,14 +2,11 @@ from flask import Blueprint, jsonify, request
 from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.db import db
 from marshmallow import Schema, fields, ValidationError, validate
-import logging
 import traceback
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common import common
-
-# TODO: data_collect_managerのloggerを引き継ぐように設定したい。
-logger = logging.getLogger(__name__)
+from backend.common.common_logger import logger
 
 gateways = Blueprint("gateways", __name__)
 

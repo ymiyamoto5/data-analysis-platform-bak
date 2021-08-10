@@ -1,11 +1,6 @@
 from flask import Blueprint, jsonify
 from backend.data_collect_manager.models.sensor import Sensor
-
-# from backend.data_collect_manager.models.db import db
-import logging
-
-# TODO: data_collect_managerのloggerを引き継ぐように設定したい。
-logger = logging.getLogger(__name__)
+from backend.common.common_logger import logger
 
 sensors = Blueprint("sensors", __name__)
 
