@@ -9,6 +9,7 @@ from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.sensor_type import SensorType
 from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_collect_manager.models.db import register_db
+from backend.common import common
 from flask import Flask
 
 app = Flask("app")
@@ -29,11 +30,41 @@ sensor_type_03 = SensorType(sensor_type_name="パルス")
 machine_01 = Machine(machine_name="テストプレス01", machine_type_id=1)
 machine_02 = Machine(machine_name="テストプレス02", machine_type_id=1)
 machine_03 = Machine(machine_name="テスト圧力プレート01", machine_type_id=2)
+machine_04 = Machine(machine_name="テストマシン01", machine_type_id=1)
 
 # Gateway
-gateway_01 = Gateway(gateway_id="GW-01", sequence_number=1, gateway_result=0, status="stop", log_level=5)
-gateway_02 = Gateway(gateway_id="GW-02", sequence_number=1, gateway_result=0, status="running", log_level=5)
-gateway_03 = Gateway(gateway_id="GW-03", sequence_number=1, gateway_result=0, status="stop", log_level=5)
+gateway_01 = Gateway(
+    gateway_id="GW-01",
+    sequence_number=6,
+    gateway_result=0,
+    status=common.STATUS.STOP.value,
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
+    log_level=5,
+)
+gateway_02 = Gateway(
+    gateway_id="GW-02",
+    sequence_number=3,
+    gateway_result=0,
+    status=common.STATUS.RUNNING.value,
+    collect_status=common.COLLECT_STATUS.START.value,
+    log_level=5,
+)
+gateway_03 = Gateway(
+    gateway_id="GW-03",
+    sequence_number=3,
+    gateway_result=0,
+    status=common.STATUS.RUNNING.value,
+    collect_status=common.COLLECT_STATUS.PAUSE.value,
+    log_level=5,
+)
+gateway_04 = Gateway(
+    gateway_id="GW-04",
+    sequence_number=4,
+    gateway_result=0,
+    status=common.STATUS.STOP.value,
+    collect_status=common.COLLECT_STATUS.STOP.value,
+    log_level=5,
+)
 
 # Handler
 handler_01 = Handler(
@@ -81,6 +112,7 @@ gateway_03.handlers.append(handler_03)
 machine_01.gateways.append(gateway_01)
 machine_02.gateways.append(gateway_02)
 machine_03.gateways.append(gateway_03)
+machine_04.gateways.append(gateway_04)
 
 db.session.add(machine_type_01)
 db.session.add(machine_type_02)
@@ -92,10 +124,12 @@ db.session.add(sensor_type_03)
 db.session.add(machine_01)
 db.session.add(machine_02)
 db.session.add(machine_03)
+db.session.add(machine_04)
 
 db.session.add(gateway_01)
 db.session.add(gateway_02)
 db.session.add(gateway_03)
+db.session.add(gateway_04)
 
 db.session.add(sensor_01)
 db.session.add(sensor_02)
