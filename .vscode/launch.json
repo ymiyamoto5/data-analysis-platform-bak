@@ -124,7 +124,7 @@
                 "webpack:///./src/store/modules/*.js": "${webRoot}/store/modules/*.js",
                 "webpack:///./node_modules/*.js": "${webRoot}/../node_modules/*.js",
             },
-            "userDataDir": "C:\\dev\\chrome_nlp_dev_profile",
+            // "userDataDir": "C:\\dev\\chrome_nlp_dev_profile",
             // "preLaunchTask": "delay5sec",
             // "runtimeExecutable": "${workspaceFolder}/_devtools/start_dev_web.sh"
         },

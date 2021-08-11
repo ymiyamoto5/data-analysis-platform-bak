@@ -1,121 +1,122 @@
 <template>
-  <v-data-table :headers="headers" :items="desserts" class="elevation-1">
-    <template v-slot:item.calories="{ item }">
+  <div id="machines">
+    <v-simple-table>
+      <thead>
+        <tr>
+          <th v-for="item in Object.keys(tableHeader)" :key="item">
+            {{ tableHeader[item] }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="machine in machines" :key="machine.machine_id">
+          <td>{{ machine.machine_name }}</td>
+          <td>
+            <ul>
+              <li v-for="gateway in machine.gateways" :key="gateway.gateway_id">
+                {{ gateway.gateway_id }}
+              </li>
+            </ul>
+          </td>
+          <td>
+            <ul>
+              <template v-for="gateway in machine.gateways">
+                <li
+                  v-for="handler in gateway.handlers"
+                  :key="handler.handler_id"
+                >
+                  {{ handler.handler_id }}
+                </li>
+              </template>
+            </ul>
+          </td>
+          <td>
+            <ul>
+              <template v-for="gateway in machine.gateways">
+                <template v-for="handler in gateway.handlers">
+                  <li v-for="sensor in handler.sensors" :key="sensor.sensor_id">
+                    {{ sensor.sensor_name }}
+                  </li>
+                </template>
+              </template>
+            </ul>
+          </td>
+          <td>
+            <ul>
+              <template v-for="gateway in machine.gateways">
+                <v-chip
+                  :color="getColor(gateway.status)"
+                  :key="gateway.gateway_id"
+                >
+                  {{ gateway.status }}
+                </v-chip>
+              </template>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </v-simple-table>
+  </div>
+
+  <!-- <v-data-table :headers="headers" :items="machines" class="elevation-1">
+    <template v-slot:item.machine="{ item }">
       <v-chip :color="getColor(item.calories)" dark>
         {{ item.calories }}
       </v-chip>
     </template>
-  </v-data-table>
+  </v-data-table> -->
 </template>
 
 <script>
+import { createBaseApiClient } from '@/api/apiBase'
+
+const API_URL = '/api/v1/machines'
+
 export default {
   name: 'data-collect',
   data() {
     return {
-      headers: [
-        {
-          text: 'Dessert (100g serving)',
-          align: 'start',
-          sortable: false,
-          value: 'name',
-        },
-        { text: 'Calories', value: 'calories' },
-        { text: 'Fat (g)', value: 'fat' },
-        { text: 'Carbs (g)', value: 'carbs' },
-        { text: 'Protein (g)', value: 'protein' },
-        { text: 'Iron (%)', value: 'iron' },
-      ],
-      desserts: [
-        {
-          name: 'Frozen Yogurt',
-          calories: 159,
-          fat: 6.0,
-          carbs: 24,
-          protein: 4.0,
-          iron: '1%',
-        },
-        {
-          name: 'Ice cream sandwich',
-          calories: 237,
-          fat: 9.0,
-          carbs: 37,
-          protein: 4.3,
-          iron: '1%',
-        },
-        {
-          name: 'Eclair',
-          calories: 262,
-          fat: 16.0,
-          carbs: 23,
-          protein: 6.0,
-          iron: '7%',
-        },
-        {
-          name: 'Cupcake',
-          calories: 305,
-          fat: 3.7,
-          carbs: 67,
-          protein: 4.3,
-          iron: '8%',
-        },
-        {
-          name: 'Gingerbread',
-          calories: 356,
-          fat: 16.0,
-          carbs: 49,
-          protein: 3.9,
-          iron: '16%',
-        },
-        {
-          name: 'Jelly bean',
-          calories: 375,
-          fat: 0.0,
-          carbs: 94,
-          protein: 0.0,
-          iron: '0%',
-        },
-        {
-          name: 'Lollipop',
-          calories: 392,
-          fat: 0.2,
-          carbs: 98,
-          protein: 0,
-          iron: '2%',
-        },
-        {
-          name: 'Honeycomb',
-          calories: 408,
-          fat: 3.2,
-          carbs: 87,
-          protein: 6.5,
-          iron: '45%',
-        },
-        {
-          name: 'Donut',
-          calories: 452,
-          fat: 25.0,
-          carbs: 51,
-          protein: 4.9,
-          iron: '22%',
-        },
-        {
-          name: 'KitKat',
-          calories: 518,
-          fat: 26.0,
-          carbs: 65,
-          protein: 7,
-          iron: '6%',
-        },
-      ],
+      tableHeader: {
+        machine_name: '機器',
+        gateway_id: 'ゲートウェイID',
+        handler_id: 'ハンドラーID',
+        sensor_name: 'センサー',
+        status: '状態',
+      },
+      machines: [],
     }
   },
+  created: function() {
+    this.fetchTableData()
+  },
   methods: {
-    getColor(calories) {
-      if (calories > 400) return 'red'
-      else if (calories > 200) return 'orange'
+    getColor(stauts) {
+      if (stauts === 'stop') return 'red'
       else return 'green'
+    },
+    fetchTableData: async function() {
+      const client = createBaseApiClient()
+      let data = []
+      await client
+        .get(API_URL)
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          data = res.data
+          console.log(data)
+          this.machines = data
+        })
+        .catch(() => {
+          console.log('error')
+        })
     },
   },
 }
 </script>
+
+<style scoped>
+ul {
+  list-style: none;
+}
+</style>

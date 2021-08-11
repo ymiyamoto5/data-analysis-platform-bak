@@ -30,6 +30,10 @@ export default {
   components: {
     DataCollect,
   },
-  data() {},
+  data() {
+    return {
+      drawer: {},
+    }
+  },
 }
 </script>
