@@ -46,12 +46,57 @@
               <template v-for="gateway in machine.gateways">
                 <!-- gateway_idを与えると、elsのevent_indexから最新の状態を取得するAPI call. collectStatusにセット -->
 
-                <v-chip v-if="collectStatus === ''" :key="gateway.gateway_id">
-                  <p>状態不明</p>
-                </v-chip>
-                <v-chip v-else :key="gateway.gateway_id">
-                  <p>xxx</p>
-                </v-chip>
+                <v-btn
+                  v-if="gateway.collect_status === 'recorded'"
+                  color="primary"
+                  :key="gateway.gateway_id"
+                >
+                  段取開始
+                </v-btn>
+                <v-btn
+                  v-if="gateway.collect_status === 'setup'"
+                  color="success"
+                  :key="gateway.gateway_id"
+                >
+                  収集開始
+                </v-btn>
+                <v-btn
+                  v-if="gateway.collect_status === 'start'"
+                  color="error"
+                  :key="gateway.gateway_id"
+                >
+                  停止
+                </v-btn>
+                <v-btn
+                  v-if="gateway.collect_status === 'start'"
+                  color="warning"
+                  :key="gateway.gateway_id"
+                >
+                  中断
+                </v-btn>
+                <v-btn
+                  v-if="gateway.collect_status === 'pause'"
+                  color="blue"
+                  class="white--text"
+                  :key="gateway.gateway_id"
+                >
+                  再開
+                </v-btn>
+                <v-btn
+                  v-if="gateway.collect_status === 'stop'"
+                  color="grey"
+                  class="white--text"
+                  :key="gateway.gateway_id"
+                >
+                  記録中
+                </v-btn>
+                <v-btn
+                  v-if="gateway.collect_status === ''"
+                  :key="gateway.gateway_id"
+                  color="disable"
+                >
+                  状態不明
+                </v-btn>
               </template>
             </ul>
           </td>
@@ -125,6 +170,9 @@ export default {
 </script>
 
 <style scoped>
+.v-btn {
+  margin-right: 10px;
+}
 ul {
   list-style: none;
 }

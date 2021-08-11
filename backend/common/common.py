@@ -36,6 +36,14 @@ class STATUS(Enum):
     RUNNING = "running"
 
 
+class COLLECT_STATUS(Enum):
+    SETUP = "setup"
+    START = "start"
+    PAUSE = "pause"
+    STOP = "stop"
+    RECORDED = "recorded"
+
+
 def get_config_value(file_path: str, key: str):
     """対象ファイルのkeyを読み、valueを返す"""
 
