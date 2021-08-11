@@ -16,7 +16,10 @@
       ></v-avatar>
     </v-navigation-drawer>
 
-    <v-main>
+    <v-main id="v-main">
+      <div id="page-title">
+        <p class="text-h5">データ収集</p>
+      </div>
       <DataCollect />
     </v-main>
   </v-app>
@@ -37,3 +40,14 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+#v-main {
+  margin: 10px;
+  padding: 10px;
+}
+
+#page-title {
+  margin: 10px;
+}
+</style>

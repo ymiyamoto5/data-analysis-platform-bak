@@ -44,11 +44,13 @@
           <td>
             <ul>
               <template v-for="gateway in machine.gateways">
-                <v-chip
-                  :color="getColor(gateway.status)"
-                  :key="gateway.gateway_id"
-                >
-                  {{ gateway.status }}
+                <!-- gateway_idを与えると、elsのevent_indexから最新の状態を取得するAPI call. collectStatusにセット -->
+
+                <v-chip v-if="collectStatus === ''" :key="gateway.gateway_id">
+                  <p>状態不明</p>
+                </v-chip>
+                <v-chip v-else :key="gateway.gateway_id">
+                  <p>xxx</p>
                 </v-chip>
               </template>
             </ul>
@@ -57,20 +59,13 @@
       </tbody>
     </v-simple-table>
   </div>
-
-  <!-- <v-data-table :headers="headers" :items="machines" class="elevation-1">
-    <template v-slot:item.machine="{ item }">
-      <v-chip :color="getColor(item.calories)" dark>
-        {{ item.calories }}
-      </v-chip>
-    </template>
-  </v-data-table> -->
 </template>
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 
-const API_URL = '/api/v1/machines'
+const MACHINES_API_URL = '/api/v1/machines'
+const GATEWAYS_API_URL = '/api/v1/gateways'
 
 export default {
   name: 'data-collect',
@@ -81,9 +76,10 @@ export default {
         gateway_id: 'ゲートウェイID',
         handler_id: 'ハンドラーID',
         sensor_name: 'センサー',
-        status: '状態',
+        status: 'アクション',
       },
       machines: [],
+      collectStatus: '',
     }
   },
   created: function() {
@@ -98,7 +94,7 @@ export default {
       const client = createBaseApiClient()
       let data = []
       await client
-        .get(API_URL)
+        .get(MACHINES_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
@@ -106,6 +102,19 @@ export default {
           data = res.data
           console.log(data)
           this.machines = data
+        })
+        .catch(() => {
+          console.log('error')
+        })
+    },
+    collectStart: async function() {
+      const client = createBaseApiClient()
+      await client
+        .post(GATEWAYS_API_URL)
+        .then((res) => {
+          if (res.data.message.length) {
+            console.log(res.data.message)
+          }
         })
         .catch(() => {
           console.log('error')
