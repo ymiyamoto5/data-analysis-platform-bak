@@ -15,6 +15,10 @@ class ErrorTypes(Enum):
     NOT_EXISTS = "対象が存在しません"
     VALID_ERROR = "検証に失敗しました"
     NO_INPUT_DATA = "入力データがありません"
+    NO_DATA = "データがありません"  # len(list) == 0のとき
+    GW_STATUS_ERROR = "ゲートウェイステータスが正しくありません"
+    COLLECT_STATUS_ERROR = "収集ステータスが正しくありません"
+    GW_RESULT_ERROR = "ゲートウェイエラーです"
 
 
 class ErrorMessage:
@@ -44,3 +48,11 @@ class ErrorMessage:
             return f"{ErrorTypes.VALID_ERROR.value}: {target}"
         if error_type == ErrorTypes.NO_INPUT_DATA:
             return f"{ErrorTypes.NO_INPUT_DATA.value}"
+        if error_type == ErrorTypes.NO_DATA:
+            return f"{ErrorTypes.NO_DATA.value}"
+        if error_type == ErrorTypes.GW_STATUS_ERROR:
+            return f"{ErrorTypes.GW_STATUS_ERROR.value}: {target}"
+        if error_type == ErrorTypes.COLLECT_STATUS_ERROR:
+            return f"{ErrorTypes.COLLECT_STATUS_ERROR.value}: {target}"
+        if error_type == ErrorTypes.GW_RESULT_ERROR:
+            return f"{ErrorTypes.GW_RESULT_ERROR.value}: {target}"
