@@ -50,7 +50,11 @@
               >
                 段取開始
               </v-btn>
-              <v-btn v-if="machine.collect_status === 'setup'" color="success">
+              <v-btn
+                v-if="machine.collect_status === 'setup'"
+                color="success"
+                @click="start(machine.machine_id)"
+              >
                 収集開始
               </v-btn>
               <v-btn v-if="machine.collect_status === 'start'" color="error">
@@ -93,6 +97,7 @@ import { createBaseApiClient } from '@/api/apiBase'
 const MACHINES_API_URL = '/api/v1/machines'
 const CONTROLLER_API_URL = '/api/v1/controller'
 const SETUP_API_URL = CONTROLLER_API_URL + '/setup/'
+const START_API_URL = CONTROLLER_API_URL + '/start/'
 
 export default {
   name: 'data-collect',
@@ -126,22 +131,30 @@ export default {
           console.log(data)
           this.machines = data
         })
-        .catch(() => {
-          console.log('error')
+        .catch((e) => {
+          console.log(e.response.data.message)
         })
     },
     setup: async function(machine_id) {
       const client = createBaseApiClient()
       await client
         .post(SETUP_API_URL + machine_id)
-        .then((res) => {
-          if (res.data.length === 0) {
-            return
-          }
+        .then(() => {
           this.fetchTableData()
         })
-        .catch(() => {
-          console.log('error')
+        .catch((e) => {
+          console.log(e.response.data.message)
+        })
+    },
+    start: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(START_API_URL + machine_id)
+        .then(() => {
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
         })
     },
   },
