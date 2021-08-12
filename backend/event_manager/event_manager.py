@@ -11,7 +11,7 @@ class EventManager:
     def create_events_index(target_name: str, datetime_str: str) -> Tuple[bool, str]:
         """target_nameと日時文字列をsuffixとするevents_indexを作成する"""
 
-        events_index: str = "events-" + target_name + datetime_str
+        events_index: str = "events-" + target_name + "-" + datetime_str
         successful: bool = ElasticManager.create_index(events_index)
 
         return successful, events_index

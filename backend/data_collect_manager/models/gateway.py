@@ -13,7 +13,6 @@ class Gateway(db.Model):
     sequence_number: int
     gateway_result: int
     status: str
-    collect_status: str
     log_level: int
 
     handlers: Handler
@@ -22,7 +21,6 @@ class Gateway(db.Model):
     sequence_number = db.Column(db.Integer)
     gateway_result = db.Column(db.Integer)
     status = db.Column(db.String(255))
-    collect_status = db.Column(db.String(255))
     log_level = db.Column(db.Integer)
 
     machines = db.relationship("Machine", secondary=MachineGatewayMapping.__tablename__, back_populates="gateways")

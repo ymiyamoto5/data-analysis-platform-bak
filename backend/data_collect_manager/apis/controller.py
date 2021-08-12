@@ -14,14 +14,14 @@ from backend.event_manager.event_manager import EventManager
 controller = Blueprint("controller", __name__)
 
 
-@controller.route("/controller/setup/<int:id>", methods=["POST"])
-def setup(id):
+@controller.route("/controller/setup/<string:machine_id>", methods=["POST"])
+def setup(machine_id):
     """指定機器のデータ収集段取開始"""
 
-    machine = Machine.query.get(id)
+    machine = Machine.query.get(machine_id)
 
     if machine is None:
-        message: str = ErrorMessage.generate_message(ErrorTypes.NOT_EXISTS, id)
+        message: str = ErrorMessage.generate_message(ErrorTypes.NOT_EXISTS, machine_id)
         logger.error(message)
         return jsonify({"message": message}), 404
 
@@ -29,6 +29,11 @@ def setup(id):
         message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
         logger.error(message)
         return jsonify({"message": message}), 404
+
+    if machine.collect_status != common.COLLECT_STATUS.RECORDED.value:
+        message: str = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, machine.collect_status)
+        logger.error(message)
+        return jsonify({"message": message}), 500
 
     for gateway in machine.gateways:
         if gateway.gateway_result == -1:
@@ -41,11 +46,6 @@ def setup(id):
             logger.error(message)
             return jsonify({"message": message}), 500
 
-        if gateway.collect_status != common.COLLECT_STATUS.RECORDED.value:
-            message: str = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, gateway.collect_status)
-            logger.error(message)
-            return jsonify({"message": message}), 500
-
     # events_index作成(events-<gw-id>-yyyyMMddHHMMSS(jst))
     # 基本的にUTCを使うが、events_index名のサフィックスのみJSTを使う
     utc_now: datetime = datetime.utcnow()
@@ -54,7 +54,7 @@ def setup(id):
     # 現在日時名のevents_index作成
     successful: bool
     events_index: str
-    successful, events_index = EventManager.create_events_index(machine.machine_name, jst_now.to_string())
+    successful, events_index = EventManager.create_events_index(machine.machine_id, jst_now.to_string())
 
     if not successful:
         message: str = "events_indexの作成に失敗しました。"
@@ -73,13 +73,13 @@ def setup(id):
         logger.error(message)
         return jsonify({"message": message}), 500
 
-    logger.info(f"{common.COLLECT_STATUS.SETUP.value} was recorded.")
+    logger.info(f"'{common.COLLECT_STATUS.SETUP.value}' was recorded.")
 
     try:
+        machine.collect_status = common.COLLECT_STATUS.SETUP.value
         for gateway in machine.gateways:
             gateway.sequence_number += 1
             gateway.status = common.STATUS.RUNNING.value
-            gateway.collect_status = common.COLLECT_STATUS.SETUP.value
         db.session.commit()
         return jsonify({}), 200
     except Exception as e:

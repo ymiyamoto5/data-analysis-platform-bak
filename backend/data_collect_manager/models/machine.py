@@ -10,15 +10,17 @@ class Machine(db.Model):
     __tablename__ = "machines"
 
     # NOTE: これらの定義は必須。無いとquery時にエラーになる。
-    id: int
+    machine_id: str
     machine_name: str
+    collect_status: str
     machine_type_id: int
     # NOTE: MachineからMachineTypeを引くためのプロパティ
     machine_type: MachineType
     gateways: Gateway
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    machine_id = db.Column(db.String(255), primary_key=True)
     machine_name = db.Column(db.String(255), unique=True, nullable=False)
+    collect_status = db.Column(db.String(255))
     machine_type_id = db.Column(db.Integer, db.ForeignKey("machine_types.id"))
 
     # NOTE: MachineとGatewayはMany to Many
