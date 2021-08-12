@@ -9,6 +9,7 @@ from backend.event_manager.event_manager import EventManager
 
 events = Blueprint("events", __name__)
 
+# TODO: 収集イベント一覧を取得し、UIで表示できるようにする。
 
 # @events.route("/events/<string:gateway_id>", methods=["GET"])
 # def fetch_latest_event(gateway_id):

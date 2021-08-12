@@ -44,7 +44,7 @@ def fetch_gateways():
 
     gateways = Gateway.query.all()
 
-    return jsonify(gateways)
+    return jsonify(gateways), 200
 
 
 @gateways.route("/gateways/<string:gateway_id>", methods=["GET"])
@@ -53,7 +53,7 @@ def fetch_gateway(gateway_id):
 
     gateway = Gateway.query.get(gateway_id)
 
-    return jsonify(gateway)
+    return jsonify(gateway), 200
 
 
 @gateways.route("/gateways", methods=["POST"])

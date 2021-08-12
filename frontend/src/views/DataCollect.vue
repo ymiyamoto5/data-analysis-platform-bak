@@ -43,61 +43,42 @@
           </td>
           <td>
             <ul>
-              <template v-for="gateway in machine.gateways">
-                <!-- gateway_idを与えると、elsのevent_indexから最新の状態を取得するAPI call. collectStatusにセット -->
-
-                <v-btn
-                  v-if="gateway.collect_status === 'recorded'"
-                  color="primary"
-                  :key="gateway.gateway_id"
-                >
-                  段取開始
-                </v-btn>
-                <v-btn
-                  v-if="gateway.collect_status === 'setup'"
-                  color="success"
-                  :key="gateway.gateway_id"
-                >
-                  収集開始
-                </v-btn>
-                <v-btn
-                  v-if="gateway.collect_status === 'start'"
-                  color="error"
-                  :key="gateway.gateway_id"
-                >
-                  停止
-                </v-btn>
-                <v-btn
-                  v-if="gateway.collect_status === 'start'"
-                  color="warning"
-                  :key="gateway.gateway_id"
-                >
-                  中断
-                </v-btn>
-                <v-btn
-                  v-if="gateway.collect_status === 'pause'"
-                  color="blue"
-                  class="white--text"
-                  :key="gateway.gateway_id"
-                >
-                  再開
-                </v-btn>
-                <v-btn
-                  v-if="gateway.collect_status === 'stop'"
-                  color="grey"
-                  class="white--text"
-                  :key="gateway.gateway_id"
-                >
-                  記録中
-                </v-btn>
-                <v-btn
-                  v-if="gateway.collect_status === ''"
-                  :key="gateway.gateway_id"
-                  color="disable"
-                >
-                  状態不明
-                </v-btn>
-              </template>
+              <v-btn
+                v-if="machine.collect_status === 'recorded'"
+                color="primary"
+                @click="setup()"
+              >
+                段取開始
+              </v-btn>
+              <v-btn v-if="machine.collect_status === 'setup'" color="success">
+                収集開始
+              </v-btn>
+              <v-btn v-if="machine.collect_status === 'start'" color="error">
+                停止
+              </v-btn>
+              <v-btn v-if="machine.collect_status === 'start'" color="warning">
+                中断
+              </v-btn>
+              <v-btn
+                v-if="machine.collect_status === 'pause'"
+                color="blue"
+                class="white--text"
+              >
+                再開
+              </v-btn>
+              <v-btn
+                v-if="machine.collect_status === 'stop'"
+                color="grey"
+                class="white--text"
+              >
+                記録中
+              </v-btn>
+              <v-btn v-if="machine.collect_status === 'error'" color="disable">
+                ゲートウェイエラー
+              </v-btn>
+              <v-btn v-if="machine.collect_status === ''" color="disable">
+                状態不明
+              </v-btn>
             </ul>
           </td>
         </tr>
@@ -110,7 +91,8 @@
 import { createBaseApiClient } from '@/api/apiBase'
 
 const MACHINES_API_URL = '/api/v1/machines'
-const GATEWAYS_API_URL = '/api/v1/gateways'
+const DATA_COLLECT_API_URL = '/api/v1/data_collect'
+const SETUP_API_URL = DATA_COLLECT_API_URL + '/setup'
 
 export default {
   name: 'data-collect',
@@ -131,10 +113,6 @@ export default {
     this.fetchTableData()
   },
   methods: {
-    getColor(stauts) {
-      if (stauts === 'stop') return 'red'
-      else return 'green'
-    },
     fetchTableData: async function() {
       const client = createBaseApiClient()
       let data = []
@@ -152,14 +130,15 @@ export default {
           console.log('error')
         })
     },
-    collectStart: async function() {
+    setup: async function() {
       const client = createBaseApiClient()
       await client
-        .post(GATEWAYS_API_URL)
+        .post(SETUP_API_URL)
         .then((res) => {
-          if (res.data.message.length) {
-            console.log(res.data.message)
+          if (res.data.length === 0) {
+            return
           }
+          this.fetchTableData()
         })
         .catch(() => {
           console.log('error')

@@ -17,6 +17,7 @@ from backend.data_collect_manager.apis.gateways import gateways
 from backend.data_collect_manager.apis.handlers import handlers
 from backend.data_collect_manager.apis.sensors import sensors
 from backend.data_collect_manager.apis.events import events
+from backend.data_collect_manager.apis.controller import controller
 
 DIST_DIR = "../../frontend/dist"
 DIST_STATIC_DIR = f"{DIST_DIR}/static"
@@ -35,6 +36,7 @@ app.register_blueprint(gateways, url_prefix="/api/v1")
 app.register_blueprint(handlers, url_prefix="/api/v1")
 app.register_blueprint(sensors, url_prefix="/api/v1")
 app.register_blueprint(events, url_prefix="/api/v1")
+app.register_blueprint(controller, url_prefix="/api/v1")
 
 CORS(app)
 

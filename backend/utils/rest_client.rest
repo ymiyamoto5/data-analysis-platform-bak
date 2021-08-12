@@ -81,3 +81,8 @@ GET http://localhost:5000/api/v1/handlers/TEST-HANDLER-001
 POST http://localhost:5000/api/v1/handlers/TEST-HANDLER-001/delete HTTP/1.1
 content-type: application/json
 
+# controller
+
+### setup
+POST http://localhost:5000/api/v1/controller/setup/1 HTTP/1.1
+content-type: application/json
