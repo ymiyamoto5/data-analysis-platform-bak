@@ -1,7 +1,8 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+# backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.data_collect_manager.models.machine_type import MachineType
 from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.gateway import Gateway
