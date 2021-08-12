@@ -57,7 +57,11 @@
               >
                 収集開始
               </v-btn>
-              <v-btn v-if="machine.collect_status === 'start'" color="error">
+              <v-btn
+                v-if="machine.collect_status === 'start'"
+                color="error"
+                @click="stop(machine.machine_id)"
+              >
                 停止
               </v-btn>
               <v-btn v-if="machine.collect_status === 'start'" color="warning">
@@ -71,16 +75,25 @@
                 再開
               </v-btn>
               <v-btn
+                disabled
                 v-if="machine.collect_status === 'stop'"
                 color="grey"
                 class="white--text"
               >
                 記録中
               </v-btn>
-              <v-btn v-if="machine.collect_status === 'error'" color="disable">
+              <v-btn
+                disabled
+                v-if="machine.collect_status === 'error'"
+                color="disable"
+              >
                 ゲートウェイエラー
               </v-btn>
-              <v-btn v-if="machine.collect_status === ''" color="disable">
+              <v-btn
+                disabled
+                v-if="machine.collect_status === ''"
+                color="disable"
+              >
                 状態不明
               </v-btn>
             </ul>
@@ -98,6 +111,8 @@ const MACHINES_API_URL = '/api/v1/machines'
 const CONTROLLER_API_URL = '/api/v1/controller'
 const SETUP_API_URL = CONTROLLER_API_URL + '/setup/'
 const START_API_URL = CONTROLLER_API_URL + '/start/'
+const STOP_API_URL = CONTROLLER_API_URL + '/stop/'
+const CHECK_API_URL = CONTROLLER_API_URL + '/check/'
 
 export default {
   name: 'data-collect',
@@ -150,6 +165,30 @@ export default {
       const client = createBaseApiClient()
       await client
         .post(START_API_URL + machine_id)
+        .then(() => {
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+        })
+    },
+    stop: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(STOP_API_URL + machine_id)
+        .then(() => {
+          this.fetchTableData()
+          // データファイルがなくなるまで待ち
+          this.check(machine_id)
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+        })
+    },
+    check: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(CHECK_API_URL + machine_id)
         .then(() => {
           this.fetchTableData()
         })
