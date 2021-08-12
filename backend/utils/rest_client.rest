@@ -84,5 +84,21 @@ content-type: application/json
 # controller
 
 ### setup
-POST http://localhost:5000/api/v1/controller/setup/1 HTTP/1.1
+POST http://localhost:5000/api/v1/controller/setup/machine-01 HTTP/1.1
 content-type: application/json
+
+### update for setup (machine update)
+POST http://localhost:5000/api/v1/machines/machine-01/update HTTP/1.1
+content-type: application/json
+
+{
+    "collect_status": "recorded"
+}
+
+### update for setup (gateway update)
+POST http://localhost:5000/api/v1/gateways/GW-01/update HTTP/1.1
+content-type: application/json
+
+{
+    "status": "stop"
+}

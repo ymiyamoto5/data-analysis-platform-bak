@@ -6,8 +6,8 @@ from backend.data_collect_manager.models.db import db
 class MachineGatewayMapping(db.Model):
     __tablename__ = "machine_gateway_mapping"
 
-    machine_id: int
+    machine_id: str
     gateway_id: str
 
-    machine_id = db.Column(db.String, db.ForeignKey("machines.id"), primary_key=True)
+    machine_id = db.Column(db.String, db.ForeignKey("machines.machine_id"), primary_key=True)
     gateway_id = db.Column(db.String, db.ForeignKey("gateways.gateway_id"), primary_key=True)

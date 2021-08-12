@@ -27,10 +27,30 @@ sensor_type_02 = SensorType(sensor_type_name="変位")
 sensor_type_03 = SensorType(sensor_type_name="パルス")
 
 # Machine
-machine_01 = Machine(machine_name="テストプレス01", machine_type_id=1)
-machine_02 = Machine(machine_name="テストプレス02", machine_type_id=1)
-machine_03 = Machine(machine_name="テスト圧力プレート01", machine_type_id=2)
-machine_04 = Machine(machine_name="テストマシン01", machine_type_id=1)
+machine_01 = Machine(
+    machine_id="machine-01",
+    machine_name="テストプレス01",
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
+    machine_type_id=1,
+)
+machine_02 = Machine(
+    machine_id="machine-02",
+    machine_name="テストプレス02",
+    collect_status=common.COLLECT_STATUS.START.value,
+    machine_type_id=1,
+)
+machine_03 = Machine(
+    machine_id="machine-03",
+    machine_name="テスト圧力プレート01",
+    collect_status=common.COLLECT_STATUS.PAUSE.value,
+    machine_type_id=2,
+)
+machine_04 = Machine(
+    machine_id="machine-04",
+    machine_name="テストマシン01",
+    collect_status=common.COLLECT_STATUS.STOP.value,
+    machine_type_id=1,
+)
 
 # Gateway
 gateway_01 = Gateway(
@@ -38,7 +58,6 @@ gateway_01 = Gateway(
     sequence_number=6,
     gateway_result=0,
     status=common.STATUS.STOP.value,
-    collect_status=common.COLLECT_STATUS.RECORDED.value,
     log_level=5,
 )
 gateway_02 = Gateway(
@@ -46,7 +65,6 @@ gateway_02 = Gateway(
     sequence_number=3,
     gateway_result=0,
     status=common.STATUS.RUNNING.value,
-    collect_status=common.COLLECT_STATUS.START.value,
     log_level=5,
 )
 gateway_03 = Gateway(
@@ -54,7 +72,6 @@ gateway_03 = Gateway(
     sequence_number=3,
     gateway_result=0,
     status=common.STATUS.RUNNING.value,
-    collect_status=common.COLLECT_STATUS.PAUSE.value,
     log_level=5,
 )
 gateway_04 = Gateway(
@@ -62,7 +79,6 @@ gateway_04 = Gateway(
     sequence_number=4,
     gateway_result=0,
     status=common.STATUS.STOP.value,
-    collect_status=common.COLLECT_STATUS.STOP.value,
     log_level=5,
 )
 

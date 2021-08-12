@@ -18,24 +18,11 @@ class GatewaySchema(Schema):
     sequence_number = fields.Int(validate=validate.Range(min=-1))
     gateway_result = fields.Int(validate=validate.Range(min=-1, max=1))
     status = fields.Str(validate=validate.OneOf((common.STATUS.STOP.value, common.STATUS.RUNNING.value)))
-    collect_status = fields.Str(
-        validate=validate.OneOf(
-            (
-                common.COLLECT_STATUS.SETUP.value,
-                common.COLLECT_STATUS.START.value,
-                common.COLLECT_STATUS.PAUSE.value,
-                common.COLLECT_STATUS.STOP.value,
-                common.COLLECT_STATUS.RECORDED.value,
-            )
-        )
-    )
     log_level = fields.Int(validate=validate.Range(min=0, max=5))
 
 
 gateway_create_schema = GatewaySchema(only=("gateway_id", "log_level"))
-gateway_update_schema = GatewaySchema(
-    only=("sequence_number", "gateway_result", "status", "collect_status", "log_level")
-)
+gateway_update_schema = GatewaySchema(only=("sequence_number", "gateway_result", "status", "log_level"))
 
 
 @gateways.route("/gateways", methods=["GET"])

@@ -46,7 +46,7 @@
               <v-btn
                 v-if="machine.collect_status === 'recorded'"
                 color="primary"
-                @click="setup()"
+                @click="setup(machine.machine_id)"
               >
                 段取開始
               </v-btn>
@@ -91,8 +91,8 @@
 import { createBaseApiClient } from '@/api/apiBase'
 
 const MACHINES_API_URL = '/api/v1/machines'
-const DATA_COLLECT_API_URL = '/api/v1/data_collect'
-const SETUP_API_URL = DATA_COLLECT_API_URL + '/setup'
+const CONTROLLER_API_URL = '/api/v1/controller'
+const SETUP_API_URL = CONTROLLER_API_URL + '/setup/'
 
 export default {
   name: 'data-collect',
@@ -130,10 +130,10 @@ export default {
           console.log('error')
         })
     },
-    setup: async function() {
+    setup: async function(machine_id) {
       const client = createBaseApiClient()
       await client
-        .post(SETUP_API_URL)
+        .post(SETUP_API_URL + machine_id)
         .then((res) => {
           if (res.data.length === 0) {
             return
