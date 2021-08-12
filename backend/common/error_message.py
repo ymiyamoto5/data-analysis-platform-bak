@@ -23,7 +23,7 @@ class ErrorTypes(Enum):
 
 class ErrorMessage:
     @staticmethod
-    def generate_message(error_type: str, target: Optional[str] = None):
+    def generate_message(error_type: ErrorTypes, target: Optional[str] = None):
         if error_type == ErrorTypes.KEY_ERROR:
             return f"{ErrorTypes.KEY_ERROR.value}: {target}"
         if error_type == ErrorTypes.VALUE_ERROR:

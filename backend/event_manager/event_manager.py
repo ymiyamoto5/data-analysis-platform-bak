@@ -8,10 +8,10 @@ from backend.common import common  # noqa
 
 class EventManager:
     @staticmethod
-    def create_events_index(target_name: str, datetime_str: str) -> Tuple[bool, str]:
-        """target_nameと日時文字列をsuffixとするevents_indexを作成する"""
+    def create_events_index(machine_id: str, datetime_str: str) -> Tuple[bool, str]:
+        """machine_idと日時文字列をsuffixとするevents_indexを作成する"""
 
-        events_index: str = "events-" + target_name + "-" + datetime_str
+        events_index: str = "events-" + machine_id + "-" + datetime_str
         successful: bool = ElasticManager.create_index(events_index)
 
         return successful, events_index
@@ -53,10 +53,12 @@ class EventManager:
         return successful
 
     @staticmethod
-    def get_latest_events_index() -> Optional[str]:
+    def get_latest_events_index(machine_id: str) -> Optional[str]:
         """最新のevents_indexの名前を返す"""
 
-        return ElasticManager.get_latest_index("events-*")
+        index: str = "events-" + machine_id + "-*"
+
+        return ElasticManager.get_latest_index(index)
 
     @staticmethod
     def get_latest_event(events_index: str) -> List[dict]:
