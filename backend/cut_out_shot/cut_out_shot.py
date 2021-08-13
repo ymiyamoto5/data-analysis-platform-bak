@@ -40,10 +40,7 @@ class CutOutShot:
         chunk_size: int = 5_000,
         margin: float = 0.3,
         displacement_func: Optional[Callable[[float], float]] = None,
-        load01_func: Optional[Callable[[float], float]] = None,
-        load02_func: Optional[Callable[[float], float]] = None,
-        load03_func: Optional[Callable[[float], float]] = None,
-        load04_func: Optional[Callable[[float], float]] = None,
+        **kwargs,
     ):
         self.__machine_id = machine_id
         self.__previous_size: int = previous_size
@@ -59,9 +56,10 @@ class CutOutShot:
         self.__shot_number: int = 0
         self.__previous_shot_start_time: Optional[float] = None
         self.__cut_out_targets: List[dict] = []
-        self.__previous_df_tail: DataFrame = pd.DataFrame(
-            index=[], columns=("timestamp", "displacement", "load01", "load02", "load03", "load04")
-        )
+        # self.__previous_df_tail: DataFrame = pd.DataFrame(
+        #     index=[], columns=("timestamp", "displacement", "load01", "load02", "load03", "load04")
+        # )
+        self.__previous_df_tail: DataFrame = pd.DataFrame()
         self.__shots_meta_df: DataFrame = pd.DataFrame(
             columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
         )
@@ -71,25 +69,8 @@ class CutOutShot:
             sys.exit(1)
         self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
 
-        if load01_func is None:
-            logger.error("load01_func is not defined.")
-            sys.exit(1)
-        self.__load01_func: Optional[Callable[[float], float]] = load01_func
-
-        if load02_func is None:
-            logger.error("load02_func is not defined.")
-            sys.exit(1)
-        self.__load02_func: Optional[Callable[[float], float]] = load02_func
-
-        if load03_func is None:
-            logger.error("load03_func is not defined.")
-            sys.exit(1)
-        self.__load03_func: Optional[Callable[[float], float]] = load03_func
-
-        if load04_func is None:
-            logger.error("load04_func is not defined.")
-            sys.exit(1)
-        self.__load04_func: Optional[Callable[[float], float]] = load04_func
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
         try:
             handler: Handler = HandlerDAO.fetch_handler(self.__machine_id)
@@ -98,6 +79,7 @@ class CutOutShot:
             sys.exit(1)
 
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * handler.sampling_frequency  # 100kサンプルにおける最大サンプル数
+        self.__sampling_ch_num: int = handler.sampling_ch_num
 
     # テスト用の公開プロパティ
 
@@ -302,13 +284,18 @@ class CutOutShot:
             "sequential_number_by_shot": self.__sequential_number_by_shot,
             "rawdata_sequential_number": int(rawdata.sequential_number),
             "displacement": rawdata.displacement,
-            "load01": rawdata.load01,
-            "load02": rawdata.load02,
-            "load03": rawdata.load03,
-            "load04": rawdata.load04,
             "shot_number": self.__shot_number,
             "tags": [],
         }
+
+        # TODO: rawdataがitertupleによりtupleになっているため、プロパティアクセスができない。
+        # indexでアクセスしているが、スキップする数がズレるとおかしくなる。
+        SKIP_COLUMN_COUNT: Final[int] = 4
+        for ch in range(0, self.__sampling_ch_num - 1):
+            str_ch = str(ch + 1).zfill(2)
+            load: str = "load" + str_ch  # load01, load02, ...
+            cut_out_target[load] = rawdata[SKIP_COLUMN_COUNT + ch]  # rawdata[4], rawdata[5], ...
+
         self.__cut_out_targets.append(cut_out_target)
         self.__sequential_number += 1
         self.__sequential_number_by_shot += 1
@@ -347,11 +334,14 @@ class CutOutShot:
     def _apply_expr_load(self, df: DataFrame) -> DataFrame:
         """荷重値に対して変換式を適用"""
 
-        # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-        df.loc[:, "load01"] = df["load01"].apply(self.__load01_func)
-        df.loc[:, "load02"] = df["load02"].apply(self.__load02_func)
-        df.loc[:, "load03"] = df["load03"].apply(self.__load03_func)
-        df.loc[:, "load04"] = df["load04"].apply(self.__load04_func)
+        # NOTE: 動的にプロパティにアクセスし、そのプロパティの関数を適用
+        # TODO: 変位センサーを除いた数になっているが、本来は荷重センサーの数を明示出来たほうがよい。
+        for ch in range(1, self.__sampling_ch_num):
+            str_ch = str(ch).zfill(2)
+            load: str = "load" + str_ch
+            func: Callable[[float], float] = getattr(self, f"{load}_func")
+            # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
+            df.loc[:, load] = df[load].apply(func)
 
         return df
 
@@ -709,12 +699,12 @@ if __name__ == "__main__":
     cut_out_shot = CutOutShot(
         machine_id=machine_id,
         displacement_func=displacement_func,
+        previous_size=5,
+        margin=0.01,
         load01_func=load01_func,
         load02_func=load02_func,
         load03_func=load03_func,
         load04_func=load04_func,
-        previous_size=5,
-        margin=0.01,
     )
     target: str = "20210101000000"
     target_dir: str = machine_id + "-" + target

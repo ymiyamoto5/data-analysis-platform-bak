@@ -13,7 +13,7 @@ import os
 import json
 import multiprocessing
 
-from typing import Final, List
+from typing import Final
 from datetime import datetime, timedelta
 from pytz import timezone
 from enum import Enum
