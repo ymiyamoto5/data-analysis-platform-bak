@@ -56,9 +56,6 @@ class CutOutShot:
         self.__shot_number: int = 0
         self.__previous_shot_start_time: Optional[float] = None
         self.__cut_out_targets: List[dict] = []
-        # self.__previous_df_tail: DataFrame = pd.DataFrame(
-        #     index=[], columns=("timestamp", "displacement", "load01", "load02", "load03", "load04")
-        # )
         self.__previous_df_tail: DataFrame = pd.DataFrame()
         self.__shots_meta_df: DataFrame = pd.DataFrame(
             columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
