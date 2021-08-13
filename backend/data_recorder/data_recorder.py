@@ -27,7 +27,7 @@ import argparse
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.common import common
-from backend.common import dao
+from backend.common.dao import HandlerDAO
 from backend.data_collect_manager.models.handler import Handler
 from backend.common.common_logger import logger
 
@@ -47,7 +47,7 @@ class DataRecorder:
         self.machine_id: str = machine_id
 
         try:
-            handler: Handler = dao.fetch_handler(self.machine_id)
+            handler: Handler = HandlerDAO.fetch_handler(self.machine_id)
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
@@ -115,7 +115,7 @@ class DataRecorder:
         with open(file.file_path, "rb") as f:
             binary: bytes = f.read()
 
-        # バイナリファイルから5ch分を1setとして取得し、処理
+        # バイナリファイルからチャネル数分を1setとして取得し、処理
         while True:
             start_index: int = dataset_number * ROW_BYTE_SIZE
             end_index: int = start_index + ROW_BYTE_SIZE
@@ -131,11 +131,13 @@ class DataRecorder:
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
                 "displacement": round(dataset[0], 3),
-                "load01": round(dataset[1], 3),
-                "load02": round(dataset[2], 3),
-                "load03": round(dataset[3], 3),
-                "load04": round(dataset[4], 3),
             }
+
+            # 荷重センサーの数だけdictに追加
+            for ch in range(1, self.sampling_ch_num):
+                str_ch = str(ch).zfill(2)
+                load: str = "load" + str_ch
+                sample[load] = round(dataset[ch], 3)
 
             samples.append(sample)
 
@@ -316,7 +318,7 @@ class DataRecorder:
 
         logger.info("all file processed.")
 
-    def manual_record(self, target_dir: str, is_debug_mode: bool = False):
+    def manual_record(self, target_dir: str):
         """手動での生データ取り込み。前提条件は以下。
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
         * 対応するevents_indexが存在すること。
@@ -379,4 +381,4 @@ if __name__ == "__main__":
             logger.error(f"{args.dir} is not exists.")
             sys.exit(1)
 
-        data_recorder.manual_record(target_dir, args.debug)
+        data_recorder.manual_record(target_dir)
