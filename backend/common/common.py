@@ -24,8 +24,6 @@ from backend.common.common_logger import logger
 APP_CONFIG_PATH: Final[str] = os.getenv("APP_CONFIG_PATH", "default_config_path.json")
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
 MARGIN: Final[float] = 0.1
-SAMPLING_RATE: Final[int] = 100_000
-SAMPLING_INTERVAL: Final[float] = SAMPLING_RATE / 1.0  # 0.000010
 TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
 NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
 NUM_OF_LOAD_SENSOR: Final[int] = 4
