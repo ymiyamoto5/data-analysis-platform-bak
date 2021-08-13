@@ -1,6 +1,23 @@
 # HOW_TO_USE
 # https://marketplace.visualstudio.com/items?itemName=humao.rest-client
 
+# machines
+### get list
+GET http://localhost:5000/api/v1/machines
+
+### get single
+GET http://localhost:5000/api/v1/machines/machine-01
+
+### create
+
+### get new
+
+### update
+
+### get updated
+
+### delete
+
 # gateways
 ### get list
 GET http://localhost:5000/api/v1/gateways
@@ -102,3 +119,8 @@ content-type: application/json
 {
     "status": "stop"
 }
+
+# get machine_id from gateway_id
+
+###
+GET http://localhost:5000/api/v1/gateways/GW-01/machine HTTP/1.1
