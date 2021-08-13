@@ -18,18 +18,21 @@ import glob
 from typing import Callable, Final, List, Optional
 from datetime import datetime
 from pandas.core.frame import DataFrame
-
+import traceback
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.tag_manager.tag_manager import TagManager
 from backend.event_manager.event_manager import EventManager
 from backend.utils.throughput_counter import throughput_counter
 from backend.common import common
 from backend.common.common_logger import logger
+from backend.common.dao import HandlerDAO
+from backend.data_collect_manager.models.handler import Handler
 
 
 class CutOutShot:
     def __init__(
         self,
+        machine_id: str,
         previous_size: int = 1000,
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
@@ -42,13 +45,13 @@ class CutOutShot:
         load03_func: Optional[Callable[[float], float]] = None,
         load04_func: Optional[Callable[[float], float]] = None,
     ):
+        self.__machine_id = machine_id
         self.__previous_size: int = previous_size
         self.__min_spm: int = min_spm
         self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
         self.__margin: float = margin
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * common.SAMPLING_RATE  # 100kサンプルにおける最大サンプル数
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
         self.__sequential_number: int = 0
@@ -87,6 +90,14 @@ class CutOutShot:
             logger.error("load04_func is not defined.")
             sys.exit(1)
         self.__load04_func: Optional[Callable[[float], float]] = load04_func
+
+        try:
+            handler: Handler = HandlerDAO.fetch_handler(self.__machine_id)
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * handler.sampling_frequency  # 100kサンプルにおける最大サンプル数
 
     # テスト用の公開プロパティ
 
@@ -173,13 +184,14 @@ class CutOutShot:
     def _get_pickle_list(self, rawdata_dir_path: str) -> List[str]:
         """取り込むファイルのリストを取得する"""
 
-        pickle_file_list: List[str] = glob.glob(os.path.join(rawdata_dir_path, "*.pkl"))
+        pickle_file_list: List[str] = glob.glob(os.path.join(rawdata_dir_path, f"{self.__machine_id}_*.pkl"))
         pickle_file_list.sort()
 
         return pickle_file_list
 
+    @staticmethod
     def _exclude_non_target_interval(
-        self, df: DataFrame, start_sequential_number: int, end_sequential_number: int
+        df: DataFrame, start_sequential_number: int, end_sequential_number: int
     ) -> DataFrame:
         """パラメータで指定された対象範囲に含まれないデータを除外"""
 
@@ -187,12 +199,14 @@ class CutOutShot:
             (start_sequential_number <= df["sequential_number"]) & (df["sequential_number"] <= end_sequential_number)
         ]
 
-    def _exclude_setup_interval(self, df: DataFrame, collect_start_time: float) -> DataFrame:
+    @staticmethod
+    def _exclude_setup_interval(df: DataFrame, collect_start_time: float) -> DataFrame:
         """収集開始前(段取中)のデータを除外"""
 
         return df[df["timestamp"] >= collect_start_time]
 
-    def _exclude_pause_interval(self, df: DataFrame, pause_events: List[dict]) -> DataFrame:
+    @staticmethod
+    def _exclude_pause_interval(df: DataFrame, pause_events: List[dict]) -> DataFrame:
         """中断区間のデータを除外"""
 
         for pause_event in pause_events:
@@ -356,7 +370,6 @@ class CutOutShot:
             "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
         }
         self.__shots_meta_df = self.__shots_meta_df.append(d, ignore_index=True)
-        # self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(self.__shots_meta_df["spm"].notna(), None)
         self.__shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
 
         self.__shots_meta_df = self.__shots_meta_df.astype({"shot_number": int, "num_of_samples_in_cut_out": int})
@@ -365,7 +378,8 @@ class CutOutShot:
 
         ElasticManager.bulk_insert(shots_meta_data, shots_meta_index)
 
-    def __join_process(self, procs: List[multiprocessing.context.Process]) -> List:
+    @staticmethod
+    def __join_process(procs: List[multiprocessing.context.Process]) -> List:
         """マルチプロセスの処理待ち"""
 
         if len(procs) > 0:
@@ -374,7 +388,8 @@ class CutOutShot:
 
         return []
 
-    def _set_start_sequential_number(self, start_sequential_number: Optional[int], rawdata_count: int) -> int:
+    @staticmethod
+    def _set_start_sequential_number(start_sequential_number: Optional[int], rawdata_count: int) -> int:
         """パラメータ start_sequential_number の設定"""
 
         if start_sequential_number is None:
@@ -392,8 +407,9 @@ class CutOutShot:
 
         return start_sequential_number
 
+    @staticmethod
     def _set_end_sequential_number(
-        self, start_sequential_number: Optional[int], end_sequential_number: Optional[int], rawdata_count: int
+        start_sequential_number: Optional[int], end_sequential_number: Optional[int], rawdata_count: int
     ) -> int:
         """パラメータ end_sequential_number の設定"""
 
@@ -498,7 +514,7 @@ class CutOutShot:
             return
 
         # 最後のイベントが記録済み(recorded)であることが前提
-        if events[-1]["event_type"] != "recorded":
+        if events[-1]["event_type"] != common.COLLECT_STATUS.RECORDED.value:
             logger.error("Exits because the status is not recorded.")
             return
 
@@ -688,7 +704,10 @@ if __name__ == "__main__":
     load03_func = lambda v: 2.5 / Vr * v
     load04_func = lambda v: 2.5 / Vr * v
 
+    machine_id: str = "machine-01"
+
     cut_out_shot = CutOutShot(
+        machine_id=machine_id,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,
@@ -697,7 +716,9 @@ if __name__ == "__main__":
         previous_size=5,
         margin=0.01,
     )
-    cut_out_shot.cut_out_shot(rawdata_dir_name="20210101000000", start_displacement=150.0, end_displacement=25.0)
+    target: str = "20210101000000"
+    target_dir: str = machine_id + "-" + target
+    cut_out_shot.cut_out_shot(rawdata_dir_name=target_dir, start_displacement=150.0, end_displacement=25.0)
 
     # cut_out_shot = CutOutShot(
     #     min_spm=15,
