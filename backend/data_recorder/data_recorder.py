@@ -253,8 +253,9 @@ class DataRecorder:
             logger.error("events_index is not found.")
             return
 
-        suffix: str = latest_events_index.split("-")[-1]  # YYYYmmddHHMMSS文字列
-        events_index: str = "events-" + self.machine_id + "-" + suffix
+        datetime_str: str = latest_events_index.split("-")[-1]  # YYYYmmddHHMMSS文字列
+        suffix: str = self.machine_id + "-" + datetime_str
+        events_index: str = "events-" + suffix
         events: List[dict] = EventManager.fetch_events(events_index)
 
         if len(events) == 0:
@@ -299,7 +300,7 @@ class DataRecorder:
             logger.info(f"{processed_dir_path} created.")
 
         # Elasticsearch rawdataインデックス名
-        rawdata_index: str = "rawdata-" + self.machine_id + "-" + suffix
+        rawdata_index: str = "rawdata-" + suffix
 
         # start_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
         if not ElasticManager.exists_index(rawdata_index):

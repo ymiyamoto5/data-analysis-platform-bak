@@ -1,12 +1,18 @@
+import os
+import sys
 import pandas as pd
 from datetime import datetime, timedelta
+
+# backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
+
 from backend.utils.df_to_els import df_to_els
 
 
-def create_events_index(start_datetime_jst: datetime) -> None:
+def create_events_index(prefix: str, start_datetime_jst: datetime) -> None:
 
     start_datetime_jst_str: str = start_datetime_jst.isoformat()
-    index: str = "events-" + start_datetime_jst_str.replace("-", "").replace("T", "").replace(":", "")
+    index: str = prefix + start_datetime_jst_str.replace("-", "").replace("T", "").replace(":", "")
 
     start_datetime_utc: datetime = start_datetime_jst + timedelta(hours=-9)
     start_datetime_utc_str: str = start_datetime_utc.isoformat()
@@ -30,7 +36,8 @@ def create_events_index(start_datetime_jst: datetime) -> None:
 
 
 if __name__ == "__main__":
-    prefix = "events-"
+    machine_id = "machine-01"
+    prefix = "events-" + machine_id + "-"
     # start_datetime_jst = datetime(2021, 7, 9, 19, 0, 0, 0)
     start_datetime_jst = datetime(2021, 1, 1, 0, 0, 0, 0)
-    create_events_index(start_datetime_jst)
+    create_events_index(prefix, start_datetime_jst)
