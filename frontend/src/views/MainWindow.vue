@@ -4,16 +4,12 @@
       v-model="drawer"
       app
       class="pt-4"
-      color="grey lighten-3"
+      color="blue"
       mini-variant
     >
-      <v-avatar
-        v-for="n in 6"
-        :key="n"
-        :color="`grey ${n === 1 ? 'darken' : 'lighten'}-1`"
-        :size="n === 1 ? 36 : 20"
-        class="d-block text-center mx-auto mb-9"
-      ></v-avatar>
+      <v-icon large dark>mdi-home</v-icon>
+      <v-icon large dark>mdi-history</v-icon>
+      <v-icon large dark>mdi-cog-outline</v-icon>
     </v-navigation-drawer>
 
     <v-main id="v-main">
@@ -49,5 +45,11 @@ export default {
 
 #page-title {
   margin: 10px;
+}
+
+.v-icon {
+  margin-left: 10px;
+  margin-top: 15px;
+  margin-bottom: 15px;
 }
 </style>
