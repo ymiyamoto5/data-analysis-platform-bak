@@ -43,6 +43,16 @@ def fetch_gateway(gateway_id):
     return jsonify(gateway), 200
 
 
+@gateways.route("/gateways/<string:gateway_id>/machine", methods=["GET"])
+def fetch_machine_id_from_gateway_id(gateway_id):
+    """gateway_idをkeyにmachine_idを取得する。"""
+
+    gateway = Gateway.query.get(gateway_id)
+    machine = gateway.machines[0].machine_id
+
+    return jsonify(machine), 200
+
+
 @gateways.route("/gateways", methods=["POST"])
 def create():
     """Gatewayの作成"""
