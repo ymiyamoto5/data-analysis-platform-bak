@@ -17,6 +17,7 @@ import re
 import shutil
 import struct
 import time
+import traceback
 import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
@@ -26,11 +27,9 @@ import argparse
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.common import common
-from backend.common.common_logger import logger
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from backend.data_collect_manager.models.machine import Machine
+from backend.common import dao
 from backend.data_collect_manager.models.handler import Handler
+from backend.common.common_logger import logger
 
 
 @dataclasses.dataclass
@@ -47,24 +46,15 @@ class DataRecorder:
     def __init__(self, machine_id: str):
         self.machine_id: str = machine_id
 
-        handler: Handler = self._fetch_handler()
+        try:
+            handler: Handler = dao.fetch_handler(self.machine_id)
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
         self.sampling_ch_num: int = handler.sampling_ch_num
         self.sampling_frequency: int = handler.sampling_frequency
         self.sampling_interval: float = 1.0 / self.sampling_frequency
-
-    def _fetch_handler(self) -> Handler:
-        """DBからmachine_idをkeyにHandler情報を取得する。"""
-
-        app_config_path: str = common.APP_CONFIG_PATH
-        DB_URI: Final[str] = common.get_config_value(app_config_path, "SQLALCHEMY_DATABASE_URI")
-        engine = create_engine(DB_URI)
-        SessionClass = sessionmaker(engine)
-        session = SessionClass()
-        machine: Machine = session.query(Machine).get(self.machine_id)
-        # NOTE: 1つ目のGW, 1つ目のHandlerを採用。複数GW, 複数Handlerには対応していない。
-        handler: Handler = machine.gateways[0].handlers[0]
-
-        return handler
 
     @staticmethod
     def _create_file_timestamp(filepath: str) -> float:
