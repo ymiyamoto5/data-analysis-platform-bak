@@ -37,19 +37,19 @@ machine_01 = Machine(
 machine_02 = Machine(
     machine_id="machine-02",
     machine_name="テストプレス02",
-    collect_status=common.COLLECT_STATUS.START.value,
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
 )
 machine_03 = Machine(
     machine_id="machine-03",
     machine_name="テスト圧力プレート01",
-    collect_status=common.COLLECT_STATUS.PAUSE.value,
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=2,
 )
 machine_04 = Machine(
     machine_id="machine-04",
     machine_name="テストマシン01",
-    collect_status=common.COLLECT_STATUS.STOP.value,
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
 )
 
@@ -65,14 +65,14 @@ gateway_02 = Gateway(
     gateway_id="GW-02",
     sequence_number=3,
     gateway_result=0,
-    status=common.STATUS.RUNNING.value,
+    status=common.STATUS.STOP.value,
     log_level=5,
 )
 gateway_03 = Gateway(
     gateway_id="GW-03",
     sequence_number=3,
     gateway_result=0,
-    status=common.STATUS.RUNNING.value,
+    status=common.STATUS.STOP.value,
     log_level=5,
 )
 gateway_04 = Gateway(
@@ -101,9 +101,17 @@ handler_02 = Handler(
     filewrite_time=1,
 )
 handler_03 = Handler(
-    handler_id="AD-USB-yyyy",
+    handler_id="AD-USB-yyy1",
     handler_type="USB_yyyyHS",
-    adc_serial_num="YYYYYYYY",
+    adc_serial_num="YYYYYYY1",
+    sampling_frequency=1000,
+    sampling_ch_num=16,
+    filewrite_time=1,
+)
+handler_04 = Handler(
+    handler_id="AD-USB-yyy2",
+    handler_type="USB_yyyyHS",
+    adc_serial_num="YYYYYYY2",
     sampling_frequency=1000,
     sampling_ch_num=16,
     filewrite_time=1,
@@ -114,17 +122,50 @@ sensor_01 = Sensor(sensor_name="load01", sensor_type_id=1)
 sensor_02 = Sensor(sensor_name="load02", sensor_type_id=1)
 sensor_03 = Sensor(sensor_name="displacement", sensor_type_id=2)
 sensor_04 = Sensor(sensor_name="load01", sensor_type_id=1)
-sensor_05 = Sensor(sensor_name="pulse", sensor_type_id=3)
+sensor_05 = Sensor(sensor_name="displacement", sensor_type_id=2)
+sensor_06 = Sensor(sensor_name="load01", sensor_type_id=1)
+sensor_07 = Sensor(sensor_name="load02", sensor_type_id=1)
+sensor_08 = Sensor(sensor_name="load03", sensor_type_id=1)
+sensor_09 = Sensor(sensor_name="load04", sensor_type_id=1)
+sensor_10 = Sensor(sensor_name="load05", sensor_type_id=1)
+sensor_11 = Sensor(sensor_name="load06", sensor_type_id=1)
+sensor_12 = Sensor(sensor_name="load07", sensor_type_id=1)
+sensor_13 = Sensor(sensor_name="load08", sensor_type_id=1)
+sensor_14 = Sensor(sensor_name="load09", sensor_type_id=1)
+sensor_15 = Sensor(sensor_name="load10", sensor_type_id=1)
+sensor_16 = Sensor(sensor_name="load11", sensor_type_id=1)
+sensor_17 = Sensor(sensor_name="load12", sensor_type_id=1)
+sensor_18 = Sensor(sensor_name="load13", sensor_type_id=1)
+sensor_19 = Sensor(sensor_name="load14", sensor_type_id=1)
+sensor_20 = Sensor(sensor_name="load15", sensor_type_id=1)
+sensor_21 = Sensor(sensor_name="pulse", sensor_type_id=3)
 
 handler_01.sensors.append(sensor_01)
 handler_01.sensors.append(sensor_02)
 handler_01.sensors.append(sensor_03)
 handler_02.sensors.append(sensor_04)
 handler_02.sensors.append(sensor_05)
+handler_03.sensors.append(sensor_06)
+handler_03.sensors.append(sensor_07)
+handler_03.sensors.append(sensor_08)
+handler_03.sensors.append(sensor_09)
+handler_03.sensors.append(sensor_10)
+handler_03.sensors.append(sensor_11)
+handler_03.sensors.append(sensor_12)
+handler_03.sensors.append(sensor_13)
+handler_04.sensors.append(sensor_14)
+handler_04.sensors.append(sensor_15)
+handler_04.sensors.append(sensor_16)
+handler_04.sensors.append(sensor_17)
+handler_04.sensors.append(sensor_18)
+handler_04.sensors.append(sensor_19)
+handler_04.sensors.append(sensor_20)
+handler_04.sensors.append(sensor_21)
 
 gateway_01.handlers.append(handler_01)
 gateway_02.handlers.append(handler_02)
 gateway_03.handlers.append(handler_03)
+gateway_03.handlers.append(handler_04)
 
 machine_01.gateways.append(gateway_01)
 machine_02.gateways.append(gateway_02)
