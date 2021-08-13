@@ -42,9 +42,9 @@ class EventManager:
 
         # 更新対象は最新のdocument（pause）イベントである前提
         latest_event_type: str = EventManager.get_latest_event(events_index)[0]["event_type"]
-        # TODO: エラーハンドリング
         if latest_event_type != "pause":
             logger.error(f"latest event type is invalid status {latest_event_type}")
+            return False
 
         doc_id: int = ElasticManager.count(events_index) - 1
         query: dict = {"end_time": occurred_time}

@@ -152,6 +152,91 @@ def start(machine_id):
         return jsonify({"message": message}), 500
 
 
+@controller.route("/controller/pause/<string:machine_id>", methods=["POST"])
+def pause(machine_id):
+    """指定機器のデータ収集中断（中断中もデータ自体は収集されている。中断区間はショット切り出しの対象外となる。）"""
+
+    utc_now: datetime = datetime.utcnow()
+
+    machine = Machine.query.get(machine_id)
+
+    # 収集開始状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        return jsonify({"message": message}), error_code
+
+    events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
+
+    if events_index is None:
+        message: str = "対象のevents_indexがありません。"
+        logger.error(message)
+        return jsonify({"message": message}), 500
+
+    # events_indexに中断(pause)を記録
+    successful: bool = EventManager.record_event(
+        events_index, event_type=common.COLLECT_STATUS.PAUSE.value, occurred_time=utc_now
+    )
+
+    if not successful:
+        message: str = "events_indexのデータ投入に失敗しました。"
+        logger.error(message)
+        return jsonify({"message": message}), 500
+
+    logger.info(f"'{common.COLLECT_STATUS.PAUSE.value}' was recorded.")
+
+    # DB更新
+    try:
+        machine.collect_status = common.COLLECT_STATUS.PAUSE.value
+        db.session.commit()
+        return jsonify({}), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL, str(e))
+        return jsonify({"message": message}), 500
+
+
+@controller.route("/controller/resume/<string:machine_id>", methods=["POST"])
+def resume(machine_id):
+    """指定機器のデータ収集再開"""
+
+    utc_now: datetime = datetime.utcnow()
+
+    machine = Machine.query.get(machine_id)
+
+    # 収集中断状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.PAUSE.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        return jsonify({"message": message}), error_code
+
+    events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
+
+    if events_index is None:
+        message: str = "対象のevents_indexがありません。"
+        logger.error(message)
+        return jsonify({"message": message}), 500
+
+    # events_indexの中断イベントに再開イベントを追加
+    successful: bool = EventManager.update_pause_event(events_index, occurred_time=utc_now)
+
+    if not successful:
+        message: str = "events_indexのデータ更新に失敗しました。"
+        logger.error(message)
+        return jsonify({"message": message}), 500
+
+    logger.info(f"'{common.COLLECT_STATUS.RESUME.value}' was recorded.")
+
+    # DB更新
+    try:
+        # RESUMEはDBの状態としては保持しない。STARTに更新する。
+        machine.collect_status = common.COLLECT_STATUS.START.value
+        db.session.commit()
+        return jsonify({}), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL, str(e))
+        return jsonify({"message": message}), 500
+
+
 @controller.route("/controller/stop/<string:machine_id>", methods=["POST"])
 def stop(machine_id):
     """指定機器のデータ収集開始"""
@@ -172,7 +257,7 @@ def stop(machine_id):
         logger.error(message)
         return jsonify({"message": message}), 500
 
-    # events_indexに収集開始(stop)を記録
+    # events_indexに収集停止(stop)を記録
     successful: bool = EventManager.record_event(
         events_index, event_type=common.COLLECT_STATUS.STOP.value, occurred_time=utc_now
     )
