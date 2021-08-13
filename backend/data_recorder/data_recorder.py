@@ -9,6 +9,7 @@
 
 """
 
+from logging import debug
 import multiprocessing
 import os
 import sys
@@ -27,6 +28,11 @@ from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.common import common
 from backend.common.common_logger import logger
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from backend.data_collect_manager.models.machine import Machine
+from backend.data_collect_manager.models.gateway import Gateway
+from backend.data_collect_manager.models.handler import Handler
 
 
 @dataclasses.dataclass
@@ -49,6 +55,7 @@ def _create_file_timestamp(filepath: str) -> float:
     parts: List[str] = re.findall(r"\d+", filename)
     timestamp_str: str = parts[-3] + parts[-2] + parts[-1]
     timestamp: float = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f").timestamp()
+
     return timestamp
 
 
@@ -121,14 +128,15 @@ def _read_binary_files(file: FileInfo, sequential_number: int, timestamp: float)
         sequential_number += 1
 
         timestamp += common.SAMPLING_INTERVAL  # 100k sample固定
+        # timestamp +=
 
     return samples, sequential_number, timestamp
 
 
-def _create_files_info(data_dir: str) -> Optional[List[FileInfo]]:
+def _create_files_info(data_dir: str, machine_id: str) -> Optional[List[FileInfo]]:
     """バイナリファイルの情報（パスとファイル名から抽出した日時）リストを生成"""
 
-    file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
+    file_list: List[str] = glob.glob(os.path.join(data_dir, f"{machine_id}_*.dat"))
 
     if len(file_list) == 0:
         return None
@@ -212,24 +220,25 @@ def _data_record(
             p.join()
 
 
-def main() -> None:
+def auto_record(machine_id: str, is_debug_mode: bool = False) -> None:
 
-    # データディレクトリを確認し、ファイルリストを作成
+    # データディレクトリを確認し、対象機器のファイルリストを作成
     data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-    files_info: Optional[List[FileInfo]] = _create_files_info(data_dir)
+    files_info: Optional[List[FileInfo]] = _create_files_info(data_dir, machine_id)
 
     if files_info is None:
         logger.info(f"No files in {data_dir}")
         return
 
-    # 直近のevents_indexからイベント取得
-    latest_events_index: Optional[str] = EventManager.get_latest_events_index()
+    # 対象機器について、直近のevents_indexからイベント取得
+    latest_events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
+
     if latest_events_index is None:
         logger.error("events_index is not found.")
         return
 
-    suffix: str = latest_events_index.split("-")[1]
-    events_index: str = "events-" + suffix
+    suffix: str = latest_events_index.split("-")[-1]  # YYYYmmddHHMMSS文字列
+    events_index: str = "events-" + machine_id + "-" + suffix
     events: List[dict] = EventManager.fetch_events(events_index)
 
     if len(events) == 0:
@@ -237,8 +246,10 @@ def main() -> None:
         return
 
     # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
-    if events[-1]["event_type"] == "recorded":
-        logger.info("Exits because the latest event is 'recorded'. May be data collect has not started yet.")
+    if events[-1]["event_type"] == common.COLLECT_STATUS.RECORDED.value:
+        logger.info(
+            f"Exits because the latest event is '{common.COLLECT_STATUS.RECORDED.value}'. May be data collect has not started yet."
+        )
         return
 
     started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
@@ -250,11 +261,12 @@ def main() -> None:
     # 対象となるファイルに絞り込む
     target_files: List[FileInfo] = _get_target_files(files_info, start_time, end_time)
 
-    # 含まれないファイルは削除する
-    not_target_files: List[FileInfo] = _get_not_target_files(files_info, start_time, end_time)
-    for file in not_target_files:
-        os.remove(file.file_path)
-        logger.info(f"{file.file_path} has been deleted because it is out of range.")
+    # 含まれないファイルは削除するが、debug_modeでは削除しない
+    if not is_debug_mode:
+        not_target_files: List[FileInfo] = _get_not_target_files(files_info, start_time, end_time)
+        for file in not_target_files:
+            os.remove(file.file_path)
+            logger.info(f"{file.file_path} has been deleted because it is out of range.")
 
     if len(target_files) == 0:
         logger.info("No files in target inteverl")
@@ -262,7 +274,7 @@ def main() -> None:
 
     logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
-    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成。
+    # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成
     processed_dir_path: str = os.path.join(data_dir, suffix)
     if os.path.isdir(processed_dir_path):
         logger.debug(f"{processed_dir_path} is already exists")
@@ -271,7 +283,7 @@ def main() -> None:
         logger.info(f"{processed_dir_path} created.")
 
     # Elasticsearch rawdataインデックス名
-    rawdata_index: str = "rawdata-" + suffix
+    rawdata_index: str = "rawdata-" + machine_id + "-" + suffix
 
     # start_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
     if not ElasticManager.exists_index(rawdata_index):
@@ -287,14 +299,14 @@ def main() -> None:
     logger.info("all file processed.")
 
 
-def manual_record(target_dir: str):
+def manual_record(machine_id: str, target_dir: str, is_debug_mode: bool = False):
     """手動での生データ取り込み。前提条件は以下。
     * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
     * 対応するevents_indexが存在すること。
     * 対応するevents_indexの最後のドキュメントがrecordedであること。
     """
 
-    files_info: Optional[List[FileInfo]] = _create_files_info(target_dir)
+    files_info: Optional[List[FileInfo]] = _create_files_info(target_dir, machine_id)
 
     if files_info is None:
         logger.info(f"No files in {target_dir}")
@@ -330,12 +342,16 @@ def manual_record(target_dir: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("machine_id", help="specify machine_id")
     parser.add_argument("-d", "--dir", help="set import directory (manual import)")
+    parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
+    # スケジュール実行
     if args.dir is None:
-        main()
+        auto_record(args.machine_id, args.debug)
 
+    # 手動インポート
     else:
         data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
         target_dir: str = os.path.join(data_dir, args.dir)
@@ -343,4 +359,5 @@ if __name__ == "__main__":
         if not os.path.isdir(target_dir):
             logger.error(f"{args.dir} is not exists.")
             sys.exit(1)
-        manual_record(target_dir)
+
+        manual_record(args.machine_id, target_dir, args.debug)

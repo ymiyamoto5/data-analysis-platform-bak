@@ -20,6 +20,18 @@
             // ]
         },
         {
+            "name": "Python: Current File with args",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "env": {},
+            "console": "integratedTerminal",
+            "args": [
+                "-m=machine-01",
+                "--debug"
+            ]
+        },
+        {
             "name": "analyzer",
             "type": "python",
             "module": "backend.analyzer.analyzer",
@@ -57,7 +69,11 @@
             "module": "backend.data_recorder.data_recorder",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [
+                "machine-01",
+                "--debug"
+            ]
         },
         {
             "name": "elastic_manager",
