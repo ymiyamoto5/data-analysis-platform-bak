@@ -40,6 +40,7 @@ class COLLECT_STATUS(Enum):
     SETUP = "setup"
     START = "start"
     PAUSE = "pause"
+    RESUME = "resume"
     STOP = "stop"
     RECORDED = "recorded"
 

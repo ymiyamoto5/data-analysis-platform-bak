@@ -64,13 +64,18 @@
               >
                 停止
               </v-btn>
-              <v-btn v-if="machine.collect_status === 'start'" color="warning">
+              <v-btn
+                v-if="machine.collect_status === 'start'"
+                color="warning"
+                @click="pause(machine.machine_id)"
+              >
                 中断
               </v-btn>
               <v-btn
                 v-if="machine.collect_status === 'pause'"
                 color="blue"
                 class="white--text"
+                @click="resume(machine.machine_id)"
               >
                 再開
               </v-btn>
@@ -113,6 +118,8 @@ const SETUP_API_URL = CONTROLLER_API_URL + '/setup/'
 const START_API_URL = CONTROLLER_API_URL + '/start/'
 const STOP_API_URL = CONTROLLER_API_URL + '/stop/'
 const CHECK_API_URL = CONTROLLER_API_URL + '/check/'
+const PAUSE_API_URL = CONTROLLER_API_URL + '/pause/'
+const RESUME_API_URL = CONTROLLER_API_URL + '/resume/'
 
 export default {
   name: 'data-collect',
@@ -189,6 +196,28 @@ export default {
       const client = createBaseApiClient()
       await client
         .post(CHECK_API_URL + machine_id)
+        .then(() => {
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+        })
+    },
+    pause: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(PAUSE_API_URL + machine_id)
+        .then(() => {
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+        })
+    },
+    resume: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(RESUME_API_URL + machine_id)
         .then(() => {
           this.fetchTableData()
         })
