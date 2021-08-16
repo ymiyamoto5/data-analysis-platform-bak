@@ -22,6 +22,8 @@ from backend.cut_out_shot.cut_out_shot import CutOutShot
 def target():
     """変換式のみ定義したCutOutShotインスタンス fixture"""
 
+    machine_id = "machine-01"
+
     displacement_func = lambda x: x * 1.0
     load01_func = lambda x: x * 1.0
     load02_func = lambda x: x * 1.0
@@ -29,6 +31,7 @@ def target():
     load04_func = lambda x: x * 1.0
 
     instance = CutOutShot(
+        machine_id=machine_id,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,

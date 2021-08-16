@@ -285,13 +285,10 @@ class CutOutShot:
             "tags": [],
         }
 
-        # TODO: rawdataがitertupleによりtupleになっているため、プロパティアクセスができない。
-        # indexでアクセスしているが、スキップする数がズレるとおかしくなる。
-        SKIP_COLUMN_COUNT: Final[int] = 4
         for ch in range(0, self.__sampling_ch_num - 1):
             str_ch = str(ch + 1).zfill(2)
             load: str = "load" + str_ch  # load01, load02, ...
-            cut_out_target[load] = rawdata[SKIP_COLUMN_COUNT + ch]  # rawdata[4], rawdata[5], ...
+            cut_out_target[load] = getattr(rawdata, load)
 
         self.__cut_out_targets.append(cut_out_target)
         self.__sequential_number += 1
@@ -324,7 +321,7 @@ class CutOutShot:
         """変位値に対して変換式を適用"""
 
         # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-        df.loc[:, "displacement"] = df["displacement"].apply(self.__displacement_func)
+        df.loc[:, "displacement"] = df["displacement"].map(self.__displacement_func)
 
         return df
 
@@ -338,7 +335,7 @@ class CutOutShot:
             load: str = "load" + str_ch
             func: Callable[[float], float] = getattr(self, f"{load}_func")
             # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-            df.loc[:, load] = df[load].apply(func)
+            df.loc[:, load] = df[load].map(func)
 
         return df
 
