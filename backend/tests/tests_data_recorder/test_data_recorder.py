@@ -12,18 +12,31 @@
 import pytest
 import pathlib
 from datetime import datetime, timedelta
-from backend.data_recorder import data_recorder
+from backend.data_recorder.data_recorder import DataRecorder
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.common.common import TIMESTAMP_MAX
+from backend.common.dao import HandlerDAO
+from backend.data_collect_manager.models.handler import Handler
 
 
 class TestCreateFileTimestamp:
-    def test_normal(self):
+    def test_normal(self, mocker):
         """ファイル名からdatetime型のタイムスタンプを生成出来ること"""
 
         filepath = "tmp00/AD-00_20201216-080058.620753.dat"
 
-        actual = data_recorder._create_file_timestamp(filepath)
+        mocker.patch.object(
+            HandlerDAO,
+            "fetch_handler",
+            return_value=Handler(
+                sampling_ch_num=5,
+                sampling_frequency=100_000,
+            ),
+        )
+
+        dr = DataRecorder(machine_id="001")
+
+        actual = dr._create_file_timestamp(filepath)
         expected = datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()
 
         assert actual == expected
