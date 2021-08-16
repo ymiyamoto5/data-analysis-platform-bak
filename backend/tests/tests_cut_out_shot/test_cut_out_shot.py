@@ -24,54 +24,22 @@ class TestInit:
     def test_displacement_func_is_none_exception(self):
         with pytest.raises(SystemExit):
             CutOutShot(
+                machine_id="machine-01",
                 load01_func=lambda x: x + 1.0,
                 load02_func=lambda x: x + 1.0,
                 load03_func=lambda x: x + 1.0,
                 load04_func=lambda x: x + 1.0,
-            )
-
-    def test_load01_func_is_none_exception(self):
-        with pytest.raises(SystemExit):
-            CutOutShot(
-                displacement_func=lambda x: x + 1.0,
-                load02_func=lambda x: x + 1.0,
-                load03_func=lambda x: x + 1.0,
-                load04_func=lambda x: x + 1.0,
-            )
-
-    def test_load02_func_is_none_exception(self):
-        with pytest.raises(SystemExit):
-            CutOutShot(
-                displacement_func=lambda x: x + 1.0,
-                load01_func=lambda x: x + 1.0,
-                load03_func=lambda x: x + 1.0,
-                load04_func=lambda x: x + 1.0,
-            )
-
-    def test_load03_func_is_none_exception(self):
-        with pytest.raises(SystemExit):
-            CutOutShot(
-                displacement_func=lambda x: x + 1.0,
-                load01_func=lambda x: x + 1.0,
-                load02_func=lambda x: x + 1.0,
-                load04_func=lambda x: x + 1.0,
-            )
-
-    def test_load04_func_is_none_exception(self):
-        with pytest.raises(SystemExit):
-            CutOutShot(
-                displacement_func=lambda x: x + 1.0,
-                load01_func=lambda x: x + 1.0,
-                load02_func=lambda x: x + 1.0,
-                load03_func=lambda x: x + 1.0,
             )
 
 
 class TestGetPickleList:
     def test_normal_1(self, target, tmp_path):
-        tmp_file_1 = tmp_path / "AD-00_20201216-080001.853297.pkl"
-        tmp_file_2 = tmp_path / "AD-00_20201216-080000.280213.pkl"
-        tmp_file_3 = tmp_path / "AD-00_20201216-075958.708968.pkl"
+
+        machine_id = "machine-01"
+
+        tmp_file_1 = tmp_path / f"{machine_id}_AD-00_20201216-080001.853297.pkl"
+        tmp_file_2 = tmp_path / f"{machine_id}_AD-00_20201216-080000.280213.pkl"
+        tmp_file_3 = tmp_path / f"{machine_id}_AD-00_20201216-075958.708968.pkl"
 
         tmp_file_1.write_text("")
         tmp_file_2.write_text("")
@@ -88,10 +56,13 @@ class TestGetPickleList:
         assert actual == expected
 
     def test_normal_2(self, target, tmp_path):
-        tmp_file_1 = tmp_path / "AD-00_20201216-075958.708968.pkl"
-        tmp_file_2 = tmp_path / "AD-00_20201216-075958.708968.dat"
-        tmp_file_3 = tmp_path / "AD-00_20201216-080000.280213.pkl"
-        tmp_file_4 = tmp_path / "AD-00_20201216-080001.853297.pkl"
+
+        machine_id = "machine-01"
+
+        tmp_file_1 = tmp_path / f"{machine_id}_AD-00_20201216-075958.708968.pkl"
+        tmp_file_2 = tmp_path / f"{machine_id}_AD-00_20201216-075958.708968.dat"
+        tmp_file_3 = tmp_path / f"{machine_id}_AD-00_20201216-080000.280213.pkl"
+        tmp_file_4 = tmp_path / f"{machine_id}_AD-00_20201216-080001.853297.pkl"
 
         tmp_file_1.write_text("")
         tmp_file_2.write_text("")
@@ -654,7 +625,10 @@ class TestApplyExprDisplacment:
     def test_normal(self, rawdata_df):
         """正常系：lambda式適用"""
 
+        machine_id = "machine-01"
+
         cut_out_shot = CutOutShot(
+            machine_id=machine_id,
             displacement_func=lambda x: x + 1.0,
             load01_func=lambda x: x * 1.0,
             load02_func=lambda x: x * 1.0,
@@ -708,7 +682,10 @@ class TestApplyExprLoad:
     def test_normal(self, rawdata_df):
         """正常系：lambda式適用"""
 
+        machine_id = "machine-01"
+
         cut_out_shot = CutOutShot(
+            machine_id=machine_id,
             displacement_func=lambda x: x + 1.0,
             load01_func=lambda x: x + 2.0,
             load02_func=lambda x: x + 3.0,
@@ -885,12 +862,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 1,
                 "displacement": 47.534,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 0.155,
                 "load02": 0.171,
                 "load03": 0.180,
                 "load04": 0.146,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-1
             {
@@ -899,12 +876,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 2,
                 "displacement": 47.0,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
                 "load04": 1.432,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
@@ -913,12 +890,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 3,
                 "displacement": 47.1,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
                 "load04": 1.400,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-3
             {
@@ -927,12 +904,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 4,
                 "displacement": 34.961,
+                "shot_number": 1,
+                "tags": [],
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
                 "load04": 0.454,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間後4(ショット区間終了）（遡りにより切り出し区間に含まれる）
             {
@@ -941,12 +918,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 8,
                 "displacement": 47.150,
+                "shot_number": 2,
+                "tags": [],
                 "load01": 0.156,
                 "load02": 0.172,
                 "load03": 0.181,
                 "load04": 0.147,
-                "shot_number": 2,
-                "tags": [],
             },
             # 切り出し区間2-1
             {
@@ -955,12 +932,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 9,
                 "displacement": 47.0,
+                "shot_number": 2,
+                "tags": [],
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
                 "load04": 1.432,
-                "shot_number": 2,
-                "tags": [],
             },
             # 切り出し区間2-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
@@ -969,12 +946,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 10,
                 "displacement": 47.1,
+                "shot_number": 2,
+                "tags": [],
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
                 "load04": 1.400,
-                "shot_number": 2,
-                "tags": [],
             },
             # 切り出し区間2-3
             {
@@ -983,12 +960,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 11,
                 "displacement": 34.961,
+                "shot_number": 2,
+                "tags": [],
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
                 "load04": 0.454,
-                "shot_number": 2,
-                "tags": [],
             },
         ]
 
@@ -1036,12 +1013,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 4,
                 "displacement": 34.961,
+                "shot_number": 1,
+                "tags": [],
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
                 "load04": 0.454,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間2-3
             {
@@ -1050,12 +1027,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 11,
                 "displacement": 34.961,
+                "shot_number": 2,
+                "tags": [],
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
                 "load04": 0.454,
-                "shot_number": 2,
-                "tags": [],
             },
         ]
 
@@ -1106,12 +1083,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 0,
                 "displacement": 49.284,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 0.223,
                 "load02": 0.211,
                 "load03": 0.200,
                 "load04": 0.218,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間前2
             {
@@ -1120,12 +1097,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 1,
                 "displacement": 47.534,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 0.155,
                 "load02": 0.171,
                 "load03": 0.180,
                 "load04": 0.146,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-1
             {
@@ -1134,12 +1111,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 2,
                 "displacement": 47.0,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
                 "load04": 1.432,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
@@ -1148,12 +1125,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 3,
                 "displacement": 47.1,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
                 "load04": 1.400,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-3
             {
@@ -1162,12 +1139,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 4,
                 "rawdata_sequential_number": 4,
                 "displacement": 34.961,
+                "shot_number": 1,
+                "tags": [],
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
                 "load04": 0.454,
-                "shot_number": 1,
-                "tags": [],
             },
         ]
 
@@ -1205,12 +1182,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 2,
                 "displacement": 47.0,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
                 "load04": 1.432,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
@@ -1219,12 +1196,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 3,
                 "displacement": 47.1,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
                 "load04": 1.400,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間1-3
             {
@@ -1233,12 +1210,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 4,
                 "displacement": 34.961,
+                "shot_number": 1,
+                "tags": [],
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
                 "load04": 0.454,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間後1
             {
@@ -1247,12 +1224,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 5,
                 "displacement": 30.599,
+                "shot_number": 1,
+                "tags": [],
                 "load01": -0.130,
                 "load02": 0.020,
                 "load03": 0.483,
                 "load04": 0.419,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間後2
             {
@@ -1261,12 +1238,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 4,
                 "rawdata_sequential_number": 6,
                 "displacement": 24.867,
+                "shot_number": 1,
+                "tags": [],
                 "load01": -0.052,
                 "load02": 0.035,
                 "load03": 0.402,
                 "load04": 0.278,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間後3(変位にmargin=0.1を加算した場合、ショットの終了と見做されない変位値)
             {
@@ -1275,12 +1252,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 5,
                 "rawdata_sequential_number": 7,
                 "displacement": 47.100,
+                "shot_number": 1,
+                "tags": [],
                 "load01": 0.155,
                 "load02": 0.171,
                 "load03": 0.180,
                 "load04": 0.146,
-                "shot_number": 1,
-                "tags": [],
             },
             # 切り出し区間2-1
             {
@@ -1289,12 +1266,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 9,
                 "displacement": 47.0,
+                "shot_number": 2,
+                "tags": [],
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
                 "load04": 1.432,
-                "shot_number": 2,
-                "tags": [],
             },
             # 切り出し区間2-2（margin=0.1により、すぐに切り出し区間が終了しないことの確認用データ）
             {
@@ -1303,12 +1280,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 10,
                 "displacement": 47.1,
+                "shot_number": 2,
+                "tags": [],
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
                 "load04": 1.400,
-                "shot_number": 2,
-                "tags": [],
             },
             # 切り出し区間2-3
             {
@@ -1317,12 +1294,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 11,
                 "displacement": 34.961,
+                "shot_number": 2,
+                "tags": [],
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
                 "load04": 0.454,
-                "shot_number": 2,
-                "tags": [],
             },
             {
                 "timestamp": datetime(2020, 12, 1, 10, 30, 22, 111111).timestamp(),
@@ -1330,12 +1307,12 @@ class TestCutOutShot:
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 12,
                 "displacement": 30.599,
+                "shot_number": 2,
+                "tags": [],
                 "load01": -0.130,
                 "load02": 0.020,
                 "load03": 0.483,
                 "load04": 0.419,
-                "shot_number": 2,
-                "tags": [],
             },
         ]
 
