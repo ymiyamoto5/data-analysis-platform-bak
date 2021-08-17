@@ -463,6 +463,10 @@ class CutOutShot:
 
         pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
 
+        if len(pickle_files) == 0:
+            logger.error("pickle files not found.")
+            sys.exit(1)
+
         # パラメータによる範囲フィルター設定
         if start_sequential_number is not None or end_sequential_number is not None:
             has_target_interval: bool = True
@@ -672,16 +676,10 @@ class CutOutShot:
 
 if __name__ == "__main__":
     # # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
-    # displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
+    displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
+    # displacement_func = lambda v: v
 
-    # # 荷重値換算
-    # Vr = 2.5
-    # load01_func = lambda v: 2.5 / Vr * v
-    # load02_func = lambda v: 2.5 / Vr * v
-    # load03_func = lambda v: 2.5 / Vr * v
-    # load04_func = lambda v: 2.5 / Vr * v
-
-    displacement_func = lambda v: v
+    # 荷重値換算
     Vr = 2.5
     load01_func = lambda v: 2.5 / Vr * v
     load02_func = lambda v: 2.5 / Vr * v
@@ -690,30 +688,34 @@ if __name__ == "__main__":
 
     machine_id: str = "machine-01"
 
-    cut_out_shot = CutOutShot(
-        machine_id=machine_id,
-        displacement_func=displacement_func,
-        previous_size=5,
-        margin=0.01,
-        load01_func=load01_func,
-        load02_func=load02_func,
-        load03_func=load03_func,
-        load04_func=load04_func,
-    )
-    target: str = "20210101000000"
-    target_dir: str = machine_id + "-" + target
-    cut_out_shot.cut_out_shot(rawdata_dir_name=target_dir, start_displacement=150.0, end_displacement=25.0)
-
     # cut_out_shot = CutOutShot(
-    #     min_spm=15,
-    #     back_seconds_for_tagging=120,
-    #     previous_size=1_000,
-    #     chunk_size=5_000,
-    #     margin=0.3,
+    #     machine_id=machine_id,
     #     displacement_func=displacement_func,
+    #     previous_size=5,
+    #     margin=0.01,
     #     load01_func=load01_func,
     #     load02_func=load02_func,
     #     load03_func=load03_func,
     #     load04_func=load04_func,
     # )
-    # cut_out_shot.cut_out_shot(rawdata_dir_name="20210327141514", start_displacement=47.0, end_displacement=34.0)
+    # target: str = "20210101000000"
+    # target_dir: str = machine_id + "-" + target
+    # cut_out_shot.cut_out_shot(rawdata_dir_name=target_dir, start_displacement=150.0, end_displacement=25.0)
+
+    cut_out_shot = CutOutShot(
+        machine_id=machine_id,
+        min_spm=15,
+        back_seconds_for_tagging=120,
+        previous_size=1_000,
+        chunk_size=5_000,
+        margin=0.3,
+        displacement_func=displacement_func,
+        load01_func=load01_func,
+        load02_func=load02_func,
+        load03_func=load03_func,
+        load04_func=load04_func,
+    )
+
+    target: str = "20210327141514"
+    target_dir: str = machine_id + "-" + target
+    cut_out_shot.cut_out_shot(rawdata_dir_name=target_dir, start_displacement=47.0, end_displacement=34.0)
