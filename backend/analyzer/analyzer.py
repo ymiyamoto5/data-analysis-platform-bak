@@ -15,6 +15,7 @@ warnings.simplefilter("ignore")
 import multiprocessing
 import sys
 import traceback
+import pandas as pd
 from typing import Callable, List, Tuple, Optional
 from pandas.core.frame import DataFrame
 import backend.analyzer.h_one_extract_features as ef
@@ -177,6 +178,39 @@ class Analyzer:
         else:
             return ("load03", "load04")
 
+    def start_break_diff(self, start_df: DataFrame, break_df: DataFrame) -> DataFrame:
+        """荷重開始と破断開始の時刻の差分を計算してELSに保存する。"""
+        # shot_numberとloadをkeyにmerge
+        start_break_df: DataFrame = DataFrame.merge(
+            start_df,
+            break_df,
+            on=["shot_number", "load"],
+            suffixes=("_start", "_break"),
+        )
+        # 除外ショットの削除
+        if self.__exclude_shots is not None:
+            for i in self.__exclude_shots:
+                start_break_df = start_break_df.drop(start_break_df.index[start_break_df["shot_number"] == i])
+        # 荷重開始と破断開始の時刻の差分を計算
+        start_break_df["diff"] = pd.to_datetime(start_break_df["timestamp_break"]).map(
+            pd.Timestamp.timestamp
+        ) - pd.to_datetime(start_break_df["timestamp_start"]).map(pd.Timestamp.timestamp)
+        # 必要な列を選択
+        diff_df: DataFrame = DataFrame(data=start_break_df[["timestamp_start", "shot_number", "load", "diff"]])
+        diff_df.rename(columns={"timestamp_start": "timestamp"}, inplace=True)
+
+        # 荷重センサー毎にdict化
+        result: List[dict] = diff_df.to_dict(orient="records")
+
+        # 既存のインデックスを削除する
+        feature_index: str = "shots-" + self.__target + "-start-break-diff"
+        ElasticManager.delete_exists_index(index=feature_index)
+
+        # ELSに保存
+        ElasticManager.bulk_insert(result, feature_index)
+
+        return diff_df
+
 
 if __name__ == "__main__":
     # target = "20210327141514"
@@ -207,3 +241,9 @@ if __name__ == "__main__":
         func=ef.breaking_vmin_amin,
         sub_func=ef.narrowing_v4min_mab,
     )
+
+    start_index = "shots-" + target + "-start-point"
+    start_df = dr.read_all(start_index)
+    break_index = "shots-" + target + "-break-point"
+    break_df = dr.read_all(break_index)
+    analyzer.start_break_diff(start_df=start_df, break_df=break_df)
