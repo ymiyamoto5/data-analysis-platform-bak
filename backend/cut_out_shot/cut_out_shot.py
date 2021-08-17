@@ -466,7 +466,7 @@ class CutOutShot:
         # パラメータによる範囲フィルター設定
         if start_sequential_number is not None or end_sequential_number is not None:
             has_target_interval: bool = True
-            rawdata_index: str = "rawdata-" + rawdata_dir_name
+            rawdata_index: str = self.__machine_id + "-rawdata-" + rawdata_dir_name
             rawdata_count: int = ElasticManager.count(index=rawdata_index)
             start_sequential_number = self._set_start_sequential_number(start_sequential_number, rawdata_count)
             end_sequential_number = self._set_end_sequential_number(
@@ -588,7 +588,7 @@ class CutOutShot:
             cut_out_df = tm.tagging(cut_out_df, events)
 
             # timestampをdatetimeに変換する
-            cut_out_df["timestamp"] = cut_out_df["timestamp"].apply(lambda x: datetime.fromtimestamp(x))
+            cut_out_df["timestamp"] = cut_out_df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
 
             # Elasticsearchに格納するため、dictに戻す
             self.__cut_out_targets = cut_out_df.to_dict(orient="records")
