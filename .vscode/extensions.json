@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "dbaeumer.vscode-eslint",
+        "mhutchie.git-graph",
+        "donjayamanne.githistory",
+        "eamodio.gitlens",
+        "ms-toolsai.jupyter",
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "humao.rest-client",
+        "octref.vetur"
+    ]
+}
