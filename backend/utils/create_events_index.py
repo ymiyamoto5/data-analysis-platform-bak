@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.utils.df_to_els import df_to_els
 
 
-def create_events_index(prefix: str, start_datetime_jst: datetime) -> None:
+def create_events_index(prefix: str, start_datetime_jst: datetime, hours=1) -> None:
 
     start_datetime_jst_str: str = start_datetime_jst.isoformat()
     index: str = prefix + start_datetime_jst_str.replace("-", "").replace("T", "").replace(":", "")
@@ -18,7 +18,7 @@ def create_events_index(prefix: str, start_datetime_jst: datetime) -> None:
     start_datetime_utc_str: str = start_datetime_utc.isoformat()
 
     # 暫定でendは1時間後
-    end_datetime_utc = start_datetime_utc + timedelta(hours=1)
+    end_datetime_utc = start_datetime_utc + timedelta(hours=hours)
     end_datetime_utc_str = end_datetime_utc.isoformat()
 
     events = [
@@ -39,5 +39,5 @@ if __name__ == "__main__":
     machine_id = "machine-01"
     prefix = "events-" + machine_id + "-"
     # start_datetime_jst = datetime(2021, 7, 9, 19, 0, 0, 0)
-    start_datetime_jst = datetime(2021, 1, 1, 0, 0, 0, 0)
-    create_events_index(prefix, start_datetime_jst)
+    start_datetime_jst = datetime(2021, 3, 27, 14, 15, 14, 0)
+    create_events_index(prefix, start_datetime_jst, hours=2)
