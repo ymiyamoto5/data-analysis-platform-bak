@@ -144,6 +144,7 @@ class Analyzer:
                 logger.error(f"Failed to apply logic. shot_number: {shot_number}. \n{traceback.format_exc()}")
                 continue
 
+            # NOTE: 独自ロジックにつき不要になる可能性あり
             if feature == "break":
                 break_channels: Tuple[str, str] = self._extract_break_channels(values)
 
@@ -168,6 +169,7 @@ class Analyzer:
 
     def _extract_break_channels(self, values: List[float]) -> Tuple[str, str]:
         """4ch分の破断点の荷重値リストを受け取り、破断側のチャネルセットを返す。"""
+        # NOTE: 独自ロジックにつき不要になる可能性あり
 
         min_index = values.index(min(values))
 
@@ -213,8 +215,10 @@ class Analyzer:
 
 
 if __name__ == "__main__":
-    # target = "20210327141514"
-    target = "20210708113000"
+
+    machine_id = "machine-01"
+
+    target = machine_id + "-" "20210327141514"
     shots_data_index = "shots-" + target + "-data"
     shots_meta_index = "shots-" + target + "-meta"
 
