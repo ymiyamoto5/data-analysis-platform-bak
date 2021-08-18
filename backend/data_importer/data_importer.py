@@ -243,7 +243,7 @@ class DataImporter:
         shots_meta_df["timestamp"] = shots_meta_df["timestamp"].apply(lambda x: datetime.utcfromtimestamp(x))
 
         shots_meta_dict = shots_meta_df.to_dict(orient="records")
-        shots_meta_index = "shots-" + target_date + "-meta"
+        shots_meta_index = "shots-" + target + "-meta"
         ElasticManager.bulk_insert(shots_meta_dict, shots_meta_index)
         logger.info("shots_meta_index bulk insert finished.")
 
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     target = machine_id + "-" + target_date
     start_time = datetime(2021, 7, 9, 19, 0, 0)
 
-    target_file_path = "/datadrive/data/press_senario.npy"
+    target_file_path = "/mnt/datadrive/data/press_senario.npy"
 
     # 何列目を使うか。
     # use_cols = [2, 6, 7, 11, 57]
