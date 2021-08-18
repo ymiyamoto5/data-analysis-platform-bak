@@ -30,6 +30,7 @@ app = Flask(__name__, static_folder=DIST_STATIC_DIR, template_folder=DIST_DIR)
 app.config["JSON_AS_ASCII"] = False
 
 db = register_db(app)
+# app.config["SQLALCHEMY_ECHO"] = True
 
 app.register_blueprint(machines, url_prefix="/api/v1")
 app.register_blueprint(gateways, url_prefix="/api/v1")

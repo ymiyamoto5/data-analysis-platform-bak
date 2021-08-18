@@ -1,11 +1,13 @@
 from flask import Blueprint, jsonify, request
 from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_collect_manager.models.db import db
 from marshmallow import Schema, fields, ValidationError, validate
 import traceback
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common.common_logger import logger
+from sqlalchemy.orm import joinedload
 
 handlers = Blueprint("handlers", __name__)
 
@@ -31,7 +33,9 @@ handler_update_schema = HandlerSchema(
 def fetch_handlers():
     """handlerを起点に関連エンティティを全結合したデータを返す。"""
 
-    handlers = Handler.query.all()
+    handlers = Handler.query.options(
+        joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
+    ).all()
 
     return jsonify(handlers)
 
@@ -40,7 +44,9 @@ def fetch_handlers():
 def fetch_handler(handler_id):
     """指定Handlerの情報を取得"""
 
-    handler = Handler.query.get(handler_id)
+    handler = Handler.query.options(
+        joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
+    ).get(handler_id)
 
     return jsonify(handler)
 
