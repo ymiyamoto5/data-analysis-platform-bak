@@ -134,5 +134,8 @@ class DataReader:
 
 if __name__ == "__main__":
     data_reader = DataReader()
-    df = data_reader.multi_process_read_all("shots-20210617130000-data")
+    machine_id = "machine-01"
+    target_date = "20210327141514"
+    target = "shots-" + machine_id + "-" + target_date + "-data"
+    df = data_reader.multi_process_read_all(target)
     # logger.info(df.info())

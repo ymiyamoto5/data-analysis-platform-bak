@@ -49,7 +49,7 @@ class DataImporter:
 
         return files
 
-    def split_np_array_by_shot(self, target_file_path: str, target_date: str):
+    def split_np_array_by_shot(self, target_file_path: str, target: str):
         """numpy arrayのデータファイルをloadし、ショット毎に1csvファイルとして分割する。
         numpy arrayは3次元データとし、0次元がショット軸であることが前提である。
         """
@@ -57,7 +57,7 @@ class DataImporter:
         arr = np.load(target_file_path)
         logger.info(f"shape：{arr.shape}")
 
-        file_dir = self._get_target_date_dir(target_date)
+        file_dir = self._get_target_date_dir(target)
 
         for i in range(arr.shape[0]):
             str_i = str(i).zfill(4)
@@ -66,17 +66,17 @@ class DataImporter:
 
         logger.info("output csv finished.")
 
-    def _get_target_date_dir(self, target_date: str) -> str:
+    def _get_target_date_dir(self, target: str) -> str:
         """ファイル出力先のパスを取得する"""
 
         data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-        file_dir: str = os.path.join(data_dir, target_date)
+        file_dir: str = os.path.join(data_dir, target)
 
         return file_dir
 
     def process_csv_files(
         self,
-        target_date: str,
+        target: str,
         exists_timestamp: bool,
         start_time: Optional[datetime],
         use_cols,
@@ -86,7 +86,7 @@ class DataImporter:
     ) -> DataFrame:
         """csvファイルのデータを加工する"""
 
-        file_dir = self._get_target_date_dir(target_date)
+        file_dir = self._get_target_date_dir(target)
         files = self._get_files(file_dir, pattern="*.csv")
 
         if start_time is not None:
@@ -104,10 +104,8 @@ class DataImporter:
         for file in files:
             # FIXME: ヘッダーありの場合等の考慮
             df = pd.read_csv(file, header=None, skiprows=0, usecols=use_cols)
-            # 5列に満たない時
-            if len(use_cols) != 5:
-                for i in range(5 - len(use_cols)):  # use_colsが1列しかないときは0～3までの4回列コピー
-                    df[i + 1] = df[0]
+            # TODO: 変位を強制的に追加
+            df["displacement"] = df.iloc[:, 0]
 
             df = df.set_axis(cols_name, axis="columns")
 
@@ -173,18 +171,18 @@ class DataImporter:
         pickle_filepath: str = os.path.join(file_dir, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
 
-    def import_by_shot_pkl(self, target_date: str):
+    def import_by_shot_pkl(self, target: str):
         """ショット毎に分割されたpickleファイルからElasticsearchにインポートする"""
 
         # TODO: メソッド化
-        shots_index: str = "shots-" + target_date + "-data"
+        shots_index: str = "shots-" + target + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
         mapping_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_path")
         setting_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_path")
         ElasticManager.create_index(index=shots_index, mapping_file=mapping_shots, setting_file=setting_shots)
 
         # TODO: メソッド化
-        shots_meta_index: str = "shots-" + target_date + "-meta"
+        shots_meta_index: str = "shots-" + target + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
         mapping_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_meta_path")
         setting_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_meta_path")
@@ -192,10 +190,10 @@ class DataImporter:
             index=shots_meta_index, mapping_file=mapping_shots_meta, setting_file=setting_shots_meta
         )
 
-        file_dir = self._get_target_date_dir(target_date)
+        file_dir = self._get_target_date_dir(target)
         files = self._get_files(file_dir, "*.pkl")
 
-        shots_index = "shots-" + target_date + "-data"
+        shots_index = "shots-" + target + "-data"
 
         shots_meta_records = []
         shot_number = 1
@@ -260,16 +258,18 @@ if __name__ == "__main__":
     # start_time = datetime(2021, 7, 8, 11, 30, 0)
 
     # ダミーデータ
+    machine_id = "machine-01"
     target_date = "20210709190000"
+    target = machine_id + "-" + target_date
     start_time = datetime(2021, 7, 9, 19, 0, 0)
 
-    target_file_path = "/mnt/datadrive/data/press_senario.npy"
+    target_file_path = "/datadrive/data/press_senario.npy"
 
     # 何列目を使うか。
     # use_cols = [2, 6, 7, 11, 57]
     # cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
     use_cols = [0]
-    cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
+    cols_name: List[str] = ["load01", "displacement"]
 
     sampling_interval = 10  # 100k
     # sampling_interval = 1000  # 1k
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     di = DataImporter()
 
     # npyをショット毎のcsvファイルに分割
-    di.split_np_array_by_shot(target_file_path, target_date)
+    di.split_np_array_by_shot(target_file_path, target)
 
     # timestamp_file = "/home/ymiyamoto5/h-one-experimental-system/shared/data/all_sensors_201905_timelist.csv"
 
@@ -296,7 +296,7 @@ if __name__ == "__main__":
 
     # timestampファイルがない場合
     di.process_csv_files(
-        target_date=target_date,
+        target=target,
         exists_timestamp=False,
         start_time=start_time,
         use_cols=use_cols,
@@ -307,4 +307,4 @@ if __name__ == "__main__":
     logger.info("process csv files finished")
 
     # pklをelasticsearchに格納
-    di.import_by_shot_pkl(target_date)
+    di.import_by_shot_pkl(target)
