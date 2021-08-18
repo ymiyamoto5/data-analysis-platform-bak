@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request
 from backend.data_collect_manager.models.machine import Machine
+from backend.data_collect_manager.models.gateway import Gateway
+from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_collect_manager.models.db import db
 from marshmallow import Schema, fields, ValidationError, validate
 import traceback
@@ -7,7 +10,7 @@ from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.common_logger import logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common import common
-
+from sqlalchemy.orm import joinedload
 
 machines = Blueprint("machines", __name__)
 
@@ -38,7 +41,13 @@ machine_update_schema = MachineSchema(only=("machine_name", "collect_status"))
 def fetch_machines():
     """Machineを起点に関連エンティティを全結合したデータを返す"""
 
-    machines = Machine.query.all()
+    machines = Machine.query.options(
+        joinedload(Machine.machine_type),
+        joinedload(Machine.gateways)
+        .joinedload(Gateway.handlers)
+        .joinedload(Handler.sensors)
+        .joinedload(Sensor.sensor_type),
+    ).all()
 
     return jsonify(machines)
 
@@ -47,7 +56,13 @@ def fetch_machines():
 def fetch_machine(machine_id):
     """指定machineの情報を取得"""
 
-    machine = Machine.query.get(machine_id)
+    machine = Machine.query.options(
+        joinedload(Machine.machine_type),
+        joinedload(Machine.gateways)
+        .joinedload(Gateway.handlers)
+        .joinedload(Handler.sensors)
+        .joinedload(Sensor.sensor_type),
+    ).get(machine_id)
 
     return jsonify(machine)
 

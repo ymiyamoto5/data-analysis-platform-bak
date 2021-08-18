@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
 from backend.data_collect_manager.models.gateway import Gateway
+from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_collect_manager.models.db import db
 from marshmallow import Schema, fields, ValidationError, validate
 import traceback
@@ -7,6 +9,8 @@ from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common import common
 from backend.common.common_logger import logger
+from sqlalchemy.orm import joinedload
+
 
 gateways = Blueprint("gateways", __name__)
 
@@ -29,7 +33,9 @@ gateway_update_schema = GatewaySchema(only=("sequence_number", "gateway_result",
 def fetch_gateways():
     """Gatewayを起点に関連エンティティを全結合したデータを返す。"""
 
-    gateways = Gateway.query.all()
+    gateways = Gateway.query.options(
+        joinedload(Gateway.handlers).joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
+    ).all()
 
     return jsonify(gateways), 200
 
@@ -38,7 +44,9 @@ def fetch_gateways():
 def fetch_gateway(gateway_id):
     """指定Gatewayの情報を取得"""
 
-    gateway = Gateway.query.get(gateway_id)
+    gateway = Gateway.query.options(
+        joinedload(Gateway.handlers).joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
+    ).get(gateway_id)
 
     return jsonify(gateway), 200
 
@@ -48,7 +56,13 @@ def fetch_machine_id_from_gateway_id(gateway_id):
     """gateway_idをkeyにmachine_idを取得する。"""
 
     gateway = Gateway.query.get(gateway_id)
-    machine = gateway.machines[0].machine_id
+
+    try:
+        machine = gateway.machines[0].machine_id
+    except Exception:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
+        return jsonify({"message": message}), 400
 
     return jsonify(machine), 200
 
