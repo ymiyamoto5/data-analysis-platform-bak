@@ -14,7 +14,7 @@ import pathlib
 import dataclasses
 import struct
 from backend.data_collect_manager.models.handler import Handler
-from backend.common.dao import HandlerDAO
+from backend.common.dao.handler_dao import HandlerDAO
 
 
 @dataclasses.dataclass

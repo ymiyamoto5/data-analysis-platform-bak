@@ -27,7 +27,9 @@ import argparse
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.common import common
-from backend.common.dao import MachineDAO, HandlerDAO
+from backend.common.dao.machine_dao import MachineDAO
+from backend.common.dao.handler_dao import HandlerDAO
+from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.handler import Handler
 from backend.common.common_logger import logger
 
@@ -365,7 +367,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    machines = MachineDAO.fetch_machines_has_handler()
+    machines: List[Machine] = MachineDAO.fetch_machines_has_handler()
 
     # スケジュール実行
     if args.dir is None:
