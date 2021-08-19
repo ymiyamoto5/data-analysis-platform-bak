@@ -71,7 +71,6 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
-                "machine-01",
                 "--debug"
             ]
         },
