@@ -12,7 +12,7 @@ def db_session():
     app_config_path: str = common.APP_CONFIG_PATH
     DB_URI: Final[str] = common.get_config_value(app_config_path, "SQLALCHEMY_DATABASE_URI")
 
-    engine = create_engine(DB_URI, convert_unicode=True)
+    engine = create_engine(DB_URI)
     connection = engine.connect()
     db_session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
