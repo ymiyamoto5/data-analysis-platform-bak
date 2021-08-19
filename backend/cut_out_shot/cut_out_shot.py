@@ -25,7 +25,7 @@ from backend.event_manager.event_manager import EventManager
 from backend.utils.throughput_counter import throughput_counter
 from backend.common import common
 from backend.common.common_logger import logger
-from backend.common.dao import HandlerDAO
+from backend.common.dao.handler_dao import HandlerDAO
 from backend.data_collect_manager.models.handler import Handler
 
 
