@@ -27,7 +27,7 @@ import argparse
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.common import common
-from backend.common.dao import HandlerDAO
+from backend.common.dao import MachineDAO, HandlerDAO
 from backend.data_collect_manager.models.handler import Handler
 from backend.common.common_logger import logger
 
@@ -361,16 +361,17 @@ class DataRecorder:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("machine_id", help="specify machine_id")
     parser.add_argument("-d", "--dir", help="set import directory (manual import)")
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    data_recorder = DataRecorder(args.machine_id)
+    machines = MachineDAO.fetch_machines_has_handler()
 
     # スケジュール実行
     if args.dir is None:
-        data_recorder.auto_record(args.debug)
+        for m in machines:
+            data_recorder = DataRecorder(m.machine_id)
+            data_recorder.auto_record(args.debug)
 
     # 手動インポート
     else:
@@ -381,4 +382,7 @@ if __name__ == "__main__":
             logger.error(f"{args.dir} is not exists.")
             sys.exit(1)
 
+        # TODO: 変数化
+        machine_id = "machine-01"
+        data_recorder = DataRecorder(machine_id)
         data_recorder.manual_record(target_dir)
