@@ -3,6 +3,7 @@ from backend.data_collect_manager.models.db import db
 from backend.data_collect_manager.models.machine_type import MachineType
 from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.machine_gateway_mapping import MachineGatewayMapping
+from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
 
 
 @dataclass
@@ -25,5 +26,9 @@ class Machine(db.Model):
 
     # NOTE: MachineとGatewayはMany to Many
     gateways = db.relationship("Gateway", secondary=MachineGatewayMapping.__tablename__, back_populates="machines")
+
     # NOTE: MachineとMachineTypeはMany to One
     machine_type = db.relationship("MachineType", back_populates="machines")
+
+    # NOTE: MachineとDataCollectHistoryはOne to Many
+    data_collect_history = db.relationship("DataCollectHistory", back_populates="machine")

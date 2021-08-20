@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime, timedelta
 
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
@@ -9,6 +10,7 @@ from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.sensor_type import SensorType
 from backend.data_collect_manager.models.sensor import Sensor
+from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
 from backend.data_collect_manager.models.db import register_db
 from backend.common import common
 from flask import Flask
@@ -195,6 +197,15 @@ db.session.add(sensor_03)
 db.session.add(sensor_04)
 db.session.add(sensor_05)
 
+data_collect_history_1 = DataCollectHistory(
+    machine_id="machine-01",
+    machine_name="テストプレス01",
+    started_at=datetime.now(),
+    ended_at=datetime.now() + timedelta(hours=1),
+)
+
+db.session.add(data_collect_history_1)
+
 db.session.commit()
 
 [print(vars(x)) for x in MachineType.query.all()]
@@ -203,3 +214,4 @@ db.session.commit()
 [print(vars(x)) for x in Handler.query.all()]
 [print(vars(x)) for x in Sensor.query.all()]
 [print(vars(x)) for x in SensorType.query.all()]
+[print(vars(x)) for x in DataCollectHistory.query.all()]
