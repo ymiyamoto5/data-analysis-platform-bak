@@ -24,7 +24,8 @@ def fetch_data_collect_history():
     # 表示用に変換
     def _convert_date_time(x):
         x.started_at = datetime.strftime(x.started_at, "%Y-%m-%d %H:%M:%S.%f")
-        x.ended_at = datetime.strftime(x.ended_at, "%Y-%m-%d %H:%M:%S.%f")
+        if x.ended_at is not None:
+            x.ended_at = datetime.strftime(x.ended_at, "%Y-%m-%d %H:%M:%S.%f")
         return x
 
     history = list(map(_convert_date_time, history))
