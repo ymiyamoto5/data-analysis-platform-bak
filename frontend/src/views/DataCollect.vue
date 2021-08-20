@@ -1,5 +1,8 @@
 <template>
   <div id="machines">
+    <div id="title">
+      <h1>データ収集</h1>
+    </div>
     <v-simple-table>
       <thead>
         <tr>
@@ -230,6 +233,10 @@ export default {
 </script>
 
 <style scoped>
+#title {
+  margin: 15px;
+}
+
 .v-btn {
   margin-right: 10px;
 }

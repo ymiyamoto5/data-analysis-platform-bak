@@ -7,31 +7,46 @@
       color="blue"
       mini-variant
     >
-      <v-icon large dark>mdi-home</v-icon>
-      <v-icon large dark>mdi-history</v-icon>
-      <v-icon large dark>mdi-cog-outline</v-icon>
+      <template v-for="item in items">
+        <v-list-item :key="item.name" :to="item.link">
+          <v-icon large dark>{{ item.icon }}</v-icon>
+        </v-list-item>
+      </template>
     </v-navigation-drawer>
 
-    <v-main id="v-main">
-      <div id="page-title">
-        <p class="text-h5">データ収集</p>
-      </div>
-      <DataCollect />
+    <v-main>
+      <router-view />
     </v-main>
   </v-app>
 </template>
 
 <script>
-import DataCollect from '@/views/DataCollect.vue'
+import { DATA_COLLECT_PATH, DATA_COLLECT_HISTORY_PATH } from '@/router'
 
 export default {
   name: 'main-window',
-  components: {
-    DataCollect,
-  },
+  components: {},
   data() {
     return {
-      drawer: {},
+      items: [
+        {
+          id: 'dataCollect',
+          name: 'データ収集',
+          icon: 'mdi-home',
+          link: DATA_COLLECT_PATH,
+        },
+        {
+          id: 'dataCollectHistory',
+          name: 'データ収集履歴',
+          icon: 'mdi-history',
+          link: DATA_COLLECT_HISTORY_PATH,
+        },
+        {
+          id: 'config',
+          name: '設定',
+          icon: 'mdi-cog-outline',
+        },
+      ],
     }
   },
 }
@@ -43,12 +58,7 @@ export default {
   padding: 10px;
 }
 
-#page-title {
-  margin: 10px;
-}
-
 .v-icon {
-  margin-left: 10px;
   margin-top: 15px;
   margin-bottom: 15px;
 }
