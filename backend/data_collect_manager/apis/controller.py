@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, request
-from marshmallow import Schema, fields, ValidationError, validate
+from flask import Blueprint, jsonify
 from backend.data_collect_manager.models.machine import Machine
+from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
 from backend.data_collect_manager.models.db import db
+from sqlalchemy import desc
 from typing import Optional, List, Tuple, Final
 from datetime import datetime
 import os
@@ -101,6 +102,10 @@ def setup(machine_id):
         for gateway in machine.gateways:
             gateway.sequence_number += 1
             gateway.status = common.STATUS.RUNNING.value
+        new_data_collect_history = DataCollectHistory(
+            machine_id=machine.machine_id, machine_name=machine.machine_name, started_at=jst_now.value, ended_at=None
+        )
+        db.session.add(new_data_collect_history)
         db.session.commit()
         return jsonify({}), 200
     except Exception as e:
@@ -312,6 +317,8 @@ def check(machine_id):
             return jsonify({"message": message}), 500
 
         utc_now: datetime = datetime.utcnow()
+        jst_now: common.DisplayTime = common.DisplayTime(utc_now)
+
         successful: bool = EventManager.record_event(
             events_index, event_type=common.COLLECT_STATUS.RECORDED.value, occurred_time=utc_now
         )
@@ -326,6 +333,14 @@ def check(machine_id):
         # DB更新
         try:
             machine.collect_status = common.COLLECT_STATUS.RECORDED.value
+
+            data_collect_history = (
+                DataCollectHistory.query.filter(DataCollectHistory.machine_id == machine.machine_id)
+                .order_by(desc(DataCollectHistory.started_at))
+                .limit(1)
+                .one()
+            )
+            data_collect_history.ended_at = jst_now.value
             db.session.commit()
             return jsonify({}), 200
         except Exception as e:

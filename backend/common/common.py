@@ -66,7 +66,6 @@ class DisplayTime:
     """表示用時刻(JST)"""
 
     def __init__(self, value: datetime):
-        # self.__value: datetime = value.astimezone(timezone("Asia/Tokyo"))
         self.__value: datetime = value + timedelta(hours=+9)
 
     @property
