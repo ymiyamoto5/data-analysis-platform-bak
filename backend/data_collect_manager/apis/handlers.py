@@ -1,13 +1,10 @@
 from flask import Blueprint, jsonify, request
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.models.sensor import Sensor
-from backend.data_collect_manager.models.db import db
+from backend.data_collect_manager.dao.handler_dao import HandlerDAO
 from marshmallow import Schema, fields, ValidationError, validate
 import traceback
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common.common_logger import logger
-from sqlalchemy.orm import joinedload
 
 handlers = Blueprint("handlers", __name__)
 
@@ -21,11 +18,12 @@ class HandlerSchema(Schema):
     sampling_frequency = fields.Int(validate=validate.Range(min=1, max=100_000))
     sampling_ch_num = fields.Int(validate=validate.Range(min=1, max=16))
     filewrite_time = fields.Int(validate=validate.Range(min=1, max=60))
+    gateway_id = fields.Str(validate=character_validate)
 
 
 handler_create_schema = HandlerSchema()
 handler_update_schema = HandlerSchema(
-    only=("adc_serial_num", "handler_type", "sampling_frequency", "sampling_ch_num", "filewrite_time")
+    only=("adc_serial_num", "handler_type", "sampling_frequency", "sampling_ch_num", "filewrite_time", "gateway_id")
 )
 
 
@@ -33,22 +31,18 @@ handler_update_schema = HandlerSchema(
 def fetch_handlers():
     """handlerを起点に関連エンティティを全結合したデータを返す。"""
 
-    handlers = Handler.query.options(
-        joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
-    ).all()
+    handlers = HandlerDAO.select_all()
 
-    return jsonify(handlers)
+    return jsonify(handlers), 200
 
 
 @handlers.route("/handlers/<string:handler_id>", methods=["GET"])
 def fetch_handler(handler_id):
     """指定Handlerの情報を取得"""
 
-    handler = Handler.query.options(
-        joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
-    ).get(handler_id)
+    handler = HandlerDAO.select_by_id(handler_id)
 
-    return jsonify(handler)
+    return jsonify(handler), 200
 
 
 @handlers.route("/handlers", methods=["POST"])
@@ -69,25 +63,8 @@ def create():
         message: str = ErrorMessage.generate_message(ErrorTypes.VALID_ERROR, e.messages)
         return jsonify({"message": message}), 400
 
-    handler_id: str = data["handler_id"]
-    adc_serial_num: str = data["adc_serial_num"]
-    handler_type: str = data["handler_type"]
-    sampling_frequency: int = data["sampling_frequency"]
-    sampling_ch_num: int = data["sampling_ch_num"]
-    filewrite_time: int = data["filewrite_time"]
-
-    new_handler = Handler(
-        handler_id=handler_id,
-        adc_serial_num=adc_serial_num,
-        handler_type=handler_type,
-        sampling_frequency=sampling_frequency,
-        sampling_ch_num=sampling_ch_num,
-        filewrite_time=filewrite_time,
-    )
-
     try:
-        db.session.add(new_handler)
-        db.session.commit()
+        HandlerDAO.insert(insert_data=data)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -112,19 +89,8 @@ def update(handler_id):
         message: str = ErrorMessage.generate_message(ErrorTypes.VALUE_ERROR, e.messages)
         return jsonify({"message": message}), 400
 
-    handler = Handler.query.get(handler_id)
-
-    if handler is None:
-        message: str = ErrorMessage.generate_message(ErrorTypes.NOT_EXISTS, handler_id)
-        logger.error(message)
-        return jsonify({"message": message}), 404
-
-    # 更新対象のプロパティをセット
-    for key, value in data.items():
-        setattr(handler, key, value)
-
     try:
-        db.session.commit()
+        HandlerDAO.update(handler_id, update_data=data)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -136,11 +102,8 @@ def update(handler_id):
 def delete(handler_id):
     """Handlerの削除"""
 
-    handler = Handler.query.get(handler_id)
-
     try:
-        db.session.delete(handler)
-        db.session.commit()
+        HandlerDAO.delete(handler_id)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())

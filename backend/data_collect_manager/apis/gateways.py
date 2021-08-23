@@ -79,7 +79,7 @@ def create():
         return jsonify({"message": message}), 400
 
     try:
-        GatewayDAO.insert(gateway_id=data["gateway_id"], log_level=data["log_level"], machine_id=data["machine_id"])
+        GatewayDAO.insert(insert_data=data)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())

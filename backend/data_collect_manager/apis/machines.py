@@ -70,9 +70,7 @@ def create():
         return jsonify({"message": message}), 400
 
     try:
-        MachineDAO.insert(
-            machine_id=data["machine_id"], machine_name=data["machine_name"], machine_type_id=data["machine_type_id"]
-        )
+        MachineDAO.insert(insert_data=data)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
