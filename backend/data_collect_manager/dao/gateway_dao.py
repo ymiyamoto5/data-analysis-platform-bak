@@ -29,10 +29,7 @@ class GatewayDAO:
     @staticmethod
     def insert(insert_data: dict) -> None:
         # Gatewayに紐づく機器
-        if "machine_id" in insert_data:
-            machines: List[Machine] = Machine.query.filter_by(machine_id=insert_data["machine_id"]).all()
-        else:
-            machines = []
+        machines: List[Machine] = Machine.query.filter_by(machine_id=insert_data["machine_id"]).all()
 
         new_gateway = Gateway(
             gateway_id=insert_data["gateway_id"],
@@ -54,6 +51,8 @@ class GatewayDAO:
         # Gatewayに紐づくMachineの更新
         if "machine_id" in update_data:
             machine: Machine = MachineDAO.select_by_id(update_data["machine_id"])
+            if machine is None:
+                raise Exception("related machine does not exist.")
             gateway.machines.append(machine)
 
         # 更新対象のプロパティをセット
