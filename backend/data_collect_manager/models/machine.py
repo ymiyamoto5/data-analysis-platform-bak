@@ -1,9 +1,9 @@
 from dataclasses import dataclass
+from typing import Optional, List
 from backend.data_collect_manager.models.db import db
 from backend.data_collect_manager.models.machine_type import MachineType
 from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.machine_gateway_mapping import MachineGatewayMapping
-from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
 
 
 @dataclass
@@ -14,10 +14,10 @@ class Machine(db.Model):
     machine_id: str
     machine_name: str
     collect_status: str
-    machine_type_id: int
+    machine_type_id: Optional[int]
     # NOTE: MachineからMachineTypeを引くためのプロパティ
-    machine_type: MachineType
-    gateways: Gateway
+    machine_type: Optional[MachineType]
+    gateways: List[Gateway]
 
     machine_id = db.Column(db.String(255), primary_key=True)
     machine_name = db.Column(db.String(255), unique=True, nullable=False)

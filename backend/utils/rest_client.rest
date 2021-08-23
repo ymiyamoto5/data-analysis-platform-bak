@@ -9,14 +9,34 @@ GET http://localhost:5000/api/v1/machines
 GET http://localhost:5000/api/v1/machines/machine-01
 
 ### create
+POST http://localhost:5000/api/v1/machines HTTP/1.1
+content-type: application/json
+
+{
+    "machine_id": "TEST-machine-001",
+    "machine_name": "テストマシン001",
+    "machine_type_id": 1
+}
 
 ### get new
+GET http://localhost:5000/api/v1/machines/TEST-machine-001
 
 ### update
+POST http://localhost:5000/api/v1/machines/TEST-machine-001/update HTTP/1.1
+content-type: application/json
+
+{
+    "machine_name": "テストマシン001_名前変更後",
+    "collect_status": "setup",
+    "machine_type_id": 2
+}
 
 ### get updated
+GET http://localhost:5000/api/v1/machines/TEST-machine-001
 
 ### delete
+POST http://localhost:5000/api/v1/machines/TEST-machine-001/delete HTTP/1.1
+content-type: application/json
 
 # gateways
 ### get list

@@ -367,7 +367,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    machines: List[Machine] = MachineDAO.fetch_machines_has_handler()
+    machines: List[Machine] = MachineDAO.select_machines_has_handler()
 
     # スケジュール実行
     if args.dir is None:
