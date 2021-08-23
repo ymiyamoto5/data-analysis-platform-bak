@@ -91,21 +91,14 @@ def update(machine_id):
         message: str = ErrorMessage.generate_message(ErrorTypes.NO_INPUT_DATA)
 
     try:
-        update_data = machine_update_schema.load(json_data)
+        data = machine_update_schema.load(json_data)
     except ValidationError as e:
         logger.error(traceback.format_exc())
         message: str = ErrorMessage.generate_message(ErrorTypes.VALUE_ERROR, e.messages)
         return jsonify({"message": message}), 400
 
-    machine = MachineDAO.select_by_id(machine_id)
-
-    if machine is None:
-        message: str = ErrorMessage.generate_message(ErrorTypes.NOT_EXISTS, machine_id)
-        logger.error(message)
-        return jsonify({"message": message}), 404
-
     try:
-        MachineDAO.update(machine, update_data)
+        MachineDAO.update(machine_id, update_data=data)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())

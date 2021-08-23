@@ -9,5 +9,9 @@ class GatewayHandlerMapping(db.Model):
     gateway_id: str
     handler_id: str
 
-    gateway_id = db.Column(db.String, db.ForeignKey("gateways.gateway_id"), primary_key=True)
-    handler_id = db.Column(db.String, db.ForeignKey("handlers.handler_id"), primary_key=True)
+    gateway_id = db.Column(
+        db.String, db.ForeignKey("gateways.gateway_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+    )
+    handler_id = db.Column(
+        db.String, db.ForeignKey("handlers.handler_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+    )

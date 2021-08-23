@@ -47,7 +47,9 @@ class MachineDAO:
         db.session.commit()
 
     @staticmethod
-    def update(machine: Machine, update_data: dict) -> None:
+    def update(machine_id: str, update_data: dict) -> None:
+        machine = MachineDAO.select_by_id(machine_id)
+
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
             setattr(machine, key, value)

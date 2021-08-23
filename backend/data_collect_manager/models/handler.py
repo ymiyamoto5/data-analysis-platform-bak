@@ -25,5 +25,9 @@ class Handler(db.Model):
     sampling_ch_num = db.Column(db.Integer)
     filewrite_time = db.Column(db.Integer)
 
-    gateways = db.relationship("Gateway", secondary=GatewayHandlerMapping.__tablename__, back_populates="handlers")
-    sensors = db.relationship("Sensor", secondary=HandlerSensorMapping.__tablename__, back_populates="handlers")
+    gateways = db.relationship(
+        "Gateway", secondary=GatewayHandlerMapping.__tablename__, back_populates="handlers", passive_deletes=True
+    )
+    sensors = db.relationship(
+        "Sensor", secondary=HandlerSensorMapping.__tablename__, back_populates="handlers", cascade="all, delete"
+    )

@@ -10,6 +10,8 @@
 """
 
 from flask import Flask, render_template
+import sqlalchemy.engine
+from sqlalchemy import event
 from flask_cors import CORS  # type: ignore
 from backend.data_collect_manager.models.db import register_db
 from backend.data_collect_manager.apis.machines import machines
@@ -32,6 +34,14 @@ app.config["JSON_AS_ASCII"] = False
 
 db = register_db(app)
 app.config["SQLALCHEMY_ECHO"] = True
+
+
+@event.listens_for(sqlalchemy.engine.Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.close()
+
 
 app.register_blueprint(machines, url_prefix="/api/v1")
 app.register_blueprint(gateways, url_prefix="/api/v1")

@@ -18,6 +18,8 @@ class Sensor(db.Model):
     sensor_name = db.Column(db.String(255), nullable=False)
     sensor_type_id = db.Column(db.Integer, db.ForeignKey("sensor_types.id"))
 
-    handlers = db.relationship("Handler", secondary=HandlerSensorMapping.__tablename__, back_populates="sensors")
+    handlers = db.relationship(
+        "Handler", secondary=HandlerSensorMapping.__tablename__, back_populates="sensors", passive_deletes=True
+    )
     # NOTE: SensorとSensorTypeはMany to One
     sensor_type = db.relationship("SensorType", back_populates="sensors")

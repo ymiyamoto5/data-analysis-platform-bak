@@ -23,5 +23,9 @@ class Gateway(db.Model):
     status = db.Column(db.String(255))
     log_level = db.Column(db.Integer)
 
-    machines = db.relationship("Machine", secondary=MachineGatewayMapping.__tablename__, back_populates="gateways")
-    handlers = db.relationship("Handler", secondary=GatewayHandlerMapping.__tablename__, back_populates="gateways")
+    machines = db.relationship(
+        "Machine", secondary=MachineGatewayMapping.__tablename__, back_populates="gateways", passive_deletes=True
+    )
+    handlers = db.relationship(
+        "Handler", secondary=GatewayHandlerMapping.__tablename__, back_populates="gateways", cascade="all, delete"
+    )

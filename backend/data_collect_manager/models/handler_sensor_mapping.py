@@ -9,5 +9,9 @@ class HandlerSensorMapping(db.Model):
     handler_id: str
     sensor_id: int
 
-    handler_id = db.Column(db.String, db.ForeignKey("handlers.handler_id"), primary_key=True)
-    sensor_id = db.Column(db.String, db.ForeignKey("sensors.id"), primary_key=True)
+    handler_id = db.Column(
+        db.String, db.ForeignKey("handlers.handler_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+    )
+    sensor_id = db.Column(
+        db.String, db.ForeignKey("sensors.id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+    )

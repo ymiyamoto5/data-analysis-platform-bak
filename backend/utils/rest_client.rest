@@ -51,7 +51,8 @@ content-type: application/json
 
 {
     "gateway_id": "TEST-GW-001",
-    "log_level": 5
+    "log_level": 5,
+    "machine_id": "machine-01"
 }
 
 ### get new
@@ -65,7 +66,7 @@ content-type: application/json
     "sequence_number": 2,
     "gateway_result": 0,
     "status": "running",
-    "log_level": 5
+    "log_level": 3
 }
 
 ### get updated
@@ -144,3 +145,72 @@ content-type: application/json
 
 ###
 GET http://localhost:5000/api/v1/gateways/GW-01/machine HTTP/1.1
+
+
+# many to many cascade delete
+### create machine
+POST http://localhost:5000/api/v1/machines HTTP/1.1
+content-type: application/json
+
+{
+    "machine_id": "TEST-machine-001",
+    "machine_name": "テストマシン001",
+    "machine_type_id": 1
+}
+
+### create gateway relate with new machine
+POST http://localhost:5000/api/v1/gateways HTTP/1.1
+content-type: application/json
+
+{
+    "gateway_id": "TEST-GW-001",
+    "log_level": 5,
+    "machine_id": "TEST-machine-001"
+}
+
+### get new machine
+GET http://localhost:5000/api/v1/machines/TEST-machine-001
+
+### get new gateway
+GET http://localhost:5000/api/v1/gateways/TEST-GW-001
+
+### delete machine (parent)
+POST http://localhost:5000/api/v1/machines/TEST-machine-001/delete HTTP/1.1
+content-type: application/json
+
+### recreate machine
+POST http://localhost:5000/api/v1/machines HTTP/1.1
+content-type: application/json
+
+{
+    "machine_id": "TEST-machine-001",
+    "machine_name": "テストマシン001",
+    "machine_type_id": 1
+}
+
+### update gateway(remapping)
+POST http://localhost:5000/api/v1/gateways/TEST-GW-001/update HTTP/1.1
+content-type: application/json
+
+{
+    "sequence_number": 2,
+    "gateway_result": 0,
+    "status": "running",
+    "log_level": 3,
+    "machine_id": "TEST-machine-001"
+}
+
+### get new machine
+GET http://localhost:5000/api/v1/machines/TEST-machine-001
+
+### get new gateway
+GET http://localhost:5000/api/v1/gateways/TEST-GW-001
+
+
+### delete machine
+POST http://localhost:5000/api/v1/machines/TEST-machine-001/delete HTTP/1.1
+content-type: application/json
+
+### delete gateway
+POST http://localhost:5000/api/v1/gateways/TEST-GW-001/delete HTTP/1.1
+content-type: application/json
