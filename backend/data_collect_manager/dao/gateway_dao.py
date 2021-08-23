@@ -27,19 +27,19 @@ class GatewayDAO:
         return gateway
 
     @staticmethod
-    def insert(gateway_id: str, log_level: int, machine_id: str = None) -> None:
-
-        if machine_id is not None:
-            machines: List[Machine] = Machine.query.filter_by(machine_id=machine_id).all()
+    def insert(insert_data: dict) -> None:
+        # Gatewayに紐づく機器
+        if "machine_id" in insert_data:
+            machines: List[Machine] = Machine.query.filter_by(machine_id=insert_data["machine_id"]).all()
         else:
             machines = []
 
         new_gateway = Gateway(
-            gateway_id=gateway_id,
+            gateway_id=insert_data["gateway_id"],
             sequence_number=1,
             gateway_result=0,
             status=common.STATUS.STOP.value,
-            log_level=log_level,
+            log_level=insert_data["log_level"],
             machines=machines,
         )  # type: ignore
 
@@ -48,8 +48,10 @@ class GatewayDAO:
 
     @staticmethod
     def update(gateway_id: str, update_data: dict) -> None:
+        # 更新対象取得
         gateway = GatewayDAO.select_by_id(gateway_id)
 
+        # Gatewayに紐づくMachineの更新
         if "machine_id" in update_data:
             machine: Machine = MachineDAO.select_by_id(update_data["machine_id"])
             gateway.machines.append(machine)

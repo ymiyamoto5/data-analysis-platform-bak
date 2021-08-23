@@ -34,13 +34,13 @@ class MachineDAO:
         return machine
 
     @staticmethod
-    def insert(machine_id: str, machine_name: str, machine_type_id: int = None) -> None:
+    def insert(insert_data: dict) -> None:
         # NOTE: 型エラー回避のためにmachine_type = None等を設定することはできないため、type: ignoreしている。
         new_machine = Machine(
-            machine_id=machine_id,
-            machine_name=machine_name,
+            machine_id=insert_data["machine_id"],
+            machine_name=insert_data["machine_name"],
             collect_status=common.COLLECT_STATUS.RECORDED.value,
-            machine_type_id=machine_type_id,
+            machine_type_id=insert_data["machine_type_id"],
         )  # type: ignore
 
         db.session.add(new_machine)
