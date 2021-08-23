@@ -1,7 +1,4 @@
 from flask import Blueprint, jsonify
-from backend.data_collect_manager.models.sensor import Sensor
-from backend.common.common_logger import logger
-from sqlalchemy.orm import joinedload
 
 sensors = Blueprint("sensors", __name__)
 
@@ -10,15 +7,4 @@ sensors = Blueprint("sensors", __name__)
 def fetch_sensors():
     """Sensorを起点に関連エンティティを全結合したデータを返す"""
 
-    sensors = Sensor.query.options(joinedload(Sensor.sensor_type)).all()
-
-    return jsonify(sensors)
-
-
-@sensors.route("/sensors/<int:id>", methods=["GET"])
-def fetch_sensor(id):
-    """指定Sensorの情報を取得"""
-
-    sensor = Sensor.query.options(joinedload(Sensor.sensor_type)).get(id)
-
-    return jsonify(sensor)
+    pass
