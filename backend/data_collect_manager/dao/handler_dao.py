@@ -1,5 +1,4 @@
 from typing import List
-from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.sensor import Sensor
@@ -28,10 +27,7 @@ class HandlerDAO:
     @staticmethod
     def insert(insert_data: dict) -> None:
         # Handlerに紐づくGateway
-        if "gateway_id" in insert_data:
-            gateways: List[Gateway] = Gateway.query.filter_by(gateway_id=insert_data["gateway_id"]).all()
-        else:
-            gateways = []
+        gateways: List[Gateway] = Gateway.query.filter_by(gateway_id=insert_data["gateway_id"]).all()
 
         new_handler = Handler(
             handler_id=insert_data["handler_id"],
@@ -54,11 +50,13 @@ class HandlerDAO:
         # Handlerに紐づくGatewayの更新
         if "gateway_id" in update_data:
             gateway: Gateway = GatewayDAO.select_by_id(update_data["gateway_id"])
+            if gateway is None:
+                raise Exception("related gateway does not exist.")
             handler.gateways.append(gateway)
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
-            setattr(gateway, key, value)
+            setattr(handler, key, value)
 
         db.session.commit()
 

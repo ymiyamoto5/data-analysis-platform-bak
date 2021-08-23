@@ -58,6 +58,9 @@ content-type: application/json
 ### get new
 GET http://localhost:5000/api/v1/gateways/TEST-GW-001
 
+### get machine
+GET http://localhost:5000/api/v1/machines/machine-01
+
 ### update
 POST http://localhost:5000/api/v1/gateways/TEST-GW-001/update HTTP/1.1
 content-type: application/json
@@ -112,11 +115,14 @@ content-type: application/json
   "handler_type": "handler_type-001",
   "sampling_ch_num": 5,
   "sampling_frequency": 100000,
-  "gateway_id": "GW-01"
+  "gateway_id": "GW-02"
 }
 
 ### get updated
 GET http://localhost:5000/api/v1/handlers/TEST-HANDLER-001
+
+### get gateway
+GET http://localhost:5000/api/v1/gateways/GW-02
 
 ### delete
 POST http://localhost:5000/api/v1/handlers/TEST-HANDLER-001/delete HTTP/1.1

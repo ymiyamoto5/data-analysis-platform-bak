@@ -26,7 +26,7 @@ class MachineSchema(Schema):
             )
         )
     )
-    machine_type_id = fields.Int()
+    machine_type_id = fields.Int(required=True)
 
 
 machine_create_schema = MachineSchema(only=("machine_id", "machine_name", "machine_type_id"))
