@@ -9,5 +9,9 @@ class MachineGatewayMapping(db.Model):
     machine_id: str
     gateway_id: str
 
-    machine_id = db.Column(db.String, db.ForeignKey("machines.machine_id"), primary_key=True)
-    gateway_id = db.Column(db.String, db.ForeignKey("gateways.gateway_id"), primary_key=True)
+    machine_id = db.Column(
+        db.String, db.ForeignKey("machines.machine_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+    )
+    gateway_id = db.Column(
+        db.String, db.ForeignKey("gateways.gateway_id", onupdate="CASCADE", ondelete="CASCADE"), primary_key=True
+    )

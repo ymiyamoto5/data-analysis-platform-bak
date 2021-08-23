@@ -1,15 +1,11 @@
 from flask import Blueprint, jsonify, request
-from backend.data_collect_manager.models.gateway import Gateway
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.models.sensor import Sensor
-from backend.data_collect_manager.models.db import db
 from marshmallow import Schema, fields, ValidationError, validate
 import traceback
+from backend.data_collect_manager.dao.gateway_dao import GatewayDAO
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common import common
 from backend.common.common_logger import logger
-from sqlalchemy.orm import joinedload
 
 
 gateways = Blueprint("gateways", __name__)
@@ -23,19 +19,18 @@ class GatewaySchema(Schema):
     gateway_result = fields.Int(validate=validate.Range(min=-1, max=1))
     status = fields.Str(validate=validate.OneOf((common.STATUS.STOP.value, common.STATUS.RUNNING.value)))
     log_level = fields.Int(validate=validate.Range(min=0, max=5))
+    machine_id = fields.Str(validate=character_validate)
 
 
-gateway_create_schema = GatewaySchema(only=("gateway_id", "log_level"))
-gateway_update_schema = GatewaySchema(only=("sequence_number", "gateway_result", "status", "log_level"))
+gateway_create_schema = GatewaySchema(only=("gateway_id", "log_level", "machine_id"))
+gateway_update_schema = GatewaySchema(only=("sequence_number", "gateway_result", "status", "log_level", "machine_id"))
 
 
 @gateways.route("/gateways", methods=["GET"])
 def fetch_gateways():
     """Gatewayを起点に関連エンティティを全結合したデータを返す。"""
 
-    gateways = Gateway.query.options(
-        joinedload(Gateway.handlers).joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
-    ).all()
+    gateways = GatewayDAO.select_all()
 
     return jsonify(gateways), 200
 
@@ -44,9 +39,7 @@ def fetch_gateways():
 def fetch_gateway(gateway_id):
     """指定Gatewayの情報を取得"""
 
-    gateway = Gateway.query.options(
-        joinedload(Gateway.handlers).joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
-    ).get(gateway_id)
+    gateway = GatewayDAO.select_by_id(gateway_id)
 
     return jsonify(gateway), 200
 
@@ -55,7 +48,7 @@ def fetch_gateway(gateway_id):
 def fetch_machine_id_from_gateway_id(gateway_id):
     """gateway_idをkeyにmachine_idを取得する。"""
 
-    gateway = Gateway.query.get(gateway_id)
+    gateway = GatewayDAO.select_by_id(gateway_id)
 
     try:
         machine = gateway.machines[0].machine_id
@@ -85,20 +78,8 @@ def create():
         message: str = ErrorMessage.generate_message(ErrorTypes.VALID_ERROR, e.messages)
         return jsonify({"message": message}), 400
 
-    gateway_id: str = data["gateway_id"]
-    log_level: int = data["log_level"]
-
-    new_gateway = Gateway(
-        gateway_id=gateway_id,
-        sequence_number=1,
-        gateway_result=0,
-        status=common.STATUS.STOP.value,
-        log_level=log_level,
-    )
-
     try:
-        db.session.add(new_gateway)
-        db.session.commit()
+        GatewayDAO.insert(gateway_id=data["gateway_id"], log_level=data["log_level"], machine_id=data["machine_id"])
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -123,19 +104,8 @@ def update(gateway_id):
         message: str = ErrorMessage.generate_message(ErrorTypes.VALUE_ERROR, e.messages)
         return jsonify({"message": message}), 400
 
-    gateway = Gateway.query.get(gateway_id)
-
-    if gateway is None:
-        message: str = ErrorMessage.generate_message(ErrorTypes.NOT_EXISTS, gateway_id)
-        logger.error(message)
-        return jsonify({"message": message}), 404
-
-    # 更新対象のプロパティをセット
-    for key, value in data.items():
-        setattr(gateway, key, value)
-
     try:
-        db.session.commit()
+        GatewayDAO.update(gateway_id, update_data=data)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -147,11 +117,8 @@ def update(gateway_id):
 def delete(gateway_id):
     """Gatewayの削除"""
 
-    gateway = Gateway.query.get(gateway_id)
-
     try:
-        db.session.delete(gateway)
-        db.session.commit()
+        GatewayDAO.delete(gateway_id)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
