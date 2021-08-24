@@ -16,6 +16,7 @@ from pandas.core.frame import DataFrame
 from typing import List
 
 from backend.cut_out_shot.cut_out_shot import CutOutShot
+from backend.data_collect_manager.models.handler import Handler
 
 
 @pytest.fixture
@@ -23,6 +24,7 @@ def target():
     """変換式のみ定義したCutOutShotインスタンス fixture"""
 
     machine_id = "machine-01"
+    handler: Handler = Handler(handler_id="TEST-HANDLDER-001", sampling_ch_num=5, sampling_frequency=100000)
 
     displacement_func = lambda x: x * 1.0
     load01_func = lambda x: x * 1.0
@@ -32,6 +34,7 @@ def target():
 
     instance = CutOutShot(
         machine_id=machine_id,
+        handler=handler,
         displacement_func=displacement_func,
         load01_func=load01_func,
         load02_func=load02_func,
@@ -42,6 +45,15 @@ def target():
     yield instance
 
     del instance
+
+
+@pytest.fixture
+def handler():
+    handler: Handler = Handler(handler_id="TEST-HANDLDER-001", sampling_ch_num=5, sampling_frequency=100000)
+
+    yield handler
+
+    del handler
 
 
 @pytest.fixture

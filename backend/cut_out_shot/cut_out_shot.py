@@ -33,6 +33,7 @@ class CutOutShot:
     def __init__(
         self,
         machine_id: str,
+        handler: Optional[Handler] = None,
         previous_size: int = 1000,
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
@@ -69,11 +70,12 @@ class CutOutShot:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        try:
-            handler: Handler = HandlerDAO.fetch_handler(self.__machine_id)
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
+        if handler is None:
+            try:
+                handler = HandlerDAO.fetch_handler(self.__machine_id)
+            except Exception:
+                logger.exception(traceback.format_exc())
+                sys.exit(1)
 
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * handler.sampling_frequency  # 100kサンプルにおける最大サンプル数
         self.__sampling_ch_num: int = handler.sampling_ch_num
