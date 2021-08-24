@@ -1,27 +1,5 @@
 <template>
   <div id="machines">
-    <div class="text-center">
-      <v-dialog v-model="dialog" width="500">
-        <v-card>
-          <v-card-title class="text-h6 grey lighten-2">
-            エラー
-          </v-card-title>
-
-          <v-card-text>
-            {{ errorMessage }}
-          </v-card-text>
-
-          <v-divider></v-divider>
-
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="primary" text @click="dialog = false">
-              I accept
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </div>
     <div id="title">
       <h1>データ収集</h1>
     </div>
@@ -85,7 +63,7 @@
               <v-btn
                 v-if="machine.collect_status === 'start'"
                 color="error"
-                @click="stop(machine.machine_id)"
+                @click="beforeStop(machine.machine_id)"
               >
                 停止
               </v-btn>
@@ -159,15 +137,18 @@ export default {
       },
       machines: [],
       collectStatus: '',
-      dialog: false,
-      title: '',
-      errorMessage: '',
     }
   },
   created: function() {
     this.fetchTableData()
   },
   methods: {
+    show_dialog(message, callback, param) {
+      this.$store.commit('set_showModalDialog', true)
+      this.$store.commit('set_modal_msg', message)
+      this.$store.commit('set_callback_func', callback)
+      this.$store.commit('set_callback_func_param', param)
+    },
     fetchTableData: async function() {
       const client = createBaseApiClient()
       let data = []
@@ -183,8 +164,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
-          this.errorMessage = e.response.data.message
-          this.dialog = true
+          this.show_dialog(e.response.data.message)
         })
     },
     setup: async function(machine_id) {
@@ -196,8 +176,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
-          this.errorMessage = e.response.data.message
-          this.dialog = true
+          this.show_dialog(e.response.data.message, null)
         })
     },
     start: async function(machine_id) {
@@ -211,14 +190,17 @@ export default {
           console.log(e.response.data.message)
         })
     },
+    beforeStop(machine_id) {
+      this.show_dialog('停止してもよいですか？', this.stop, machine_id)
+    },
     stop: async function(machine_id) {
       const client = createBaseApiClient()
       await client
         .post(STOP_API_URL + machine_id)
         .then(() => {
-          this.fetchTableData()
           // データファイルがなくなるまで待ち
           this.check(machine_id)
+          this.fetchTableData()
         })
         .catch((e) => {
           console.log(e.response.data.message)
