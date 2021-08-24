@@ -1,5 +1,27 @@
 <template>
   <div id="machines">
+    <div class="text-center">
+      <v-dialog v-model="dialog" width="500">
+        <v-card>
+          <v-card-title class="text-h6 grey lighten-2">
+            エラー
+          </v-card-title>
+
+          <v-card-text>
+            {{ errorMessage }}
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="primary" text @click="dialog = false">
+              I accept
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+    </div>
     <div id="title">
       <h1>データ収集</h1>
     </div>
@@ -137,6 +159,9 @@ export default {
       },
       machines: [],
       collectStatus: '',
+      dialog: false,
+      title: '',
+      errorMessage: '',
     }
   },
   created: function() {
@@ -158,6 +183,8 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
+          this.errorMessage = e.response.data.message
+          this.dialog = true
         })
     },
     setup: async function(machine_id) {
@@ -169,6 +196,8 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
+          this.errorMessage = e.response.data.message
+          this.dialog = true
         })
     },
     start: async function(machine_id) {
