@@ -1,4 +1,7 @@
 from typing import List
+
+# NOTE: 関連するエンティティをあらかじめimportしておく必要がある。
+from backend.data_collect_manager.models.data_collect_history import DataCollectHistory  # noqa
 from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.handler import Handler

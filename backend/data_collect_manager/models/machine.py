@@ -33,4 +33,4 @@ class Machine(db.Model):
     machine_type = db.relationship("MachineType", back_populates="machines")
 
     # NOTE: MachineとDataCollectHistoryはOne to Many
-    data_collect_history = db.relationship("DataCollectHistory", back_populates="machine")
+    data_collect_histories = db.relationship("DataCollectHistory", back_populates="machine")

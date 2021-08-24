@@ -38,6 +38,8 @@ GET http://localhost:5000/api/v1/machines/TEST-machine-001
 POST http://localhost:5000/api/v1/machines/TEST-machine-001/delete HTTP/1.1
 content-type: application/json
 
+
+
 # gateways
 ### get list
 GET http://localhost:5000/api/v1/gateways
@@ -79,6 +81,7 @@ GET http://localhost:5000/api/v1/gateways/TEST-GW-001
 ### delete
 POST http://localhost:5000/api/v1/gateways/TEST-GW-001/delete HTTP/1.1
 content-type: application/json
+
 
 
 # handlers
@@ -127,6 +130,23 @@ GET http://localhost:5000/api/v1/gateways/GW-02
 ### delete
 POST http://localhost:5000/api/v1/handlers/TEST-HANDLER-001/delete HTTP/1.1
 content-type: application/json
+
+
+
+# sensors
+### get list
+GET http://localhost:5000/api/v1/sensors
+
+### get single
+GET http://localhost:5000/api/v1/sensors/1
+
+### create
+
+### update
+
+### get updated
+
+### delete
 
 # controller
 
