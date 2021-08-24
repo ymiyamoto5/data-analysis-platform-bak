@@ -4,7 +4,7 @@ from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_collect_manager.models.db import db
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, lazyload
 from backend.common import common
 
 
@@ -48,7 +48,13 @@ class MachineDAO:
 
     @staticmethod
     def update(machine_id: str, update_data: dict) -> None:
-        machine = MachineDAO.select_by_id(machine_id)
+        # 悲観的排他ロック(sqliteでは無効)
+        machine = (
+            Machine.query.options(lazyload(Machine.machine_type), lazyload(Machine.gateways))
+            .filter(Machine.machine_id == machine_id)
+            .with_for_update()
+            .one()
+        )
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():

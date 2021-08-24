@@ -39,7 +39,7 @@ def fetch_machines():
 
     machines = MachineDAO.select_all()
 
-    return jsonify(machines)
+    return jsonify(machines), 200
 
 
 @machines.route("/machines/<string:machine_id>", methods=["GET"])
@@ -48,7 +48,7 @@ def fetch_machine(machine_id):
 
     machine = MachineDAO.select_by_id(machine_id)
 
-    return jsonify(machine)
+    return jsonify(machine), 200
 
 
 @machines.route("/machines", methods=["POST"])

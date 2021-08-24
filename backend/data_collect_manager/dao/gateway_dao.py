@@ -5,7 +5,7 @@ from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_collect_manager.models.db import db
 from backend.data_collect_manager.dao.machine_dao import MachineDAO
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, lazyload
 from backend.common import common
 
 
@@ -46,7 +46,12 @@ class GatewayDAO:
     @staticmethod
     def update(gateway_id: str, update_data: dict) -> None:
         # 更新対象取得
-        gateway = GatewayDAO.select_by_id(gateway_id)
+        gateway = (
+            Gateway.query.options(lazyload(Gateway.handlers))
+            .filter(Gateway.gateway_id == gateway_id)
+            .with_for_update()
+            .one()
+        )
 
         # Gatewayに紐づくMachineの更新
         if "machine_id" in update_data:

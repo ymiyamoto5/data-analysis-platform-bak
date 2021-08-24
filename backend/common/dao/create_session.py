@@ -13,10 +13,10 @@ def db_session():
     DB_URI: Final[str] = common.get_config_value(app_config_path, "SQLALCHEMY_DATABASE_URI")
 
     engine = create_engine(DB_URI)
-    connection = engine.connect()
+    # connection = engine.connect()
     db_session = scoped_session(sessionmaker(autocommit=False, autoflush=True, bind=engine))
 
     yield db_session
 
     db_session.close()
-    connection.close()
+    # connection.close()
