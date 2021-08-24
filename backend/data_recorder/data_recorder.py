@@ -45,14 +45,15 @@ class FileInfo:
 
 
 class DataRecorder:
-    def __init__(self, machine_id: str):
+    def __init__(self, machine_id: str, handler: Handler = None):
         self.machine_id: str = machine_id
 
-        try:
-            handler: Handler = HandlerDAO.fetch_handler(self.machine_id)
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
+        if handler is None:
+            try:
+                handler = HandlerDAO.fetch_handler(self.machine_id)
+            except Exception:
+                logger.exception(traceback.format_exc())
+                sys.exit(1)
 
         self.sampling_ch_num: int = handler.sampling_ch_num
         self.sampling_frequency: int = handler.sampling_frequency

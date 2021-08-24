@@ -52,13 +52,10 @@ def dat_files(tmp_path):
     yield dat_files
 
 
-@pytest.fixture(autouse=True)
-def init_mock(mocker):
-    mocker.patch.object(
-        HandlerDAO,
-        "fetch_handler",
-        return_value=Handler(
-            sampling_ch_num=5,
-            sampling_frequency=100_000,
-        ),
-    )
+@pytest.fixture()
+def handler():
+    handler: Handler = Handler(handler_id="TEST-HANDLDER-001", sampling_ch_num=5, sampling_frequency=100000)
+
+    yield handler
+
+    del handler

@@ -18,12 +18,12 @@ from backend.common.common import TIMESTAMP_MAX
 
 
 class TestCreateFileTimestamp:
-    def test_normal(self):
+    def test_normal(self, handler):
         """ファイル名からdatetime型のタイムスタンプを生成出来ること"""
 
         filepath = "tmp00/AD-00_20201216-080058.620753.dat"
 
-        dr = DataRecorder(machine_id="machine-01")
+        dr = DataRecorder(machine_id="machine-01", handler=handler)
 
         actual = dr._create_file_timestamp(filepath)
         expected = datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()
@@ -32,7 +32,7 @@ class TestCreateFileTimestamp:
 
 
 class TestGetTargetInterval:
-    def test_setup_end_are_set(self, mocker):
+    def test_setup_end_are_set(self, handler):
         """start_timeとend_timeの設定が正しく行われること"""
 
         setup_time: datetime = datetime.now()
@@ -45,14 +45,14 @@ class TestGetTargetInterval:
             {"event_type": "stop", "occurred_time": end_time_str},
         ]
 
-        dr = DataRecorder(machine_id="machine-01")
+        dr = DataRecorder(machine_id="machine-01", handler=handler)
         actual = dr._get_target_interval(events)
 
         expected = (setup_time.timestamp(), end_time.timestamp() + 5.0)
 
         assert actual == expected
 
-    def test_end_is_not_set(self, mocker):
+    def test_end_is_not_set(self, handler):
         """setup_timeのみが設定されている場合、end_timeはmaxとして設定される"""
 
         setup_time: datetime = datetime.now()
@@ -62,7 +62,7 @@ class TestGetTargetInterval:
             {"event_type": "setup", "occurred_time": setup_time_str},
         ]
 
-        dr = DataRecorder(machine_id="machine-01")
+        dr = DataRecorder(machine_id="machine-01", handler=handler)
 
         actual = dr._get_target_interval(events)
 
@@ -70,10 +70,10 @@ class TestGetTargetInterval:
 
         assert actual == expected
 
-    def test_is_not_setuped(self, mocker):
+    def test_is_not_setuped(self, handler):
         """setup_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
-        dr = DataRecorder(machine_id="machine-01")
+        dr = DataRecorder(machine_id="machine-01", handler=handler)
 
         events = []
 
@@ -82,10 +82,10 @@ class TestGetTargetInterval:
 
 
 class TestCreateFilesInfo:
-    def test_normal_file_exists(self, dat_files):
+    def test_normal_file_exists(self, handler, dat_files):
         """正常系：ファイルが存在する"""
 
-        dr = DataRecorder(machine_id="machine-01")
+        dr = DataRecorder(machine_id="machine-01", handler=handler)
 
         actual = dr._create_files_info(dat_files.tmp_path._str)
 
@@ -99,11 +99,11 @@ class TestCreateFilesInfo:
 
         assert actual == expected
 
-    def test_normal_file_exists_not_sorted(self, tmp_path):
+    def test_normal_file_exists_not_sorted(self, handler, tmp_path):
         """正常系：ファイルが存在する。ファイルが名前の昇順にソートされること"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id, handler=handler)
 
         tmp_dat_1: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080058.620753.dat"
         tmp_dat_2: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080040.620753.dat"
@@ -123,11 +123,11 @@ class TestCreateFilesInfo:
 
         assert actual == expected
 
-    def test_normal_file_not_exists(self):
+    def test_normal_file_not_exists(self, handler):
         """正常系：ファイルが存在しない。"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         actual = dr._create_files_info("dummy_path")
 
@@ -137,14 +137,14 @@ class TestCreateFilesInfo:
 
 
 class TestGetTargetFiles:
-    def test_normal_target_file_exists(self, dat_files):
+    def test_normal_target_file_exists(self, handler, dat_files):
         """正常系：5ファイル中3ファイルが対象範囲。以下2ファイルが対象外。
         1ファイル目：20201216-080058.620753
         5ファイル目：20201216-080102.620753
         """
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         file_infos = dr._create_files_info(dat_files.tmp_path._str)
 
@@ -160,11 +160,11 @@ class TestGetTargetFiles:
 
         assert actual == expected
 
-    def test_normal_no_target_file(self, dat_files):
+    def test_normal_no_target_file(self, handler, dat_files):
         """正常系：対象ファイルなし"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         file_infos = dr._create_files_info(dat_files.tmp_path._str)
 
@@ -178,14 +178,14 @@ class TestGetTargetFiles:
 
 
 class TestGetNotTargetFiles:
-    def test_normal_not_target_file_exists(self, dat_files):
+    def test_normal_not_target_file_exists(self, handler, dat_files):
         """正常系：5ファイル中3ファイルが対象範囲外。以下2ファイルが対象外。
         1ファイル目：20201216-080058.620753
         5ファイル目：20201216-080102.620753
         """
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         file_infos = dr._create_files_info(dat_files.tmp_path._str)
 
@@ -200,11 +200,11 @@ class TestGetNotTargetFiles:
 
         assert actual == expected
 
-    def test_normal_all_files_are_target(self, dat_files):
+    def test_normal_all_files_are_target(self, handler, dat_files):
         """正常系：すべて対象ファイル（対象外ファイルなし）"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         file_infos = dr._create_files_info(dat_files.tmp_path._str)
 
@@ -218,11 +218,11 @@ class TestGetNotTargetFiles:
 
 
 class TestSetTimestamp:
-    def test_first_process(self, mocker):
+    def test_first_process(self, handler, mocker):
         """正常系：データ収集開始後、最初のプロセス"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         mocker.patch.object(ElasticManager, "get_docs", return_value=[])
         started_timestamp: float = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
@@ -232,11 +232,11 @@ class TestSetTimestamp:
 
         assert actual == expected
 
-    def test_not_first_prcess(self, mocker):
+    def test_not_first_prcess(self, handler, mocker):
         """正常系：データ収集開始後、2回目以降のプロセス"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         return_value = [{"timestamp": datetime(2020, 12, 16, 8, 1, 58, 0).timestamp()}]
 
@@ -251,11 +251,11 @@ class TestSetTimestamp:
 
 
 class TestReadBinaryFiles:
-    def test_normal(self, dat_files):
+    def test_normal(self, handler, dat_files):
         """正常系：バイナリファイルが正常に読めること"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id)
+        dr = DataRecorder(machine_id=machine_id, handler=handler)
 
         file_infos = dr._create_files_info(dat_files.tmp_path._str)
         file = file_infos[0]
