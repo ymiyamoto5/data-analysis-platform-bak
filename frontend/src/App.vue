@@ -1,5 +1,6 @@
 <template>
   <div id="app">
+    <ModalDialog v-if="$store.state.showModalDialog" />
     <MainWindow />
   </div>
 </template>
