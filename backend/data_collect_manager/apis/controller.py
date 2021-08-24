@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify
 from backend.data_collect_manager.models.machine import Machine
+from backend.data_collect_manager.dao.machine_dao import MachineDAO
 from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
 from backend.data_collect_manager.models.db import db
 from sqlalchemy import desc
@@ -65,7 +66,7 @@ def setup(machine_id):
     utc_now: datetime = datetime.utcnow()
     jst_now: common.DisplayTime = common.DisplayTime(utc_now)
 
-    machine: Machine = Machine.query.get(machine_id)
+    machine: Machine = MachineDAO.select_by_id(machine_id)
 
     # 収集完了状態かつGW停止状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.RECORDED.value, common.STATUS.STOP.value)
@@ -96,7 +97,7 @@ def setup(machine_id):
 
     logger.info(f"'{common.COLLECT_STATUS.SETUP.value}' was recorded.")
 
-    # DB更新
+    # TODO: DAOへの移動およびトランザクション化
     try:
         machine.collect_status = common.COLLECT_STATUS.SETUP.value
         for gateway in machine.gateways:
@@ -120,7 +121,7 @@ def start(machine_id):
 
     utc_now: datetime = datetime.utcnow()
 
-    machine = Machine.query.get(machine_id)
+    machine: Machine = MachineDAO.select_by_id(machine_id)
 
     # 段取状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
@@ -163,7 +164,7 @@ def pause(machine_id):
 
     utc_now: datetime = datetime.utcnow()
 
-    machine = Machine.query.get(machine_id)
+    machine: Machine = MachineDAO.select_by_id(machine_id)
 
     # 収集開始状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
@@ -206,7 +207,7 @@ def resume(machine_id):
 
     utc_now: datetime = datetime.utcnow()
 
-    machine = Machine.query.get(machine_id)
+    machine: Machine = MachineDAO.select_by_id(machine_id)
 
     # 収集中断状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.PAUSE.value, common.STATUS.RUNNING.value)
@@ -248,7 +249,7 @@ def stop(machine_id):
 
     utc_now: datetime = datetime.utcnow()
 
-    machine = Machine.query.get(machine_id)
+    machine: Machine = MachineDAO.select_by_id(machine_id)
 
     # 収集開始状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
@@ -292,7 +293,7 @@ def stop(machine_id):
 def check(machine_id):
     """data_recorderによるデータ取り込みが完了したか確認。dataディレクトリにdatファイルが残っていなければ完了とみなす。"""
 
-    machine = Machine.query.get(machine_id)
+    machine: Machine = MachineDAO.select_by_id(machine_id)
 
     # 収集停止状態かつGW停止状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.STOP.value, common.STATUS.STOP.value)
