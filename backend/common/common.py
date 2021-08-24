@@ -23,7 +23,6 @@ from backend.common.common_logger import logger
 # グローバル定数
 APP_CONFIG_PATH: Final[str] = os.getenv("APP_CONFIG_PATH", "default_config_path.json")
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
-MARGIN: Final[float] = 0.1
 TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
 NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
 NUM_OF_LOAD_SENSOR: Final[int] = 4
