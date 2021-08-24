@@ -21,10 +21,11 @@ from backend.cut_out_shot.cut_out_shot import CutOutShot
 
 
 class TestInit:
-    def test_displacement_func_is_none_exception(self):
+    def test_displacement_func_is_none_exception(self, handler):
         with pytest.raises(SystemExit):
             CutOutShot(
                 machine_id="machine-01",
+                handler=handler,
                 load01_func=lambda x: x + 1.0,
                 load02_func=lambda x: x + 1.0,
                 load03_func=lambda x: x + 1.0,
