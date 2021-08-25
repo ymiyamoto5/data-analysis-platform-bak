@@ -1,8 +1,5 @@
 from typing import List
-from datetime import datetime
 from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
-from backend.data_collect_manager.models.machine import Machine
-from backend.data_collect_manager.models.db import db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 
@@ -20,12 +17,12 @@ class DataCollectHistoryDAO:
 
         return history
 
-    @staticmethod
-    def insert(machine: Machine, started_at: datetime) -> None:
-        """履歴の追加"""
-        new_data_collect_history = DataCollectHistory(
-            machine_id=machine.machine_id, machine_name=machine.machine_name, started_at=started_at, ended_at=None
-        )  # type: ignore
+    # @staticmethod
+    # def insert(machine: Machine, started_at: datetime) -> None:
+    #     """履歴の追加"""
+    #     new_data_collect_history = DataCollectHistory(
+    #         machine_id=machine.machine_id, machine_name=machine.machine_name, started_at=started_at, ended_at=None
+    #     )  # type: ignore
 
-        db.session.add(new_data_collect_history)
-        db.session.commit()
+    #     db.session.add(new_data_collect_history)
+    #     db.session.commit()

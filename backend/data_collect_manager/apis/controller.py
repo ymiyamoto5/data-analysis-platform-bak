@@ -104,7 +104,7 @@ def setup(machine_id):
             gateway.sequence_number += 1
             gateway.status = common.STATUS.RUNNING.value
         new_data_collect_history = DataCollectHistory(
-            machine_id=machine.machine_id, machine_name=machine.machine_name, started_at=jst_now.value, ended_at=None
+            machine_id=machine.machine_id, machine_name=machine.machine_name, started_at=utc_now, ended_at=None
         )
         db.session.add(new_data_collect_history)
         db.session.commit()
@@ -318,7 +318,6 @@ def check(machine_id):
             return jsonify({"message": message}), 500
 
         utc_now: datetime = datetime.utcnow()
-        jst_now: common.DisplayTime = common.DisplayTime(utc_now)
 
         successful: bool = EventManager.record_event(
             events_index, event_type=common.COLLECT_STATUS.RECORDED.value, occurred_time=utc_now
@@ -341,7 +340,7 @@ def check(machine_id):
                 .limit(1)
                 .one()
             )
-            data_collect_history.ended_at = jst_now.value
+            data_collect_history.ended_at = utc_now
             db.session.commit()
             return jsonify({}), 200
         except Exception as e:
