@@ -7,23 +7,35 @@ export default new Vuex.Store({
   strict: true,
   namespaced: true,
   state: {
-    showModalDialog: false,
-    modal_msg: '',
-    callback_func: null,
-    callback_func_param: null,
+    // ConfirmDialog
+    showConfirmDialog: false,
+    confirmMsg: '',
+    callbackFunc: null,
+    callbackFuncParam: null,
+    // ErrorDialog
+    showErrorDialog: false,
+    errorMsg: '',
   },
   mutations: {
-    set_showModalDialog(state, showModalDialog) {
-      state.showModalDialog = showModalDialog
+    // ConfirmDialog
+    setShowConfirmDialog(state, showConfirmDialog) {
+      state.showConfirmDialog = showConfirmDialog
     },
-    set_modal_msg(state, modal_msg) {
-      state.modal_msg = modal_msg
+    setConfirmMsg(state, confirmMsg) {
+      state.confirmMsg = confirmMsg
     },
-    set_callback_func(state, callback_func) {
-      state.callback_func = callback_func
+    setCallbackFunc(state, callbackFunc) {
+      state.callbackFunc = callbackFunc
     },
-    set_callback_func_param(state, callback_func_param) {
-      state.callback_func_param = callback_func_param
+    setCallbackFuncParam(state, callbackFuncParam) {
+      state.callbackFuncParam = callbackFuncParam
+    },
+    // ErrorDialog
+    setShowErrorDialog(state, showErrorDialog) {
+      state.showErrorDialog = showErrorDialog
+    },
+    setErrorMsg(state, errorMsg) {
+      state.errorMsg = errorMsg
     },
   },
 })
