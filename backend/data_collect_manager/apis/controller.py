@@ -68,11 +68,6 @@ def setup(machine_id):
 
     machine: Machine = MachineDAO.select_by_id(machine_id)
 
-    if machine is None:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
-        return jsonify({"message": message}), 500
-
     # 収集完了状態かつGW停止状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.RECORDED.value, common.STATUS.STOP.value)
     if not is_valid:
@@ -128,11 +123,6 @@ def start(machine_id):
 
     machine: Machine = MachineDAO.select_by_id(machine_id)
 
-    if machine is None:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
-        return jsonify({"message": message}), 500
-
     # 段取状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
     if not is_valid:
@@ -175,11 +165,6 @@ def pause(machine_id):
     utc_now: datetime = datetime.utcnow()
 
     machine: Machine = MachineDAO.select_by_id(machine_id)
-
-    if machine is None:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
-        return jsonify({"message": message}), 500
 
     # 収集開始状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
@@ -224,11 +209,6 @@ def resume(machine_id):
 
     machine: Machine = MachineDAO.select_by_id(machine_id)
 
-    if machine is None:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
-        return jsonify({"message": message}), 500
-
     # 収集中断状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.PAUSE.value, common.STATUS.RUNNING.value)
     if not is_valid:
@@ -270,11 +250,6 @@ def stop(machine_id):
     utc_now: datetime = datetime.utcnow()
 
     machine: Machine = MachineDAO.select_by_id(machine_id)
-
-    if machine is None:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
-        return jsonify({"message": message}), 500
 
     # 収集開始状態かつGW開始状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
@@ -319,11 +294,6 @@ def check(machine_id):
     """data_recorderによるデータ取り込みが完了したか確認。dataディレクトリにdatファイルが残っていなければ完了とみなす。"""
 
     machine: Machine = MachineDAO.select_by_id(machine_id)
-
-    if machine is None:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
-        return jsonify({"message": message}), 500
 
     # 収集停止状態かつGW停止状態であることが前提
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.STOP.value, common.STATUS.STOP.value)

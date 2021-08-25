@@ -6,13 +6,13 @@
           <div class="modal-header"></div>
 
           <div class="modal-body">
-            {{ $store.state.modal_msg }}
+            {{ $store.state.confirmMsg }}
           </div>
 
           <div class="btns">
             <button
               class="btn"
-              @click="$store.commit('set_showModalDialog', false)"
+              @click="$store.commit('setShowConfirmDialog', false)"
             >
               キャンセル
             </button>
@@ -28,11 +28,11 @@
 
 <script>
 export default {
-  name: 'ModalDialog',
+  name: 'ConfirmDialog',
   methods: {
     do_yes() {
-      this.$store.state.callback_func(this.$store.state.callback_func_param)
-      this.$store.commit('set_showModalDialog', false)
+      this.$store.state.callbackFunc(this.$store.state.callbackFuncParam)
+      this.$store.commit('setShowConfirmDialog', false)
     },
   },
 }

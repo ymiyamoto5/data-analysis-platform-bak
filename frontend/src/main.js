@@ -3,8 +3,10 @@ import App from './App.vue'
 import vuetify from './plugins/vuetify'
 import router from '@/router'
 import store from '@/store/store'
-import ModalDialog from '@/components/ModalDialog'
-Vue.component('ModalDialog', ModalDialog)
+import ConfirmDialog from '@/components/ConfirmDialog'
+import ErrorDialog from '@/components/ErrorDialog'
+Vue.component('ConfirmDialog', ConfirmDialog)
+Vue.component('ErrorDialog', ErrorDialog)
 
 Vue.config.productionTip = false
 

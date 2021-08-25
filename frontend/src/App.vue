@@ -1,6 +1,7 @@
 <template>
   <div id="app">
-    <ModalDialog v-if="$store.state.showModalDialog" />
+    <ConfirmDialog v-if="$store.state.showConfirmDialog" />
+    <ErrorDialog v-if="$store.state.showErrorDialog" />
     <MainWindow />
   </div>
 </template>

@@ -143,11 +143,15 @@ export default {
     this.fetchTableData()
   },
   methods: {
-    show_dialog(message, callback, param) {
-      this.$store.commit('set_showModalDialog', true)
-      this.$store.commit('set_modal_msg', message)
-      this.$store.commit('set_callback_func', callback)
-      this.$store.commit('set_callback_func_param', param)
+    confirmDialog(message, callback, param) {
+      this.$store.commit('setShowConfirmDialog', true)
+      this.$store.commit('setConfirmMsg', message)
+      this.$store.commit('setCallbackFunc', callback)
+      this.$store.commit('setCallbackFuncParam', param)
+    },
+    errorDialog(message) {
+      this.$store.commit('setShowErrorDialog', true)
+      this.$store.commit('setErrorMsg', message)
     },
     fetchTableData: async function() {
       const client = createBaseApiClient()
@@ -164,7 +168,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
-          this.show_dialog(e.response.data.message)
+          this.confirm_dialog(e.response.data.message)
         })
     },
     setup: async function(machine_id) {
@@ -176,7 +180,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
-          this.show_dialog(e.response.data.message, null)
+          this.errorDialog(e.response.data.message)
         })
     },
     start: async function(machine_id) {
@@ -188,22 +192,24 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
     },
     beforeStop(machine_id) {
-      this.show_dialog('停止してもよいですか？', this.stop, machine_id)
+      this.confirmDialog('停止してもよいですか？', this.stop, machine_id)
     },
     stop: async function(machine_id) {
       const client = createBaseApiClient()
       await client
         .post(STOP_API_URL + machine_id)
         .then(() => {
+          this.fetchTableData()
           // データファイルがなくなるまで待ち
           this.check(machine_id)
-          this.fetchTableData()
         })
         .catch((e) => {
           console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
     },
     check: async function(machine_id) {
@@ -215,6 +221,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
     },
     pause: async function(machine_id) {
@@ -226,6 +233,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
     },
     resume: async function(machine_id) {
@@ -237,6 +245,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
     },
   },
