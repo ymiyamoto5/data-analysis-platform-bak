@@ -1,19 +1,17 @@
 <template>
-  <v-app id="inspire">
-    <v-navigation-drawer
-      v-model="drawer"
-      app
-      class="pt-4"
-      color="blue"
-      mini-variant
-    >
-      <template v-for="item in items">
-        <v-list-item :key="item.name" :to="item.link">
-          <v-icon large dark>{{ item.icon }}</v-icon>
-        </v-list-item>
-      </template>
+  <v-app>
+    <v-navigation-drawer app permanent expand-on-hover class="blue" dark>
+      <v-list nav dense>
+        <template v-for="item in items">
+          <v-list-item :key="item.name" :to="item.link">
+            <v-list-item-icon>
+              <v-icon large dark>{{ item.icon }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>{{ item.name }}</v-list-item-title>
+          </v-list-item>
+        </template>
+      </v-list>
     </v-navigation-drawer>
-
     <v-main>
       <router-view />
     </v-main>
@@ -61,10 +59,5 @@ export default {
 #v-main {
   margin: 10px;
   padding: 10px;
-}
-
-.v-icon {
-  margin-top: 15px;
-  margin-bottom: 15px;
 }
 </style>
