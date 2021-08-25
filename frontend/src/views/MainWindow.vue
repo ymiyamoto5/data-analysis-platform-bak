@@ -21,7 +21,11 @@
 </template>
 
 <script>
-import { DATA_COLLECT_PATH, DATA_COLLECT_HISTORY_PATH } from '@/router'
+import {
+  DATA_COLLECT_PATH,
+  DATA_COLLECT_HISTORY_PATH,
+  CONFIGURE_PATH,
+} from '@/router'
 
 export default {
   name: 'main-window',
@@ -42,9 +46,10 @@ export default {
           link: DATA_COLLECT_HISTORY_PATH,
         },
         {
-          id: 'config',
+          id: 'configure',
           name: '設定',
           icon: 'mdi-cog-outline',
+          link: CONFIGURE_PATH,
         },
       ],
     }
