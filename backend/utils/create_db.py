@@ -200,14 +200,14 @@ db.session.add(sensor_05)
 data_collect_history_1 = DataCollectHistory(
     machine_id="machine-01",
     machine_name="テストプレス01",
-    started_at=datetime.now() - timedelta(hours=5),
-    ended_at=datetime.now() - timedelta(hours=4),
+    started_at=datetime.utcnow() - timedelta(hours=5),
+    ended_at=datetime.utcnow() - timedelta(hours=4),
 )
 data_collect_history_2 = DataCollectHistory(
     machine_id="machine-01",
     machine_name="テストプレス01",
-    started_at=datetime.now() - timedelta(hours=2),
-    ended_at=datetime.now() - timedelta(hours=1),
+    started_at=datetime.utcnow() - timedelta(hours=2),
+    ended_at=datetime.utcnow() - timedelta(hours=1),
 )
 
 db.session.add(data_collect_history_1)
