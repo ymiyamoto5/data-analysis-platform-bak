@@ -1,7 +1,7 @@
 <template>
   <v-app>
-    <v-navigation-drawer app permanent expand-on-hover class="blue" dark>
-      <v-list nav dense>
+    <v-navigation-drawer app permanent expand-on-hover class="primary" dark>
+      <v-list nav>
         <template v-for="item in items">
           <v-list-item :key="item.name" :to="item.link">
             <v-list-item-icon>
@@ -22,7 +22,7 @@
 import {
   DATA_COLLECT_PATH,
   DATA_COLLECT_HISTORY_PATH,
-  CONFIGURE_PATH,
+  SETTINGS_PATH,
 } from '@/router'
 
 export default {
@@ -44,10 +44,10 @@ export default {
           link: DATA_COLLECT_HISTORY_PATH,
         },
         {
-          id: 'configure',
+          id: 'settings',
           name: '設定',
           icon: 'mdi-cog-outline',
-          link: CONFIGURE_PATH,
+          link: SETTINGS_PATH,
         },
       ],
     }

@@ -4,6 +4,7 @@
       <router-link :key="item.name" :to="item.link">
         {{ item.name }}
       </router-link>
+      <v-divider :key="item.name" class="mx-4" inset vertical></v-divider>
     </template>
     <router-view />
   </div>
@@ -18,7 +19,7 @@ import {
 } from '@/router'
 
 export default {
-  name: 'configure',
+  name: 'settings',
   components: {},
   data() {
     return {
