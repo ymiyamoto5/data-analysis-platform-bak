@@ -15,7 +15,7 @@
               新規作成
             </v-btn>
           </template>
-          <v-card>
+          <v-card ref="form">
             <v-card-title>
               <span class="text-h5">{{ formTitle }}</span>
             </v-card-title>
@@ -26,6 +26,7 @@
                   <v-col cols="12" sm="6" md="4">
                     <v-text-field
                       v-model="editedItem.machine_id"
+                      :rules="[rules.required, rules.counter, rules.idPattern]"
                       label="機器ID"
                       v-bind="readOnlyID"
                     ></v-text-field>
@@ -33,6 +34,7 @@
                   <v-col cols="12" sm="6" md="4">
                     <v-text-field
                       v-model="editedItem.machine_name"
+                      :rules="[rules.required, rules.counter]"
                       label="機器名"
                     ></v-text-field>
                   </v-col>
@@ -123,6 +125,18 @@ export default {
       machine_type_id: 0,
     },
     machineTypes: [],
+    // validation rules
+    rules: {
+      required: (value) => !!value || '必須です。',
+      counter: (value) => value.length <= 255 || '最大255文字です。',
+      idPattern: (value) => {
+        const pattern = /^[0-9a-zA-Z-]+$/
+        return (
+          pattern.test(value) ||
+          '半角のアルファベット/数字/ハイフンのみ使用可能です。'
+        )
+      },
+    },
   }),
 
   computed: {
