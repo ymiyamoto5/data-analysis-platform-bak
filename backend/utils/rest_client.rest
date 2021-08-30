@@ -150,6 +150,9 @@ content-type: application/json
     "handler_id": "AD-USB-1608"
 }
 
+### get created
+GET http://localhost:5000/api/v1/sensors/22
+
 ### update
 POST http://localhost:5000/api/v1/sensors/22/update HTTP/1.1
 content-type: application/json
