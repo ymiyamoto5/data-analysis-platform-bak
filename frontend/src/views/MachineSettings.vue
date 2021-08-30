@@ -15,41 +15,34 @@
               新規作成
             </v-btn>
           </template>
-          <v-card ref="form">
+          <v-card>
             <v-card-title>
               <span class="text-h5">{{ formTitle }}</span>
             </v-card-title>
 
             <v-card-text>
-              <v-container>
-                <v-row>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.machine_id"
-                      :rules="[rules.required, rules.counter, rules.idPattern]"
-                      label="機器ID"
-                      v-bind="readOnlyID"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.machine_name"
-                      :rules="[rules.required, rules.counter]"
-                      label="機器名"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-select
-                      item-text="machine_type_name"
-                      item-value="id"
-                      :items="machineTypes"
-                      label="機種"
-                      v-model="editedItem.machine_type_id"
-                    >
-                    </v-select>
-                  </v-col>
-                </v-row>
-              </v-container>
+              <v-form ref="form_group">
+                <v-text-field
+                  v-model="editedItem.machine_id"
+                  :rules="[rules.required, rules.counter, rules.idPattern]"
+                  label="機器ID"
+                  v-bind="readOnlyID"
+                ></v-text-field>
+                <v-text-field
+                  v-model="editedItem.machine_name"
+                  :rules="[rules.required, rules.counter]"
+                  label="機器名"
+                ></v-text-field>
+                <v-select
+                  v-model="editedItem.machine_type_id"
+                  :rules="[rules.required]"
+                  item-text="machine_type_name"
+                  item-value="id"
+                  :items="machineTypes"
+                  label="機種"
+                >
+                </v-select>
+              </v-form>
             </v-card-text>
 
             <v-card-actions>
@@ -65,9 +58,9 @@
         </v-dialog>
         <v-dialog v-model="dialogDelete" max-width="500px">
           <v-card>
-            <v-card-title class="text-h5"
-              >本当に削除してもよいですか？</v-card-title
-            >
+            <v-card-title class="text-h6">
+              機器ID：{{ editedItem.machine_id }} を削除してもよいですか？
+            </v-card-title>
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn color="blue darken-1" text @click="closeDelete"
@@ -125,7 +118,7 @@ export default {
       machine_type_id: 0,
     },
     machineTypes: [],
-    // validation rules
+    // validation
     rules: {
       required: (value) => !!value || '必須です。',
       counter: (value) => value.length <= 255 || '最大255文字です。',
@@ -215,6 +208,10 @@ export default {
 
     // [保存] 押下時の処理（update or insert）
     save: async function() {
+      // form_groupと名付けたv-formを参照し、検証してエラーがあれば何もしない。
+      if (!this.$refs.form_group.validate()) {
+        return
+      }
       let postUrl = ''
       let postData = {}
       // update
@@ -240,7 +237,8 @@ export default {
       await client
         .post(postUrl, postData)
         .then(() => {
-          this.close()
+          // this.close()
+          this.dialog = false
           this.fetchTableData()
         })
         .catch((e) => {
@@ -252,9 +250,10 @@ export default {
     // 新規作成 or 編集ダイアログclose
     close() {
       this.dialog = false
-      this.$nextTick(function() {
+      this.$nextTick(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
+        this.$refs.form_group.resetValidation()
       })
     },
 
@@ -274,7 +273,7 @@ export default {
       await client
         .post(postUrl)
         .then(() => {
-          this.closeDelete()
+          this.dialogDelete = false
           this.fetchTableData()
         })
         .catch((e) => {
@@ -289,6 +288,7 @@ export default {
       this.$nextTick(function() {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
+        this.$refs.form_group.resetValidation()
       })
     },
   },
