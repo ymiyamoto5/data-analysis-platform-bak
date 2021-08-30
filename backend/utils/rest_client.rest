@@ -141,12 +141,34 @@ GET http://localhost:5000/api/v1/sensors
 GET http://localhost:5000/api/v1/sensors/1
 
 ### create
+POST http://localhost:5000/api/v1/sensors HTTP/1.1
+content-type: application/json
+
+{
+    "sensor_name": "test",
+    "sensor_type_id": 1,
+    "handler_id": "AD-USB-1608"
+}
+
+### get created
+GET http://localhost:5000/api/v1/sensors/22
 
 ### update
+POST http://localhost:5000/api/v1/sensors/22/update HTTP/1.1
+content-type: application/json
+
+{
+    "sensor_name": "test-update",
+    "sensor_type_id": 2,
+    "handler_id": "AD-USB-xxxx"
+}
 
 ### get updated
+GET http://localhost:5000/api/v1/sensors/22
 
 ### delete
+POST http://localhost:5000/api/v1/sensors/22/delete HTTP/1.1
+content-type: application/json
 
 # controller
 

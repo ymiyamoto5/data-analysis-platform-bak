@@ -16,7 +16,7 @@ class SensorDAO:
         return sensors
 
     @staticmethod
-    def select_by_id(sensor_id: str) -> Sensor:
+    def select_by_id(sensor_id: int) -> Sensor:
         sensor: Sensor = Sensor.query.options(
             joinedload(Sensor.sensor_type),
         ).get(sensor_id)
@@ -29,7 +29,6 @@ class SensorDAO:
         handlers: List[Handler] = Handler.query.filter_by(handler_id=insert_data["handler_id"]).all()
 
         new_sensor = Sensor(
-            sensor_id=insert_data["sensor_id"],
             sensor_name=insert_data["sensor_name"],
             sensor_type_id=insert_data["sensor_type_id"],
             handlers=handlers,
@@ -39,7 +38,7 @@ class SensorDAO:
         db.session.commit()
 
     @staticmethod
-    def update(sensor_id: str, update_data: dict) -> None:
+    def update(sensor_id: int, update_data: dict) -> None:
         # 更新対象取得
         sensor = SensorDAO.select_by_id(sensor_id)
 
@@ -57,7 +56,7 @@ class SensorDAO:
         db.session.commit()
 
     @staticmethod
-    def delete(sensor_id: str) -> None:
-        Sensor.query.filter_by(sensor_id=sensor_id).delete()
+    def delete(sensor_id: int) -> None:
+        Sensor.query.filter_by(id=sensor_id).delete()
 
         db.session.commit()
