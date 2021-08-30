@@ -42,7 +42,7 @@
                       item-value="id"
                       :items="machineTypes"
                       label="機種"
-                      @change="setMachineTypes"
+                      v-model="editedItem.machine_type_id"
                     >
                     </v-select>
                   </v-col>
@@ -80,7 +80,7 @@
         </v-dialog>
       </v-toolbar>
     </template>
-    <template v-slot:item.actions="{ item }">
+    <template v-slot:[`item.actions`]="{ item }">
       <v-icon small class="mr-2" @click="editItem(item)">
         mdi-pencil
       </v-icon>
@@ -117,6 +117,11 @@ export default {
       machine_name: '',
       machine_type_id: 0,
     },
+    defaultItem: {
+      machine_id: '',
+      machine_name: '',
+      machine_type_id: 0,
+    },
     machineTypes: [],
   }),
 
@@ -129,6 +134,7 @@ export default {
     },
   },
 
+  // dialogをwatchし、val（bool値）に応じてクローズ
   watch: {
     dialog(val) {
       val || this.close()
@@ -164,12 +170,8 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
-          this.confirm_dialog(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
-    },
-
-    setMachineTypes(value) {
-      this.editedItem.machine_type_id = value
     },
 
     fetchTableData: async function() {
@@ -186,41 +188,15 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
-          this.confirm_dialog(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
     },
 
+    // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
       this.editedIndex = this.machines.indexOf(item)
       this.editedItem = Object.assign({}, item)
       this.dialog = true
-    },
-
-    deleteItem(item) {
-      this.editedIndex = this.machines.indexOf(item)
-      this.editedItem = Object.assign({}, item)
-      this.dialogDelete = true
-    },
-
-    deleteItemConfirm() {
-      this.machines.splice(this.editedIndex, 1)
-      this.closeDelete()
-    },
-
-    close() {
-      this.dialog = false
-      this.$nextTick(() => {
-        this.editedItem = Object.assign({}, this.defaultItem)
-        this.editedIndex = -1
-      })
-    },
-
-    closeDelete() {
-      this.dialogDelete = false
-      this.$nextTick(() => {
-        this.editedItem = Object.assign({}, this.defaultItem)
-        this.editedIndex = -1
-      })
     },
 
     // [保存] 押下時の処理（update or insert）
@@ -257,6 +233,49 @@ export default {
           console.log(e.response.data.message)
           this.errorDialog(e.response.data.message)
         })
+    },
+
+    // 新規作成 or 編集ダイアログclose
+    close() {
+      this.dialog = false
+      this.$nextTick(function() {
+        this.editedItem = Object.assign({}, this.defaultItem)
+        this.editedIndex = -1
+      })
+    },
+
+    // 削除ダイアログ表示
+    deleteItem(item) {
+      this.editedIndex = this.machines.indexOf(item)
+      this.editedItem = Object.assign({}, item)
+      this.dialogDelete = true
+    },
+
+    // 削除
+    deleteItemConfirm: async function() {
+      const postUrl =
+        MACHINES_API_URL + '/' + this.editedItem.machine_id + '/delete'
+
+      const client = createBaseApiClient()
+      await client
+        .post(postUrl)
+        .then(() => {
+          this.closeDelete()
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
+        })
+    },
+
+    // 削除ダイアログclose
+    closeDelete() {
+      this.dialogDelete = false
+      this.$nextTick(function() {
+        this.editedItem = Object.assign({}, this.defaultItem)
+        this.editedIndex = -1
+      })
     },
   },
 }
