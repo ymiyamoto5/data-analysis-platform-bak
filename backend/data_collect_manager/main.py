@@ -14,6 +14,7 @@ import sqlalchemy.engine
 from sqlalchemy import event
 from flask_cors import CORS  # type: ignore
 from backend.data_collect_manager.models.db import register_db
+from backend.data_collect_manager.apis.machine_types import machine_types
 from backend.data_collect_manager.apis.machines import machines
 from backend.data_collect_manager.apis.gateways import gateways
 from backend.data_collect_manager.apis.handlers import handlers
@@ -43,6 +44,7 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor.close()
 
 
+app.register_blueprint(machine_types, url_prefix="/api/v1")
 app.register_blueprint(machines, url_prefix="/api/v1")
 app.register_blueprint(gateways, url_prefix="/api/v1")
 app.register_blueprint(handlers, url_prefix="/api/v1")
