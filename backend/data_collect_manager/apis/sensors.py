@@ -1,5 +1,5 @@
-from flask import Blueprint, json, jsonify, request
-from marshmallow import Schema, fields, ValidationError, validate
+from flask import Blueprint, jsonify, request
+from marshmallow import Schema, fields, ValidationError
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.data_collect_manager.dao.sensor_dao import SensorDAO
 from backend.common.error_message import ErrorMessage, ErrorTypes
