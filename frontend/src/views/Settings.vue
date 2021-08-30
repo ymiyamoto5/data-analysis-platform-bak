@@ -4,7 +4,7 @@
       <router-link :key="item.name" :to="item.link">
         {{ item.name }}
       </router-link>
-      <v-divider :key="item.name" class="mx-4" inset vertical></v-divider>
+      <!-- <v-divider :key="item.name" class="mx-4" inset vertical></v-divider> -->
     </template>
     <router-view />
   </div>

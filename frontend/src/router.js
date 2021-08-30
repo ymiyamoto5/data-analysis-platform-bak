@@ -36,7 +36,6 @@ const routes = [
   },
   {
     path: SETTINGS_PATH,
-    name: SETTINGS_NAME,
     component: () => import('@/views/Settings.vue'),
     children: [
       // default path
