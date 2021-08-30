@@ -168,7 +168,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.message)
-          this.confirm_dialog(e.response.data.message)
+          this.errorDialog(e.response.data.message)
         })
     },
     setup: async function(machine_id) {

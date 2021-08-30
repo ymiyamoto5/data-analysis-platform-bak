@@ -1,6 +1,10 @@
 # HOW_TO_USE
 # https://marketplace.visualstudio.com/items?itemName=humao.rest-client
 
+# machine_types
+### get list
+GET http://localhost:5000/api/v1/machine_types
+
 # machines
 ### get list
 GET http://localhost:5000/api/v1/machines
