@@ -20,6 +20,35 @@
               <span class="text-h5">{{ formTitle }}</span>
             </v-card-title>
 
+            <v-card-text>
+              <v-container>
+                <v-row>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-text-field
+                      v-model="editedItem.machine_id"
+                      label="機器ID"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-text-field
+                      v-model="editedItem.machine_name"
+                      label="機器名"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-select
+                      item-text="machine_type_name"
+                      item-value="id"
+                      :items="machineTypes"
+                      label="機種"
+                      @change="setMachineTypes"
+                    >
+                    </v-select>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-card-text>
+
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn color="blue darken-1" text @click="close">
@@ -64,12 +93,12 @@
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 const MACHINES_API_URL = '/api/v1/machines'
+const MACHINE_TYPES_API_URL = '/api/v1/machine_types'
 
 export default {
   data: () => ({
     dialog: false,
     dialogDelete: false,
-    editedIndex: -1,
     headers: [
       {
         text: '機器ID',
@@ -77,9 +106,17 @@ export default {
         value: 'machine_id',
       },
       { text: '機器名', value: 'machine_name' },
+      { text: '機種', value: 'machine_type.machine_type_name' },
       { text: 'アクション', value: 'actions', sortable: false },
     ],
     machines: [],
+    editedIndex: -1,
+    editedItem: {
+      machine_id: '',
+      machine_name: '',
+      machine_type_id: 0,
+    },
+    machineTypes: [],
   }),
 
   computed: {
@@ -99,9 +136,38 @@ export default {
 
   created() {
     this.fetchTableData()
+    this.fetchMachineTypes()
   },
 
   methods: {
+    errorDialog(message) {
+      this.$store.commit('setShowErrorDialog', true)
+      this.$store.commit('setErrorMsg', message)
+    },
+
+    // ドロップダウンリスト用データ取得
+    fetchMachineTypes: async function() {
+      const client = createBaseApiClient()
+      let data = []
+      await client
+        .get(MACHINE_TYPES_API_URL)
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          data = res.data
+          this.machineTypes = data
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+          this.confirm_dialog(e.response.data.message)
+        })
+    },
+
+    setMachineTypes(value) {
+      this.editedItem.machine_type_id = value
+    },
+
     fetchTableData: async function() {
       const client = createBaseApiClient()
       let data = []
@@ -153,13 +219,41 @@ export default {
       })
     },
 
-    save() {
+    // [保存] 押下時の処理（update or insert）
+    save: async function() {
+      let postUrl = ''
+      let postData = {}
+      // update
       if (this.editedIndex > -1) {
-        Object.assign(this.machines[this.editedIndex], this.editedItem)
-      } else {
-        this.machines.push(this.editedItem)
+        postUrl =
+          MACHINES_API_URL + '/' + this.editedItem.machine_id + '/update'
+        postData = {
+          machine_id: this.editedItem.machine_id,
+          machine_name: this.editedItem.machine_name,
+          machine_type_id: this.editedItem.machine_type_id,
+        }
       }
-      this.close()
+      // insert
+      else {
+        postUrl = MACHINES_API_URL
+        postData = {
+          machine_id: this.editedItem.machine_id,
+          machine_name: this.editedItem.machine_name,
+          machine_type_id: this.editedItem.machine_type_id,
+        }
+      }
+
+      const client = createBaseApiClient()
+      await client
+        .post(postUrl, postData)
+        .then(() => {
+          this.close()
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
+        })
     },
   },
 }
