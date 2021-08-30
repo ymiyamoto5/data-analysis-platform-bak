@@ -27,6 +27,7 @@
                     <v-text-field
                       v-model="editedItem.machine_id"
                       label="機器ID"
+                      v-bind="readOnlyID"
                     ></v-text-field>
                   </v-col>
                   <v-col cols="12" sm="6" md="4">
@@ -122,6 +123,9 @@ export default {
   computed: {
     formTitle() {
       return this.editedIndex === -1 ? '新規作成' : '編集'
+    },
+    readOnlyID() {
+      return this.editedIndex === -1 ? { disabled: false } : { disabled: true }
     },
   },
 
@@ -228,7 +232,6 @@ export default {
         postUrl =
           MACHINES_API_URL + '/' + this.editedItem.machine_id + '/update'
         postData = {
-          machine_id: this.editedItem.machine_id,
           machine_name: this.editedItem.machine_name,
           machine_type_id: this.editedItem.machine_type_id,
         }
