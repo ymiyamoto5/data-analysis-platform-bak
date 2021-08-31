@@ -250,11 +250,12 @@ export default {
     // 新規作成 or 編集ダイアログclose
     close() {
       this.dialog = false
-      this.$nextTick(() => {
+      // HACK: https://qiita.com/funkj/items/f19bdab0f0430e45323d
+      setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
         this.$refs.form_group.resetValidation()
-      })
+      }, 500)
     },
 
     // 削除ダイアログ表示
@@ -285,7 +286,7 @@ export default {
     // 削除ダイアログclose
     closeDelete() {
       this.dialogDelete = false
-      this.$nextTick(function() {
+      setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
         this.$refs.form_group.resetValidation()
