@@ -6,6 +6,7 @@ from logging import config, getLogger, Logger
 CONF_FILE_NAME = "logging.conf"
 ENV_KEY: str = "LOGGING_CONF"
 logger: Logger
+data_recorder_logger: Logger
 
 
 def findConf() -> str:
@@ -62,8 +63,12 @@ def main() -> None:
 
     conf_yaml = yaml.load(open(conf_file).read(), Loader=yaml.SafeLoader)
     config.dictConfig(conf_yaml)
+
     global logger
     logger = getLogger("backend")
+
+    global data_recorder_logger
+    data_recorder_logger = getLogger("data_recorder")
 
 
 # call main.

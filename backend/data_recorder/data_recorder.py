@@ -31,7 +31,7 @@ from backend.common.dao.machine_dao import MachineDAO
 from backend.common.dao.handler_dao import HandlerDAO
 from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.handler import Handler
-from backend.common.common_logger import logger
+from backend.common.common_logger import data_recorder_logger as logger
 
 
 @dataclasses.dataclass
