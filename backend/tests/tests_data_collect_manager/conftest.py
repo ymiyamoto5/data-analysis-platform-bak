@@ -9,17 +9,14 @@
 
 # """
 
-# import pytest
-# import os
-# import sys
+import pytest
 
-# sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
-# from backend.data_collect_manager import app
+from backend.data_collect_manager.main import app
 
 
-# @pytest.fixture
-# def client():
-#     app.config["TESTING"] = True
-#     client = app.test_client()
+@pytest.fixture
+def client():
+    app.config["TESTING"] = True
+    client = app.test_client()
 
-#     yield client
+    yield client

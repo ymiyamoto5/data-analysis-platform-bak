@@ -1,9 +1,8 @@
 from flask import Blueprint, jsonify
 from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.dao.machine_dao import MachineDAO
-from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
+from backend.data_collect_manager.dao.controller_dao import ControlerDAO
 from backend.data_collect_manager.models.db import db
-from sqlalchemy import desc
 from typing import Optional, List, Tuple, Final
 from datetime import datetime
 import os
@@ -99,15 +98,7 @@ def setup(machine_id):
 
     # TODO: DAOへの移動およびトランザクション化
     try:
-        machine.collect_status = common.COLLECT_STATUS.SETUP.value
-        for gateway in machine.gateways:
-            gateway.sequence_number += 1
-            gateway.status = common.STATUS.RUNNING.value
-        new_data_collect_history = DataCollectHistory(
-            machine_id=machine.machine_id, machine_name=machine.machine_name, started_at=utc_now, ended_at=None
-        )
-        db.session.add(new_data_collect_history)
-        db.session.commit()
+        ControlerDAO.setup(machine=machine, utc_now=utc_now)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -149,8 +140,9 @@ def start(machine_id):
 
     # DB更新
     try:
-        machine.collect_status = common.COLLECT_STATUS.START.value
-        db.session.commit()
+        MachineDAO.update(
+            machine_id=machine.machine_id, update_data={"collect_status": common.COLLECT_STATUS.START.value}
+        )
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -192,8 +184,9 @@ def pause(machine_id):
 
     # DB更新
     try:
-        machine.collect_status = common.COLLECT_STATUS.PAUSE.value
-        db.session.commit()
+        MachineDAO.update(
+            machine_id=machine.machine_id, update_data={"collect_status": common.COLLECT_STATUS.PAUSE.value}
+        )
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -234,8 +227,9 @@ def resume(machine_id):
     # DB更新
     try:
         # RESUMEはDBの状態としては保持しない。STARTに更新する。
-        machine.collect_status = common.COLLECT_STATUS.START.value
-        db.session.commit()
+        MachineDAO.update(
+            machine_id=machine.machine_id, update_data={"collect_status": common.COLLECT_STATUS.START.value}
+        )
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -277,11 +271,7 @@ def stop(machine_id):
 
     # DB更新
     try:
-        machine.collect_status = common.COLLECT_STATUS.STOP.value
-        for gateway in machine.gateways:
-            gateway.sequence_number += 1
-            gateway.status = common.STATUS.STOP.value
-        db.session.commit()
+        ControlerDAO.stop(machine=machine)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -309,7 +299,7 @@ def check(machine_id):
             time.sleep(WAIT_SECONDS)
             continue
 
-        # events_indexに記録完了イベントを記録
+        # 最新のevents_indexを取得し、記録完了イベントを記録
         events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
 
         if events_index is None:
@@ -332,16 +322,7 @@ def check(machine_id):
 
         # DB更新
         try:
-            machine.collect_status = common.COLLECT_STATUS.RECORDED.value
-
-            data_collect_history = (
-                DataCollectHistory.query.filter(DataCollectHistory.machine_id == machine.machine_id)
-                .order_by(desc(DataCollectHistory.started_at))
-                .limit(1)
-                .one()
-            )
-            data_collect_history.ended_at = utc_now
-            db.session.commit()
+            ControlerDAO.record(machine=machine, utc_now=utc_now)
             return jsonify({}), 200
         except Exception as e:
             logger.error(traceback.format_exc())
