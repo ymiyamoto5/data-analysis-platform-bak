@@ -6,7 +6,7 @@ from backend.data_collect_manager.models.db import db
 from backend.common import common
 
 
-class ControlerDAO:
+class ControllerDAO:
     @staticmethod
     def setup(machine: Machine, utc_now: datetime) -> None:
         """収集セットアップ開始時の機器、ゲートウェイ、および収集履歴を更新"""
