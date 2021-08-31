@@ -1,8 +1,7 @@
 from flask import Blueprint, jsonify
 from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.dao.machine_dao import MachineDAO
-from backend.data_collect_manager.dao.controller_dao import ControlerDAO
-from backend.data_collect_manager.models.db import db
+from backend.data_collect_manager.dao.controller_dao import ControllerDAO
 from typing import Optional, List, Tuple, Final
 from datetime import datetime
 import os
@@ -96,9 +95,8 @@ def setup(machine_id):
 
     logger.info(f"'{common.COLLECT_STATUS.SETUP.value}' was recorded.")
 
-    # TODO: DAOへの移動およびトランザクション化
     try:
-        ControlerDAO.setup(machine=machine, utc_now=utc_now)
+        ControllerDAO.setup(machine=machine, utc_now=utc_now)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -271,7 +269,7 @@ def stop(machine_id):
 
     # DB更新
     try:
-        ControlerDAO.stop(machine=machine)
+        ControllerDAO.stop(machine=machine)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -322,7 +320,7 @@ def check(machine_id):
 
         # DB更新
         try:
-            ControlerDAO.record(machine=machine, utc_now=utc_now)
+            ControllerDAO.record(machine=machine, utc_now=utc_now)
             return jsonify({}), 200
         except Exception as e:
             logger.error(traceback.format_exc())
