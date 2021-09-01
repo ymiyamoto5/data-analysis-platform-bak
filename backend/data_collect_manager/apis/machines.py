@@ -13,18 +13,21 @@ machines = Blueprint("machines", __name__)
 class MachineSchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
-    machine_id = fields.Str(required=True, validate=character_validate)
+    machine_id = fields.Str(required=True, validate=[character_validate, validate.Length(min=1, max=255)])
     machine_name = fields.Str(validate=validate.Length(min=1, max=255))
     collect_status = fields.Str(
-        validate=validate.OneOf(
-            (
-                common.COLLECT_STATUS.SETUP.value,
-                common.COLLECT_STATUS.START.value,
-                common.COLLECT_STATUS.PAUSE.value,
-                common.COLLECT_STATUS.STOP.value,
-                common.COLLECT_STATUS.RECORDED.value,
-            )
-        )
+        validate=[
+            validate.OneOf(
+                (
+                    common.COLLECT_STATUS.SETUP.value,
+                    common.COLLECT_STATUS.START.value,
+                    common.COLLECT_STATUS.PAUSE.value,
+                    common.COLLECT_STATUS.STOP.value,
+                    common.COLLECT_STATUS.RECORDED.value,
+                )
+            ),
+            validate.Length(min=1, max=255),
+        ]
     )
     machine_type_id = fields.Int()
 

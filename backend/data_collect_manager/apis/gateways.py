@@ -14,12 +14,17 @@ gateways = Blueprint("gateways", __name__)
 class GatewaySchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
-    gateway_id = fields.Str(required=True, validate=character_validate)
+    gateway_id = fields.Str(required=True, validate=[character_validate, validate.Length(min=1, max=255)])
     sequence_number = fields.Int(validate=validate.Range(min=-1))
     gateway_result = fields.Int(validate=validate.Range(min=-1, max=1))
-    status = fields.Str(validate=validate.OneOf((common.STATUS.STOP.value, common.STATUS.RUNNING.value)))
+    status = fields.Str(
+        validate=[
+            validate.OneOf((common.STATUS.STOP.value, common.STATUS.RUNNING.value)),
+            validate.Length(min=1, max=255),
+        ]
+    )
     log_level = fields.Int(validate=validate.Range(min=0, max=5))
-    machine_id = fields.Str(validate=character_validate)
+    machine_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
 
 
 gateway_create_schema = GatewaySchema(only=("gateway_id", "log_level", "machine_id"))
