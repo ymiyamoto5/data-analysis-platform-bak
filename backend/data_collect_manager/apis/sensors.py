@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from marshmallow import Schema, fields, ValidationError
+from marshmallow import Schema, fields, ValidationError, validate
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.data_collect_manager.dao.sensor_dao import SensorDAO
 from backend.common.error_message import ErrorMessage, ErrorTypes
@@ -12,9 +12,9 @@ sensors = Blueprint("sensors", __name__)
 class SensorSchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
-    sensor_name = fields.Str()
+    sensor_name = fields.Str(validate=validate.Length(min=1, max=255))
     sensor_type_id = fields.Int(required=True)
-    handler_id = fields.Str(validate=character_validate)
+    handler_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
 
 
 sensor_create_schema = SensorSchema()

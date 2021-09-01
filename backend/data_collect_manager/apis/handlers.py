@@ -12,13 +12,13 @@ handlers = Blueprint("handlers", __name__)
 class HandlerSchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
-    handler_id = fields.Str(required=True, validate=character_validate)
-    adc_serial_num = fields.Str(validate=character_validate)
-    handler_type = fields.Str()
+    handler_id = fields.Str(required=True, validate=[character_validate, validate.Length(min=1, max=255)])
+    adc_serial_num = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
+    handler_type = fields.Str(validate=validate.Length(min=1, max=255))
     sampling_frequency = fields.Int(validate=validate.Range(min=1, max=100_000))
     sampling_ch_num = fields.Int(validate=validate.Range(min=1, max=16))
     filewrite_time = fields.Int(validate=validate.Range(min=1, max=60))
-    gateway_id = fields.Str(validate=character_validate)
+    gateway_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
 
 
 handler_create_schema = HandlerSchema()
