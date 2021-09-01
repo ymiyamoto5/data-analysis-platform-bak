@@ -334,7 +334,7 @@ class DataRecorder:
             logger.info(f"No files in {target_dir}")
             return
 
-        events_index: str = "events-" + os.path.basename(target_dir)
+        events_index: str = "events-" + os.path.basename(os.path.dirname(target_dir))
         events: List[dict] = EventManager.fetch_events(events_index)
 
         if len(events) == 0:
