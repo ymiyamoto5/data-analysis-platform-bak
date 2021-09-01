@@ -13,6 +13,7 @@
       </thead>
       <tbody>
         <tr v-for="machine in machines" :key="machine.machine_id">
+          <td>{{ machine.machine_id }}</td>
           <td>{{ machine.machine_name }}</td>
           <td>
             <ul>
@@ -129,7 +130,8 @@ export default {
   data() {
     return {
       tableHeader: {
-        machine_name: '機器',
+        machine_id: '機器ID',
+        machine_name: '機器名',
         gateway_id: 'ゲートウェイID',
         handler_id: 'ハンドラーID',
         sensor_name: 'センサー',
