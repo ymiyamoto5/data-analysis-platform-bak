@@ -20,7 +20,7 @@ class Machine(db.Model):
     gateways: List[Gateway]
 
     machine_id = db.Column(db.String(255), primary_key=True)
-    machine_name = db.Column(db.String(255), unique=True, nullable=False)
+    machine_name = db.Column(db.String(255), nullable=False)
     collect_status = db.Column(db.String(255))
     machine_type_id = db.Column(db.Integer, db.ForeignKey("machine_types.id"), nullable=False)
 
