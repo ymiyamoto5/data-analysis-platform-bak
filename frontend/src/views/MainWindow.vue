@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-navigation-drawer app permanent expand-on-hover class="primary" dark>
+    <v-navigation-drawer app color="primary" dark v-model="drawer" mini-variant-width=70 clipped>
       <v-list nav>
         <template v-for="item in items">
           <v-list-item :key="item.name" :to="item.link">
@@ -12,6 +12,9 @@
         </template>
       </v-list>
     </v-navigation-drawer>
+    <v-app-bar app clippedLeft>
+      <v-app-bar-nav-icon @click.stop="drawer = !drawer" />
+    </v-app-bar>
     <v-main>
       <router-view />
     </v-main>
@@ -30,6 +33,7 @@ export default {
   components: {},
   data() {
     return {
+      drawer: false,
       items: [
         {
           id: 'dataCollect',
@@ -56,7 +60,7 @@ export default {
 </script>
 
 <style scoped>
-#v-main {
+.v-main {
   margin: 10px;
   padding: 10px;
 }
