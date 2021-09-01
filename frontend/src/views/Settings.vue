@@ -1,11 +1,13 @@
 <template>
   <div>
-    <template v-for="item in items">
-      <router-link :key="item.name" :to="item.link">
-        {{ item.name }}
-      </router-link>
-      <!-- <v-divider :key="item.name" class="mx-4" inset vertical></v-divider> -->
-    </template>
+    <v-tabs>
+      <template v-for="item in items">
+        <v-tab :key="item.name" :to="item.link">
+          {{ item.name }}
+        </v-tab>
+        <!-- <v-divider :key="item.name" class="mx-4" inset vertical></v-divider> -->
+      </template>
+    </v-tabs>
     <router-view />
   </div>
 </template>
