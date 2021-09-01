@@ -32,7 +32,6 @@ class TestCreate:
         ({"machine_id": "Machine@001", "machine_name": "Test-Press", "machine_type_id": 1}, 400),
         ({"machine_id": "Machine001'", "machine_name": "Test-Press", "machine_type_id": 1}, 400),
         ({"machine_id": "機器001", "machine_name": "Test-Press", "machine_type_id": 1}, 400),
-        ({"machine_id": "", "machine_name": "Test-Press", "machine_type_id": 1}, 400),
     ]
 
     @pytest.mark.parametrize("data, expected_code", test_invalid_machine_id_data)
@@ -44,3 +43,16 @@ class TestCreate:
 
         assert actual_code == expected_code
         assert "{\"message\":\"検証に失敗しました: {'machine_id': ['Invalid character used.']}\"}\n" in response.data.decode()
+
+    def test_null_machine_id(self, client, init):
+        """machine_idが空文字"""
+        data = {"machine_id": "", "machine_name": "Test-Press", "machine_type_id": 1}
+
+        response = client.post(self.endpoint, data=json.dumps(data), content_type="application/json")
+        actual_code = response.status_code
+
+        assert actual_code == 400
+        assert (
+            "{\"message\":\"検証に失敗しました: {'machine_id': ['Invalid character used.', 'Length must be between 1 and 255.']}\"}\n"
+            in response.data.decode()
+        )
