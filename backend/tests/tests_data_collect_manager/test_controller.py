@@ -38,9 +38,7 @@ class TestSetup:
         response = client.post(self.endpoint)
         actual_code = response.status_code
 
-        expected_code = 200
-
-        assert actual_code == expected_code
+        assert actual_code == 200
 
     def test_validation_error(self, client, mocker, init):
         """validation関数で何らかのエラーが発生した場合を想定。
@@ -56,9 +54,7 @@ class TestSetup:
         response = client.post(self.endpoint)
         actual_code = response.status_code
 
-        expected_code = 500
-
-        assert actual_code == expected_code
+        assert actual_code == 500
         assert b'{"message":"Some error occurred."}\n' in response.data
 
     def test_create_events_index_failed(self, client, mocker, init):
@@ -75,9 +71,7 @@ class TestSetup:
         response = client.post(self.endpoint)
         actual_code = response.status_code
 
-        expected_code = 500
-
-        assert actual_code == expected_code
+        assert actual_code == 500
         assert '{"message":"events_indexの作成に失敗しました。"}\n' in response.data.decode()
 
     def test_create_doc_events_index_failed(self, client, mocker, init):
@@ -95,9 +89,7 @@ class TestSetup:
         response = client.post(self.endpoint)
         actual_code = response.status_code
 
-        expected_code = 500
-
-        assert actual_code == expected_code
+        assert actual_code == 500
         assert '{"message":"events_indexのデータ投入に失敗しました。"}\n' in response.data.decode()
 
     def test_db_update_failed(self, client, mocker, init):
@@ -116,7 +108,5 @@ class TestSetup:
         response = client.post(self.endpoint)
         actual_code = response.status_code
 
-        expected_code = 500
-
-        assert actual_code == expected_code
+        assert actual_code == 500
         assert '{"message":"更新に失敗しました: some exception"}\n' in response.data.decode()
