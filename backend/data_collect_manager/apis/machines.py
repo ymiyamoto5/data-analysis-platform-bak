@@ -1,3 +1,4 @@
+from typing import Optional
 from flask import Blueprint, jsonify, request
 from backend.data_collect_manager.dao.machine_dao import MachineDAO
 from marshmallow import Schema, fields, ValidationError, validate
@@ -77,7 +78,11 @@ def create():
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL, str(e))
+        # HACK: Exception文字列の中身からエラー内容を判定して詳細メッセージを設定
+        detail_message: Optional[str] = None
+        if "UNIQUE constraint failed" in str(e):
+            detail_message = "IDは重複不可です"
+        message: str = ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL, detail_message)
         return jsonify({"message": message}), 500
 
 
