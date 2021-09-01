@@ -14,7 +14,7 @@ class MachineSchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
     machine_id = fields.Str(required=True, validate=character_validate)
-    machine_name = fields.Str()
+    machine_name = fields.Str(validate=validate.Length(min=1, max=255))
     collect_status = fields.Str(
         validate=validate.OneOf(
             (
