@@ -1,6 +1,13 @@
 <template>
   <v-app>
-    <v-navigation-drawer app color="primary" dark v-model="drawer" mini-variant-width=70 clipped>
+    <v-navigation-drawer
+      app
+      color="primary"
+      dark
+      v-model="drawer"
+      mini-variant-width="70"
+      clipped
+    >
       <v-list nav>
         <template v-for="item in items">
           <v-list-item :key="item.name" :to="item.link">
@@ -52,6 +59,12 @@ export default {
           name: '設定',
           icon: 'mdi-cog-outline',
           link: SETTINGS_PATH,
+        },
+        {
+          id: 'kibana',
+          name: '可視化画面',
+          icon: 'mdi-chart-areaspline',
+          link: '/kibana',
         },
       ],
     }
