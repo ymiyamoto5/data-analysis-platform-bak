@@ -1,19 +1,18 @@
 <template>
   <v-data-table
     :headers="headers"
-    :items="desserts"
-    sort-by="calories"
+    :items="gateways"
+    sort-by="gateway_id"
     class="elevation-1"
   >
     <template v-slot:top>
       <v-toolbar flat>
         <v-toolbar-title>ゲートウェイ管理</v-toolbar-title>
-        <v-divider class="mx-4" inset vertical></v-divider>
         <v-spacer></v-spacer>
         <v-dialog v-model="dialog" max-width="500px">
           <template v-slot:activator="{ on, attrs }">
             <v-btn color="primary" dark class="mb-2" v-bind="attrs" v-on="on">
-              New Item
+              新規作成
             </v-btn>
           </template>
           <v-card>
@@ -22,62 +21,50 @@
             </v-card-title>
 
             <v-card-text>
-              <v-container>
-                <v-row>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.name"
-                      label="Dessert name"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.calories"
-                      label="Calories"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.fat"
-                      label="Fat (g)"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.carbs"
-                      label="Carbs (g)"
-                    ></v-text-field>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <v-text-field
-                      v-model="editedItem.protein"
-                      label="Protein (g)"
-                    ></v-text-field>
-                  </v-col>
-                </v-row>
-              </v-container>
+              <v-form ref="form_group">
+                <v-text-field
+                  v-model="editedItem.gateway_id"
+                  :rules="[rules.required, rules.counter, rules.idPattern]"
+                  label="ゲートウェイID"
+                  v-bind="readOnlyID"
+                ></v-text-field>
+                <v-text-field
+                  v-model="editedItem.log_level"
+                  :rules="[rules.required, rules.counter, rules.logLevelPattern]"
+                  label="ログレベル"
+                ></v-text-field>
+                <v-select
+                  v-model="editedItem.machine_id"
+                  :rules="[rules.required]"
+                  item-text="machine_id"
+                  item-value="id"
+                  :items="machines"
+                  label="機器ID"
+                >
+                </v-select>
+              </v-form>
             </v-card-text>
 
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn color="blue darken-1" text @click="close">
-                Cancel
+                キャンセル
               </v-btn>
               <v-btn color="blue darken-1" text @click="save">
-                Save
+                保存
               </v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
         <v-dialog v-model="dialogDelete" max-width="500px">
           <v-card>
-            <v-card-title class="text-h5"
-              >Are you sure you want to delete this item?</v-card-title
-            >
+            <v-card-title class="text-h6">
+              ゲートウェイID：{{ editedItem.gateway_id }} を削除してもよいですか？
+            </v-card-title>
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn color="blue darken-1" text @click="closeDelete"
-                >Cancel</v-btn
+                >キャンセル</v-btn
               >
               <v-btn color="blue darken-1" text @click="deleteItemConfirm"
                 >OK</v-btn
@@ -88,7 +75,7 @@
         </v-dialog>
       </v-toolbar>
     </template>
-    <template v-slot:item.actions="{ item }">
+    <template v-slot:[`item.actions`]="{ item }">
       <v-icon small class="mr-2" @click="editItem(item)">
         mdi-pencil
       </v-icon>
@@ -96,56 +83,78 @@
         mdi-delete
       </v-icon>
     </template>
-    <template v-slot:no-data>
-      <v-btn color="primary" @click="initialize">
-        Reset
-      </v-btn>
-    </template>
   </v-data-table>
 </template>
 
 <script>
+import { createBaseApiClient } from '@/api/apiBase'
+const GATEWAYS_API_URL = '/api/v1/gateways'
+const MACHINES_API_URL = '/api/v1/machines'
+
 export default {
   data: () => ({
     dialog: false,
     dialogDelete: false,
     headers: [
       {
-        text: 'Dessert (100g serving)',
+        text: 'ゲートウェイID',
         align: 'start',
-        sortable: false,
-        value: 'name',
+        value: 'gateway_id',
       },
-      { text: 'Calories', value: 'calories' },
-      { text: 'Fat (g)', value: 'fat' },
-      { text: 'Carbs (g)', value: 'carbs' },
-      { text: 'Protein (g)', value: 'protein' },
-      { text: 'Actions', value: 'actions', sortable: false },
+      { text: '操作連番', value: 'sequence_number' },
+      { text: '設定状態', value: 'gateway_result' },
+      { text: '動作状態', value: 'status' },
+      { text: 'ログレベル', value: 'log_level'} ,
+      { text: '機器ID', value: 'machines[0].machine_id' },
+      { text: 'アクション', value: 'actions', sortable: false }
     ],
-    desserts: [],
+    gateways: [],
     editedIndex: -1,
     editedItem: {
-      name: '',
-      calories: 0,
-      fat: 0,
-      carbs: 0,
-      protein: 0,
+      gateway_id: '',
+      log_level: '',
+      machine_id: 0,
     },
     defaultItem: {
-      name: '',
-      calories: 0,
-      fat: 0,
-      carbs: 0,
-      protein: 0,
+      gateway_id: '',
+      sequence_number: '',
+      gateway_result: '',
+      status: '',
+      log_level: '',
+      machine_id: 0,
+    },
+    machines: [],
+    // validation
+    rules: {
+      required: (value) => !!value || '必須です。',
+      counter: (value) => value.length <= 255 || '最大255文字です。',
+      idPattern: (value) => {
+        const pattern = /^[0-9a-zA-Z-]+$/
+        return (
+          pattern.test(value) ||
+          '半角のアルファベット/数字/ハイフンのみ使用可能です。'
+        )
+      },
+      logLevelPattern: (value) => {
+        const pattern = /^[0-9]+$/
+        return (
+          pattern.test(value) ||
+          '半角の数字のみ使用可能です。'
+        )
+      },
     },
   }),
 
   computed: {
     formTitle() {
-      return this.editedIndex === -1 ? 'New Item' : 'Edit Item'
+      return this.editedIndex === -1 ? '新規作成' : '編集'
+    },
+    readOnlyID() {
+      return this.editedIndex === -1 ? { disabled: false } : { disabled: true }
     },
   },
 
+  // dialogをwatchし、val（bool値）に応じてクローズ
   watch: {
     dialog(val) {
       val || this.close()
@@ -156,125 +165,145 @@ export default {
   },
 
   created() {
-    this.initialize()
+    this.fetchTableData()
+    this.fetchMachineId()
   },
 
   methods: {
-    initialize() {
-      this.desserts = [
-        {
-          name: 'Frozen Yogurt',
-          calories: 159,
-          fat: 6.0,
-          carbs: 24,
-          protein: 4.0,
-        },
-        {
-          name: 'Ice cream sandwich',
-          calories: 237,
-          fat: 9.0,
-          carbs: 37,
-          protein: 4.3,
-        },
-        {
-          name: 'Eclair',
-          calories: 262,
-          fat: 16.0,
-          carbs: 23,
-          protein: 6.0,
-        },
-        {
-          name: 'Cupcake',
-          calories: 305,
-          fat: 3.7,
-          carbs: 67,
-          protein: 4.3,
-        },
-        {
-          name: 'Gingerbread',
-          calories: 356,
-          fat: 16.0,
-          carbs: 49,
-          protein: 3.9,
-        },
-        {
-          name: 'Jelly bean',
-          calories: 375,
-          fat: 0.0,
-          carbs: 94,
-          protein: 0.0,
-        },
-        {
-          name: 'Lollipop',
-          calories: 392,
-          fat: 0.2,
-          carbs: 98,
-          protein: 0,
-        },
-        {
-          name: 'Honeycomb',
-          calories: 408,
-          fat: 3.2,
-          carbs: 87,
-          protein: 6.5,
-        },
-        {
-          name: 'Donut',
-          calories: 452,
-          fat: 25.0,
-          carbs: 51,
-          protein: 4.9,
-        },
-        {
-          name: 'KitKat',
-          calories: 518,
-          fat: 26.0,
-          carbs: 65,
-          protein: 7,
-        },
-      ]
+    errorDialog(message) {
+      this.$store.commit('setShowErrorDialog', true)
+      this.$store.commit('setErrorMsg', message)
     },
 
+    // ドロップダウンリスト用データ取得
+    fetchMachineId: async function() {
+      const client = createBaseApiClient()
+      let data = []
+      await client
+        .get(MACHINES_API_URL)
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          data = res.data
+          this.machines = data
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
+        })
+    },
+
+    fetchTableData: async function() {
+      const client = createBaseApiClient()
+      let data = []
+      await client
+        .get(GATEWAYS_API_URL)
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          data = res.data
+          this.gateways = data
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
+        })
+    },
+
+    // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
-      this.editedIndex = this.desserts.indexOf(item)
+      this.editedIndex = this.gateways.indexOf(item)
       this.editedItem = Object.assign({}, item)
       this.dialog = true
     },
 
+    // [保存] 押下時の処理（update or insert）
+    save: async function() {
+      // form_groupと名付けたv-formを参照し、検証してエラーがあれば何もしない。
+      if (!this.$refs.form_group.validate()) {
+        return
+      }
+      let postUrl = ''
+      let postData = {}
+      // update
+      if (this.editedIndex > -1) {
+        postUrl =
+          GATEWAYS_API_URL + '/' + this.editedItem.gateway_id + '/update'
+        postData = {
+          log_level: this.editedItem.log_level,
+          machine_id: this.editedItem.machine_id,
+        }
+      }
+      // insert
+      else {
+        postUrl = GATEWAYS_API_URL
+        postData = {
+          gateway_id: this.editedItem.gateway_id,
+          log_level: this.editedItem.log_level,
+          machine_id: this.editedItem.machine_id,
+        }
+      }
+
+      const client = createBaseApiClient()
+      await client
+        .post(postUrl, postData)
+        .then(() => {
+          // this.close()
+          this.dialog = false
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
+        })
+    },
+
+    // 新規作成 or 編集ダイアログclose
+    close() {
+      this.dialog = false
+      // HACK: https://qiita.com/funkj/items/f19bdab0f0430e45323d
+      setTimeout(() => {
+        this.editedItem = Object.assign({}, this.defaultItem)
+        this.editedIndex = -1
+        this.$refs.form_group.resetValidation()
+      }, 500)
+    },
+
+    // 削除ダイアログ表示
     deleteItem(item) {
-      this.editedIndex = this.desserts.indexOf(item)
+      this.editedIndex = this.gateways.indexOf(item)
       this.editedItem = Object.assign({}, item)
       this.dialogDelete = true
     },
 
-    deleteItemConfirm() {
-      this.desserts.splice(this.editedIndex, 1)
-      this.closeDelete()
+    // 削除
+    deleteItemConfirm: async function() {
+      const postUrl =
+        GATEWAYS_API_URL + '/' + this.editedItem.gateway_id + '/delete'
+
+      const client = createBaseApiClient()
+      await client
+        .post(postUrl)
+        .then(() => {
+          this.dialogDelete = false
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.message)
+          this.errorDialog(e.response.data.message)
+        })
     },
 
-    close() {
-      this.dialog = false
-      this.$nextTick(() => {
-        this.editedItem = Object.assign({}, this.defaultItem)
-        this.editedIndex = -1
-      })
-    },
-
+    // 削除ダイアログclose
     closeDelete() {
       this.dialogDelete = false
-      this.$nextTick(() => {
+      setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
+        this.$refs.form_group.resetValidation()
       })
-    },
-
-    save() {
-      if (this.editedIndex > -1) {
-        Object.assign(this.desserts[this.editedIndex], this.editedItem)
-      } else {
-        this.desserts.push(this.editedItem)
-      }
-      this.close()
     },
   },
 }
