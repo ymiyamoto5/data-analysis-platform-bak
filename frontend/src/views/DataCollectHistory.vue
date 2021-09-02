@@ -1,27 +1,22 @@
 <template>
-  <div id="history">
-    <div id="title">
-      <h1>データ収集履歴</h1>
-    </div>
-    <div id="history-table">
-      <v-card>
-        <v-card-title>
-          <v-text-field
-            v-model="search"
-            append-icon="mdi-magnify"
-            label="Search"
-            single-line
-            hide-details
-          ></v-text-field>
-        </v-card-title>
-        <v-data-table
-          :headers="headers"
-          :items="history"
-          :search="search"
-        ></v-data-table>
-      </v-card>
-    </div>
-  </div>
+  <v-card>
+    <v-card-title>
+      データ収集履歴
+      <v-spacer></v-spacer>
+      <v-text-field
+        v-model="search"
+        append-icon="mdi-magnify"
+        label="Search"
+        single-line
+        hide-details
+      ></v-text-field>
+    </v-card-title>
+    <v-data-table
+      :headers="headers"
+      :items="history"
+      :search="search"
+    ></v-data-table>
+  </v-card>
 </template>
 
 <script>
