@@ -45,10 +45,8 @@ if __name__ == "__main__":
     resample_df = resampling(shots_df, 100, exclude_shots)
     # converted_df = convert_timestamp(resample_df)
 
-    mapping: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_resample_path")
     setting: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_resample_path")
 
-    # df_to_els(converted_df, resample_index, mapping, setting)
-    df_to_els(resample_df, resample_index, mapping, setting)
+    df_to_els(resample_df, resample_index, mapping=None, setting=setting)
 
     print("resampling end")
