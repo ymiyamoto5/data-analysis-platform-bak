@@ -3,9 +3,6 @@
     "elastic_url": "localhost:9200",
     "elastic_user": "elastic",
     "elastic_password": "hP@ssw0rd1",
-    "mapping_rawdata_path": "/home/hone/h-one-experimental-system/mappings/mapping_rawdata.json",
-    "mapping_shots_path": "/home/hone/h-one-experimental-system/mappings/mapping_shots.json",
-    "mapping_shots_meta_path": "/home/hone/h-one-experimental-system/mappings/mapping_shots_meta.json",
     "setting_rawdata_path": "/home/hone/h-one-experimental-system/mappings/setting_rawdata.json",
     "setting_shots_path": "/home/hone/h-one-experimental-system/mappings/setting_shots.json",
     "setting_shots_meta_path": "/home/hone/h-one-experimental-system/mappings/setting_shots_meta.json"

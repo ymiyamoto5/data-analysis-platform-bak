@@ -177,18 +177,14 @@ class DataImporter:
         # TODO: メソッド化
         shots_index: str = "shots-" + target + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
-        mapping_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_path")
         setting_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_path")
-        ElasticManager.create_index(index=shots_index, mapping_file=mapping_shots, setting_file=setting_shots)
+        ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
         # TODO: メソッド化
         shots_meta_index: str = "shots-" + target + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
-        mapping_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_shots_meta_path")
         setting_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_meta_path")
-        ElasticManager.create_index(
-            index=shots_meta_index, mapping_file=mapping_shots_meta, setting_file=setting_shots_meta
-        )
+        ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
         file_dir = self._get_target_date_dir(target)
         files = self._get_files(file_dir, "*.pkl")
