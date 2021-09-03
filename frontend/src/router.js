@@ -17,6 +17,7 @@ export const HANDLER_SETTINGS_NAME = 'handler'
 export const HANDLER_SETTINGS_PATH = SETTINGS_PATH + '/' + HANDLER_SETTINGS_NAME
 export const SENSOR_SETTINGS_NAME = 'sensor'
 export const SENSOR_SETTINGS_PATH = SETTINGS_PATH + '/' + SENSOR_SETTINGS_NAME
+export const KIBANA_PATH = process.env.VUE_APP_KIBANA_URL
 
 const routes = [
   // '/'へのアクセスは/data_collectにリダイレクト
@@ -64,6 +65,13 @@ const routes = [
         component: () => import('@/views/SensorSettings.vue'),
       },
     ],
+  },
+  {
+    path: '/kibana',
+    // NOTE: 外部サイトを別タブで開く。noreferrerが無いと元タブがハングするので注意。
+    beforeEnter() {
+      window.open(KIBANA_PATH, '_blank', 'noreferrer')
+    },
   },
 ]
 

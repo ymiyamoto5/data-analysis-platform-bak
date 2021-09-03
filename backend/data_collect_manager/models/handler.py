@@ -1,7 +1,6 @@
+from typing import List
 from dataclasses import dataclass
 from backend.data_collect_manager.models.db import db
-from backend.data_collect_manager.models.gateway_handler_mapping import GatewayHandlerMapping
-from backend.data_collect_manager.models.handler_sensor_mapping import HandlerSensorMapping
 from backend.data_collect_manager.models.sensor import Sensor
 
 
@@ -15,8 +14,8 @@ class Handler(db.Model):
     sampling_frequency: int
     sampling_ch_num: int
     filewrite_time: int
-
-    sensors: Sensor
+    gateway_id: str
+    sensors: List[Sensor]
 
     handler_id = db.Column(db.String(255), primary_key=True)
     handler_type = db.Column(db.String(255))
@@ -24,10 +23,7 @@ class Handler(db.Model):
     sampling_frequency = db.Column(db.Integer)
     sampling_ch_num = db.Column(db.Integer)
     filewrite_time = db.Column(db.Integer)
+    gateway_id = db.Column(db.Integer, db.ForeignKey("gateways.gateway_id"), nullable=False)
 
-    gateways = db.relationship(
-        "Gateway", secondary=GatewayHandlerMapping.__tablename__, back_populates="handlers", passive_deletes=True
-    )
-    sensors = db.relationship(
-        "Sensor", secondary=HandlerSensorMapping.__tablename__, back_populates="handlers", cascade="all, delete"
-    )
+    gateway = db.relationship("Gateway", back_populates="handlers")
+    sensors = db.relationship("Sensor", back_populates="handler", cascade="all, delete")
