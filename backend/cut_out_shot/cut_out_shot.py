@@ -27,7 +27,6 @@ from backend.common import common
 from backend.common.common_logger import logger
 from backend.common.dao.handler_dao import HandlerDAO
 from backend.common.dao.sensor_dao import SensorDAO
-from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_converter.data_converter import DataConverter
@@ -335,17 +334,6 @@ class CutOutShot:
     def _apply_expr_displacement(self, df: DataFrame) -> DataFrame:
         """変位値に対して変換式を適用"""
 
-        # sensor: Sensor = list(
-        #     filter(lambda x: x.SensorType.sensor_type_id == "displacement", self._CutOutShot__sensors)
-        # )[0]
-
-        # for sensor in self.__sensors:
-        #     func: Callable[[float], float] = DataConverter.get_physical_conversion_formula_for_cut_out(sensor)
-
-        #     if func is not None:
-        #         # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-        #         df.loc[:, sensor.Sensor.sensor_name] = df[sensor.Sensor.sensor_name].map(func)
-
         # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
         df.loc[:, "displacement"] = df["displacement"].map(self.__displacement_func)
 
@@ -355,6 +343,11 @@ class CutOutShot:
         """荷重値に対して変換式を適用"""
 
         for sensor in self.__sensors:
+            # 変位センサーは個別に変換するため対象外
+            # TODO: pulseセンサーの対応
+            if sensor.Sensor.sensor_type_id == "displacement":
+                continue
+
             func: Callable[[float], float] = DataConverter.get_physical_conversion_formula(sensor)
             # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
             df.loc[:, sensor.Sensor.sensor_name] = df[sensor.Sensor.sensor_name].map(func)
@@ -696,13 +689,6 @@ if __name__ == "__main__":
     # # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
     displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
     # displacement_func = lambda v: v
-
-    # 荷重値換算
-    # Vr = 2.5
-    # load01_func = lambda v: 2.5 / Vr * v
-    # load02_func = lambda v: 2.5 / Vr * v
-    # load03_func = lambda v: 2.5 / Vr * v
-    # load04_func = lambda v: 2.5 / Vr * v
 
     machine_id: str = "machine-01"
 
