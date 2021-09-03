@@ -19,18 +19,18 @@
     >
       <template v-slot:[`item.gateways`]="{ item }">
         <template v-for="gateway in item.gateways">
-          <v-card :key="gateway.gateway_id" class="pa-2 text-center" tile>
+          <v-btn :key="gateway.gateway_id" class="pa-2">
             {{ gateway.gateway_id }}
-          </v-card>
+          </v-btn>
         </template>
       </template>
 
       <template v-slot:[`item.handlers`]="{ item }">
         <template v-for="gateway in item.gateways">
           <template v-for="handler in gateway.handlers">
-            <v-card :key="handler.hanlder_id" class="pa-2 text-center" tile>
+            <v-btn :key="handler.hanlder_id" class="pa-2">
               {{ handler.handler_id }}
-            </v-card>
+            </v-btn>
           </template>
         </template>
       </template>
@@ -45,9 +45,9 @@
           <template v-for="gateway in item.gateways">
             <template v-for="handler in gateway.handlers">
               <template v-for="sensor in handler.sensors">
-                <v-card :key="sensor.sensor_name" class="pa-2" tile>
+                <v-btn :key="sensor.sensor_name" class="pa-2">
                   {{ sensor.sensor_name }}
-                </v-card>
+                </v-btn>
               </template>
             </template>
           </template>
@@ -131,13 +131,24 @@ export default {
           text: '機器ID',
           align: 'start',
           value: 'machine_id',
+          width: '10%',
         },
-        { text: '機器名', value: 'machine_name' },
-        { text: '機種', value: 'machine_type.machine_type_name' },
-        { text: 'ゲートウェイID', value: 'gateways', sortable: false },
-        { text: 'ハンドラーID', value: 'handlers', sortable: false },
-        { text: 'センサー', value: 'sensors', sortable: false },
-        { text: 'アクション', value: 'actions', sortable: false },
+        { text: '機器名', value: 'machine_name', width: '15%' },
+        { text: '機種', value: 'machine_type.machine_type_name', width: '15%' },
+        {
+          text: 'ゲートウェイID',
+          value: 'gateways',
+          sortable: false,
+          width: '15%',
+        },
+        {
+          text: 'ハンドラーID',
+          value: 'handlers',
+          sortable: false,
+          width: '15%',
+        },
+        { text: 'センサー', value: 'sensors', sortable: false, width: '20%' },
+        { text: 'アクション', value: 'actions', sortable: false, width: '20%' },
       ],
       machines: [],
       collectStatus: '',
