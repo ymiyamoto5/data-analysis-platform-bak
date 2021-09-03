@@ -66,6 +66,12 @@ export default {
           icon: 'mdi-chart-areaspline',
           link: '/kibana',
         },
+        {
+          id: 'jupyter',
+          name: '分析画面',
+          icon: 'mdi-flask-outline',
+          link: '/jupyter',
+        },
       ],
     }
   },
