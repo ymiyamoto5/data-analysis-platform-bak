@@ -310,9 +310,8 @@ class DataRecorder:
         # start_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
         if not ElasticManager.exists_index(rawdata_index):
             logger.info(f"{rawdata_index} not exists. Creating...")
-            mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
             setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-            ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+            ElasticManager.create_index(rawdata_index, setting_file=setting_file)
 
         # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
         time.sleep(3)
@@ -353,9 +352,8 @@ class DataRecorder:
 
         # インデックスが存在すれば再作成
         ElasticManager.delete_exists_index(index=rawdata_index)
-        mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
         setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-        ElasticManager.create_index(rawdata_index, mapping_file, setting_file)
+        ElasticManager.create_index(rawdata_index, setting_file=setting_file)
 
         self._data_record(rawdata_index, files_info, target_dir, started_timestamp, is_manual=True)
 

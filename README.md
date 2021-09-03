@@ -49,10 +49,6 @@ jupyter notebook のファイル群。ショット切り出しや分析ロジッ
 
 各モジュールのログ出力先。
 
-#### mappings
-
-Elasticsearch index の mapping ファイルと setting ファイル。
-
 #### app_config.json
 
 本システム共通で利用する設定値。

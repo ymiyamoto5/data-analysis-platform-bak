@@ -1,116 +1,113 @@
 <template>
-  <div id="machines">
-    <div id="title">
-      <h1>データ収集</h1>
-    </div>
-    <v-simple-table>
-      <thead>
-        <tr>
-          <th v-for="item in Object.keys(tableHeader)" :key="item">
-            {{ tableHeader[item] }}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="machine in machines" :key="machine.machine_id">
-          <td>{{ machine.machine_id }}</td>
-          <td>{{ machine.machine_name }}</td>
-          <td>
-            <ul>
-              <li v-for="gateway in machine.gateways" :key="gateway.gateway_id">
-                {{ gateway.gateway_id }}
-              </li>
-            </ul>
-          </td>
-          <td>
-            <ul>
-              <template v-for="gateway in machine.gateways">
-                <li
-                  v-for="handler in gateway.handlers"
-                  :key="handler.handler_id"
-                >
-                  {{ handler.handler_id }}
-                </li>
+  <v-card>
+    <v-card-title>
+      データ収集
+      <v-spacer></v-spacer>
+      <v-text-field
+        v-model="search"
+        append-icon="mdi-magnify"
+        label="Search"
+        single-line
+        hide-details
+      ></v-text-field>
+    </v-card-title>
+    <v-data-table
+      :headers="headers"
+      :items="machines"
+      :search="search"
+      sort-by="machine_id"
+    >
+      <template v-slot:[`item.gateways`]="{ item }">
+        <template v-for="gateway in item.gateways">
+          <v-card :key="gateway.gateway_id" class="pa-2 text-center" tile>
+            {{ gateway.gateway_id }}
+          </v-card>
+        </template>
+      </template>
+
+      <template v-slot:[`item.handlers`]="{ item }">
+        <template v-for="gateway in item.gateways">
+          <template v-for="handler in gateway.handlers">
+            <v-card :key="handler.hanlder_id" class="pa-2 text-center" tile>
+              {{ handler.handler_id }}
+            </v-card>
+          </template>
+        </template>
+      </template>
+
+      <template v-slot:[`item.sensors`]="{ item }">
+        <v-card
+          class="d-flex align-content-start flex-wrap"
+          flat
+          tile
+          max-width="300"
+        >
+          <template v-for="gateway in item.gateways">
+            <template v-for="handler in gateway.handlers">
+              <template v-for="sensor in handler.sensors">
+                <v-card :key="sensor.sensor_name" class="pa-2" tile>
+                  {{ sensor.sensor_name }}
+                </v-card>
               </template>
-            </ul>
-          </td>
-          <td>
-            <ul>
-              <template v-for="gateway in machine.gateways">
-                <template v-for="handler in gateway.handlers">
-                  <li v-for="sensor in handler.sensors" :key="sensor.sensor_id">
-                    {{ sensor.sensor_name }}
-                  </li>
-                </template>
-              </template>
-            </ul>
-          </td>
-          <td>
-            <ul>
-              <v-btn
-                v-if="machine.collect_status === 'recorded'"
-                color="primary"
-                @click="setup(machine.machine_id)"
-              >
-                段取開始
-              </v-btn>
-              <v-btn
-                v-if="machine.collect_status === 'setup'"
-                color="success"
-                @click="start(machine.machine_id)"
-              >
-                収集開始
-              </v-btn>
-              <v-btn
-                v-if="machine.collect_status === 'start'"
-                color="error"
-                @click="beforeStop(machine.machine_id)"
-              >
-                停止
-              </v-btn>
-              <v-btn
-                v-if="machine.collect_status === 'start'"
-                color="warning"
-                @click="pause(machine.machine_id)"
-              >
-                中断
-              </v-btn>
-              <v-btn
-                v-if="machine.collect_status === 'pause'"
-                color="blue"
-                class="white--text"
-                @click="resume(machine.machine_id)"
-              >
-                再開
-              </v-btn>
-              <v-btn
-                disabled
-                v-if="machine.collect_status === 'stop'"
-                color="grey"
-                class="white--text"
-              >
-                記録中
-              </v-btn>
-              <v-btn
-                disabled
-                v-if="machine.collect_status === 'error'"
-                color="disable"
-              >
-                ゲートウェイエラー
-              </v-btn>
-              <v-btn
-                disabled
-                v-if="machine.collect_status === ''"
-                color="disable"
-              >
-                状態不明
-              </v-btn>
-            </ul>
-          </td>
-        </tr>
-      </tbody>
-    </v-simple-table>
-  </div>
+            </template>
+          </template>
+        </v-card>
+      </template>
+
+      <template v-slot:[`item.actions`]="{ item }">
+        <v-btn
+          v-if="item.collect_status === 'recorded'"
+          color="primary"
+          @click="setup(item.machine_id)"
+        >
+          段取開始
+        </v-btn>
+        <v-btn
+          v-if="item.collect_status === 'setup'"
+          color="success"
+          @click="start(item.machine_id)"
+        >
+          収集開始
+        </v-btn>
+        <v-btn
+          v-if="item.collect_status === 'start'"
+          color="error"
+          @click="beforeStop(item.machine_id)"
+        >
+          停止
+        </v-btn>
+        <v-btn
+          v-if="item.collect_status === 'start'"
+          color="warning"
+          @click="pause(item.machine_id)"
+        >
+          中断
+        </v-btn>
+        <v-btn
+          v-if="item.collect_status === 'pause'"
+          color="blue"
+          class="white--text"
+          @click="resume(item.machine_id)"
+        >
+          再開
+        </v-btn>
+        <v-btn
+          disabled
+          v-if="item.collect_status === 'stop'"
+          color="grey"
+          class="white--text"
+        >
+          記録中
+        </v-btn>
+        <v-btn disabled v-if="item.collect_status === 'error'" color="disable">
+          ゲートウェイエラー
+        </v-btn>
+        <v-btn disabled v-if="item.collect_status === ''" color="disable">
+          状態不明
+        </v-btn>
+      </template>
+    </v-data-table>
+  </v-card>
 </template>
 
 <script>
@@ -129,16 +126,22 @@ export default {
   name: 'data-collect',
   data() {
     return {
-      tableHeader: {
-        machine_id: '機器ID',
-        machine_name: '機器名',
-        gateway_id: 'ゲートウェイID',
-        handler_id: 'ハンドラーID',
-        sensor_name: 'センサー',
-        status: 'アクション',
-      },
+      headers: [
+        {
+          text: '機器ID',
+          align: 'start',
+          value: 'machine_id',
+        },
+        { text: '機器名', value: 'machine_name' },
+        { text: '機種', value: 'machine_type.machine_type_name' },
+        { text: 'ゲートウェイID', value: 'gateways', sortable: false },
+        { text: 'ハンドラーID', value: 'handlers', sortable: false },
+        { text: 'センサー', value: 'sensors', sortable: false },
+        { text: 'アクション', value: 'actions', sortable: false },
+      ],
       machines: [],
       collectStatus: '',
+      search: '',
     }
   },
   created: function() {

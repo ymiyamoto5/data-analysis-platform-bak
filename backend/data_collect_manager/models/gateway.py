@@ -1,8 +1,7 @@
+from typing import List
 from dataclasses import dataclass
-from backend.data_collect_manager.models.db import db
-from backend.data_collect_manager.models.machine_gateway_mapping import MachineGatewayMapping
-from backend.data_collect_manager.models.gateway_handler_mapping import GatewayHandlerMapping
 from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.db import db
 
 
 @dataclass
@@ -14,18 +13,15 @@ class Gateway(db.Model):
     gateway_result: int
     status: str
     log_level: int
-
-    handlers: Handler
+    machine_id: str
+    handlers: List[Handler]
 
     gateway_id = db.Column(db.String(255), primary_key=True)
     sequence_number = db.Column(db.Integer)
     gateway_result = db.Column(db.Integer)
     status = db.Column(db.String(255))
     log_level = db.Column(db.Integer)
+    machine_id = db.Column(db.Integer, db.ForeignKey("machines.machine_id"), nullable=False)
 
-    machines = db.relationship(
-        "Machine", secondary=MachineGatewayMapping.__tablename__, back_populates="gateways", passive_deletes=True
-    )
-    handlers = db.relationship(
-        "Handler", secondary=GatewayHandlerMapping.__tablename__, back_populates="gateways", cascade="all, delete"
-    )
+    machine = db.relationship("Machine", back_populates="gateways")
+    handlers = db.relationship("Handler", back_populates="gateway", cascade="all, delete")

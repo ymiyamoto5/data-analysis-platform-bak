@@ -202,7 +202,7 @@ content-type: application/json
 GET http://localhost:5000/api/v1/gateways/GW-01/machine HTTP/1.1
 
 
-# many to many cascade delete
+# cascade delete
 ### create machine
 POST http://localhost:5000/api/v1/machines HTTP/1.1
 content-type: application/json
@@ -223,11 +223,28 @@ content-type: application/json
     "machine_id": "TEST-machine-001"
 }
 
+### create handler relate with new gateway
+POST http://localhost:5000/api/v1/handlers HTTP/1.1
+content-type: application/json
+
+{
+    "handler_id": "TEST-HANDLER-001",
+    "adc_serial_num": "ABCDEFG",
+    "handler_type": "handler_type-001",
+    "sampling_frequency": 1000,
+    "sampling_ch_num": 16,
+    "filewrite_time": 5,
+    "gateway_id": "TEST-GW-001"
+}
+
 ### get new machine
 GET http://localhost:5000/api/v1/machines/TEST-machine-001
 
 ### get new gateway
 GET http://localhost:5000/api/v1/gateways/TEST-GW-001
+
+### get new handler
+GET http://localhost:5000/api/v1/handlers/TEST-HANDLER-001
 
 ### delete machine (parent)
 POST http://localhost:5000/api/v1/machines/TEST-machine-001/delete HTTP/1.1
