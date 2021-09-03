@@ -9,14 +9,14 @@ class Sensor(db.Model):
 
     id: int
     sensor_name: str
-    sensor_type_id: int
+    sensor_type_id: str
     # NOTE: SensorからSensorTypeを引くためのプロパティ
     sensor_type: SensorType
     handler_id: str
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     sensor_name = db.Column(db.String(255), nullable=False)
-    sensor_type_id = db.Column(db.Integer, db.ForeignKey("sensor_types.id"), nullable=False)
+    sensor_type_id = db.Column(db.String(255), db.ForeignKey("sensor_types.sensor_type_id"), nullable=False)
     handler_id = db.Column(db.Integer, db.ForeignKey("handlers.handler_id"), nullable=False)
 
     # NOTE: SensorとHandlerはMany to One

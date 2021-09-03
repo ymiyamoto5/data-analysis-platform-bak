@@ -13,7 +13,7 @@ class SensorSchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
     sensor_name = fields.Str(validate=validate.Length(min=1, max=255))
-    sensor_type_id = fields.Int(required=True)
+    sensor_type_id = fields.Str(required=True)
     handler_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
 
 

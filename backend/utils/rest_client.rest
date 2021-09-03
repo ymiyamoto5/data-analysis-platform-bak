@@ -150,7 +150,7 @@ content-type: application/json
 
 {
     "sensor_name": "test",
-    "sensor_type_id": 1,
+    "sensor_type_id": "load",
     "handler_id": "AD-USB-1608"
 }
 
@@ -163,7 +163,7 @@ content-type: application/json
 
 {
     "sensor_name": "test-update",
-    "sensor_type_id": 2,
+    "sensor_type_id": "displacement",
     "handler_id": "AD-USB-xxxx"
 }
 
