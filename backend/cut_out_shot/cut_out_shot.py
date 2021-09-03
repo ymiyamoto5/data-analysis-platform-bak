@@ -26,7 +26,11 @@ from backend.utils.throughput_counter import throughput_counter
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.common.dao.handler_dao import HandlerDAO
+from backend.common.dao.sensor_dao import SensorDAO
+from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.sensor import Sensor
+from backend.data_converter.data_converter import DataConverter
 
 
 class CutOutShot:
@@ -41,7 +45,8 @@ class CutOutShot:
         chunk_size: int = 5_000,
         margin: float = 0.3,
         displacement_func: Optional[Callable[[float], float]] = None,
-        **kwargs,
+        sensors: Optional[List[Sensor]] = None,
+        # **kwargs,
     ):
         self.__machine_id = machine_id
         self.__previous_size: int = previous_size
@@ -67,12 +72,20 @@ class CutOutShot:
             sys.exit(1)
         self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
 
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        if sensors is None:
+            try:
+                self.__sensors: List[Sensor] = SensorDAO.select_sensors_by_machine_id(machine_id)
+            except Exception:
+                logger.error(traceback.format_exc())
+                sys.exit(1)
+
+        if len(self.__sensors) == 0:
+            logger.error(f"Machine {machine_id} has no sensor.")
+            sys.exit(1)
 
         if handler is None:
             try:
-                handler = HandlerDAO.fetch_handler(self.__machine_id)
+                handler = HandlerDAO.fetch_handler(machine_id)
             except Exception:
                 logger.exception(traceback.format_exc())
                 sys.exit(1)
@@ -322,6 +335,17 @@ class CutOutShot:
     def _apply_expr_displacement(self, df: DataFrame) -> DataFrame:
         """変位値に対して変換式を適用"""
 
+        # sensor: Sensor = list(
+        #     filter(lambda x: x.SensorType.sensor_type_id == "displacement", self._CutOutShot__sensors)
+        # )[0]
+
+        # for sensor in self.__sensors:
+        #     func: Callable[[float], float] = DataConverter.get_physical_conversion_formula_for_cut_out(sensor)
+
+        #     if func is not None:
+        #         # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
+        #         df.loc[:, sensor.Sensor.sensor_name] = df[sensor.Sensor.sensor_name].map(func)
+
         # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
         df.loc[:, "displacement"] = df["displacement"].map(self.__displacement_func)
 
@@ -330,14 +354,10 @@ class CutOutShot:
     def _apply_expr_load(self, df: DataFrame) -> DataFrame:
         """荷重値に対して変換式を適用"""
 
-        # NOTE: 動的にプロパティにアクセスし、そのプロパティの関数を適用
-        # TODO: 変位センサーを除いた数になっているが、本来は荷重センサーの数を明示出来たほうがよい。
-        for ch in range(1, self.__sampling_ch_num):
-            str_ch = str(ch).zfill(2)
-            load: str = "load" + str_ch
-            func: Callable[[float], float] = getattr(self, f"{load}_func")
+        for sensor in self.__sensors:
+            func: Callable[[float], float] = DataConverter.get_physical_conversion_formula(sensor)
             # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-            df.loc[:, load] = df[load].map(func)
+            df.loc[:, sensor.Sensor.sensor_name] = df[sensor.Sensor.sensor_name].map(func)
 
         return df
 
@@ -678,11 +698,11 @@ if __name__ == "__main__":
     # displacement_func = lambda v: v
 
     # 荷重値換算
-    Vr = 2.5
-    load01_func = lambda v: 2.5 / Vr * v
-    load02_func = lambda v: 2.5 / Vr * v
-    load03_func = lambda v: 2.5 / Vr * v
-    load04_func = lambda v: 2.5 / Vr * v
+    # Vr = 2.5
+    # load01_func = lambda v: 2.5 / Vr * v
+    # load02_func = lambda v: 2.5 / Vr * v
+    # load03_func = lambda v: 2.5 / Vr * v
+    # load04_func = lambda v: 2.5 / Vr * v
 
     machine_id: str = "machine-01"
 
@@ -691,10 +711,6 @@ if __name__ == "__main__":
     #     displacement_func=displacement_func,
     #     previous_size=5,
     #     margin=0.01,
-    #     load01_func=load01_func,
-    #     load02_func=load02_func,
-    #     load03_func=load03_func,
-    #     load04_func=load04_func,
     # )
     # target: str = "20210101000000"
     # target_dir: str = machine_id + "-" + target
@@ -708,10 +724,6 @@ if __name__ == "__main__":
         chunk_size=5_000,
         margin=0.3,
         displacement_func=displacement_func,
-        load01_func=load01_func,
-        load02_func=load02_func,
-        load03_func=load03_func,
-        load04_func=load04_func,
     )
 
     target: str = "20210327141514"
