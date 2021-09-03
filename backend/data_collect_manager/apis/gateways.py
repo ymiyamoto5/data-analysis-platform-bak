@@ -1,3 +1,4 @@
+from backend.data_collect_manager.dao.machine_dao import MachineDAO
 from typing import Optional
 from flask import Blueprint, jsonify, request
 from marshmallow import Schema, fields, ValidationError, validate
@@ -57,7 +58,7 @@ def fetch_machine_id_from_gateway_id(gateway_id):
     gateway = GatewayDAO.select_by_id(gateway_id)
 
     try:
-        machine = gateway.machines[0].machine_id
+        machine = MachineDAO.select_by_id(gateway.machine_id)
     except Exception:
         logger.error(traceback.format_exc())
         message: str = ErrorMessage.generate_message(ErrorTypes.NO_DATA)

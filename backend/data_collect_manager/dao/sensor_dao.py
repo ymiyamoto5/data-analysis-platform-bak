@@ -25,13 +25,10 @@ class SensorDAO:
 
     @staticmethod
     def insert(insert_data: dict) -> None:
-        # Sensorに紐づくHandler
-        handlers: List[Handler] = Handler.query.filter_by(handler_id=insert_data["handler_id"]).all()
-
         new_sensor = Sensor(
             sensor_name=insert_data["sensor_name"],
             sensor_type_id=insert_data["sensor_type_id"],
-            handlers=handlers,
+            handler_id=insert_data["handler_id"],
         )  # type: ignore
 
         db.session.add(new_sensor)
@@ -41,13 +38,6 @@ class SensorDAO:
     def update(sensor_id: int, update_data: dict) -> None:
         # 更新対象取得
         sensor = SensorDAO.select_by_id(sensor_id)
-
-        # Sensorに紐づくHandlerの更新
-        if "handler_id" in update_data:
-            handler: Handler = HandlerDAO.select_by_id(update_data["handler_id"])
-            if handler is None:
-                raise Exception("related handler does not exist.")
-            sensor.handlers.append(handler)
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():

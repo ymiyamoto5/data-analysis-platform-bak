@@ -26,9 +26,6 @@ class HandlerDAO:
 
     @staticmethod
     def insert(insert_data: dict) -> None:
-        # Handlerに紐づくGateway
-        gateways: List[Gateway] = Gateway.query.filter_by(gateway_id=insert_data["gateway_id"]).all()
-
         new_handler = Handler(
             handler_id=insert_data["handler_id"],
             adc_serial_num=insert_data["adc_serial_num"],
@@ -36,8 +33,9 @@ class HandlerDAO:
             sampling_frequency=insert_data["sampling_frequency"],
             sampling_ch_num=insert_data["sampling_ch_num"],
             filewrite_time=insert_data["filewrite_time"],
-            gateways=gateways,
-        )  # type: ignore
+            gateway_id=insert_data["gateway_id"],
+            sensors=[],
+        )
 
         db.session.add(new_handler)
         db.session.commit()
@@ -51,13 +49,6 @@ class HandlerDAO:
             .with_for_update()
             .one()
         )
-
-        # Handlerに紐づくGatewayの更新
-        if "gateway_id" in update_data:
-            gateway: Gateway = GatewayDAO.select_by_id(update_data["gateway_id"])
-            if gateway is None:
-                raise Exception("related gateway does not exist.")
-            handler.gateways.append(gateway)
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
