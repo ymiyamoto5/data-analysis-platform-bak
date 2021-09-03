@@ -1,10 +1,8 @@
 from typing import List
-from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.gateway import Gateway
 from backend.data_collect_manager.models.handler import Handler
 from backend.data_collect_manager.models.sensor import Sensor
 from backend.data_collect_manager.models.db import db
-from backend.data_collect_manager.dao.machine_dao import MachineDAO
 from sqlalchemy.orm import joinedload, lazyload
 from backend.common import common
 
@@ -28,17 +26,15 @@ class GatewayDAO:
 
     @staticmethod
     def insert(insert_data: dict) -> None:
-        # Gatewayに紐づく機器
-        machines: List[Machine] = Machine.query.filter_by(machine_id=insert_data["machine_id"]).all()
-
         new_gateway = Gateway(
             gateway_id=insert_data["gateway_id"],
             sequence_number=1,
             gateway_result=0,
             status=common.STATUS.STOP.value,
             log_level=insert_data["log_level"],
-            machines=machines,
-        )  # type: ignore
+            machine_id=insert_data["machine_id"],
+            handlers=[],
+        )
 
         db.session.add(new_gateway)
         db.session.commit()
@@ -52,13 +48,6 @@ class GatewayDAO:
             .with_for_update()
             .one()
         )
-
-        # Gatewayに紐づくMachineの更新
-        if "machine_id" in update_data:
-            machine: Machine = MachineDAO.select_by_id(update_data["machine_id"])
-            if machine is None:
-                raise Exception("related machine does not exist.")
-            gateway.machines.append(machine)
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
