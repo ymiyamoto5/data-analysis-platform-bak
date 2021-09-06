@@ -5,9 +5,12 @@
         <chartCard />
       </v-col>
     </v-row> -->
-    <machine-select @input="setMachine"></machine-select>
-    <!-- <data-select @input="setData" :value="machine"></data-select>
-    <range-slider @setSliderValues="setSliderValues"></range-slider> -->
+    <MachineSelect @input="setMachine"></MachineSelect>
+    <CollectDataSelect
+      @input="setCollectData"
+      :value="machine"
+    ></CollectDataSelect>
+    <!-- <range-slider @setSliderValues="setSliderValues"></range-slider> -->
   </div>
 </template>
 
@@ -15,32 +18,32 @@
 // import chartCard from "./chart-card.vue";
 // import RangeSlider from "./range-slider.vue";
 import MachineSelect from '@/components/CutOutShot/MachineSelect.vue'
-// import DataSelect from "./data-select.vue";
+import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
+
 export default {
   components: {
     MachineSelect,
     // chartCard,
     // RangeSlider,
     // MachineSelect,
-    // DataSelect,
+    CollectDataSelect,
   },
   data() {
     return {
       machine: '',
       lower: 0,
       upper: 0,
-      data: '',
+      collectData: '',
     }
   },
   methods: {
     setMachine(value) {
-      console.log(value)
       this.machine = value
     },
-    // setData(value) {
-    //   console.log("set!!!", value);
-    //   this.data = value;
-    // },
+    setCollectData(value) {
+      console.log('set!!!', value)
+      this.collectData = value
+    },
     // setSliderValues(range) {
     //   this.lower = range[0];
     //   this.upper = range[1];
