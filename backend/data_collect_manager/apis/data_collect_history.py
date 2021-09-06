@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List
 from flask import Blueprint, jsonify
 from backend.data_collect_manager.models.data_collect_history import DataCollectHistory

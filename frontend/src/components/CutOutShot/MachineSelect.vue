@@ -44,6 +44,6 @@ export default {
 
 <style scoped>
 .select {
-  width: 200px;
+  width: 250px;
 }
 </style>
