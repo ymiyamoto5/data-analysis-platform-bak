@@ -151,7 +151,10 @@ content-type: application/json
 {
     "sensor_name": "test",
     "sensor_type_id": "load",
-    "handler_id": "AD-USB-1608"
+    "handler_id": "AD-USB-1608",
+    "base_volt": 3.0,
+    "base_load": 1.0,
+    "initial_volt": 2.0
 }
 
 ### get created
@@ -164,7 +167,10 @@ content-type: application/json
 {
     "sensor_name": "test-update",
     "sensor_type_id": "load",
-    "handler_id": "AD-USB-1608"
+    "handler_id": "AD-USB-1608",
+    "base_volt": 5.0,
+    "base_load": 5.0,
+    "initial_volt": 5.0
 }
 
 ### get updated

@@ -10,6 +10,9 @@ class Sensor(db.Model):
     sensor_id: str
     sensor_name: str
     sensor_type_id: str
+    base_volt: float  # 基準圧力時電圧
+    base_load: float  # 基準圧力
+    initial_volt: float  # 無負荷時電圧
     # NOTE: SensorからSensorTypeを引くためのプロパティ
     sensor_type: SensorType
     handler_id: str
@@ -20,6 +23,9 @@ class Sensor(db.Model):
     sensor_id = db.Column(db.String(255), primary_key=True)
     sensor_name = db.Column(db.String(255), nullable=False)
     sensor_type_id = db.Column(db.String(255), db.ForeignKey("sensor_types.sensor_type_id"), nullable=False)
+    base_volt = db.Column(db.Float)
+    base_load = db.Column(db.Float)
+    initial_volt = db.Column(db.Float)
     handler_id = db.Column(db.String(255), db.ForeignKey("handlers.handler_id"), nullable=False)
 
     # NOTE: SensorとMachineはMany to One

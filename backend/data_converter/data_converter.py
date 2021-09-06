@@ -8,14 +8,17 @@ class DataConverter:
         """センサー種別に応じた物理変換式を返却する"""
 
         if sensor.SensorType.sensor_type_id == "load":
-            # TODO: VrをDBから取得
-            Vr = 2.5
-            return lambda v: 2.5 / Vr * v
+            base_volt: float = sensor.Sensor.base_volt
+            base_load: float = sensor.Sensor.base_load
+
+            return lambda v: base_load / base_volt * v
 
         elif sensor.SensorType.sensor_type_id == "bolt":
-            # TODO: base_pressure, v1, v2をDBから取得
-            # return lambda x: sensor.base_pressure * (x - sensor.v1) / (sensor.v2 - sensor.v1)
-            return lambda v: v
+            base_volt = sensor.Sensor.base_volt
+            base_load = sensor.Sensor.base_load
+            initial_volt: float = sensor.Sensor.initial_volt
+
+            return lambda v: base_load * (v - initial_volt) / (base_volt - initial_volt)
 
         elif sensor.SensorType.sensor_type_id == "displacement":
             return lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
