@@ -3,11 +3,11 @@
     <MachineSelect @input="setMachine"></MachineSelect>
     <CollectDataSelect
       @input="setCollectData"
-      :value="machine"
+      :value="machineId"
     ></CollectDataSelect>
     <v-row>
       <v-col cols="12" sm="12" md="6" lg="4">
-        <ChartCard />
+        <ChartCard :machineId="machineId" :collectData="collectData" />
       </v-col>
     </v-row>
     <!-- <range-slider @setSliderValues="setSliderValues"></range-slider> -->
@@ -29,7 +29,7 @@ export default {
   },
   data() {
     return {
-      machine: '',
+      machineId: '',
       lower: 0,
       upper: 0,
       collectData: '',
@@ -37,7 +37,7 @@ export default {
   },
   methods: {
     setMachine(value) {
-      this.machine = value
+      this.machineId = value
     },
     setCollectData(value) {
       console.log('set!!!', value)
