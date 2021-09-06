@@ -19,6 +19,7 @@ class SensorSchema(Schema):
 
 sensor_create_schema = SensorSchema()
 sensor_update_schema = SensorSchema()
+sensor_delete_schema = SensorSchema(only=("handler_id",))
 
 
 @sensors.route("/sensors", methods=["GET"])
@@ -30,11 +31,13 @@ def fetch_sensors():
     return jsonify(sensor), 200
 
 
-@sensors.route("/sensors/<int:sensor_id>", methods=["GET"])
+@sensors.route("/sensors/<string:sensor_id>", methods=["GET"])
 def fetch_sensor(sensor_id):
     """指定Sensorの情報を取得"""
 
-    sensor = SensorDAO.select_by_id(sensor_id)
+    machine_id = request.args.get("machine_id")
+
+    sensor = SensorDAO.select_by_id(machine_id, sensor_id)
 
     return jsonify(sensor), 200
 
@@ -66,7 +69,7 @@ def create():
         return jsonify({"message": message}), 500
 
 
-@sensors.route("/sensors/<int:sensor_id>/update", methods=["POST"])
+@sensors.route("/sensors/<string:sensor_id>/update", methods=["POST"])
 def update(sensor_id):
     """Sensorの更新。更新対象のフィールドをパラメータとして受け取る。"""
 
@@ -92,12 +95,25 @@ def update(sensor_id):
         return jsonify({"message": message}), 500
 
 
-@sensors.route("/sensors/<int:sensor_id>/delete", methods=["POST"])
+@sensors.route("/sensors/<string:sensor_id>/delete", methods=["POST"])
 def delete(sensor_id):
     """Sensorの削除"""
 
+    json_data = request.get_json()
+
+    if not json_data:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.NO_INPUT_DATA)
+
     try:
-        SensorDAO.delete(sensor_id)
+        data = sensor_delete_schema.load(json_data)
+    except ValidationError as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.VALUE_ERROR, e.messages)
+        return jsonify({"message": message}), 400
+
+    try:
+        SensorDAO.delete(sensor_id, delete_data=data)
         return jsonify({}), 200
     except Exception as e:
         logger.error(traceback.format_exc())
