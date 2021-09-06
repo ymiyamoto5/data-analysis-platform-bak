@@ -237,7 +237,6 @@ export default {
           GATEWAYS_API_URL + '/' + this.editedItem.gateway_id + '/update'
         postData = {
           log_level: this.editedItem.log_level,
-          machine_id: this.editedItem.machine_id,
         }
       }
       // insert
