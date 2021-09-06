@@ -32,6 +32,7 @@
 import {
   DATA_COLLECT_PATH,
   DATA_COLLECT_HISTORY_PATH,
+  CUT_OUT_SHOT_PATH,
   SETTINGS_PATH,
 } from '@/router'
 
@@ -53,6 +54,12 @@ export default {
           name: 'データ収集履歴',
           icon: 'mdi-history',
           link: DATA_COLLECT_HISTORY_PATH,
+        },
+        {
+          id: 'cutOutShot',
+          name: 'ショット切り出し',
+          icon: 'mdi-content-cut',
+          link: CUT_OUT_SHOT_PATH,
         },
         {
           id: 'settings',
