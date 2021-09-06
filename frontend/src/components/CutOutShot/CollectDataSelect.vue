@@ -1,8 +1,8 @@
 <template>
   <v-select
     class="select"
-    :items="machines"
-    label="機器"
+    :items="items"
+    label="収集データ"
     outlined
     dense
     @input="$emit('input', $event)"
@@ -11,27 +11,31 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-const MACHINES_API_URL = '/api/v1/machines'
+const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_history'
 
 export default {
+  props: ['value'],
   data() {
     return {
-      machines: [],
+      items: [],
     }
   },
-  mounted() {
-    this.fetchMachines()
+  watch: {
+    value: function(new_value) {
+      this.items = []
+      this.fetchCollectData(new_value)
+    },
   },
   methods: {
-    fetchMachines: async function() {
+    fetchCollectData: async function(machine_id) {
       const client = createBaseApiClient()
       await client
-        .get(MACHINES_API_URL)
+        .get(DATA_COLLECT_HISTORY_API_URL + '/' + machine_id)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          this.machines = res.data.map((x) => x.machine_id)
+          this.items = res.data.map((x) => x.started_at + ' - ' + x.ended_at)
         })
         .catch((e) => {
           console.log(e.response.data.message)

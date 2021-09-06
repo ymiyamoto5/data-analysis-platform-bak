@@ -17,6 +17,19 @@ class DataCollectHistoryDAO:
 
         return history
 
+    @staticmethod
+    def select_by_machine_id(machine_id: str) -> List[DataCollectHistory]:
+        history: List[DataCollectHistory] = (
+            DataCollectHistory.query.filter_by(machine_id=machine_id)
+            .order_by(desc(DataCollectHistory.started_at))
+            .options(
+                joinedload(DataCollectHistory.machine),
+            )
+            .all()
+        )
+
+        return history
+
     # @staticmethod
     # def insert(machine: Machine, started_at: datetime) -> None:
     #     """履歴の追加"""

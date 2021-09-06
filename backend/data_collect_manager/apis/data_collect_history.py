@@ -14,3 +14,12 @@ def fetch_data_collect_history():
     history: List[DataCollectHistory] = DataCollectHistoryDAO.select_all()
 
     return jsonify(history)
+
+
+@data_collect_history.route("/data_collect_history/<string:machine_id>", methods=["GET"])
+def fetch_data_collect_history_by_machine(machine_id):
+    """特定機器のデータ収集履歴を返す"""
+
+    history: List[DataCollectHistory] = DataCollectHistoryDAO.select_by_machine_id(machine_id)
+
+    return jsonify(history)
