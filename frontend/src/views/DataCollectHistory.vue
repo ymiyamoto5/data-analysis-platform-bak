@@ -21,6 +21,7 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
+import { formatDate } from '@/common/common'
 
 const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_history'
 
@@ -53,23 +54,20 @@ export default {
   methods: {
     fetchTableData: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(DATA_COLLECT_HISTORY_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          console.log(data)
           // 日付文字列を表示用にフォーマット
-          this.history = data.map((obj) => {
+          this.history = res.data.map((obj) => {
             const started_at = new Date(obj.started_at)
-            obj.started_at = this.formatDate(started_at)
+            obj.started_at = formatDate(started_at)
 
             if (obj.ended_at !== null) {
               const ended_at = new Date(obj.ended_at)
-              obj.ended_at = this.formatDate(ended_at)
+              obj.ended_at = formatDate(ended_at)
             }
             return obj
           })
@@ -77,22 +75,6 @@ export default {
         .catch((e) => {
           console.log(e.response.data.message)
         })
-    },
-    // Date型を表示用にフォーマットして返す
-    formatDate: function(x) {
-      const formatted =
-        x.getFullYear() +
-        '/' +
-        ('00' + (x.getMonth() + 1)).slice(-2) +
-        '/' +
-        ('00' + x.getDate()).slice(-2) +
-        ' ' +
-        ('00' + x.getHours()).slice(-2) +
-        ':' +
-        ('00' + x.getMinutes()).slice(-2) +
-        ':' +
-        ('00' + x.getSeconds()).slice(-2)
-      return formatted
     },
   },
 }
