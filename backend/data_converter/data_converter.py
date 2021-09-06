@@ -15,7 +15,13 @@ class DataConverter:
         elif sensor.SensorType.sensor_type_id == "bolt":
             # TODO: base_pressure, v1, v2をDBから取得
             # return lambda x: sensor.base_pressure * (x - sensor.v1) / (sensor.v2 - sensor.v1)
-            return lambda x: x
+            return lambda v: v
+
+        elif sensor.SensorType.sensor_type_id == "displacement":
+            return lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
+
+        elif sensor.SensorType.sensor_type_id == "pulse":
+            return lambda v: v
 
         else:
-            return lambda x: x
+            return lambda v: v
