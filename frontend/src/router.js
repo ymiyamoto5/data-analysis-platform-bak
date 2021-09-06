@@ -7,6 +7,8 @@ export const DATA_COLLECT_NAME = 'data_collect'
 export const DATA_COLLECT_PATH = ROOT_PATH + DATA_COLLECT_NAME
 export const DATA_COLLECT_HISTORY_NAME = 'data_collect_history'
 export const DATA_COLLECT_HISTORY_PATH = ROOT_PATH + DATA_COLLECT_HISTORY_NAME
+export const CUT_OUT_SHOT_NAME = 'cut_out_shot'
+export const CUT_OUT_SHOT_PATH = ROOT_PATH + CUT_OUT_SHOT_NAME
 export const SETTINGS_NAME = 'settings'
 export const SETTINGS_PATH = ROOT_PATH + SETTINGS_NAME
 export const MACHINE_SETTINGS_NAME = 'machine'
@@ -35,6 +37,11 @@ const routes = [
     path: DATA_COLLECT_HISTORY_PATH,
     name: DATA_COLLECT_HISTORY_NAME,
     component: () => import('@/views/DataCollectHistory.vue'),
+  },
+  {
+    path: CUT_OUT_SHOT_PATH,
+    name: CUT_OUT_SHOT_NAME,
+    component: () => import('@/views/CutOutShot.vue'),
   },
   {
     path: SETTINGS_PATH,
