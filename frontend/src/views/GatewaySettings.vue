@@ -5,6 +5,9 @@
     sort-by="gateway_id"
     class="elevation-1"
   >
+    <template v-slot:[`item.gateway_result`]>
+      {{ gatewayResult }}
+    </template>
     <template v-slot:top>
       <v-toolbar flat>
         <v-toolbar-title>ゲートウェイ管理</v-toolbar-title>
@@ -28,11 +31,14 @@
                   label="ゲートウェイID"
                   v-bind="readOnlyID"
                 ></v-text-field>
-                <v-text-field
+                <v-select
                   v-model="editedItem.log_level"
-                  :rules="[rules.required, rules.counter, rules.logLevelPattern]"
+                  :rules="[rules.required]"
+                  item-text="log_level"
+                  item-value="level"
+                  :items="logLevels"
                   label="ログレベル"
-                ></v-text-field>
+                ></v-select>
                 <v-select
                   v-model="editedItem.machine_id"
                   :rules="[rules.required]"
@@ -40,6 +46,7 @@
                   item-value="id"
                   :items="machines"
                   label="機器ID"
+                  v-bind="readOnlyID"
                 >
                 </v-select>
               </v-form>
@@ -101,11 +108,10 @@ export default {
         align: 'start',
         value: 'gateway_id',
       },
-      { text: '操作連番', value: 'sequence_number' },
       { text: '設定状態', value: 'gateway_result' },
       { text: '動作状態', value: 'status' },
-      { text: 'ログレベル', value: 'log_level'} ,
-      { text: '機器ID', value: 'machines[0].machine_id' },
+      { text: 'ログレベル', value: 'log_level' } ,
+      { text: '機器ID', value: 'machine_id' },
       { text: 'アクション', value: 'actions', sortable: false }
     ],
     gateways: [],
@@ -117,13 +123,13 @@ export default {
     },
     defaultItem: {
       gateway_id: '',
-      sequence_number: '',
       gateway_result: '',
       status: '',
       log_level: '',
       machine_id: 0,
     },
     machines: [],
+    logLevels: [1, 2, 3, 4, 5],
     // validation
     rules: {
       required: (value) => !!value || '必須です。',
@@ -135,13 +141,6 @@ export default {
           '半角のアルファベット/数字/ハイフンのみ使用可能です。'
         )
       },
-      logLevelPattern: (value) => {
-        const pattern = /^[0-9]+$/
-        return (
-          pattern.test(value) ||
-          '半角の数字のみ使用可能です。'
-        )
-      },
     },
   }),
 
@@ -151,6 +150,11 @@ export default {
     },
     readOnlyID() {
       return this.editedIndex === -1 ? { disabled: false } : { disabled: true }
+    },
+    gatewayResult() {
+      if (this.gateways[1].gateway_result === 0) return '設定中'
+      else if (this.gateways[1].gateway_result === -1) return '異常'
+      else return '正常'
     },
   },
 
