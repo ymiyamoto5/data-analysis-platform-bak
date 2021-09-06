@@ -1,32 +1,31 @@
 <template>
   <div>
-    <!-- <v-row>
-      <v-col cols="12" sm="12" md="6" lg="4">
-        <chartCard />
-      </v-col>
-    </v-row> -->
     <MachineSelect @input="setMachine"></MachineSelect>
     <CollectDataSelect
       @input="setCollectData"
       :value="machine"
     ></CollectDataSelect>
+    <v-row>
+      <v-col cols="12" sm="12" md="6" lg="4">
+        <ChartCard />
+      </v-col>
+    </v-row>
     <!-- <range-slider @setSliderValues="setSliderValues"></range-slider> -->
   </div>
 </template>
 
 <script>
-// import chartCard from "./chart-card.vue";
 // import RangeSlider from "./range-slider.vue";
 import MachineSelect from '@/components/CutOutShot/MachineSelect.vue'
 import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
+import ChartCard from '@/components/CutOutShot/ChartCard.vue'
 
 export default {
   components: {
     MachineSelect,
-    // chartCard,
     // RangeSlider,
-    // MachineSelect,
     CollectDataSelect,
+    ChartCard,
   },
   data() {
     return {
