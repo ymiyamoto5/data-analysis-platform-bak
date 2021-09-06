@@ -121,31 +121,171 @@ handler_04 = Handler(
 )
 
 # Sensor
-sensor_01 = Sensor(machine_id="machine-01", sensor_id="load01", sensor_name="load01", sensor_type_id="load")
-sensor_02 = Sensor(machine_id="machine-01", sensor_id="load02", sensor_name="load02", sensor_type_id="load")
+sensor_01 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load01",
+    sensor_name="load01",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_02 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load02",
+    sensor_name="load02",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
 sensor_03 = Sensor(
     machine_id="machine-01", sensor_id="displacement", sensor_name="displacement", sensor_type_id="displacement"
 )
-sensor_04 = Sensor(machine_id="machine-02", sensor_id="load01", sensor_name="load01", sensor_type_id="load")
+sensor_04 = Sensor(
+    machine_id="machine-02",
+    sensor_id="load01",
+    sensor_name="load01",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
 sensor_05 = Sensor(machine_id="machine-02", sensor_id="displacement", sensor_name="displacement", sensor_type_id=2)
-sensor_06 = Sensor(machine_id="machine-03", sensor_id="load01", sensor_name="load01", sensor_type_id="load")
-sensor_07 = Sensor(machine_id="machine-03", sensor_id="load02", sensor_name="load02", sensor_type_id="load")
-sensor_08 = Sensor(machine_id="machine-03", sensor_id="load03", sensor_name="load03", sensor_type_id="load")
-sensor_09 = Sensor(machine_id="machine-03", sensor_id="load04", sensor_name="load04", sensor_type_id="load")
-sensor_10 = Sensor(machine_id="machine-03", sensor_id="load05", sensor_name="load05", sensor_type_id="load")
-sensor_11 = Sensor(machine_id="machine-03", sensor_id="load06", sensor_name="load06", sensor_type_id="load")
-sensor_12 = Sensor(machine_id="machine-03", sensor_id="load07", sensor_name="load07", sensor_type_id="load")
-sensor_13 = Sensor(machine_id="machine-03", sensor_id="load08", sensor_name="load08", sensor_type_id="load")
-sensor_14 = Sensor(machine_id="machine-03", sensor_id="load09", sensor_name="load09", sensor_type_id="load")
-sensor_15 = Sensor(machine_id="machine-03", sensor_id="load10", sensor_name="load10", sensor_type_id="load")
-sensor_16 = Sensor(machine_id="machine-03", sensor_id="load11", sensor_name="load11", sensor_type_id="load")
-sensor_17 = Sensor(machine_id="machine-03", sensor_id="load12", sensor_name="load12", sensor_type_id="load")
-sensor_18 = Sensor(machine_id="machine-03", sensor_id="load13", sensor_name="load13", sensor_type_id="load")
-sensor_19 = Sensor(machine_id="machine-03", sensor_id="load14", sensor_name="load14", sensor_type_id="load")
-sensor_20 = Sensor(machine_id="machine-03", sensor_id="load15", sensor_name="load15", sensor_type_id="load")
+sensor_06 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load01",
+    sensor_name="load01",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_07 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load02",
+    sensor_name="load02",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_08 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load03",
+    sensor_name="load03",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_09 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load04",
+    sensor_name="load04",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_10 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load05",
+    sensor_name="load05",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_11 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load06",
+    sensor_name="load06",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_12 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load07",
+    sensor_name="load07",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_13 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load08",
+    sensor_name="load08",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_14 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load09",
+    sensor_name="load09",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_15 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load10",
+    sensor_name="load10",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_16 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load11",
+    sensor_name="load11",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_17 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load12",
+    sensor_name="load12",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_18 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load13",
+    sensor_name="load13",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_19 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load14",
+    sensor_name="load14",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_20 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load15",
+    sensor_name="load15",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
 sensor_21 = Sensor(machine_id="machine-03", sensor_id="pulse", sensor_name="pulse", sensor_type_id="pulse")
-sensor_22 = Sensor(machine_id="machine-01", sensor_id="load03", sensor_name="load03", sensor_type_id="load")
-sensor_23 = Sensor(machine_id="machine-01", sensor_id="load04", sensor_name="load04", sensor_type_id="load")
+sensor_22 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load03",
+    sensor_name="load03",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_23 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load04",
+    sensor_name="load04",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
 
 handler_01.sensors.append(sensor_01)
 handler_01.sensors.append(sensor_02)

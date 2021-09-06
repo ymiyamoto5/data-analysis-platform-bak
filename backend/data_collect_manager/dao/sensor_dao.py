@@ -61,6 +61,9 @@ class SensorDAO:
             sensor_name=insert_data["sensor_name"],
             sensor_type_id=sensor_type_id,
             handler_id=handler_id,
+            base_volt=insert_data["base_volt"],
+            base_load=insert_data["base_load"],
+            initial_volt=insert_data["initial_volt"],
         )  # type: ignore
 
         db.session.add(new_sensor)
