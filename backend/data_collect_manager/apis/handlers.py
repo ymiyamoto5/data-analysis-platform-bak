@@ -17,8 +17,8 @@ class HandlerSchema(Schema):
     adc_serial_num = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
     handler_type = fields.Str(validate=validate.Length(min=1, max=255))
     sampling_frequency = fields.Int(validate=validate.Range(min=1, max=100_000))
-    sampling_ch_num = fields.Int(validate=validate.Range(min=1, max=16))
-    filewrite_time = fields.Int(validate=validate.Range(min=1, max=60))
+    sampling_ch_num = fields.Int(validate=validate.Range(min=1, max=99))
+    filewrite_time = fields.Int(validate=validate.Range(min=1, max=360))
     gateway_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
 
 

@@ -30,27 +30,27 @@
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.handler_type"
-                  :rules="[rules.required, rules.counter, rules.typePattern]"
+                  :rules="[rules.required, rules.counter, rules.handlerTypePattern]"
                   label="ハンドラータイプ"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.adc_serial_num"
-                  :rules="[rules.required, rules.counter, rules.serialPattern]"
+                  :rules="[rules.required, rules.counter, rules.idlPattern]"
                   label="シリアルナンバー"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.sampling_frequency"
-                  :rules="[rules.required, rules.counter, rules.numPattern]"
+                  :rules="[rules.required, rules.frequencyRange]"
                   label="サンプリングレート(Hz)"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.sampling_ch_num"
-                  :rules="[rules.required, rules.counter, rules.numPattern]"
+                  :rules="[rules.required, rules.chRange]"
                   label="チャンネル数"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.filewrite_time"
-                  :rules="[rules.required, rules.counter, rules.numPattern]"
+                  :rules="[rules.required, rules.filewriteTimeRange]"
                   label="ファイル書き込み間隔"
                 ></v-text-field>
                 <v-select
@@ -162,27 +162,16 @@ export default {
           '半角のアルファベット/数字/ハイフンのみ使用可能です。'
         )
       },
-      typePattern: (value) => {
-        const pattern = /^[0-9a-zA-Z_]+$/
+      handlerTypePattern: (value) => {
+        const pattern = /^[0-9a-zA-Z-_]+$/
         return (
           pattern.test(value) ||
-          '半角のアルファベット/数字/アンダースコアのみ使用可能です。'
+          '半角のアルファベット/数字/ハイフン/アンダースコアのみ使用可能です。'
         )
       },
-      serialPattern: (value) => {
-        const pattern = /^[0-9A-Z]+$/
-        return (
-          pattern.test(value) ||
-          '半角の大文字アルファベット/数字のみ使用可能です。'
-        )
-      },
-      numPattern: (value) => {
-        const pattern = /^[0-9]+$/
-        return (
-          pattern.test(value) ||
-          '数字のみ使用可能です。'
-        )
-      },
+      frequencyRange: (value) => value >= 1 && value <= 100000 || '1~100,000のみ使用可能です。',
+      chRange: (value) => value >= 1 && value <= 99 || '1~99のみ使用可能です。',
+      filewriteTimeRange: (value) => value >= 1 && value <= 360 || '1~360のみ使用可能です。',
     },
   }),
 
@@ -207,7 +196,7 @@ export default {
 
   created() {
     this.fetchTableData()
-    this.fetchMachineId()
+    this.fetchGatewayId()
   },
 
   methods: {
@@ -217,7 +206,7 @@ export default {
     },
 
     // ドロップダウンリスト用データ取得
-    fetchMachineId: async function() {
+    fetchGatewayId: async function() {
       const client = createBaseApiClient()
       let data = []
       await client
