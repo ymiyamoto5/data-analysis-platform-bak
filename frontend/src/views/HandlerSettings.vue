@@ -30,27 +30,27 @@
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.handler_type"
-                  :rules="[rules.required, rules.counter]"
+                  :rules="[rules.required, rules.counter, rules.typePattern]"
                   label="ハンドラータイプ"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.adc_serial_num"
-                  :rules="[rules.required, rules.counter]"
+                  :rules="[rules.required, rules.counter, rules.serialPattern]"
                   label="シリアルナンバー"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.sampling_frequency"
-                  :rules="[rules.required, rules.counter]"
+                  :rules="[rules.required, rules.counter, rules.numPattern]"
                   label="サンプリングレート(Hz)"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.sampling_ch_num"
-                  :rules="[rules.required, rules.counter]"
+                  :rules="[rules.required, rules.counter, rules.numPattern]"
                   label="チャンネル数"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.filewrite_time"
-                  :rules="[rules.required, rules.counter]"
+                  :rules="[rules.required, rules.counter, rules.numPattern]"
                   label="ファイル書き込み間隔"
                 ></v-text-field>
                 <v-select
@@ -162,6 +162,27 @@ export default {
           '半角のアルファベット/数字/ハイフンのみ使用可能です。'
         )
       },
+      typePattern: (value) => {
+        const pattern = /^[0-9a-zA-Z_]+$/
+        return (
+          pattern.test(value) ||
+          '半角のアルファベット/数字/アンダースコアのみ使用可能です。'
+        )
+      },
+      serialPattern: (value) => {
+        const pattern = /^[0-9A-Z]+$/
+        return (
+          pattern.test(value) ||
+          '半角の大文字アルファベット/数字のみ使用可能です。'
+        )
+      },
+      numPattern: (value) => {
+        const pattern = /^[0-9]+$/
+        return (
+          pattern.test(value) ||
+          '数字のみ使用可能です。'
+        )
+      },
     },
   }),
 
@@ -252,7 +273,7 @@ export default {
         postUrl =
           HANDLERS_API_URL + '/' + this.editedItem.handler_id + '/update'
         postData = {
-          handler_id: this.editedItem.handler_id,
+          handler_type: this.editedItem.handler_type,
           adc_serial_num: this.editedItem.adc_serial_num,
           sampling_frequency: this.editedItem.sampling_frequency,
           sampling_ch_num: this.editedItem.sampling_ch_num,
