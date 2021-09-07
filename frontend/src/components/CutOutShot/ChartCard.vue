@@ -19,7 +19,7 @@ import Chart from './Chart.vue'
 const SHOTS_API_URL = '/api/v1/shots'
 
 export default {
-  props: ['machine_id', 'collectData'],
+  props: ['machine_id', 'targetDir'],
   components: {
     Chart,
   },
@@ -27,7 +27,7 @@ export default {
     machine_id: function() {
       this.chartData.datasets.data = []
     },
-    collectData: function(new_value) {
+    targetDir: function(new_value) {
       this.chartData.datasets.data = []
       this.fetchData(new_value)
     },
@@ -60,17 +60,17 @@ export default {
     }
   },
   methods: {
-    fetchData: async function(collectData) {
+    fetchData: async function() {
       this.display = true
       // ex) 2021/09/06 14:59:38 - 2021/09/06 15:00:00 => 2021/09/06 14:59:38 => UNIXTIME(ミリ秒)
-      const targetDate = Date.parse(collectData.split('-')[0].slice(0, -1))
+      // const targetDate = Date.parse(collectData.split('-')[0].slice(0, -1))
 
       const client = createBaseApiClient()
       await client
         .get(SHOTS_API_URL, {
           params: {
             machine_id: this.machine_id,
-            targetDate: targetDate,
+            targetDir: this.targetDir,
           },
         })
         .then((res) => {

@@ -1,3 +1,4 @@
+import json
 from backend.data_collect_manager.dao.sensor_dao import SensorDAO
 import os
 import pandas as pd
@@ -9,6 +10,7 @@ from backend.data_converter.data_converter import DataConverter
 from backend.common import common
 from backend.common.common_logger import logger
 from marshmallow import Schema, fields, ValidationError, validate
+from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.cut_out_shot.cut_out_shot import CutOutShot
 import traceback
@@ -17,16 +19,18 @@ shots = Blueprint("shots", __name__)
 
 
 class CutOutShotSchema(Schema):
+    machine_id = fields.Str(required=True, validate=[character_validate, validate.Length(min=1, max=255)])
     start_displacement = fields.Float(validate=validate.Range(min=0.0, max=100.0))
     end_displacement = fields.Float(validate=validate.Range(min=0.0, max=100.0))
+    target_dir = fields.Str(required=True)
 
 
 cut_out_shot_schema = CutOutShotSchema()
 
 
-@shots.route("/shots", methods=["GET"])
-def fetch_shots():
-    """対象区間の先頭N件を取得する"""
+@shots.route("/target_dir", methods=["GET"])
+def fetch_target_dir():
+    """ショット切り出し対象となるディレクトリ名を返す"""
 
     machine_id = request.args.get("machine_id")
     target_date_param = request.args.get("targetDate")
@@ -36,8 +40,18 @@ def fetch_shots():
     target_date_str: str = datetime.strftime(target_date, "%Y%m%d%H%M%S")
     target_dir_name = machine_id + "-" + target_date_str
 
+    return jsonify(target_dir_name), 200
+
+
+@shots.route("/shots", methods=["GET"])
+def fetch_shots():
+    """対象区間の最初のpklファイルを読み込み、変位値をリサンプリングして返す"""
+
+    machine_id = request.args.get("machine_id")
+    target_dir = request.args.get("targetDir")
+
     data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-    data_full_path: str = os.path.join(data_dir, target_dir_name)
+    data_full_path: str = os.path.join(data_dir, target_dir)
 
     files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
 
@@ -88,5 +102,11 @@ def cut_out_shot():
         return jsonify({"message": message}), 400
 
     # サブプロセスでcut_out_shot実行
+    cut_out_shot = CutOutShot(machine_id=data["machine_id"], margin=0.3)
+    cut_out_shot.cut_out_shot(
+        rawdata_dir_name=data["target_dir"],
+        start_displacement=data["start_displacement"],
+        end_displacement=data["end_displacement"],
+    )
 
     return jsonify({}), 200
