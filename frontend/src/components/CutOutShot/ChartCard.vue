@@ -19,12 +19,12 @@ import Chart from './Chart.vue'
 const SHOTS_API_URL = '/api/v1/shots'
 
 export default {
-  props: ['machineId', 'collectData'],
+  props: ['machine_id', 'collectData'],
   components: {
     Chart,
   },
   watch: {
-    machineId: function() {
+    machine_id: function() {
       this.chartData.datasets.data = []
     },
     collectData: function(new_value) {
@@ -69,7 +69,7 @@ export default {
       await client
         .get(SHOTS_API_URL, {
           params: {
-            machineId: this.machineId,
+            machine_id: this.machine_id,
             targetDate: targetDate,
           },
         })

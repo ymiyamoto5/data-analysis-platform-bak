@@ -10,7 +10,7 @@
         <v-col cols="7">
           <CollectDataSelect
             @input="setCollectData"
-            :value="machineId"
+            :value="machine_id"
           ></CollectDataSelect>
         </v-col>
       </v-row>
@@ -22,14 +22,11 @@
           ></DisplacementRangeSlider>
         </v-col>
         <v-col cols="11">
-          <ChartCard :machineId="machineId" :collectData="collectData" />
+          <ChartCard :machine_id="machine_id" :collectData="collectData" />
         </v-col>
       </v-row>
       <v-row justify="center" v-if="dataSelected">
-        <v-btn color="primary">ショット切り出し開始</v-btn>
-      </v-row>
-      <v-row justify="center" v-if="started">
-        <v-textarea></v-textarea>
+        <v-btn color="primary" @click="start">ショット切り出し開始</v-btn>
       </v-row>
     </v-container>
   </v-app>
@@ -52,15 +49,15 @@ export default {
     return {
       dataSelected: false,
       started: false,
-      machineId: '',
-      startDisplacement: 0,
-      endDisplacement: 0,
+      machine_id: '',
+      start_displacement: 0,
+      end_displacement: 0,
       collectData: '',
     }
   },
   methods: {
     setMachine(value) {
-      this.machineId = value
+      this.machine_id = value
     },
     setCollectData(value) {
       this.collectData = value
@@ -68,8 +65,11 @@ export default {
     },
     setDisplacementRange(range) {
       console.log(range)
-      this.startDisplacement = range[1]
-      this.endDisplacement = range[0]
+      this.start_displacement = range[1]
+      this.end_displacement = range[0]
+    },
+    start: async function() {
+      this.started = true
     },
   },
 }
