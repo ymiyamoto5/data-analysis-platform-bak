@@ -75,6 +75,17 @@
             ]
         },
         {
+            "name": "data_recorder(manual record)",
+            "type": "python",
+            "module": "backend.data_recorder.data_recorder",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "args": [
+                "-d=machine-01-20210327141514"
+            ]
+        },
+        {
             "name": "elastic_manager",
             "type": "python",
             "module": "backend.elastic_manager.elastic_manager",
