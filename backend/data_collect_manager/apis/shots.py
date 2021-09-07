@@ -48,7 +48,7 @@ def fetch_shots():
     # TODO: displacement以外の対応
     sensor = SensorDAO.select_by_id(machine_id, "displacement")
     func = DataConverter.get_physical_conversion_formula(sensor)
-    df.loc[:, sensor.Sensor.sensor_id] = df[sensor.Sensor.sensor_id].map(func)
+    df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
 
     data = df.to_dict(orient="records")
 
