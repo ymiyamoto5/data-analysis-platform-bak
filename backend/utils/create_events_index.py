@@ -44,4 +44,5 @@ if __name__ == "__main__":
     prefix = "events-" + machine_id + "-"
     # start_datetime_jst = datetime(2021, 7, 9, 19, 0, 0, 0)
     start_datetime_jst = datetime(2021, 3, 27, 14, 15, 14, 0)
-    create_events_index(prefix, start_datetime_jst, hours=2, is_recorded=False)
+    # create_events_index(prefix, start_datetime_jst, hours=2, is_recorded=False)
+    create_events_index(prefix, start_datetime_jst, hours=2, is_recorded=True)
