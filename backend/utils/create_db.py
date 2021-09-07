@@ -25,9 +25,10 @@ machine_type_01 = MachineType(machine_type_name="プレス")
 machine_type_02 = MachineType(machine_type_name="圧力プレート")
 
 # SensorType
-sensor_type_01 = SensorType(sensor_type_name="荷重")
-sensor_type_02 = SensorType(sensor_type_name="変位")
-sensor_type_03 = SensorType(sensor_type_name="パルス")
+sensor_type_01 = SensorType(sensor_type_id="load", sensor_type_name="荷重")
+sensor_type_02 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
+sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
+sensor_type_04 = SensorType(sensor_type_id="bolt", sensor_type_name="ボルト")
 
 # Machine
 machine_01 = Machine(
@@ -120,31 +121,178 @@ handler_04 = Handler(
 )
 
 # Sensor
-sensor_01 = Sensor(sensor_name="load01", sensor_type_id=1)
-sensor_02 = Sensor(sensor_name="load02", sensor_type_id=1)
-sensor_03 = Sensor(sensor_name="displacement", sensor_type_id=2)
-sensor_04 = Sensor(sensor_name="load01", sensor_type_id=1)
-sensor_05 = Sensor(sensor_name="displacement", sensor_type_id=2)
-sensor_06 = Sensor(sensor_name="load01", sensor_type_id=1)
-sensor_07 = Sensor(sensor_name="load02", sensor_type_id=1)
-sensor_08 = Sensor(sensor_name="load03", sensor_type_id=1)
-sensor_09 = Sensor(sensor_name="load04", sensor_type_id=1)
-sensor_10 = Sensor(sensor_name="load05", sensor_type_id=1)
-sensor_11 = Sensor(sensor_name="load06", sensor_type_id=1)
-sensor_12 = Sensor(sensor_name="load07", sensor_type_id=1)
-sensor_13 = Sensor(sensor_name="load08", sensor_type_id=1)
-sensor_14 = Sensor(sensor_name="load09", sensor_type_id=1)
-sensor_15 = Sensor(sensor_name="load10", sensor_type_id=1)
-sensor_16 = Sensor(sensor_name="load11", sensor_type_id=1)
-sensor_17 = Sensor(sensor_name="load12", sensor_type_id=1)
-sensor_18 = Sensor(sensor_name="load13", sensor_type_id=1)
-sensor_19 = Sensor(sensor_name="load14", sensor_type_id=1)
-sensor_20 = Sensor(sensor_name="load15", sensor_type_id=1)
-sensor_21 = Sensor(sensor_name="pulse", sensor_type_id=3)
+sensor_01 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load01",
+    sensor_name="load01",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_02 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load02",
+    sensor_name="load02",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_03 = Sensor(
+    machine_id="machine-01", sensor_id="displacement", sensor_name="displacement", sensor_type_id="displacement"
+)
+sensor_04 = Sensor(
+    machine_id="machine-02",
+    sensor_id="load01",
+    sensor_name="load01",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_05 = Sensor(machine_id="machine-02", sensor_id="displacement", sensor_name="displacement", sensor_type_id=2)
+sensor_06 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load01",
+    sensor_name="load01",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_07 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load02",
+    sensor_name="load02",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_08 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load03",
+    sensor_name="load03",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_09 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load04",
+    sensor_name="load04",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_10 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load05",
+    sensor_name="load05",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_11 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load06",
+    sensor_name="load06",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_12 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load07",
+    sensor_name="load07",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_13 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load08",
+    sensor_name="load08",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_14 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load09",
+    sensor_name="load09",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_15 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load10",
+    sensor_name="load10",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_16 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load11",
+    sensor_name="load11",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_17 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load12",
+    sensor_name="load12",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_18 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load13",
+    sensor_name="load13",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_19 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load14",
+    sensor_name="load14",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_20 = Sensor(
+    machine_id="machine-03",
+    sensor_id="load15",
+    sensor_name="load15",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_21 = Sensor(machine_id="machine-03", sensor_id="pulse", sensor_name="pulse", sensor_type_id="pulse")
+sensor_22 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load03",
+    sensor_name="load03",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+sensor_23 = Sensor(
+    machine_id="machine-01",
+    sensor_id="load04",
+    sensor_name="load04",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
 
 handler_01.sensors.append(sensor_01)
 handler_01.sensors.append(sensor_02)
+handler_01.sensors.append(sensor_22)
+handler_01.sensors.append(sensor_23)
 handler_01.sensors.append(sensor_03)
+
 handler_02.sensors.append(sensor_04)
 handler_02.sensors.append(sensor_05)
 handler_03.sensors.append(sensor_06)
