@@ -13,6 +13,7 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
+import { formatTime } from '@/common/common'
 import Chart from './Chart.vue'
 
 const SHOTS_API_URL = '/api/v1/shots'
@@ -61,7 +62,6 @@ export default {
       const targetDate = Date.parse(collectData.split('-')[0].slice(0, -1))
 
       const client = createBaseApiClient()
-      let displacement_data = []
       await client
         .get(SHOTS_API_URL, {
           params: {
@@ -73,8 +73,14 @@ export default {
           if (res.data.length === 0) {
             return
           }
-          displacement_data = res.data.map((x) => x.displacement)
+          // x軸データ
+          let x_data = res.data.map((x) => new Date(x.timestamp))
+          x_data = x_data.map((x) => formatTime(x))
+          this.$set(this.chartData, 'labels', x_data)
+          // y軸データ
+          const displacement_data = res.data.map((x) => x.displacement)
           this.$set(this.chartData.datasets[0], 'data', displacement_data)
+
           this.loaded = true
         })
         .catch((e) => {
@@ -82,19 +88,5 @@ export default {
         })
     },
   },
-  //   async created() {
-  //     const url =
-  //       'https://www.quandl.com/api/v3/datasets/CHRIS/CME_NK2/data.json?api_key=' +
-  //       process.env.VUE_APP_QUANDL_KEY
-  //     const response = await axios.get(url)
-  //     const data = response.data.dataset_data.data
-  //     const last_7day = data.slice(0, 7).reverse()
-  //     // // 直近7日の日付 + 終値
-  //     const days = last_7day.map((item) => item[0])
-  //     const last = last_7day.map((item) => item[4])
-  //     await this.$set(this.chartData, 'labels', days)
-  //     await this.$set(this.chartData.datasets[0], 'data', last)
-  //     this.loaded = true
-  //   },
 }
 </script>
