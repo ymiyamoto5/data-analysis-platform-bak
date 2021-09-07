@@ -22,7 +22,7 @@ class TestCreateFilesInfo:
 
         machine_id = "machine-01"
 
-        actual = FileManager.create_files_info(dat_files.tmp_path._str, machine_id)
+        actual = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
 
         expected = [
             FileInfo(dat_files.tmp_dat_1._str, datetime(2020, 12, 16, 8, 0, 58, 620753).timestamp()),
@@ -47,7 +47,7 @@ class TestCreateFilesInfo:
         tmp_dat_2.write_text("")
         tmp_dat_3.write_text("")
 
-        actual = FileManager.create_files_info(tmp_path._str, machine_id)
+        actual = FileManager.create_files_info(tmp_path._str, machine_id, "dat")
 
         expected = [
             FileInfo(tmp_dat_3._str, datetime(2020, 12, 10, 8, 1, 0, 620753).timestamp()),
@@ -62,7 +62,7 @@ class TestCreateFilesInfo:
 
         machine_id: str = "machine-01"
 
-        actual = FileManager.create_files_info("dummy_path", machine_id)
+        actual = FileManager.create_files_info("dummy_path", machine_id, "dat")
 
         expected = None
 
@@ -78,7 +78,7 @@ class TestGetTargetFiles:
 
         machine_id: str = "machine-01"
 
-        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id)
+        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
 
         setup_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 2, 0).timestamp()
@@ -97,7 +97,7 @@ class TestGetTargetFiles:
 
         machine_id: str = "machine-01"
 
-        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id)
+        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
 
         setup_time = datetime(2020, 12, 16, 8, 1, 3, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 5, 0).timestamp()
@@ -117,7 +117,7 @@ class TestGetNotTargetFiles:
 
         machine_id: str = "machine-01"
 
-        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id)
+        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
 
         setup_time = datetime(2020, 12, 16, 8, 0, 59, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 2, 0).timestamp()
@@ -135,7 +135,7 @@ class TestGetNotTargetFiles:
 
         machine_id: str = "machine-01"
 
-        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id)
+        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
 
         setup_time = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
         end_time = datetime(2020, 12, 16, 8, 1, 10, 0).timestamp()
