@@ -19,18 +19,28 @@
     >
       <template v-slot:[`item.gateways`]="{ item }">
         <template v-for="gateway in item.gateways">
-          <v-btn :key="gateway.gateway_id" class="pa-2">
+          <v-card
+            :key="gateway.gateway_id"
+            class="pa-1 text-center"
+            min-width="50%"
+            max-width="100%"
+          >
             {{ gateway.gateway_id }}
-          </v-btn>
+          </v-card>
         </template>
       </template>
 
       <template v-slot:[`item.handlers`]="{ item }">
         <template v-for="gateway in item.gateways">
           <template v-for="handler in gateway.handlers">
-            <v-btn :key="handler.hanlder_id" class="pa-2">
+            <v-card
+              :key="handler.hanlder_id"
+              class="pa-1 text-center"
+              min-width="50%"
+              max-width="100%"
+            >
               {{ handler.handler_id }}
-            </v-btn>
+            </v-card>
           </template>
         </template>
       </template>
@@ -45,9 +55,14 @@
           <template v-for="gateway in item.gateways">
             <template v-for="handler in gateway.handlers">
               <template v-for="sensor in handler.sensors">
-                <v-btn :key="sensor.sensor_name" class="pa-2">
+                <v-card
+                  :key="sensor.sensor_name"
+                  class="pa-1 text-center"
+                  min-width="50%"
+                  max-width="100%"
+                >
                   {{ sensor.sensor_name }}
-                </v-btn>
+                </v-card>
               </template>
             </template>
           </template>
@@ -276,6 +291,12 @@ export default {
 .v-btn {
   margin-right: 10px;
 }
+
+.v-card {
+  margin-top: 1%;
+  margin-bottom: 1%;
+}
+
 ul {
   list-style: none;
 }

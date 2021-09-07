@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.utils.df_to_els import df_to_els
 
 
-def create_events_index(prefix: str, start_datetime_jst: datetime, hours=1) -> None:
+def create_events_index(prefix: str, start_datetime_jst: datetime, hours=1, is_recorded: bool = True) -> None:
 
     start_datetime_jst_str: str = start_datetime_jst.isoformat()
     index: str = prefix + start_datetime_jst_str.replace("-", "").replace("T", "").replace(":", "")
@@ -25,8 +25,12 @@ def create_events_index(prefix: str, start_datetime_jst: datetime, hours=1) -> N
         {"event_id": 0, "event_type": "setup", "occurred_time": start_datetime_utc_str},
         {"event_id": 1, "event_type": "start", "occurred_time": start_datetime_utc_str},
         {"event_id": 2, "event_type": "stop", "occurred_time": end_datetime_utc_str},
-        {"event_id": 3, "event_type": "recorded", "occurred_time": end_datetime_utc_str},
     ]
+
+    if is_recorded:
+        events.append(
+            {"event_id": 3, "event_type": "recorded", "occurred_time": end_datetime_utc_str},
+        )
 
     df = pd.DataFrame(events)
 
@@ -40,4 +44,5 @@ if __name__ == "__main__":
     prefix = "events-" + machine_id + "-"
     # start_datetime_jst = datetime(2021, 7, 9, 19, 0, 0, 0)
     start_datetime_jst = datetime(2021, 3, 27, 14, 15, 14, 0)
-    create_events_index(prefix, start_datetime_jst, hours=2)
+    # create_events_index(prefix, start_datetime_jst, hours=2, is_recorded=False)
+    create_events_index(prefix, start_datetime_jst, hours=2, is_recorded=True)

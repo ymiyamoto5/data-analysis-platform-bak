@@ -26,7 +26,10 @@ from backend.utils.throughput_counter import throughput_counter
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.common.dao.handler_dao import HandlerDAO
+from backend.common.dao.sensor_dao import SensorDAO
 from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.sensor import Sensor
+from backend.data_converter.data_converter import DataConverter
 
 
 class CutOutShot:
@@ -40,8 +43,7 @@ class CutOutShot:
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
         margin: float = 0.3,
-        displacement_func: Optional[Callable[[float], float]] = None,
-        **kwargs,
+        sensors: Optional[List[Sensor]] = None,
     ):
         self.__machine_id = machine_id
         self.__previous_size: int = previous_size
@@ -62,17 +64,20 @@ class CutOutShot:
             columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
         )
 
-        if displacement_func is None:
-            logger.error("displacement_func is not defined.")
-            sys.exit(1)
-        self.__displacement_func: Optional[Callable[[float], float]] = displacement_func
+        if sensors is None:
+            try:
+                self.__sensors: List[Sensor] = SensorDAO.select_sensors_by_machine_id(machine_id)
+            except Exception:
+                logger.error(traceback.format_exc())
+                sys.exit(1)
 
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        if len(self.__sensors) == 0:
+            logger.error(f"Machine {machine_id} has no sensor.")
+            sys.exit(1)
 
         if handler is None:
             try:
-                handler = HandlerDAO.fetch_handler(self.__machine_id)
+                handler = HandlerDAO.fetch_handler(machine_id)
             except Exception:
                 logger.exception(traceback.format_exc())
                 sys.exit(1)
@@ -319,25 +324,13 @@ class CutOutShot:
 
         return df.query("shot_number not in @over_sample_shot_numbers")
 
-    def _apply_expr_displacement(self, df: DataFrame) -> DataFrame:
-        """変位値に対して変換式を適用"""
-
-        # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-        df.loc[:, "displacement"] = df["displacement"].map(self.__displacement_func)
-
-        return df
-
-    def _apply_expr_load(self, df: DataFrame) -> DataFrame:
+    def _apply_physical_conversion_formula(self, df: DataFrame) -> DataFrame:
         """荷重値に対して変換式を適用"""
 
-        # NOTE: 動的にプロパティにアクセスし、そのプロパティの関数を適用
-        # TODO: 変位センサーを除いた数になっているが、本来は荷重センサーの数を明示出来たほうがよい。
-        for ch in range(1, self.__sampling_ch_num):
-            str_ch = str(ch).zfill(2)
-            load: str = "load" + str_ch
-            func: Callable[[float], float] = getattr(self, f"{load}_func")
+        for sensor in self.__sensors:
+            func: Callable[[float], float] = DataConverter.get_physical_conversion_formula(sensor)
             # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-            df.loc[:, load] = df[load].map(func)
+            df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
 
         return df
 
@@ -553,8 +546,9 @@ class CutOutShot:
                 self._backup_df_tail(rawdata_df)
                 continue
 
-            # 変位値に変換式適用
-            rawdata_df = self._apply_expr_displacement(rawdata_df)
+            # NOTE: 変換式適用.パフォーマンス的には変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
+            # コードのシンプルさを優先し、全列まとめて物理変換している。
+            rawdata_df = self._apply_physical_conversion_formula(rawdata_df)
 
             # ショット切り出し
             self._cut_out_shot(rawdata_df, start_displacement, end_displacement)
@@ -581,9 +575,6 @@ class CutOutShot:
             if len(cut_out_df) == 0:
                 logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
-
-            # 荷重値に変換式を適用
-            cut_out_df = self._apply_expr_load(cut_out_df)
 
             # タグ付け
             tm = TagManager(back_seconds_for_tagging=self.__back_seconds_for_tagging)
@@ -673,17 +664,6 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    # # 変位値変換 距離(mm) = 70.0 - (v - 2.0) * 70.0 / 8.0
-    displacement_func = lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
-    # displacement_func = lambda v: v
-
-    # 荷重値換算
-    Vr = 2.5
-    load01_func = lambda v: 2.5 / Vr * v
-    load02_func = lambda v: 2.5 / Vr * v
-    load03_func = lambda v: 2.5 / Vr * v
-    load04_func = lambda v: 2.5 / Vr * v
-
     machine_id: str = "machine-01"
 
     # cut_out_shot = CutOutShot(
@@ -691,10 +671,6 @@ if __name__ == "__main__":
     #     displacement_func=displacement_func,
     #     previous_size=5,
     #     margin=0.01,
-    #     load01_func=load01_func,
-    #     load02_func=load02_func,
-    #     load03_func=load03_func,
-    #     load04_func=load04_func,
     # )
     # target: str = "20210101000000"
     # target_dir: str = machine_id + "-" + target
@@ -707,11 +683,6 @@ if __name__ == "__main__":
         previous_size=1_000,
         chunk_size=5_000,
         margin=0.3,
-        displacement_func=displacement_func,
-        load01_func=load01_func,
-        load02_func=load02_func,
-        load03_func=load03_func,
-        load04_func=load04_func,
     )
 
     target: str = "20210327141514"

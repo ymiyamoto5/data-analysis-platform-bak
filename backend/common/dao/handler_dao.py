@@ -1,5 +1,3 @@
-from typing import List
-
 # NOTE: 関連するエンティティをあらかじめimportしておく必要がある。
 from backend.data_collect_manager.models.data_collect_history import DataCollectHistory  # noqa
 from backend.data_collect_manager.models.machine import Machine
@@ -15,16 +13,16 @@ class HandlerDAO:
         """DBからmachine_idをkeyにHandler情報を取得する。"""
 
         with db_session() as db:
-            handlers: List[Handler] = (
-                db.query(Handler)
-                .join(Gateway, Handler.gateways)
-                .join(Machine, Gateway.machines)
+            machine: Machine = (
+                db.query(Machine)
                 .filter(Machine.machine_id == machine_id)
-                .all()
+                .join(Gateway, Machine.gateways)
+                .join(Handler, Gateway.handlers)
+                .one()
             )
 
             # NOTE: 1つ目のGW, 1つ目のHandlerを採用。複数GW, 複数Handlerには対応していない。
             # NOTE: handlerがない場合はException
-            handler: Handler = handlers[0]
+            handler: Handler = machine.gateways[0].handlers[0]
 
         return handler
