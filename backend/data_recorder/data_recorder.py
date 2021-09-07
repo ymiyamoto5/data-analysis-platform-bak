@@ -12,36 +12,22 @@
 import multiprocessing
 import os
 import sys
-import glob
-import re
 import shutil
 import struct
 import time
 import traceback
-import pandas as pd
 from datetime import datetime
-from pandas.core.frame import DataFrame
 from typing import Final, Tuple, List, Optional, Any
-import dataclasses
 import argparse
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
+from backend.file_manager.file_manager import FileManager, FileInfo
 from backend.common import common
 from backend.common.dao.machine_dao import MachineDAO
 from backend.common.dao.handler_dao import HandlerDAO
 from backend.data_collect_manager.models.machine import Machine
 from backend.data_collect_manager.models.handler import Handler
 from backend.common.common_logger import data_recorder_logger as logger
-
-
-@dataclasses.dataclass
-class FileInfo:
-    __slots__ = (
-        "file_path",
-        "timestamp",
-    )
-    file_path: str
-    timestamp: float
 
 
 class DataRecorder:
@@ -58,20 +44,6 @@ class DataRecorder:
         self.sampling_ch_num: int = handler.sampling_ch_num
         self.sampling_frequency: int = handler.sampling_frequency
         self.sampling_interval: float = 1.0 / self.sampling_frequency
-
-    @staticmethod
-    def _create_file_timestamp(filepath: str) -> float:
-        """ファイル名から日時データを作成する。
-        ファイル名は AD-XX_YYYYmmddHHMMSS.ffffff 形式が前提となる。
-        """
-
-        filename: str = os.path.basename(filepath)
-
-        parts: List[str] = re.findall(r"\d+", filename)
-        timestamp_str: str = parts[-3] + parts[-2] + parts[-1]
-        timestamp: float = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f").timestamp()
-
-        return timestamp
 
     @staticmethod
     def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
@@ -91,17 +63,19 @@ class DataRecorder:
 
         return start_time, end_time
 
-    @staticmethod
-    def _get_target_files(files_info: List[FileInfo], start_time: float, end_time: float) -> List[FileInfo]:
-        """処理対象(開始/終了区間に含まれる）ファイルリストを返す"""
+    def _set_timestamp(self, rawdata_index: str, started_timestamp: float) -> float:
+        """プロセス跨ぎのタイムスタンプ設定。
+        rawdataインデックスの最新データから取得（なければデータ収集開始時間）
+        """
 
-        return list(filter(lambda x: start_time <= x.timestamp <= end_time, files_info))
+        query: dict = {"sort": {"sequential_number": {"order": "desc"}}}
+        latest_rawdata: List[dict] = ElasticManager.get_docs(index=rawdata_index, query=query, size=1)
 
-    @staticmethod
-    def _get_not_target_files(files_info: List[FileInfo], start_time: float, end_time: float) -> List[FileInfo]:
-        """処理対象外(開始/終了区間に含まれない）ファイルリストを返す"""
+        timestamp: float = (
+            started_timestamp if len(latest_rawdata) == 0 else latest_rawdata[0]["timestamp"] + self.sampling_interval
+        )
 
-        return list(filter(lambda x: (x.timestamp < start_time or x.timestamp > end_time), files_info))
+        return timestamp
 
     def _read_binary_files(
         self, file: FileInfo, sequential_number: int, timestamp: float
@@ -152,49 +126,6 @@ class DataRecorder:
 
         return samples, sequential_number, timestamp
 
-    def _create_files_info(self, data_dir: str) -> Optional[List[FileInfo]]:
-        """バイナリファイルの情報（パスとファイル名から抽出した日時）リストを生成"""
-
-        file_list: List[str] = glob.glob(os.path.join(data_dir, f"{self.machine_id}_*.dat"))
-
-        if len(file_list) == 0:
-            return None
-
-        file_list.sort()
-
-        # ファイルリストから時刻データを生成
-        files_timestamp: map[float] = map(self._create_file_timestamp, file_list)
-        # リストを作成 [{"file_path": "xxx", "timestamp": "yyy"},...]
-        files_info: List[FileInfo] = [
-            FileInfo(file_path=row[0], timestamp=row[1]) for row in zip(file_list, files_timestamp)
-        ]
-
-        return files_info
-
-    @staticmethod
-    def _export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: str) -> None:
-        """pickleファイルに出力する"""
-
-        df: DataFrame = pd.DataFrame(samples)
-
-        pickle_filename: str = os.path.splitext(os.path.basename(file.file_path))[0]
-        pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
-        df.to_pickle(pickle_filepath)
-
-    def _set_timestamp(self, rawdata_index: str, started_timestamp: float) -> float:
-        """プロセス跨ぎのタイムスタンプ設定。
-        rawdataインデックスの最新データから取得（なければデータ収集開始時間）
-        """
-
-        query: dict = {"sort": {"sequential_number": {"order": "desc"}}}
-        latest_rawdata: List[dict] = ElasticManager.get_docs(index=rawdata_index, query=query, size=1)
-
-        timestamp: float = (
-            started_timestamp if len(latest_rawdata) == 0 else latest_rawdata[0]["timestamp"] + self.sampling_interval
-        )
-
-        return timestamp
-
     def _data_record(
         self,
         rawdata_index: str,
@@ -220,15 +151,17 @@ class DataRecorder:
             sequential_number
             samples, sequential_number, timestamp = self._read_binary_files(file, sequential_number, timestamp)
 
+            # 子プロセスが残っていればjoin
             if len(procs) > 0:
                 for p in procs:
                     p.join()
 
+            # 子プロセスでElasticsearchのrawdata_indexに出力
             procs = ElasticManager.multi_process_bulk_lazy_join(
                 data=samples, index_to_import=rawdata_index, num_of_process=common.NUM_OF_PROCESS, chunk_size=5000
             )
-
-            self._export_to_pickle(samples, file, processed_dir_path)
+            # pklファイルに出力
+            FileManager.export_to_pickle(samples, file, processed_dir_path)
 
             # 手動インポートでないとき（スケジュール実行のとき）、ファイルを退避する
             if not is_manual:
@@ -243,9 +176,9 @@ class DataRecorder:
     def auto_record(self, is_debug_mode: bool = False) -> None:
         """スケジュール実行による自動インポート"""
 
-        # データディレクトリを確認し、対象機器のファイルリストを作成
+        # 対象機器のファイルリストを作成
         data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-        files_info: Optional[List[FileInfo]] = self._create_files_info(data_dir)
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, self.machine_id)
 
         if files_info is None:
             logger.info(f"No files in {data_dir}")
@@ -281,17 +214,17 @@ class DataRecorder:
         start_time, end_time = self._get_target_interval(events)
 
         # 対象となるファイルに絞り込む
-        target_files: List[FileInfo] = self._get_target_files(files_info, start_time, end_time)
+        target_files: List[FileInfo] = FileManager.get_target_files(files_info, start_time, end_time)
 
         # 含まれないファイルは削除するが、debug_modeでは削除しない
         if not is_debug_mode:
-            not_target_files: List[FileInfo] = self._get_not_target_files(files_info, start_time, end_time)
+            not_target_files: List[FileInfo] = FileManager.get_not_target_files(files_info, start_time, end_time)
             for file in not_target_files:
                 os.remove(file.file_path)
                 logger.info(f"{file.file_path} has been deleted because it is out of range.")
 
         if len(target_files) == 0:
-            logger.info("No files in target inteverl")
+            logger.info("No files in target interval")
             return
 
         logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
@@ -310,8 +243,9 @@ class DataRecorder:
         # start_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
         if not ElasticManager.exists_index(rawdata_index):
             logger.info(f"{rawdata_index} not exists. Creating...")
+            mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
             setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-            ElasticManager.create_index(rawdata_index, setting_file=setting_file)
+            ElasticManager.create_index(rawdata_index, mapping_file=mapping_file, setting_file=setting_file)
 
         # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
         time.sleep(3)
@@ -327,7 +261,7 @@ class DataRecorder:
         * 対応するevents_indexの最後のドキュメントがrecordedであること。
         """
 
-        files_info: Optional[List[FileInfo]] = self._create_files_info(target_dir)
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, self.machine_id)
 
         if files_info is None:
             logger.info(f"No files in {target_dir}")
@@ -352,8 +286,9 @@ class DataRecorder:
 
         # インデックスが存在すれば再作成
         ElasticManager.delete_exists_index(index=rawdata_index)
+        mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
         setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-        ElasticManager.create_index(rawdata_index, setting_file=setting_file)
+        ElasticManager.create_index(rawdata_index, mapping_file=mapping_file, setting_file=setting_file)
 
         self._data_record(rawdata_index, files_info, target_dir, started_timestamp, is_manual=True)
 
@@ -380,10 +315,9 @@ if __name__ == "__main__":
         target_dir: str = os.path.join(data_dir, args.dir)
 
         if not os.path.isdir(target_dir):
-            logger.error(f"{args.dir} is not exists.")
+            logger.error(f"{target_dir} is not exists.")
             sys.exit(1)
 
-        # TODO: 変数化
-        machine_id = "machine-01"
+        machine_id = "-".join(args.dir.split("-")[:-1])
         data_recorder = DataRecorder(machine_id)
         data_recorder.manual_record(target_dir)
