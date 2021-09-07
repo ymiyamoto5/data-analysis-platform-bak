@@ -12,14 +12,6 @@ class SensorDAO:
     @staticmethod
     def select_sensors_by_machine_id(machine_id: str) -> List[Sensor]:
         with db_session() as db:
-            sensors: List[Sensor] = (
-                db.query(Machine, Gateway, Handler, Sensor, SensorType)
-                .filter(Machine.machine_id == machine_id)
-                .filter(Machine.machine_id == Gateway.machine_id)
-                .filter(Gateway.gateway_id == Handler.gateway_id)
-                .filter(Handler.handler_id == Sensor.handler_id)
-                .filter(Sensor.sensor_type_id == SensorType.sensor_type_id)
-                .all()
-            )
+            sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
 
         return sensors
