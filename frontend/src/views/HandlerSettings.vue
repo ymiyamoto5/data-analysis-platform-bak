@@ -30,7 +30,11 @@
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.handler_type"
-                  :rules="[rules.required, rules.counter, rules.handlerTypePattern]"
+                  :rules="[
+                    rules.required,
+                    rules.counter,
+                    rules.handlerTypePattern,
+                  ]"
                   label="ハンドラータイプ"
                 ></v-text-field>
                 <v-text-field
@@ -51,7 +55,7 @@
                 <v-text-field
                   v-model="editedItem.filewrite_time"
                   :rules="[rules.required, rules.filewriteTimeRange]"
-                  label="ファイル書き込み間隔"
+                  label="ファイル出力間隔(秒)"
                 ></v-text-field>
                 <v-select
                   v-model="editedItem.gateway_id"
@@ -124,11 +128,11 @@ export default {
       },
       { text: 'ハンドラータイプ', value: 'handler_type' },
       { text: 'シリアルナンバー', value: 'adc_serial_num' },
-      { text: 'サンプリングレート(Hz)', value: 'sampling_frequency' } ,
+      { text: 'サンプリングレート(Hz)', value: 'sampling_frequency' },
       { text: 'チャンネル数', value: 'sampling_ch_num' },
-      { text: 'ファイル書き込み間隔', value: 'filewrite_time' },
+      { text: 'ファイル出力間隔(秒)', value: 'filewrite_time' },
       { text: 'ゲートウェイID', value: 'gateway_id' },
-      { text: 'アクション', value: 'actions', sortable: false }
+      { text: 'アクション', value: 'actions', sortable: false },
     ],
     handlers: [],
     editedIndex: -1,
@@ -169,9 +173,12 @@ export default {
           '半角のアルファベット/数字/ハイフン/アンダースコアのみ使用可能です。'
         )
       },
-      frequencyRange: (value) => value >= 1 && value <= 100000 || '1~100,000のみ使用可能です。',
-      chRange: (value) => value >= 1 && value <= 99 || '1~99のみ使用可能です。',
-      filewriteTimeRange: (value) => value >= 1 && value <= 360 || '1~360のみ使用可能です。',
+      frequencyRange: (value) =>
+        (value >= 1 && value <= 100000) || '1~100,000のみ使用可能です。',
+      chRange: (value) =>
+        (value >= 1 && value <= 99) || '1~99のみ使用可能です。',
+      filewriteTimeRange: (value) =>
+        (value >= 1 && value <= 360) || '1~360のみ使用可能です。',
     },
   }),
 
