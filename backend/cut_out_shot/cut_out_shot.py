@@ -330,7 +330,7 @@ class CutOutShot:
         for sensor in self.__sensors:
             func: Callable[[float], float] = DataConverter.get_physical_conversion_formula(sensor)
             # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
-            df.loc[:, sensor.Sensor.sensor_name] = df[sensor.Sensor.sensor_name].map(func)
+            df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
 
         return df
 
