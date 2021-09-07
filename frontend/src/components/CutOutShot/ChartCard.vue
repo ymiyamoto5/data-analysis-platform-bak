@@ -1,12 +1,12 @@
 <template>
-  <v-card min-width="80%">
+  <v-card min-width="80%" v-if="display">
     <v-card-text class="chart-container">
       <Chart v-if="loaded" :chartData="chartData" :options="options" />
-      <!-- <v-progress-circular
+      <v-progress-circular
         v-else-if="loaded != true"
         indeterminate
         color="#53e09c"
-      /> -->
+      />
     </v-card-text>
   </v-card>
 </template>
@@ -34,16 +34,19 @@ export default {
   },
   data() {
     return {
+      display: false,
       loaded: false,
       chartData: {
         labels: null,
         datasets: [
           {
-            label: '変位データ',
+            label: '変位値',
             data: null,
             fill: false,
             backgroundColor: 'rgba(232, 229, 74, 0.2)',
-            borderColor: '#e8e54a',
+            borderColor: '#000080',
+            borderWidth: 1,
+            pointRadius: 0,
           },
         ],
       },
@@ -58,6 +61,7 @@ export default {
   },
   methods: {
     fetchData: async function(collectData) {
+      this.display = true
       // ex) 2021/09/06 14:59:38 - 2021/09/06 15:00:00 => 2021/09/06 14:59:38 => UNIXTIME(ミリ秒)
       const targetDate = Date.parse(collectData.split('-')[0].slice(0, -1))
 
