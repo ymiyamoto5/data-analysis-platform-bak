@@ -1,4 +1,3 @@
-import json
 from backend.data_collect_manager.dao.sensor_dao import SensorDAO
 import os
 import pandas as pd
@@ -68,7 +67,7 @@ def fetch_shots():
     df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
     df = df.set_index(["timestamp"])
 
-    # リサンプリング
+    # TODO: リサンプリングは別モジュール化して、間隔を可変にする
     df = df.resample("10ms").mean()
     df = df.reset_index()
 
@@ -88,7 +87,6 @@ def cut_out_shot():
 
     json_data = request.get_json()
 
-    # validation
     if not json_data:
         logger.error(traceback.format_exc())
         message: str = ErrorMessage.generate_message(ErrorTypes.NO_INPUT_DATA)
@@ -103,10 +101,15 @@ def cut_out_shot():
 
     # サブプロセスでcut_out_shot実行
     cut_out_shot = CutOutShot(machine_id=data["machine_id"], margin=0.3)
-    cut_out_shot.cut_out_shot(
-        rawdata_dir_name=data["target_dir"],
-        start_displacement=data["start_displacement"],
-        end_displacement=data["end_displacement"],
-    )
+    try:
+        cut_out_shot.cut_out_shot(
+            rawdata_dir_name=data["target_dir"],
+            start_displacement=data["start_displacement"],
+            end_displacement=data["end_displacement"],
+        )
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.CUT_OUT_SHOT_ERROR, e.messages)
+        return jsonify({"message": message}), 500
 
     return jsonify({}), 200

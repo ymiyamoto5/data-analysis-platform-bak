@@ -46,19 +46,8 @@ export default {
     return {
       min: 0,
       max: 100,
-      range: [0, 100],
+      range: [100, 0],
     }
   },
-  // computed: {
-  //   range: {
-  //     get() {
-  //       return this.innerRange
-  //     },
-  //     set(value) {
-  //       this.innerRange = value
-  //       this.$emit('setSliderValues', value)
-  //     },
-  //   },
-  // },
 }
 </script>

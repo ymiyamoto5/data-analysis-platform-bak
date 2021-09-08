@@ -26,7 +26,16 @@
         </v-col>
       </v-row>
       <v-row justify="center" v-if="dataSelected">
-        <v-btn color="primary" @click="start">ショット切り出し開始</v-btn>
+        <v-btn color="primary" @click="start" :disabled="running"
+          >ショット切り出し開始</v-btn
+        >
+      </v-row>
+      <v-row justify="center">
+        <v-progress-circular
+          v-if="started === true && running === true"
+          indeterminate
+          color="#53e09c"
+        />
       </v-row>
     </v-container>
   </v-app>
@@ -53,6 +62,7 @@ export default {
     return {
       dataSelected: false,
       started: false,
+      running: false,
       machine_id: '',
       targetDir: '',
       start_displacement: 0,
@@ -100,6 +110,7 @@ export default {
     // ショット切り出し開始
     start: async function() {
       this.started = true
+      this.running = true
 
       const postData = {
         machine_id: this.machine_id,
@@ -111,10 +122,8 @@ export default {
       const client = createBaseApiClient()
       await client
         .post(CUT_OUT_SHOT_API_URL, postData)
-        .then((res) => {
-          if (res.data.length === 0) {
-            return
-          }
+        .then(() => {
+          this.running = false
         })
         .catch((e) => {
           console.log(e.response.data.message)
