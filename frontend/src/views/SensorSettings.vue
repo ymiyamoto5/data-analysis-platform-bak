@@ -44,14 +44,17 @@
                 </v-select>
                 <v-text-field
                   v-model="editedItem.base_load"
+                  :rules="[rules.floatType]"
                   label="基準圧力"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.base_volt"
+                  :rules="[rules.floatType]"
                   label="基準電圧"
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.initial_volt"
+                  :rules="[rules.floatType]"
                   label="初期電圧"
                 ></v-text-field>
                 <v-select
@@ -137,18 +140,18 @@ export default {
       sensor_id: '',
       sensor_name: '',
       sensor_type_id: 0,
-      base_load: '',
-      base_volt: '',
-      initial_volt: '',
+      base_load: null,
+      base_volt: null,
+      initial_volt: null,
       handler_id: 0,
     },
     defaultItem: {
       sensor_id: '',
       sensor_name: '',
       sensor_type_id: 0,
-      base_load: '',
-      base_volt: '',
-      initial_volt: '',
+      base_load: null,
+      base_volt: null,
+      initial_volt: null,
       handler_id: 0,
     },
     handlers: [],
@@ -164,10 +167,8 @@ export default {
           '半角のアルファベット/数字/ハイフンのみ使用可能です。'
         )
       },
-      numPattern: (value) => {
-        const pattern = /^-?[0-9]+\.?[0-9]*$/
-        return pattern.test(value) || value === '' || '数値のみ使用可能です。'
-      },
+      floatType: (value) =>
+        (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
     },
   }),
 
