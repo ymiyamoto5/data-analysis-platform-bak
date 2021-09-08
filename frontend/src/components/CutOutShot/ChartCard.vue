@@ -19,12 +19,12 @@ import Chart from './Chart.vue'
 const SHOTS_API_URL = '/api/v1/shots'
 
 export default {
-  props: ['machine_id', 'targetDir'],
+  props: ['machineId', 'targetDir'],
   components: {
     Chart,
   },
   watch: {
-    machine_id: function() {},
+    machineId: function() {},
     targetDir: function() {
       this.loaded = false
       this.fetchData()
@@ -41,8 +41,23 @@ export default {
             label: '変位値',
             data: null,
             fill: false,
-            backgroundColor: 'rgba(232, 229, 74, 0.2)',
             borderColor: '#000080',
+            borderWidth: 1,
+            pointRadius: 0,
+          },
+          {
+            label: '切り出し開始',
+            data: null,
+            fill: false,
+            borderColor: '#008000',
+            borderWidth: 1,
+            pointRadius: 0,
+          },
+          {
+            label: '切り出し終了',
+            data: null,
+            fill: false,
+            borderColor: '#ff0000',
             borderWidth: 1,
             pointRadius: 0,
           },
@@ -66,7 +81,7 @@ export default {
       await client
         .get(SHOTS_API_URL, {
           params: {
-            machine_id: this.machine_id,
+            machine_id: this.machineId,
             targetDir: this.targetDir,
           },
         })
