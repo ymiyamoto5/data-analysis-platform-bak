@@ -15,9 +15,9 @@ class SensorSchema(Schema):
     sensor_name = fields.Str(validate=validate.Length(min=1, max=255))
     sensor_type_id = fields.Str(required=True)
     handler_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
-    base_volt = fields.Float()
-    base_load = fields.Float()
-    initial_volt = fields.Float()
+    base_volt = fields.Float(allow_none=True)
+    base_load = fields.Float(allow_none=True)
+    initial_volt = fields.Float(allow_none=True)
 
 
 sensor_create_schema = SensorSchema()
