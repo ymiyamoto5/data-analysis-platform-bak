@@ -112,6 +112,9 @@ content-type: application/json
 ### get new
 GET http://localhost:5000/api/v1/handlers/TEST-HANDLER-001
 
+### get gateway
+GET http://localhost:5000/api/v1/gateways/GW-01
+
 ### update
 POST http://localhost:5000/api/v1/handlers/TEST-HANDLER-001/update HTTP/1.1
 content-type: application/json

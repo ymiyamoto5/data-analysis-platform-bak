@@ -40,6 +40,11 @@ class HandlerDAO:
         db.session.add(new_handler)
         db.session.commit()
 
+        # 更新したことをGatewayに知らせるため、gateway_resultを0に設定
+        handler = Handler.query.options().filter(Handler.handler_id == new_handler.handler_id).one()
+        handler.gateway.gateway_result = 0
+        db.session.commit()
+
     @staticmethod
     def update(handler_id: str, update_data: dict) -> None:
         # 更新対象取得
@@ -53,6 +58,9 @@ class HandlerDAO:
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
             setattr(handler, key, value)
+
+        # 更新したことをGatewayに知らせるため、gateway_resultを0に設定
+        handler.gateway.gateway_result = 0
 
         db.session.commit()
 
