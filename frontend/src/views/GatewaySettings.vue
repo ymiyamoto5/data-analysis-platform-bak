@@ -5,8 +5,8 @@
     sort-by="gateway_id"
     class="elevation-1"
   >
-    <template v-slot:[`item.gateway_result`]>
-      {{ gatewayResult }}
+    <template v-slot:[`item.gateway_result`]="{ item }">
+      {{ gatewayResult(item) }}
     </template>
     <template v-slot:top>
       <v-toolbar flat>
@@ -66,7 +66,8 @@
         <v-dialog v-model="dialogDelete" max-width="500px">
           <v-card>
             <v-card-title class="text-h6">
-              ゲートウェイID：{{ editedItem.gateway_id }} を削除してもよいですか？
+              ゲートウェイID：{{ editedItem.gateway_id }}
+              を削除してもよいですか？
             </v-card-title>
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -110,9 +111,9 @@ export default {
       },
       { text: '設定状態', value: 'gateway_result' },
       { text: '動作状態', value: 'status' },
-      { text: 'ログレベル', value: 'log_level' } ,
+      { text: 'ログレベル', value: 'log_level' },
       { text: '機器ID', value: 'machine_id' },
-      { text: 'アクション', value: 'actions', sortable: false }
+      { text: 'アクション', value: 'actions', sortable: false },
     ],
     gateways: [],
     editedIndex: -1,
@@ -152,9 +153,11 @@ export default {
       return this.editedIndex === -1 ? { disabled: false } : { disabled: true }
     },
     gatewayResult() {
-      if (this.gateways[1].gateway_result === 0) return '設定中'
-      else if (this.gateways[1].gateway_result === -1) return '異常'
-      else return '正常'
+      return function(item) {
+        if (item.gateway_result === 0) return '設定中'
+        else if (item.gateway_result === -1) return '異常'
+        else return '正常'
+      }
     },
   },
 
