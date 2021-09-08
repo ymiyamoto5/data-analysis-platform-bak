@@ -19,6 +19,7 @@
           <DisplacementRangeSlider
             v-if="dataSelected"
             @input="setDisplacementRange"
+            :targetDir="targetDir"
           ></DisplacementRangeSlider>
         </v-col>
         <v-col cols="11">
@@ -103,7 +104,6 @@ export default {
         })
     },
     setDisplacementRange(range) {
-      console.log(range)
       this.start_displacement = range[1]
       this.end_displacement = range[0]
     },
