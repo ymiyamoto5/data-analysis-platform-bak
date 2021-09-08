@@ -42,6 +42,13 @@
 
 <script>
 export default {
+  props: ['targetDir'],
+  watch: {
+    targetDir: function() {
+      // TODO: 対象に応じて動的に設定
+      console.log()
+    },
+  },
   data() {
     return {
       min: 0,

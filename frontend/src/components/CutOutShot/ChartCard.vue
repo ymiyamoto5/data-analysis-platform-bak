@@ -24,19 +24,17 @@ export default {
     Chart,
   },
   watch: {
-    machine_id: function() {
-      this.chartData.datasets.data = []
-    },
-    targetDir: function(new_value) {
-      this.chartData.datasets.data = []
-      this.fetchData(new_value)
+    machine_id: function() {},
+    targetDir: function() {
+      this.loaded = false
+      this.fetchData()
     },
   },
   data() {
     return {
       display: false,
       loaded: false,
-      chartData: {
+      chartDataTemplate: {
         labels: null,
         datasets: [
           {
@@ -50,6 +48,7 @@ export default {
           },
         ],
       },
+      chartData: null,
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -78,10 +77,14 @@ export default {
           // x軸データ
           let x_data = res.data.map((x) => new Date(x.timestamp))
           x_data = x_data.map((x) => formatTime(x))
-          this.$set(this.chartData, 'labels', x_data)
           // y軸データ
-          const displacement_data = res.data.map((x) => x.displacement)
-          this.$set(this.chartData.datasets[0], 'data', displacement_data)
+          let displacement_data = res.data.map((x) => x.displacement)
+          // NOTE: chartをリアクティブにするためchartDataオブジェクトをディープコピー
+          // https://qiita.com/nicopinpin/items/17457d38444b08953049
+          let chartData = JSON.parse(JSON.stringify(this.chartDataTemplate))
+          this.$set(chartData, 'labels', x_data)
+          this.$set(chartData.datasets[0], 'data', displacement_data)
+          this.chartData = chartData
 
           this.loaded = true
         })
