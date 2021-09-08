@@ -23,7 +23,12 @@
           ></DisplacementRangeSlider>
         </v-col>
         <v-col cols="11">
-          <ChartCard :machineId="machineId" :targetDir="targetDir" />
+          <ChartCard
+            :machineId="machineId"
+            :targetDir="targetDir"
+            :startDisplacement="startDisplacement"
+            :endDisplacement="endDisplacement"
+          />
         </v-col>
       </v-row>
       <v-row justify="center" v-if="dataSelected">
