@@ -10,7 +10,7 @@
         <v-col cols="7">
           <CollectDataSelect
             @input="setCollectData"
-            :value="machine_id"
+            :value="machineId"
           ></CollectDataSelect>
         </v-col>
       </v-row>
@@ -23,7 +23,7 @@
           ></DisplacementRangeSlider>
         </v-col>
         <v-col cols="11">
-          <ChartCard :machine_id="machine_id" :targetDir="targetDir" />
+          <ChartCard :machineId="machineId" :targetDir="targetDir" />
         </v-col>
       </v-row>
       <v-row justify="center" v-if="dataSelected">
@@ -64,16 +64,16 @@ export default {
       dataSelected: false,
       started: false,
       running: false,
-      machine_id: '',
+      machineId: '',
       targetDir: '',
-      start_displacement: 0,
-      end_displacement: 0,
+      startDisplacement: 0,
+      endDisplacement: 0,
       collectData: '',
     }
   },
   methods: {
     setMachine(value) {
-      this.machine_id = value
+      this.machineId = value
     },
     setCollectData(value) {
       this.collectData = value
@@ -89,7 +89,7 @@ export default {
       await client
         .get(TARGET_DIR_API_URL, {
           params: {
-            machine_id: this.machine_id,
+            machine_id: this.machineId,
             targetDate: targetDate,
           },
         })
@@ -104,8 +104,8 @@ export default {
         })
     },
     setDisplacementRange(range) {
-      this.start_displacement = range[1]
-      this.end_displacement = range[0]
+      this.startDisplacement = range[1]
+      this.endDisplacement = range[0]
     },
     // ショット切り出し開始
     start: async function() {
@@ -113,9 +113,9 @@ export default {
       this.running = true
 
       const postData = {
-        machine_id: this.machine_id,
-        start_displacement: this.start_displacement,
-        end_displacement: this.end_displacement,
+        machine_id: this.machineId,
+        start_displacement: this.startDisplacement,
+        end_displacement: this.endDisplacement,
         target_dir: this.targetDir,
       }
 

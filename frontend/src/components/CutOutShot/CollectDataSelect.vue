@@ -29,11 +29,11 @@ export default {
     },
   },
   methods: {
-    fetchCollectData: async function(machine_id) {
+    fetchCollectData: async function(machineId) {
       const client = createBaseApiClient()
       let history = []
       await client
-        .get(DATA_COLLECT_HISTORY_API_URL + '/' + machine_id)
+        .get(DATA_COLLECT_HISTORY_API_URL + '/' + machineId)
         .then((res) => {
           if (res.data.length === 0) {
             return
