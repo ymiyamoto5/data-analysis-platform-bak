@@ -48,6 +48,7 @@ def fetch_shots():
 
     machine_id = request.args.get("machine_id")
     target_dir = request.args.get("targetDir")
+    page = int(request.args.get("page"))
 
     data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
     data_full_path: str = os.path.join(data_dir, target_dir)
@@ -56,10 +57,15 @@ def fetch_shots():
 
     if files_info is None:
         message: str = "対象ファイルがありません"
-        return jsonify({"message": message}), 500
+        return jsonify({"message": message}), 400
+
+    # リクエストされたファイルがファイル数を超えている場合
+    if page > len(files_info) - 1:
+        message = "データがありません"
+        return jsonify({"message": message}), 400
 
     # 対象ディレクトリから1ファイル取得
-    target_file = files_info[0].file_path
+    target_file = files_info[page].file_path
 
     df = pd.read_pickle(target_file)
     # timestampを日時に戻しdaterange indexとする。
@@ -78,7 +84,7 @@ def fetch_shots():
 
     data = df.to_dict(orient="records")
 
-    return jsonify(data), 200
+    return jsonify({"data": data, "fileCount": len(files_info)}), 200
 
 
 @shots.route("/cut_out_shot", methods=["POST"])
@@ -99,8 +105,8 @@ def cut_out_shot():
         message: str = ErrorMessage.generate_message(ErrorTypes.VALID_ERROR, e.messages)
         return jsonify({"message": message}), 400
 
-    # サブプロセスでcut_out_shot実行
-    cut_out_shot = CutOutShot(machine_id=data["machine_id"], margin=0.3)
+    # TODO: サブプロセスでcut_out_shot実行
+    cut_out_shot = CutOutShot(machine_id=data["machine_id"])
     try:
         cut_out_shot.cut_out_shot(
             rawdata_dir_name=data["target_dir"],

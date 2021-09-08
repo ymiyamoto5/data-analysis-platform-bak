@@ -19,7 +19,13 @@ import Chart from './Chart.vue'
 const SHOTS_API_URL = '/api/v1/shots'
 
 export default {
-  props: ['machineId', 'targetDir', 'startDisplacement', 'endDisplacement'],
+  props: [
+    'machineId',
+    'targetDir',
+    'startDisplacement',
+    'endDisplacement',
+    'page',
+  ],
   components: {
     Chart,
   },
@@ -35,12 +41,17 @@ export default {
     endDisplacement: function() {
       this.createChartData(this.responseData)
     },
+    page: function() {
+      this.loaded = false
+      this.fetchData()
+    },
   },
   data() {
     return {
       display: false,
       loaded: false,
       responseData: [], // グラフデータ
+      maxPage: 0,
       chartDataTemplate: {
         labels: null,
         datasets: [
@@ -93,13 +104,16 @@ export default {
           params: {
             machine_id: this.machineId,
             targetDir: this.targetDir,
+            page: this.page,
           },
         })
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          this.responseData = res.data
+          this.responseData = res.data.data
+          this.maxPage = res.data.fileCount
+          this.$emit('setMaxPage', this.maxPage)
           this.createChartData(this.responseData)
           this.loaded = true
         })
