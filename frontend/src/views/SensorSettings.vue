@@ -273,15 +273,25 @@ export default {
       }
       let postUrl = ''
       let postData = {}
+      // 空文字の時nullに置き換え
+      const base_load =
+        this.editedItem.base_load === '' ? null : this.editedItem.base_load
+      const base_volt =
+        this.editedItem.base_volt === '' ? null : this.editedItem.base_volt
+      const initial_volt =
+        this.editedItem.initial_volt === ''
+          ? null
+          : this.editedItem.initial_volt
+
       // update
       if (this.editedIndex > -1) {
         postUrl = SENSORS_API_URL + '/' + this.editedItem.sensor_id + '/update'
         postData = {
           sensor_name: this.editedItem.sensor_name,
           sensor_type_id: this.editedItem.sensor_type_id,
-          base_load: this.editedItem.base_load,
-          base_volt: this.editedItem.base_volt,
-          initial_volt: this.editedItem.initial_volt,
+          base_load: base_load,
+          base_volt: base_volt,
+          initial_volt: initial_volt,
           handler_id: this.editedItem.handler_id,
         }
       }
@@ -291,9 +301,9 @@ export default {
         postData = {
           sensor_name: this.editedItem.sensor_name,
           sensor_type_id: this.editedItem.sensor_type_id,
-          base_load: this.editedItem.base_load,
-          base_volt: this.editedItem.base_volt,
-          initial_volt: this.editedItem.initial_volt,
+          base_load: base_load,
+          base_volt: base_volt,
+          initial_volt: initial_volt,
           handler_id: this.editedItem.handler_id,
         }
       }
