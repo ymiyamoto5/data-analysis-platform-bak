@@ -53,6 +53,9 @@ class GatewayDAO:
         for key, value in update_data.items():
             setattr(gateway, key, value)
 
+        # 更新したことをGatewayに知らせるため、gateway_resultを0に設定
+        gateway.gateway_result = 0
+
         db.session.commit()
 
     @staticmethod
