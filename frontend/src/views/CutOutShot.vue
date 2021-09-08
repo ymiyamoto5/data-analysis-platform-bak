@@ -22,15 +22,30 @@
             :targetDir="targetDir"
           ></DisplacementRangeSlider>
         </v-col>
-        <v-col cols="11">
+        <v-col cols="9">
           <ChartCard
             :machineId="machineId"
             :targetDir="targetDir"
             :startDisplacement="startDisplacement"
             :endDisplacement="endDisplacement"
+            :page="page"
+            @setMaxPage="setMaxPage"
           />
         </v-col>
       </v-row>
+      <v-row justify="space-around">
+        <v-col cols="1">
+          <v-icon v-if="dataSelected && displayPrevPage" @click="decrementPage"
+            >mdi-arrow-left-bold-box-outline</v-icon
+          >
+        </v-col>
+        <v-col cols="1">
+          <v-icon v-if="dataSelected && displayNextPage" @click="incrementPage"
+            >mdi-arrow-right-bold-box-outline</v-icon
+          >
+        </v-col>
+      </v-row>
+
       <v-row justify="center" v-if="dataSelected">
         <v-btn color="primary" @click="start" :disabled="running"
           >ショット切り出し開始</v-btn
@@ -69,6 +84,10 @@ export default {
       dataSelected: false,
       started: false,
       running: false,
+      page: 0, // グラフの表示ファイル
+      maxPage: 0, // グラフの最大ページング数（対象データのファイル数）
+      displayPrevPage: false, // グラフを前に戻せるか
+      displayNextPage: false, // グラフを先に進められるか
       machineId: '',
       targetDir: '',
       startDisplacement: 0,
@@ -84,6 +103,10 @@ export default {
       this.collectData = value
       this.dataSelected = true
       this.fetchTargetDir()
+      this.page = 0
+      this.maxPage = 0
+      this.displayPrevPage = false
+      this.displayNextPage = false
     },
     // 対象ディレクトリ名を取得
     fetchTargetDir: async function() {
@@ -134,8 +157,45 @@ export default {
           console.log(e.response.data.message)
         })
     },
+    setMaxPage(maxPage) {
+      this.maxPage = maxPage
+      this.switchDisplayNextPage()
+    },
+    // 1つ後のデータに設定。加算後に最大ページ数に達した場合はそれ以上進めなくする。
+    incrementPage() {
+      this.page += 1
+      this.switchDisplayPrevPage()
+      this.switchDisplayNextPage()
+    },
+    // 1つ前のデータに設定。減算後に0未満の場合はそれ以上戻れなくする。
+    decrementPage() {
+      this.page -= 1
+      this.switchDisplayPrevPage()
+      this.switchDisplayNextPage()
+    },
+    switchDisplayPrevPage() {
+      if (this.page <= 0) {
+        this.displayPrevPage = false
+      } else {
+        this.displayPrevPage = true
+      }
+    },
+    switchDisplayNextPage() {
+      if (this.page >= this.maxPage - 1) {
+        this.displayNextPage = false
+      } else {
+        this.displayNextPage = true
+      }
+    },
   },
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+/* #prev {
+  margin-top: 200px;
+}
+#next {
+  margin-top: 200px;
+} */
+</style>

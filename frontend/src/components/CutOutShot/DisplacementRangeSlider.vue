@@ -51,9 +51,9 @@ export default {
   },
   data() {
     return {
-      min: 0.1,
-      max: 100,
-      range: [100, 0.1],
+      min: 20,
+      max: 60,
+      range: [45, 35],
     }
   },
 }
