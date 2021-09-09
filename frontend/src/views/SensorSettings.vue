@@ -2,7 +2,8 @@
   <v-data-table
     :headers="headers"
     :items="sensors"
-    sort-by="sensor_id"
+    multi-sort
+    :sort-by="['machine_id', 'sensor_id']"
     class="elevation-1"
   >
     <template v-slot:top>
@@ -79,7 +80,10 @@
         <v-dialog v-model="dialogDelete" max-width="500px">
           <v-card>
             <v-card-title class="text-h6">
-              センサーID：{{ editedItem.sensor_id }} を削除してもよいですか？
+              機器ID：{{ editedItem.machine_id }}/センサーID：{{
+                editedItem.sensor_id
+              }}
+              を削除してもよいですか？
             </v-card-title>
             <v-card-actions>
               <v-spacer></v-spacer>
