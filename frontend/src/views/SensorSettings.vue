@@ -23,11 +23,6 @@
             <v-card-text>
               <v-form ref="form_group">
                 <v-text-field
-                  v-model="editedItem.sensor_id"
-                  label="センサーID"
-                  disabled
-                ></v-text-field>
-                <v-text-field
                   v-model="editedItem.sensor_name"
                   :rules="[rules.required, rules.counter]"
                   label="センサー名"
@@ -122,22 +117,27 @@ export default {
     dialogDelete: false,
     headers: [
       {
-        text: 'センサーID',
+        text: '機器ID',
         align: 'start',
-        value: 'sensor_id',
+        value: 'machine_id',
+        width: '15%',
       },
-      { text: 'センサー名', value: 'sensor_name' },
-      { text: 'センサー種別', value: 'sensor_type.sensor_type_name' },
-      { text: '基準圧力', value: 'base_load' },
-      { text: '基準電圧', value: 'base_volt' },
-      { text: '初期電圧', value: 'initial_volt' },
-      { text: 'ハンドラーID', value: 'handler_id' },
-      { text: 'アクション', value: 'actions', sortable: false },
+      { text: 'センサーID', value: 'sensor_id', width: '15%' },
+      { text: 'センサー名', value: 'sensor_name', width: '15%' },
+      {
+        text: 'センサー種別',
+        value: 'sensor_type.sensor_type_name',
+        width: '10%',
+      },
+      { text: '基準圧力', value: 'base_load', width: '8%' },
+      { text: '基準電圧', value: 'base_volt', width: '8%' },
+      { text: '初期電圧', value: 'initial_volt', width: '8%' },
+      { text: 'ハンドラーID', value: 'handler_id', width: '13%' },
+      { text: 'アクション', value: 'actions', sortable: false, width: '8%' },
     ],
     sensors: [],
     editedIndex: -1,
     editedItem: {
-      sensor_id: '',
       sensor_name: '',
       sensor_type_id: 0,
       base_load: null,
@@ -146,7 +146,6 @@ export default {
       handler_id: 0,
     },
     defaultItem: {
-      sensor_id: '',
       sensor_name: '',
       sensor_type_id: 0,
       base_load: null,
