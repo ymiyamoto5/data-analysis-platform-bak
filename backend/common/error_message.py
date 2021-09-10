@@ -19,6 +19,7 @@ class ErrorTypes(Enum):
     GW_STATUS_ERROR = "ゲートウェイステータスが正しくありません"
     COLLECT_STATUS_ERROR = "収集ステータスが正しくありません"
     GW_RESULT_ERROR = "ゲートウェイエラーです"
+    CUT_OUT_SHOT_ERROR = "ショット切り出しに失敗しました"
 
 
 class ErrorMessage:
@@ -56,3 +57,5 @@ class ErrorMessage:
             return f"{ErrorTypes.COLLECT_STATUS_ERROR.value}: {target}"
         if error_type == ErrorTypes.GW_RESULT_ERROR:
             return f"{ErrorTypes.GW_RESULT_ERROR.value}: {target}"
+        if error_type == ErrorTypes.CUT_OUT_SHOT_ERROR:
+            return f"{ErrorTypes.CUT_OUT_SHOT_ERROR.value}: {target}"

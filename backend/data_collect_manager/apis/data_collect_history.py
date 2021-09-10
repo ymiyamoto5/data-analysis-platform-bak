@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List
 from flask import Blueprint, jsonify
 from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
@@ -12,5 +11,14 @@ def fetch_data_collect_history():
     """データ収集履歴を返す"""
 
     history: List[DataCollectHistory] = DataCollectHistoryDAO.select_all()
+
+    return jsonify(history)
+
+
+@data_collect_history.route("/data_collect_history/<string:machine_id>", methods=["GET"])
+def fetch_data_collect_history_by_machine(machine_id):
+    """特定機器のデータ収集履歴を返す"""
+
+    history: List[DataCollectHistory] = DataCollectHistoryDAO.select_by_machine_id(machine_id)
 
     return jsonify(history)

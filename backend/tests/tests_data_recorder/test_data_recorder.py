@@ -108,7 +108,7 @@ class TestReadBinaryFiles:
         machine_id: str = "machine-01"
         dr = DataRecorder(machine_id=machine_id, handler=handler)
 
-        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id)
+        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
         file = file_infos[0]
 
         actual = dr._read_binary_files(file=file, sequential_number=0, timestamp=file.timestamp)
