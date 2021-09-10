@@ -106,3 +106,12 @@ class SensorDAO:
         machine_id: str = joined.Machine.machine_id
 
         return machine_id
+
+    # TODO: commonのdaoと統一
+    @staticmethod
+    def fetch_sensors_by_machine_id(machine_id: str) -> List[Sensor]:
+        """machine_idに紐づく全センサーを取得する"""
+
+        sensors: List[Sensor] = db.session.query(Sensor).filter(Sensor.machine_id == machine_id).all()
+
+        return sensors
