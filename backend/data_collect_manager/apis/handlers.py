@@ -13,18 +13,31 @@ handlers = Blueprint("handlers", __name__)
 class HandlerSchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
-    handler_id = fields.Str(required=True, validate=[character_validate, validate.Length(min=1, max=255)])
-    adc_serial_num = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
+    handler_id = fields.Str(
+        required=True, validate=[character_validate, validate.Length(min=1, max=255)]
+    )
+    adc_serial_num = fields.Str(
+        validate=[character_validate, validate.Length(min=1, max=255)]
+    )
     handler_type = fields.Str(validate=validate.Length(min=1, max=255))
     sampling_frequency = fields.Int(validate=validate.Range(min=1, max=100_000))
     sampling_ch_num = fields.Int(validate=validate.Range(min=1, max=99))
     filewrite_time = fields.Int(validate=validate.Range(min=1, max=360))
-    gateway_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
+    gateway_id = fields.Str(
+        validate=[character_validate, validate.Length(min=1, max=255)]
+    )
 
 
 handler_create_schema = HandlerSchema()
 handler_update_schema = HandlerSchema(
-    only=("adc_serial_num", "handler_type", "sampling_frequency", "sampling_ch_num", "filewrite_time", "gateway_id")
+    only=(
+        "adc_serial_num",
+        "handler_type",
+        "sampling_frequency",
+        "sampling_ch_num",
+        "filewrite_time",
+        "gateway_id",
+    )
 )
 
 
@@ -32,18 +45,26 @@ handler_update_schema = HandlerSchema(
 def fetch_handlers():
     """handlerを起点に関連エンティティを全結合したデータを返す。"""
 
-    handlers = HandlerDAO.select_all()
-
-    return jsonify(handlers), 200
+    try:
+        handlers = HandlerDAO.select_all()
+        return jsonify(handlers), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
+        return jsonify({"message": message}), 500
 
 
 @handlers.route("/handlers/<string:handler_id>", methods=["GET"])
 def fetch_handler(handler_id):
     """指定Handlerの情報を取得"""
 
-    handler = HandlerDAO.select_by_id(handler_id)
-
-    return jsonify(handler), 200
+    try:
+        handler = HandlerDAO.select_by_id(handler_id)
+        return jsonify(handler), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
+        return jsonify({"message": message}), 500
 
 
 @handlers.route("/handlers", methods=["POST"])
@@ -73,7 +94,9 @@ def create():
         detail_message: Optional[str] = None
         if "UNIQUE constraint failed" in str(e):
             detail_message = "IDは重複不可です"
-        message: str = ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL, detail_message)
+        message: str = ErrorMessage.generate_message(
+            ErrorTypes.CREATE_FAIL, detail_message
+        )
         return jsonify({"message": message}), 500
 
 
