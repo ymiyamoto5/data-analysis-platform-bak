@@ -69,7 +69,7 @@ def fetch_shots():
 
     df = pd.read_pickle(target_file)
     # timestampを日時に戻しdaterange indexとする。
-    df = df[["timestamp", "displacement"]]
+    # df = df[["timestamp", "displacement"]]
     df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
     df = df.set_index(["timestamp"])
 
@@ -77,10 +77,10 @@ def fetch_shots():
     df = df.resample("10ms").mean()
     df = df.reset_index()
 
-    # TODO: displacement以外の対応
-    sensor = SensorDAO.select_by_id(machine_id, "displacement")
-    func = DataConverter.get_physical_conversion_formula(sensor)
-    df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
+    sensors = SensorDAO.fetch_sensors_by_machine_id(machine_id)
+    for sensor in sensors:
+        func = DataConverter.get_physical_conversion_formula(sensor)
+        df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
 
     data = df.to_dict(orient="records")
 
