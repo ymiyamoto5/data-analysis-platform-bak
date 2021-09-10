@@ -178,7 +178,7 @@ class DataRecorder:
 
         # 対象機器のファイルリストを作成
         data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, self.machine_id)
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, self.machine_id, "dat")
 
         if files_info is None:
             logger.info(f"No files in {data_dir}")
@@ -261,7 +261,7 @@ class DataRecorder:
         * 対応するevents_indexの最後のドキュメントがrecordedであること。
         """
 
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, self.machine_id)
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, self.machine_id, "dat")
 
         if files_info is None:
             logger.info(f"No files in {target_dir}")
