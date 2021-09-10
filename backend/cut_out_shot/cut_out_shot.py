@@ -36,14 +36,14 @@ class CutOutShot:
     def __init__(
         self,
         machine_id: str,
-        handler: Optional[Handler] = None,
+        handler: Optional[Handler] = None,  # テスト時にInjection
+        sensors: Optional[List[Sensor]] = None,  # テスト時にInjection
         previous_size: int = 1000,
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
         margin: float = 0.3,
-        sensors: Optional[List[Sensor]] = None,
     ):
         self.__machine_id = machine_id
         self.__previous_size: int = previous_size
@@ -70,6 +70,8 @@ class CutOutShot:
             except Exception:
                 logger.error(traceback.format_exc())
                 sys.exit(1)
+        else:
+            self.__sensors = sensors
 
         if len(self.__sensors) == 0:
             logger.error(f"Machine {machine_id} has no sensor.")
