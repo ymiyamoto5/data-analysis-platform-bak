@@ -17,6 +17,7 @@ from typing import List
 
 from backend.cut_out_shot.cut_out_shot import CutOutShot
 from backend.data_collect_manager.models.handler import Handler
+from backend.data_collect_manager.models.sensor import Sensor
 
 
 @pytest.fixture
@@ -25,21 +26,58 @@ def target():
 
     machine_id = "machine-01"
     handler: Handler = Handler(handler_id="TEST-HANDLDER-001", sampling_ch_num=5, sampling_frequency=100000)
-
-    displacement_func = lambda x: x * 1.0
-    load01_func = lambda x: x * 1.0
-    load02_func = lambda x: x * 1.0
-    load03_func = lambda x: x * 1.0
-    load04_func = lambda x: x * 1.0
+    sensors: List[Sensor] = [
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load01",
+            sensor_name="test_load01",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+            initial_volt=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load02",
+            sensor_name="test_load02",
+            sensor_type_id="load",
+            base_volt=1,
+            base_load=1,
+            initial_volt=1,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load03",
+            sensor_name="test_load03",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+            initial_volt=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load04",
+            sensor_name="test_load04",
+            sensor_type_id="load",
+            base_volt=1,
+            base_load=1,
+            initial_volt=1,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="displacement01",
+            sensor_name="test_displacement01",
+            sensor_type_id="displacement",
+            base_volt=5,
+            base_load=5,
+            initial_volt=1,
+        ),
+    ]
 
     instance = CutOutShot(
         machine_id=machine_id,
         handler=handler,
-        displacement_func=displacement_func,
-        load01_func=load01_func,
-        load02_func=load02_func,
-        load03_func=load03_func,
-        load04_func=load04_func,
+        sensors=sensors,
     )
 
     yield instance
@@ -54,6 +92,61 @@ def handler():
     yield handler
 
     del handler
+
+
+@pytest.fixture
+def sensors():
+    sensors: List[Sensor] = [
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load01",
+            sensor_name="test_load01",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+            initial_volt=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load02",
+            sensor_name="test_load02",
+            sensor_type_id="load",
+            base_volt=1,
+            base_load=1,
+            initial_volt=1,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load03",
+            sensor_name="test_load03",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+            initial_volt=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load04",
+            sensor_name="test_load04",
+            sensor_type_id="load",
+            base_volt=1,
+            base_load=1,
+            initial_volt=1,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="displacement",
+            sensor_name="test_displacement",
+            sensor_type_id="displacement",
+            base_volt=5,
+            base_load=5,
+            initial_volt=1,
+        ),
+    ]
+
+    yield sensors
+
+    del sensors
 
 
 @pytest.fixture

@@ -18,19 +18,7 @@ from pandas.testing import assert_frame_equal
 import numpy as np
 
 from backend.cut_out_shot.cut_out_shot import CutOutShot
-
-
-class TestInit:
-    def test_displacement_func_is_none_exception(self, handler):
-        with pytest.raises(SystemExit):
-            CutOutShot(
-                machine_id="machine-01",
-                handler=handler,
-                load01_func=lambda x: x + 1.0,
-                load02_func=lambda x: x + 1.0,
-                load03_func=lambda x: x + 1.0,
-                load04_func=lambda x: x + 1.0,
-            )
+from backend.data_converter.data_converter import DataConverter
 
 
 class TestGetPickleList:
@@ -622,112 +610,54 @@ class TestExcludeOverSample:
         assert_frame_equal(actual, expected)
 
 
-class TestApplyExprDisplacment:
-    def test_normal(self, rawdata_df):
+class TestApplyPhysicalConversionFormula:
+    def test_normal(self, mocker, rawdata_df, handler, sensors):
         """正常系：lambda式適用"""
 
         machine_id = "machine-01"
 
         cut_out_shot = CutOutShot(
             machine_id=machine_id,
-            displacement_func=lambda x: x + 1.0,
-            load01_func=lambda x: x * 1.0,
-            load02_func=lambda x: x * 1.0,
-            load03_func=lambda x: x * 1.0,
-            load04_func=lambda x: x * 1.0,
+            handler=handler,
+            sensors=sensors,
         )
 
         # 全データを見る必要はないので一部スライス
         target_df: DataFrame = rawdata_df[:3].copy()
 
-        actual_df: DataFrame = cut_out_shot._apply_expr_displacement(target_df)
+        mocker.patch.object(DataConverter, "get_physical_conversion_formula", return_value=lambda x: x + 1.0)
+
+        actual_df: DataFrame = cut_out_shot._apply_physical_conversion_formula(target_df)
 
         expected = [
             {
                 "sequential_number": 0,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
                 "displacement": 50.284,
-                "load01": 0.223,
-                "load02": 0.211,
-                "load03": 0.200,
-                "load04": 0.218,
+                "load01": 1.223,
+                "load02": 1.211,
+                "load03": 1.200,
+                "load04": 1.218,
             },
             # 切り出し区間前2
             {
                 "sequential_number": 1,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
                 "displacement": 48.534,
-                "load01": 0.155,
-                "load02": 0.171,
-                "load03": 0.180,
-                "load04": 0.146,
+                "load01": 1.155,
+                "load02": 1.171,
+                "load03": 1.180,
+                "load04": 1.146,
             },
             # 切り出し区間1-1
             {
                 "sequential_number": 2,
                 "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
                 "displacement": 48.0,
-                "load01": 1.574,
-                "load02": 1.308,
-                "load03": 1.363,
-                "load04": 1.432,
-            },
-        ]
-
-        expected_df = pd.DataFrame(expected)
-
-        assert_frame_equal(actual_df, expected_df)
-
-
-class TestApplyExprLoad:
-    def test_normal(self, rawdata_df):
-        """正常系：lambda式適用"""
-
-        machine_id = "machine-01"
-
-        cut_out_shot = CutOutShot(
-            machine_id=machine_id,
-            displacement_func=lambda x: x + 1.0,
-            load01_func=lambda x: x + 2.0,
-            load02_func=lambda x: x + 3.0,
-            load03_func=lambda x: x + 4.0,
-            load04_func=lambda x: x + 5.0,
-        )
-
-        # 全データを見る必要はないので一部スライス
-        target_df: DataFrame = rawdata_df[:3].copy()
-
-        actual_df: DataFrame = cut_out_shot._apply_expr_load(target_df)
-
-        expected = [
-            {
-                "sequential_number": 0,
-                "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
-                "displacement": 49.284,
-                "load01": 2.223,
-                "load02": 3.211,
-                "load03": 4.200,
-                "load04": 5.218,
-            },
-            # 切り出し区間前2
-            {
-                "sequential_number": 1,
-                "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
-                "displacement": 47.534,
-                "load01": 2.155,
-                "load02": 3.171,
-                "load03": 4.180,
-                "load04": 5.146,
-            },
-            # 切り出し区間1-1
-            {
-                "sequential_number": 2,
-                "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
-                "displacement": 47.0,
-                "load01": 3.574,
-                "load02": 4.308,
-                "load03": 5.363,
-                "load04": 6.432,
+                "load01": 2.574,
+                "load02": 2.308,
+                "load03": 2.363,
+                "load04": 2.432,
             },
         ]
 
