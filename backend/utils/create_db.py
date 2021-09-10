@@ -138,7 +138,10 @@ sensor_02 = Sensor(
     base_load=2.5,
 )
 sensor_03 = Sensor(
-    machine_id="machine-01", sensor_id="displacement", sensor_name="displacement", sensor_type_id="displacement"
+    machine_id="machine-01",
+    sensor_id="displacement",
+    sensor_name="displacement",
+    sensor_type_id="displacement",
 )
 sensor_04 = Sensor(
     machine_id="machine-02",
@@ -148,7 +151,12 @@ sensor_04 = Sensor(
     base_volt=2.5,
     base_load=2.5,
 )
-sensor_05 = Sensor(machine_id="machine-02", sensor_id="displacement", sensor_name="displacement", sensor_type_id=2)
+sensor_05 = Sensor(
+    machine_id="machine-02",
+    sensor_id="displacement",
+    sensor_name="displacement",
+    sensor_type_id="displacement",
+)
 sensor_06 = Sensor(
     machine_id="machine-03",
     sensor_id="load01",
@@ -269,7 +277,12 @@ sensor_20 = Sensor(
     base_volt=2.5,
     base_load=2.5,
 )
-sensor_21 = Sensor(machine_id="machine-03", sensor_id="pulse", sensor_name="pulse", sensor_type_id="pulse")
+sensor_21 = Sensor(
+    machine_id="machine-03",
+    sensor_id="pulse",
+    sensor_name="pulse",
+    sensor_type_id="pulse",
+)
 sensor_22 = Sensor(
     machine_id="machine-01",
     sensor_id="load03",
