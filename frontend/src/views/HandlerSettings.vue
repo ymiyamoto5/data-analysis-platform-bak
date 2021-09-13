@@ -39,7 +39,7 @@
                 ></v-text-field>
                 <v-text-field
                   v-model="editedItem.adc_serial_num"
-                  :rules="[rules.required, rules.counter, rules.idlPattern]"
+                  :rules="[rules.required, rules.counter, rules.idPattern]"
                   label="シリアルナンバー"
                 ></v-text-field>
                 <v-text-field
@@ -346,7 +346,9 @@ export default {
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
-        this.$refs.form_group.resetValidation()
+        if (this.$refs.form_group) {
+          this.$refs.form_group.resetValidation()
+        }
       })
     },
   },
