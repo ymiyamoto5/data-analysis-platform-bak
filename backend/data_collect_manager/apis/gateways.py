@@ -16,7 +16,9 @@ gateways = Blueprint("gateways", __name__)
 class GatewaySchema(Schema):
     """POSTパラメータのvalidation用スキーマ"""
 
-    gateway_id = fields.Str(required=True, validate=[character_validate, validate.Length(min=1, max=255)])
+    gateway_id = fields.Str(
+        required=True, validate=[character_validate, validate.Length(min=1, max=255)]
+    )
     sequence_number = fields.Int(validate=validate.Range(min=-1))
     gateway_result = fields.Int(validate=validate.Range(min=-1, max=1))
     status = fields.Str(
@@ -26,29 +28,41 @@ class GatewaySchema(Schema):
         ]
     )
     log_level = fields.Int(validate=validate.Range(min=0, max=5))
-    machine_id = fields.Str(validate=[character_validate, validate.Length(min=1, max=255)])
+    machine_id = fields.Str(
+        validate=[character_validate, validate.Length(min=1, max=255)]
+    )
 
 
 gateway_create_schema = GatewaySchema(only=("gateway_id", "log_level", "machine_id"))
-gateway_update_schema = GatewaySchema(only=("sequence_number", "gateway_result", "status", "log_level", "machine_id"))
+gateway_update_schema = GatewaySchema(
+    only=("sequence_number", "gateway_result", "status", "log_level", "machine_id")
+)
 
 
 @gateways.route("/gateways", methods=["GET"])
 def fetch_gateways():
     """Gatewayを起点に関連エンティティを全結合したデータを返す。"""
 
-    gateways = GatewayDAO.select_all()
-
-    return jsonify(gateways), 200
+    try:
+        gateways = GatewayDAO.select_all()
+        return jsonify(gateways), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
+        return jsonify({"message": message}), 500
 
 
 @gateways.route("/gateways/<string:gateway_id>", methods=["GET"])
 def fetch_gateway(gateway_id):
     """指定Gatewayの情報を取得"""
 
-    gateway = GatewayDAO.select_by_id(gateway_id)
-
-    return jsonify(gateway), 200
+    try:
+        gateway = GatewayDAO.select_by_id(gateway_id)
+        return jsonify(gateway), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
+        return jsonify({"message": message}), 500
 
 
 @gateways.route("/gateways/<string:gateway_id>/machine", methods=["GET"])
@@ -94,7 +108,9 @@ def create():
         detail_message: Optional[str] = None
         if "UNIQUE constraint failed" in str(e):
             detail_message = "IDは重複不可です"
-        message: str = ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL, detail_message)
+        message: str = ErrorMessage.generate_message(
+            ErrorTypes.CREATE_FAIL, detail_message
+        )
         return jsonify({"message": message}), 500
 
 
