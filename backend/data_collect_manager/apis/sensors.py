@@ -29,20 +29,27 @@ sensor_delete_schema = SensorSchema(only=("handler_id",))
 def fetch_sensors():
     """Sensorを起点に関連エンティティを全結合したデータを返す"""
 
-    sensor = SensorDAO.select_all()
-
-    return jsonify(sensor), 200
+    try:
+        sensor = SensorDAO.select_all()
+        return jsonify(sensor), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
+        return jsonify({"message": message}), 500
 
 
 @sensors.route("/sensors/<string:sensor_id>", methods=["GET"])
 def fetch_sensor(sensor_id):
     """指定Sensorの情報を取得"""
 
-    machine_id = request.args.get("machine_id")
-
-    sensor = SensorDAO.select_by_id(machine_id, sensor_id)
-
-    return jsonify(sensor), 200
+    try:
+        machine_id = request.args.get("machine_id")
+        sensor = SensorDAO.select_by_id(machine_id, sensor_id)
+        return jsonify(sensor), 200
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
+        return jsonify({"message": message}), 500
 
 
 @sensors.route("/sensors", methods=["POST"])
