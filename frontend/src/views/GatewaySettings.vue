@@ -308,7 +308,9 @@ export default {
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
-        this.$refs.form_group.resetValidation()
+        if (this.$refs.form_group) {
+          this.$refs.form_group.resetValidation()
+        }
       })
     },
   },
