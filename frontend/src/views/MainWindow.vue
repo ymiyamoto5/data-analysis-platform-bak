@@ -41,7 +41,7 @@ export default {
   components: {},
   data() {
     return {
-      drawer: false,
+      drawer: true,
       items: [
         {
           id: 'dataCollect',
