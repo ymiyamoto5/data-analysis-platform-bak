@@ -289,15 +289,12 @@ class CutOutShot:
             "sequential_number": self.__sequential_number,
             "sequential_number_by_shot": self.__sequential_number_by_shot,
             "rawdata_sequential_number": int(rawdata.sequential_number),
-            "displacement": rawdata.displacement,
             "shot_number": self.__shot_number,
             "tags": [],
         }
 
-        for ch in range(0, self.__sampling_ch_num - 1):
-            str_ch = str(ch + 1).zfill(2)
-            load: str = "load" + str_ch  # load01, load02, ...
-            cut_out_target[load] = getattr(rawdata, load)
+        for sensor in self.__sensors:
+            cut_out_target[sensor.sensor_id] = getattr(rawdata, sensor.sensor_id)
 
         self.__cut_out_targets.append(cut_out_target)
         self.__sequential_number += 1
