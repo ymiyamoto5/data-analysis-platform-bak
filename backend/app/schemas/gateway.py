@@ -1,8 +1,10 @@
+from typing import List
+from backend.app.schemas.handler import Handler
 from pydantic import BaseModel, Field
 
 
 class GatewayBase(BaseModel):
-    log_level: int
+    pass
 
 
 class Gateway(GatewayBase):
@@ -10,7 +12,9 @@ class Gateway(GatewayBase):
     sequence_number: int
     gateway_result: int
     status: str
+    log_level: int
     machine_id: str
+    handlers: List[Handler]
 
     class Config:
         orm_mode = True

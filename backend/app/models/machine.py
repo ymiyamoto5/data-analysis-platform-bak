@@ -9,7 +9,7 @@ class Machine(Base):
     machine_id = Column(String(255), primary_key=True, index=True)
     machine_name = Column(String(255), nullable=False)
     collect_status = Column(String(255))
-    machine_type_id = Column(Integer, ForeignKey("machine_types.id"), nullable=False)
+    machine_type_id = Column(Integer, ForeignKey("machine_types.machine_type_id"), nullable=False)
 
     # NOTE: MachineとMachineTypeはMany to One
     machine_type = relationship("MachineType", back_populates="machines")
