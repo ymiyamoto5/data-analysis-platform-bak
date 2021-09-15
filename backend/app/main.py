@@ -1,10 +1,6 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from backend.app.models import models
-from backend.app.db.session import engine
 from backend.app.api.api import api_router
-
-models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
