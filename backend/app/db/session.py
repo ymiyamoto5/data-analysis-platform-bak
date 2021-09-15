@@ -8,7 +8,9 @@ app_config_path: str = common.APP_CONFIG_PATH
 
 SQLALCHEMY_DATABASE_URI: Final[str] = common.get_config_value(app_config_path, "SQLALCHEMY_DATABASE_URI")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URI, pool_pre_ping=True)
+# NOTE: check_same_thread: False is needed only for SQLite. It's not needed for other databases.
+# https://fastapi.tiangolo.com/ja/tutorial/sql-databases/
+engine = create_engine(SQLALCHEMY_DATABASE_URI, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
