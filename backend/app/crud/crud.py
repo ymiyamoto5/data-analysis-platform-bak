@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-
 from backend.app.models import models
 from backend.app.schemas import schemas
 
