@@ -6,7 +6,7 @@ from backend.app.db.session import Base
 class Machine(Base):
     __tablename__ = "machines"
 
-    machine_id = Column(String(255), primary_key=True)
+    machine_id = Column(String(255), primary_key=True, index=True)
     machine_name = Column(String(255), nullable=False)
     collect_status = Column(String(255))
     machine_type_id = Column(Integer, ForeignKey("machine_types.id"), nullable=False)

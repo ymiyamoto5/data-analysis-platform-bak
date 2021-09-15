@@ -7,8 +7,8 @@ class Sensor(Base):
     __tablename__ = "sensors"
 
     # NOTE: 冗長なリレーションシップとなるが、複合主キー（機器ごとに一意のセンサー）とするため必要。
-    machine_id = Column(String(255), ForeignKey("machines.machine_id"), primary_key=True)
-    sensor_id = Column(String(255), primary_key=True)
+    machine_id = Column(String(255), ForeignKey("machines.machine_id"), primary_key=True, index=True)
+    sensor_id = Column(String(255), primary_key=True, index=True)
     sensor_name = Column(String(255), nullable=False)
     sensor_type_id = Column(String(255), ForeignKey("sensor_types.sensor_type_id"), nullable=False)
     base_volt = Column(Float)

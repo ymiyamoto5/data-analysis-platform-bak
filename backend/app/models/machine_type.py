@@ -11,7 +11,7 @@ class MachineType(Base):
     # id: int
     # machine_type_name: str
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     machine_type_name = Column(String(255), unique=True, nullable=False)
 
     machines = relationship("Machine", back_populates="machine_type")

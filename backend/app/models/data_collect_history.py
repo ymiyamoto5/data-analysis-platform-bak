@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 class DataCollectHistory(Base):
     __tablename__ = "data_collect_history"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
     machine_id = Column(String(255), ForeignKey("machines.machine_id"), nullable=False)
     machine_name = Column(String(255), nullable=False)
     started_at = Column(DateTime, nullable=False)
