@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 class Handler(Base):
     __tablename__ = "handlers"
 
-    handler_id = Column(String(255), primary_key=True)
+    handler_id = Column(String(255), primary_key=True, index=True)
     handler_type = Column(String(255))
     adc_serial_num = Column(String(255))
     sampling_frequency = Column(Integer)

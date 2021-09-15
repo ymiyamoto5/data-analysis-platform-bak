@@ -1,46 +1,20 @@
-from typing import Optional
+from typing import List
 from backend.app.crud.crud_machine import CRUDMachine
-from marshmallow import Schema, fields, ValidationError, validate
-import traceback
 from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.common_logger import logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common import common
+import traceback
 from fastapi import Depends, APIRouter
 from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
+from backend.app.schemas import machine
 
 
 router = APIRouter()
 
 
-class MachineSchema(Schema):
-    """POSTパラメータのvalidation用スキーマ"""
-
-    machine_id = fields.Str(required=True, validate=[character_validate, validate.Length(min=1, max=255)])
-    machine_name = fields.Str(validate=validate.Length(min=1, max=255))
-    collect_status = fields.Str(
-        validate=[
-            validate.OneOf(
-                (
-                    common.COLLECT_STATUS.SETUP.value,
-                    common.COLLECT_STATUS.START.value,
-                    common.COLLECT_STATUS.PAUSE.value,
-                    common.COLLECT_STATUS.STOP.value,
-                    common.COLLECT_STATUS.RECORDED.value,
-                )
-            ),
-            validate.Length(min=1, max=255),
-        ]
-    )
-    machine_type_id = fields.Int()
-
-
-machine_create_schema = MachineSchema(only=("machine_id", "machine_name", "machine_type_id"))
-machine_update_schema = MachineSchema(only=("machine_name", "collect_status", "machine_type_id"))
-
-
-@router.get("/")
+@router.get("/", response_model=List[machine.Machine])
 def fetch_machines(db: Session = Depends(get_db)):
     """Machineを起点に関連エンティティを全結合したデータを返す"""
 
@@ -53,7 +27,7 @@ def fetch_machines(db: Session = Depends(get_db)):
         return {"message": message}
 
 
-@router.get("/{machine_id}")
+@router.get("/{machine_id}", response_model=machine.Machine)
 def fetch_machine(machine_id: str, db: Session = Depends(get_db)):
     """指定machineの情報を取得"""
 

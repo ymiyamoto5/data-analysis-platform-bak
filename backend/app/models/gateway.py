@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 class Gateway(Base):
     __tablename__ = "gateways"
 
-    gateway_id = Column(String(255), primary_key=True)
+    gateway_id = Column(String(255), primary_key=True, index=True)
     sequence_number = Column(Integer)
     gateway_result = Column(Integer)
     status = Column(String(255))
