@@ -6,6 +6,7 @@ from backend.app.models.sensor import Sensor
 from sqlalchemy.orm import joinedload, lazyload
 from backend.common import common
 from sqlalchemy.orm import Session
+from backend.app.schemas import machine
 
 
 class CRUDMachine:
@@ -41,18 +42,18 @@ class CRUDMachine:
 
         return machine
 
-    # @staticmethod
-    # def insert(insert_data: dict) -> None:
-    #     # NOTE: 型エラー回避のためにmachine_type = None等を設定することはできないため、type: ignoreしている。
-    #     new_machine = Machine(
-    #         machine_id=insert_data["machine_id"],
-    #         machine_name=insert_data["machine_name"],
-    #         collect_status=common.COLLECT_STATUS.RECORDED.value,
-    #         machine_type_id=insert_data["machine_type_id"],
-    #     )  # type: ignore
-
-    #     db.session.add(new_machine)
-    #     db.session.commit()
+    @staticmethod
+    def insert(db: Session, insert_data: machine.MachineCreate) -> Machine:
+        new_machine = Machine(
+            machine_id=insert_data.machine_id,
+            machine_name=insert_data.machine_name,
+            collect_status=common.COLLECT_STATUS.RECORDED.value,
+            machine_type_id=insert_data.machine_type_id,
+        )
+        db.add(new_machine)
+        db.commit()
+        db.refresh(new_machine)
+        return new_machine
 
     # @staticmethod
     # def update(machine_id: str, update_data: dict) -> None:

@@ -1,11 +1,10 @@
 from typing import List
 from backend.app.crud.crud_machine import CRUDMachine
-from backend.data_collect_manager.apis.api_common import character_validate
 from backend.common.common_logger import logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.common import common
 import traceback
-from fastapi import Depends, APIRouter
+from fastapi import Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
 from backend.app.schemas import machine
@@ -18,57 +17,28 @@ router = APIRouter()
 def fetch_machines(db: Session = Depends(get_db)):
     """Machineを起点に関連エンティティを全結合したデータを返す"""
 
-    try:
-        machines = CRUDMachine.select_all(db)
-        return machines
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
-        return {"message": message}
+    machines = CRUDMachine.select_all(db)
+    return machines
 
 
 @router.get("/{machine_id}", response_model=machine.Machine)
 def fetch_machine(machine_id: str, db: Session = Depends(get_db)):
     """指定machineの情報を取得"""
 
-    try:
-        machine = CRUDMachine.select_by_id(db, machine_id)
-        return machine
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        message: str = ErrorMessage.generate_message(ErrorTypes.READ_FAIL, str(e))
-        return {"message": message}
+    machine = CRUDMachine.select_by_id(db, machine_id)
+    return machine
 
 
-# @router.route("/machines", methods=["POST"])
-# def create():
-#     """machineの作成"""
+@router.post("/", response_model=machine.Machine)
+def create(machine_in: machine.MachineCreate, db: Session = Depends(get_db)):
+    """machineの作成"""
 
-#     json_data = request.get_json()
+    machine = CRUDMachine.select_by_id(db, machine_id=machine_in.machine_id)
+    if machine:
+        raise HTTPException(status_code=400, detail="機器IDが重複しています")
 
-#     if not json_data:
-#         logger.error(traceback.format_exc())
-#         message: str = ErrorMessage.generate_message(ErrorTypes.NO_INPUT_DATA)
-#         return jsonify({"message": message}), 400
-
-#     try:
-#         data = machine_create_schema.load(json_data)
-#     except ValidationError as e:
-#         logger.error(traceback.format_exc())
-#         message: str = ErrorMessage.generate_message(ErrorTypes.VALID_ERROR, e.messages)
-#         return jsonify({"message": message}), 400
-
-#     try:
-#         MachineDAO.insert(insert_data=data)
-#         return jsonify({}), 200
-#     except Exception as e:
-#         logger.error(traceback.format_exc())
-#         # HACK: Exception文字列の中身からエラー内容を判定して詳細メッセージを設定
-#         detail_message: Optional[str] = None
-#         if "UNIQUE constraint failed" in str(e):
-#             detail_message = "IDは重複不可です"
-#         message: str = ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL, detail_message)
-#         return jsonify({"message": message}), 500
+    machine = CRUDMachine.insert(db, insert_data=machine_in)
+    return machine
 
 
 # @router.route("/machines/<string:machine_id>/update", methods=["POST"])
