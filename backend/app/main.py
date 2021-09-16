@@ -1,18 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.templating import Jinja2Templates
 from starlette.middleware.cors import CORSMiddleware
 from backend.app.api.api import api_router
-import sqlalchemy.engine
-from sqlalchemy import event
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="frontend/dist/"), name="static")
 
-# @event.listens_for(sqlalchemy.engine.Engine, "connect")
-# def set_sqlite_pragma(dbapi_connection, connection_record):
-#     cursor = dbapi_connection.cursor()
-#     cursor.execute("PRAGMA foreign_keys = ON")
-#     cursor.close()
-
+templates = Jinja2Templates(directory="frontend/dist/")
 
 # Set all CORS enabled origins
 app.add_middleware(
@@ -23,4 +20,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router)
+app.include_router(api_router, prefix="/api/v1")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
