@@ -1,10 +1,10 @@
 from typing import List
 from backend.app.crud.crud_machine import CRUDMachine
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, Path
 from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
 from backend.app.schemas import machine
-
+from backend.common import common
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ def fetch_machines(db: Session = Depends(get_db)):
 
 
 @router.get("/{machine_id}", response_model=machine.Machine)
-def fetch_machine(machine_id: str, db: Session = Depends(get_db)):
+def fetch_machine(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
     """指定machineの情報を取得"""
 
     machine = CRUDMachine.select_by_id(db, machine_id)
@@ -38,7 +38,11 @@ def create(machine_in: machine.MachineCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{machine_id}", response_model=machine.Machine)
-def update(machine_id: str, machine_in: machine.MachineUpdate, db: Session = Depends(get_db)):
+def update(
+    machine_in: machine.MachineUpdate,
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
     """machineの更新。更新対象のフィールドをパラメータとして受け取る。"""
 
     machine = CRUDMachine.select_by_id(db, machine_id=machine_id)
@@ -50,7 +54,7 @@ def update(machine_id: str, machine_in: machine.MachineUpdate, db: Session = Dep
 
 
 @router.delete("/{machine_id}", response_model=machine.Machine)
-def delete(machine_id: str, db: Session = Depends(get_db)):
+def delete(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
     """machineの削除"""
 
     machine = CRUDMachine.select_by_id(db, machine_id=machine_id)

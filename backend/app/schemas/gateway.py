@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Optional
 from backend.app.schemas.handler import Handler
 from pydantic import BaseModel, Field
+from backend.common import common
 
 
 class GatewayBase(BaseModel):
@@ -8,7 +9,7 @@ class GatewayBase(BaseModel):
 
 
 class Gateway(GatewayBase):
-    gateway_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     sequence_number: int
     gateway_result: int
     status: str
@@ -18,3 +19,11 @@ class Gateway(GatewayBase):
 
     class Config:
         orm_mode = True
+
+
+class GatewayUpdate(GatewayBase):
+    sequence_number: Optional[int]
+    gateway_result: Optional[int]
+    status: Optional[str]
+    log_level: Optional[int]
+    machine_id: Optional[str]

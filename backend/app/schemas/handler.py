@@ -1,6 +1,7 @@
 from typing import List
 from backend.app.schemas.sensor import Sensor
 from pydantic import BaseModel, Field
+from backend.common import common
 
 
 class HandlerBase(BaseModel):
@@ -9,11 +10,11 @@ class HandlerBase(BaseModel):
     sampling_frequency: int
     sampling_ch_num: int
     filewrite_time: int
-    gateway_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
 
 
 class Handler(HandlerBase):
-    handler_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    handler_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     sensors: List[Sensor]
 
     class Config:

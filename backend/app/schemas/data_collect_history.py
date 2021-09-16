@@ -1,9 +1,10 @@
 from datetime import datetime
 from pydantic import BaseModel, Field, Required
+from backend.common import common
 
 
 class DataCollectHistoryBase(BaseModel):
-    machine_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     machine_name: str = Field(..., max_length=255)
     started_at: datetime = Required
     ended_at: datetime
