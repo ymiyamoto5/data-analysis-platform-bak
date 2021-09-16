@@ -28,7 +28,6 @@ class Machine(MachineBase):
     machine_type_id: int
     machine_type: MachineType
     gateways: List[Gateway] = []
-    # data_collect_history: List[DataCollectHistory] = []
 
     class Config:
         orm_mode = True
