@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from pytz import timezone
 from enum import Enum
 
-# from backend.common.common_logger import logger
+from backend.common.common_logger import logger
 
 
 # グローバル定数
@@ -50,13 +50,13 @@ def get_config_value(file_path: str, key: str):
         with open(file_path, "r") as f:
             config: dict = json.load(f)
     except Exception as e:
-        # logger.exception(str(e))
+        logger.exception(str(e))
         raise e
 
     value = config.get(key)
 
     if value is None:
-        # logger.error(f"Key {key} is not found in {file_path}")
+        logger.error(f"Key {key} is not found in {file_path}")
         raise KeyError
 
     return value
