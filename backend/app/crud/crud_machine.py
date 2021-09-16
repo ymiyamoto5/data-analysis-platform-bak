@@ -67,8 +67,8 @@ class CRUDMachine:
         db.refresh(db_obj)
         return db_obj
 
-    # @staticmethod
-    # def delete(machine_id: str) -> None:
-    #     Machine.query.filter_by(machine_id=machine_id).delete()
-
-    #     db.session.commit()
+    @staticmethod
+    def delete(db: Session, db_obj: Machine) -> Machine:
+        db.delete(db_obj)
+        db.commit()
+        return db_obj
