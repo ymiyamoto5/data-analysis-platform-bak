@@ -16,8 +16,6 @@ class Sensor(Base):
     initial_volt = Column(Float)
     handler_id = Column(String(255), ForeignKey("handlers.handler_id"), nullable=False)
 
-    # NOTE: SensorとMachineはMany to One
-    # machine = relationship("Machine", back_populates="machines")
     # NOTE: SensorとHandlerはMany to One
     handler = relationship("Handler", back_populates="sensors")
     # NOTE: SensorとSensorTypeはMany to One

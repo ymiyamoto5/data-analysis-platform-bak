@@ -15,4 +15,4 @@ class Handler(Base):
     gateway_id = Column(Integer, ForeignKey("gateways.gateway_id"), nullable=False)
 
     gateway = relationship("Gateway", back_populates="handlers")
-    sensors = relationship("Sensor", back_populates="handler", cascade="all, delete")
+    sensors = relationship("Sensor", back_populates="handler")

@@ -110,25 +110,25 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
+        // {
+        //     "name": "Flask",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "stopOnEntry": false,
+        //     "module": "flask",
+        //     "cwd": "${workspaceFolder}/backend",
+        //     "env": {
+        //         "FLASK_APP": "${workspaceRoot}/backend/data_collect_manager/main.py"
+        //     },
+        //     "args": [
+        //         "run",
+        //         "--no-debugger",
+        //         "--no-reload"
+        //     ],
+        //     "jinja": true
+        // },
         {
-            "name": "Flask",
-            "type": "python",
-            "request": "launch",
-            "stopOnEntry": false,
-            "module": "flask",
-            "cwd": "${workspaceFolder}/backend",
-            "env": {
-                "FLASK_APP": "${workspaceRoot}/backend/data_collect_manager/main.py"
-            },
-            "args": [
-                "run",
-                "--no-debugger",
-                "--no-reload"
-            ],
-            "jinja": true
-        },
-        {
-            "name": "Python: FastAPI",
+            "name": "FastAPI",
             "type": "python",
             "request": "launch",
             "module": "uvicorn",
@@ -162,7 +162,6 @@
                 "webpack:///./src/store/modules/*.js": "${webRoot}/store/modules/*.js",
                 "webpack:///./node_modules/*.js": "${webRoot}/../node_modules/*.js",
             },
-            // "userDataDir": "C:\\dev\\chrome_nlp_dev_profile",
             // "preLaunchTask": "delay5sec",
             // "runtimeExecutable": "${workspaceFolder}/_devtools/start_dev_web.sh"
         },
@@ -203,7 +202,7 @@
         {
             "name": "Full-stack",
             "configurations": [
-                "Flask",
+                "FastAPI",
                 "chrome"
             ]
         }
