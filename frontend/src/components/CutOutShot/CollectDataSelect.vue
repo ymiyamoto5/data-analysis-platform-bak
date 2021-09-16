@@ -53,8 +53,8 @@ export default {
           this.items = history.map((x) => x.started_at + ' - ' + x.ended_at)
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
   },

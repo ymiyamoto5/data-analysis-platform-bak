@@ -128,7 +128,7 @@ export default {
           this.targetDir = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
+          console.log(e.response.data.detail)
         })
     },
     setDisplacementRange(range) {
@@ -154,7 +154,7 @@ export default {
           this.running = false
         })
         .catch((e) => {
-          console.log(e.response.data.message)
+          console.log(e.response.data.detail)
         })
     },
     setMaxPage(maxPage) {
