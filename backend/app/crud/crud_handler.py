@@ -2,7 +2,6 @@ from typing import List, Dict, Union, Any
 from backend.app.models.handler import Handler
 from backend.app.models.sensor import Sensor
 from sqlalchemy.orm import joinedload
-from backend.common import common
 from sqlalchemy.orm import Session
 from backend.app.schemas import handler
 

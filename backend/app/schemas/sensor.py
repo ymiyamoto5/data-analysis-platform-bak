@@ -29,6 +29,10 @@ class SensorCreate(SensorBase):
 
 
 class SensorUpdate(SensorBase):
-    machine_id: Optional[str] = Field(..., max_length=255, regex=common.ID_PATTERN)
+    machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     sensor_name: Optional[str] = Field(..., max_length=255)
     sensor_type_id: Optional[str] = Field(..., max_length=255)
+
+
+class SensorDelete(SensorBase):
+    machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
