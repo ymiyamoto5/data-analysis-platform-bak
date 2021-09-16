@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Union, Any
 from backend.app.models.machine import Machine
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
@@ -56,8 +56,13 @@ class CRUDMachine:
         return new_machine
 
     @staticmethod
-    def update(db: Session, db_obj: Machine, obj_in: machine.MachineUpdate) -> Machine:
-        update_data = obj_in.dict(exclude_unset=True)
+    def update(db: Session, db_obj: Machine, obj_in: Union[machine.MachineUpdate, Dict[str, Any]]) -> Machine:
+        """Machine更新。更新値(obj_in)はObjectの場合とdictの場合がある"""
+
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.dict(exclude_unset=True)
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():

@@ -23,7 +23,7 @@ class MachineBase(BaseModel):
 
 
 class Machine(MachineBase):
-    machine_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     machine_name: str = Field(..., max_length=255)
     machine_type_id: int
     machine_type: MachineType
@@ -35,7 +35,7 @@ class Machine(MachineBase):
 
 
 class MachineCreate(MachineBase):
-    machine_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     machine_name: str = Field(..., max_length=255)
     machine_type_id: int
 
