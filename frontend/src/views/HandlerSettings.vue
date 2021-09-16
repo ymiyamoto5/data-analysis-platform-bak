@@ -215,15 +215,13 @@ export default {
     // ドロップダウンリスト用データ取得
     fetchGatewayId: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(GATEWAYS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          this.gateways = data
+          this.gateways = res.data
         })
         .catch((e) => {
           console.log(e.response.data.detail)
@@ -233,15 +231,13 @@ export default {
 
     fetchTableData: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(HANDLERS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          this.handlers = data
+          this.handlers = res.data
         })
         .catch((e) => {
           console.log(e.response.data.detail)
@@ -262,24 +258,35 @@ export default {
       if (!this.$refs.form_group.validate()) {
         return
       }
-      let postUrl = ''
-      let postData = {}
+      let url = ''
+      let body = {}
+      const client = createBaseApiClient()
+
       // update
       if (this.editedIndex > -1) {
-        postUrl =
-          HANDLERS_API_URL + '/' + this.editedItem.handler_id + '/update'
-        postData = {
+        url = HANDLERS_API_URL + '/' + this.editedItem.handler_id
+        body = {
           handler_type: this.editedItem.handler_type,
           adc_serial_num: this.editedItem.adc_serial_num,
           sampling_frequency: this.editedItem.sampling_frequency,
           sampling_ch_num: this.editedItem.sampling_ch_num,
           filewrite_time: this.editedItem.filewrite_time,
         }
+        await client
+          .put(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            console.log(e.response.data.detail)
+            this.errorDialog(e.response.data.detail)
+          })
       }
       // insert
       else {
-        postUrl = HANDLERS_API_URL
-        postData = {
+        url = HANDLERS_API_URL
+        body = {
           handler_id: this.editedItem.handler_id,
           handler_type: this.editedItem.handler_type,
           adc_serial_num: this.editedItem.adc_serial_num,
@@ -288,20 +295,17 @@ export default {
           filewrite_time: this.editedItem.filewrite_time,
           gateway_id: this.editedItem.gateway_id,
         }
+        await client
+          .post(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            console.log(e.response.data.detail)
+            this.errorDialog(e.response.data.detail)
+          })
       }
-
-      const client = createBaseApiClient()
-      await client
-        .post(postUrl, postData)
-        .then(() => {
-          // this.close()
-          this.dialog = false
-          this.fetchTableData()
-        })
-        .catch((e) => {
-          console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
-        })
     },
 
     // 新規作成 or 編集ダイアログclose
@@ -324,12 +328,11 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const postUrl =
-        HANDLERS_API_URL + '/' + this.editedItem.handler_id + '/delete'
+      const url = HANDLERS_API_URL + '/' + this.editedItem.handler_id
 
       const client = createBaseApiClient()
       await client
-        .post(postUrl)
+        .delete(url)
         .then(() => {
           this.dialogDelete = false
           this.fetchTableData()

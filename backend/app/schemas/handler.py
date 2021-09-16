@@ -10,11 +10,11 @@ class HandlerBase(BaseModel):
 
 class Handler(HandlerBase):
     handler_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
-    handler_type: str = Field(max_length=255)
-    adc_serial_num: str = Field(max_length=255)
-    sampling_frequency: int
-    sampling_ch_num: int
-    filewrite_time: int
+    handler_type: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-_]+$")
+    adc_serial_num: str = Field(..., max_length=255)
+    sampling_frequency: int = Field(..., ge=1, le=100_000)
+    sampling_ch_num: int = Field(..., ge=1, le=99)
+    filewrite_time: int = Field(..., ge=1, le=360)
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     sensors: List[Sensor]
 
@@ -24,17 +24,17 @@ class Handler(HandlerBase):
 
 class HandlerCreate(HandlerBase):
     handler_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
-    handler_type: str = Field(max_length=255)
+    handler_type: str = Field(max_length=255, regex="^[0-9a-zA-Z-_]+$")
     adc_serial_num: str = Field(max_length=255)
-    sampling_frequency: int
-    sampling_ch_num: int
-    filewrite_time: int
+    sampling_frequency: int = Field(..., ge=1, le=100_000)
+    sampling_ch_num: int = Field(..., ge=1, le=99)
+    filewrite_time: int = Field(..., ge=1, le=360)
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
 
 
 class HandlerUpdate(HandlerBase):
-    handler_type: Optional[str] = Field(max_length=255)
+    handler_type: Optional[str] = Field(max_length=255, regex="^[0-9a-zA-Z-_]+$")
     adc_serial_num: Optional[str] = Field(max_length=255)
-    sampling_frequency: Optional[int]
-    sampling_ch_num: Optional[int]
-    filewrite_time: Optional[int]
+    sampling_frequency: Optional[int] = Field(..., ge=1, le=100_000)
+    sampling_ch_num: Optional[int] = Field(..., ge=1, le=99)
+    filewrite_time: Optional[int] = Field(..., ge=1, le=360)
