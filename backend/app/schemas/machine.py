@@ -6,7 +6,7 @@ from backend.app.schemas.machine_type import MachineType
 
 
 class MachineBase(BaseModel):
-    collect_status: str
+    collect_status: Optional[str]
 
     @validator("collect_status")
     def collect_status_validator(cls, v):

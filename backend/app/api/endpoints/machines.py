@@ -1,9 +1,5 @@
 from typing import List
 from backend.app.crud.crud_machine import CRUDMachine
-from backend.common.common_logger import logger
-from backend.common.error_message import ErrorMessage, ErrorTypes
-from backend.common import common
-import traceback
 from fastapi import Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db

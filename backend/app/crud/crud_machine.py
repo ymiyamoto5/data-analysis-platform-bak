@@ -3,7 +3,7 @@ from backend.app.models.machine import Machine
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.sensor import Sensor
-from sqlalchemy.orm import joinedload, lazyload
+from sqlalchemy.orm import joinedload
 from backend.common import common
 from sqlalchemy.orm import Session
 from backend.app.schemas import machine
