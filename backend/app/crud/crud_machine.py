@@ -43,33 +43,29 @@ class CRUDMachine:
         return machine
 
     @staticmethod
-    def insert(db: Session, insert_data: machine.MachineCreate) -> Machine:
+    def insert(db: Session, obj_in: machine.MachineCreate) -> Machine:
         new_machine = Machine(
-            machine_id=insert_data.machine_id,
-            machine_name=insert_data.machine_name,
+            machine_id=obj_in.machine_id,
+            machine_name=obj_in.machine_name,
             collect_status=common.COLLECT_STATUS.RECORDED.value,
-            machine_type_id=insert_data.machine_type_id,
+            machine_type_id=obj_in.machine_type_id,
         )
         db.add(new_machine)
         db.commit()
         db.refresh(new_machine)
         return new_machine
 
-    # @staticmethod
-    # def update(machine_id: str, update_data: dict) -> None:
-    #     # 悲観的排他ロック(sqliteでは無効)
-    #     machine = (
-    #         Machine.query.options(lazyload(Machine.machine_type), lazyload(Machine.gateways))
-    #         .filter(Machine.machine_id == machine_id)
-    #         .with_for_update()
-    #         .one()
-    #     )
+    @staticmethod
+    def update(db: Session, db_obj: Machine, obj_in: machine.MachineUpdate) -> Machine:
+        update_data = obj_in.dict(exclude_unset=True)
 
-    #     # 更新対象のプロパティをセット
-    #     for key, value in update_data.items():
-    #         setattr(machine, key, value)
+        # 更新対象のプロパティをセット
+        for key, value in update_data.items():
+            setattr(db_obj, key, value)
 
-    #     db.session.commit()
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
     # @staticmethod
     # def delete(machine_id: str) -> None:

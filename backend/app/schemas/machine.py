@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field, validator
 from backend.common import common
 from backend.app.schemas.gateway import Gateway
@@ -6,9 +6,7 @@ from backend.app.schemas.machine_type import MachineType
 
 
 class MachineBase(BaseModel):
-    machine_name: str = Field(..., max_length=255)
     collect_status: str
-    machine_type_id: int
 
     @validator("collect_status")
     def collect_status_validator(cls, v):
@@ -26,6 +24,8 @@ class MachineBase(BaseModel):
 
 class Machine(MachineBase):
     machine_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    machine_name: str = Field(..., max_length=255)
+    machine_type_id: int
     machine_type: MachineType
     gateways: List[Gateway] = []
     # data_collect_history: List[DataCollectHistory] = []
@@ -36,3 +36,10 @@ class Machine(MachineBase):
 
 class MachineCreate(MachineBase):
     machine_id: str = Field(..., max_length=255, regex="^[0-9a-zA-Z-]+$")
+    machine_name: str = Field(..., max_length=255)
+    machine_type_id: int
+
+
+class MachineUpdate(MachineBase):
+    machine_name: Optional[str] = Field(max_length=255)
+    machine_type_id: Optional[int]
