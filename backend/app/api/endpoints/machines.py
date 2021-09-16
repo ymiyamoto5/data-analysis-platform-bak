@@ -53,14 +53,13 @@ def update(machine_id: str, machine_in: machine.MachineUpdate, db: Session = Dep
     return machine
 
 
-# @router.route("/machines/<string:machine_id>/delete", methods=["POST"])
-# def delete(machine_id):
-#     """Machineの削除"""
+@router.delete("/{machine_id}", response_model=machine.Machine)
+def delete(machine_id: str, db: Session = Depends(get_db)):
+    """machineの削除"""
 
-#     try:
-#         MachineDAO.delete(machine_id)
-#         return jsonify({}), 200
-#     except Exception as e:
-#         logger.error(traceback.format_exc())
-#         message: str = ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL, str(e))
-#         return jsonify({"message": message}), 500
+    machine = CRUDMachine.select_by_id(db, machine_id=machine_id)
+    if not machine:
+        raise HTTPException(status_code=404, detail="機器が存在しません")
+
+    machine = CRUDMachine.delete(db, db_obj=machine)
+    return machine
