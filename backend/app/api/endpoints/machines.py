@@ -37,34 +37,20 @@ def create(machine_in: machine.MachineCreate, db: Session = Depends(get_db)):
     if machine:
         raise HTTPException(status_code=400, detail="機器IDが重複しています")
 
-    machine = CRUDMachine.insert(db, insert_data=machine_in)
+    machine = CRUDMachine.insert(db, obj_in=machine_in)
     return machine
 
 
-# @router.route("/machines/<string:machine_id>/update", methods=["POST"])
-# def update(machine_id):
-#     """machineの更新。更新対象のフィールドをパラメータとして受け取る。"""
+@router.put("/{machine_id}", response_model=machine.Machine)
+def update(machine_id: str, machine_in: machine.MachineUpdate, db: Session = Depends(get_db)):
+    """machineの更新。更新対象のフィールドをパラメータとして受け取る。"""
 
-#     json_data = request.get_json()
+    machine = CRUDMachine.select_by_id(db, machine_id=machine_id)
+    if not machine:
+        raise HTTPException(status_code=404, detail="機器が存在しません")
 
-#     if not json_data:
-#         logger.error(traceback.format_exc())
-#         message: str = ErrorMessage.generate_message(ErrorTypes.NO_INPUT_DATA)
-
-#     try:
-#         data = machine_update_schema.load(json_data)
-#     except ValidationError as e:
-#         logger.error(traceback.format_exc())
-#         message: str = ErrorMessage.generate_message(ErrorTypes.VALUE_ERROR, e.messages)
-#         return jsonify({"message": message}), 400
-
-#     try:
-#         MachineDAO.update(machine_id, update_data=data)
-#         return jsonify({}), 200
-#     except Exception as e:
-#         logger.error(traceback.format_exc())
-#         message: str = ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL, str(e))
-#         return jsonify({"message": message}), 500
+    machine = CRUDMachine.update(db, db_obj=machine, obj_in=machine_in)
+    return machine
 
 
 # @router.route("/machines/<string:machine_id>/delete", methods=["POST"])
