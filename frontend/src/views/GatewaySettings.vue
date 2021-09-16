@@ -232,13 +232,14 @@ export default {
       }
       let url = ''
       let body = {}
+      const client = createBaseApiClient()
+
       // update
       if (this.editedIndex > -1) {
         url = GATEWAYS_API_URL + '/' + this.editedItem.gateway_id
         body = {
           log_level: this.editedItem.log_level,
         }
-        const client = createBaseApiClient()
         await client
           .put(url, body)
           .then(() => {
@@ -258,7 +259,6 @@ export default {
           log_level: this.editedItem.log_level,
           machine_id: this.editedItem.machine_id,
         }
-        const client = createBaseApiClient()
         await client
           .post(url, body)
           .then(() => {

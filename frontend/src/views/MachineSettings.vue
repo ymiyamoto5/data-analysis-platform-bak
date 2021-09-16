@@ -211,9 +211,10 @@ export default {
         return
       }
 
-      const client = createBaseApiClient()
       let url = ''
       let body = {}
+      const client = createBaseApiClient()
+
       // update
       if (this.editedIndex > -1) {
         url = MACHINES_API_URL + '/' + this.editedItem.machine_id
