@@ -14,6 +14,6 @@ class Machine(Base):
     # NOTE: MachineとMachineTypeはMany to One
     machine_type = relationship("MachineType", back_populates="machines")
     # NOTE: MachineとGatewayはOne to Many
-    gateways = relationship("Gateway", back_populates="machine", cascade="all, delete")
+    gateways = relationship("Gateway", back_populates="machine")
     # NOTE: MachineとDataCollectHistoryはOne to Many
-    data_collect_history = relationship("DataCollectHistory", back_populates="machine")
+    data_collect_history = relationship("DataCollectHistory", back_populates="machine", cascade="all, delete")

@@ -14,4 +14,4 @@ class Gateway(Base):
     machine_id = Column(Integer, ForeignKey("machines.machine_id"), nullable=False)
 
     machine = relationship("Machine", back_populates="gateways")
-    handlers = relationship("Handler", back_populates="gateway", cascade="all, delete")
+    handlers = relationship("Handler", back_populates="gateway")
