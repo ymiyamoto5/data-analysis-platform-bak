@@ -40,12 +40,10 @@ export default {
           }
           // 日付文字列を表示用にフォーマット
           history = res.data.map((obj) => {
-            const started_at = new Date(obj.started_at)
-            obj.started_at = formatDate(started_at)
+            obj.started_at = formatDate(obj.started_at)
 
             if (obj.ended_at !== null) {
-              const ended_at = new Date(obj.ended_at)
-              obj.ended_at = formatDate(ended_at)
+              obj.ended_at = formatDate(obj.ended_at)
             }
             return obj
           })

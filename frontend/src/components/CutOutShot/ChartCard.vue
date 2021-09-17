@@ -16,7 +16,7 @@ import { createBaseApiClient } from '@/api/apiBase'
 import { formatTime } from '@/common/common'
 import Chart from './Chart.vue'
 
-const SHOTS_API_URL = '/api/v1/shots'
+const SHOTS_API_URL = '/api/v1/cut_out_shot/shots'
 
 export default {
   props: [
@@ -103,7 +103,7 @@ export default {
         .get(SHOTS_API_URL, {
           params: {
             machine_id: this.machineId,
-            targetDir: this.targetDir,
+            target_dir: this.targetDir,
             page: this.page,
           },
         })
@@ -123,8 +123,8 @@ export default {
     },
     createChartData: function(data) {
       // x軸データ
-      let xData = data.map((x) => new Date(x.timestamp))
-      xData = xData.map((x) => formatTime(x))
+      // let xData = data.map((x) => new Date(x.timestamp))
+      let xData = data.map((x) => formatTime(x.timestamp))
       // y軸データ
       let displacementData = data.map((x) => x.displacement)
       // NOTE: chartをリアクティブにするためchartDataオブジェクトをディープコピー
