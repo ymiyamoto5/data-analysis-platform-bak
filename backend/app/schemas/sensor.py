@@ -5,9 +5,9 @@ from backend.common import common
 
 
 class SensorBase(BaseModel):
-    base_volt: Optional[float]
-    base_load: Optional[float]
-    initial_volt: Optional[float]
+    base_volt: Optional[float] = Field(None, ge=0.0, le=100.0)
+    base_load: Optional[float] = Field(None, ge=0.0, le=100.0)
+    initial_volt: Optional[float] = Field(None, ge=0.0, le=100.0)
 
 
 class Sensor(SensorBase):
