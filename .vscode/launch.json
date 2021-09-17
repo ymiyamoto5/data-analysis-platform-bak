@@ -110,23 +110,6 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
-        // {
-        //     "name": "Flask",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "stopOnEntry": false,
-        //     "module": "flask",
-        //     "cwd": "${workspaceFolder}/backend",
-        //     "env": {
-        //         "FLASK_APP": "${workspaceRoot}/backend/data_collect_manager/main.py"
-        //     },
-        //     "args": [
-        //         "run",
-        //         "--no-debugger",
-        //         "--no-reload"
-        //     ],
-        //     "jinja": true
-        // },
         {
             "name": "FastAPI",
             "type": "python",

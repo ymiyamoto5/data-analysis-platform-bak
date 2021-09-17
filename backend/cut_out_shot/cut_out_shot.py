@@ -25,11 +25,11 @@ from backend.event_manager.event_manager import EventManager
 from backend.utils.throughput_counter import throughput_counter
 from backend.common import common
 from backend.common.common_logger import logger
-from backend.common.dao.handler_dao import HandlerDAO
-from backend.common.dao.sensor_dao import SensorDAO
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.models.sensor import Sensor
+from backend.app.models.handler import Handler
+from backend.app.models.sensor import Sensor
 from backend.data_converter.data_converter import DataConverter
+from backend.app.crud.crud_machine import CRUDMachine
+from sqlalchemy.orm import Session
 
 
 class CutOutShot:
@@ -66,7 +66,7 @@ class CutOutShot:
 
         if sensors is None:
             try:
-                self.__sensors: List[Sensor] = SensorDAO.select_sensors_by_machine_id(machine_id)
+                self.__sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(machine_id)
             except Exception:
                 logger.error(traceback.format_exc())
                 sys.exit(1)
@@ -79,13 +79,12 @@ class CutOutShot:
 
         if handler is None:
             try:
-                handler = HandlerDAO.fetch_handler(machine_id)
+                handler = CRUDMachine.fetch_handler_from_machine_id(machine_id)
             except Exception:
                 logger.exception(traceback.format_exc())
                 sys.exit(1)
 
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * handler.sampling_frequency  # 100kサンプルにおける最大サンプル数
-        self.__sampling_ch_num: int = handler.sampling_ch_num
 
     # テスト用の公開プロパティ
 

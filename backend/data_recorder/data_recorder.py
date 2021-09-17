@@ -23,10 +23,9 @@ from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.file_manager.file_manager import FileManager, FileInfo
 from backend.common import common
-from backend.common.dao.machine_dao import MachineDAO
-from backend.common.dao.handler_dao import HandlerDAO
-from backend.data_collect_manager.models.machine import Machine
-from backend.data_collect_manager.models.handler import Handler
+from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.models.machine import Machine
+from backend.app.models.handler import Handler
 from backend.common.common_logger import data_recorder_logger as logger
 
 
@@ -36,7 +35,7 @@ class DataRecorder:
 
         if handler is None:
             try:
-                handler = HandlerDAO.fetch_handler(self.machine_id)
+                handler = CRUDMachine.fetch_handler_from_machine_id(self.machine_id)
             except Exception:
                 logger.exception(traceback.format_exc())
                 sys.exit(1)
@@ -267,7 +266,8 @@ class DataRecorder:
             logger.info(f"No files in {target_dir}")
             return
 
-        events_index: str = "events-" + os.path.basename(os.path.dirname(target_dir))
+        target_dir_basename: str = os.path.basename(target_dir)
+        events_index: str = "events-" + target_dir_basename
         events: List[dict] = EventManager.fetch_events(events_index)
 
         if len(events) == 0:
@@ -281,8 +281,7 @@ class DataRecorder:
 
         started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
 
-        rawdata_dir_name: str = os.path.basename(target_dir)
-        rawdata_index: str = "rawdata-" + self.machine_id + "-" + rawdata_dir_name
+        rawdata_index: str = "rawdata-" + self.machine_id + "-" + target_dir_basename
 
         # インデックスが存在すれば再作成
         ElasticManager.delete_exists_index(index=rawdata_index)
@@ -301,7 +300,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    machines: List[Machine] = MachineDAO.select_machines_has_handler()
+    machines: List[Machine] = CRUDMachine.select_machines_has_handler()
 
     # スケジュール実行
     if args.dir is None:

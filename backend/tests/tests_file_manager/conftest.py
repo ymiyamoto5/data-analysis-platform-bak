@@ -13,7 +13,6 @@ import pytest
 import pathlib
 import dataclasses
 import struct
-from backend.data_collect_manager.models.handler import Handler
 
 
 @dataclasses.dataclass

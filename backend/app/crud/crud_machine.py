@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from backend.common import common
 from sqlalchemy.orm import Session
 from backend.app.schemas import machine
+from backend.common.db_session import db_session
 
 
 class CRUDMachine:
@@ -77,3 +78,38 @@ class CRUDMachine:
         db.delete(db_obj)
         db.commit()
         return db_obj
+
+    @staticmethod
+    def fetch_handler_from_machine_id(machine_id: str) -> Handler:
+        """DBからmachine_idをkeyにHandler情報を取得する。"""
+
+        with db_session() as db:
+            machine: Machine = (
+                db.query(Machine)
+                .filter(Machine.machine_id == machine_id)
+                .join(Gateway, Machine.gateways)
+                .join(Handler, Gateway.handlers)
+                .one()
+            )
+
+            # NOTE: 1つ目のGW, 1つ目のHandlerを採用。複数GW, 複数Handlerには対応していない。
+            # NOTE: handlerがない場合はException
+            handler: Handler = machine.gateways[0].handlers[0]
+
+        return handler
+
+    @staticmethod
+    def select_sensors_by_machine_id(machine_id: str) -> List[Sensor]:
+        with db_session() as db:
+            sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
+
+        return sensors
+
+    @staticmethod
+    def select_machines_has_handler() -> List[Machine]:
+        with db_session() as db:
+            machines: List[Machine] = (
+                db.query(Machine).join(Gateway, Machine.gateways).join(Handler, Gateway.handlers).all()
+            )
+
+        return machines

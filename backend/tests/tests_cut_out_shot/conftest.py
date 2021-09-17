@@ -16,8 +16,8 @@ from pandas.core.frame import DataFrame
 from typing import List
 
 from backend.cut_out_shot.cut_out_shot import CutOutShot
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.models.sensor import Sensor
+from backend.app.models.handler import Handler
+from backend.app.models.sensor import Sensor
 
 
 @pytest.fixture
