@@ -10,7 +10,7 @@
 """
 
 import pytest
-from backend.data_collect_manager.main import app
+from backend.app.main import app
 
 
 @pytest.fixture

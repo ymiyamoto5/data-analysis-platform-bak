@@ -11,11 +11,11 @@
 
 import pytest
 from backend.event_manager.event_manager import EventManager
-from backend.data_collect_manager.models.machine import Machine
-from backend.data_collect_manager.dao.machine_dao import MachineDAO
-from backend.data_collect_manager.dao.controller_dao import ControllerDAO
+from backend.app.models.machine import Machine
+from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.crud.crud_controller import CRUDController
 from backend.common import common
-from backend.data_collect_manager.apis import controller
+from backend.app.api.endpoints import controller
 
 
 class TestSetup:
@@ -26,7 +26,7 @@ class TestSetup:
 
     def test_normal(self, client, mocker, init):
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -34,11 +34,9 @@ class TestSetup:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "create_events_index", return_value=(True, "tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(ControllerDAO, "setup")
+        mocker.patch.object(CRUDController, "setup")
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -50,16 +48,14 @@ class TestSetup:
         validation関数自体は別テストケースとする。"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
                 collect_status=common.COLLECT_STATUS.RECORDED.value,
             ),
         )
-        mocker.patch.object(
-            controller, "validation", return_value=(False, "Some error occurred.", 500)
-        )
+        mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -71,7 +67,7 @@ class TestSetup:
         """eventsインデックス作成失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -95,7 +91,7 @@ class TestSetup:
         """eventsインデックスのdocument作成失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -103,9 +99,7 @@ class TestSetup:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "create_events_index", return_value=(True, "tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post(self.endpoint)
@@ -118,7 +112,7 @@ class TestSetup:
         """DBアップデート失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -126,13 +120,9 @@ class TestSetup:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "create_events_index", return_value=(True, "tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(
-            ControllerDAO, "setup", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDController, "setup", side_effect=Exception("some exception"))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -149,7 +139,7 @@ class TestStart:
 
     def test_normal(self, client, mocker, init):
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -157,11 +147,9 @@ class TestStart:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(MachineDAO, "update")
+        mocker.patch.object(CRUDMachine, "update")
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -173,16 +161,14 @@ class TestStart:
         validation関数自体は別テストケースとする。"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
                 collect_status=common.COLLECT_STATUS.RECORDED.value,
             ),
         )
-        mocker.patch.object(
-            controller, "validation", return_value=(False, "Some error occurred.", 500)
-        )
+        mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -194,7 +180,7 @@ class TestStart:
         """eventsインデックスの取得失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -218,7 +204,7 @@ class TestStart:
         """eventsインデックスのdocument作成失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -226,9 +212,7 @@ class TestStart:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post(self.endpoint)
@@ -241,7 +225,7 @@ class TestStart:
         """DBアップデート失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -249,13 +233,9 @@ class TestStart:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(
-            MachineDAO, "update", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDMachine, "update", side_effect=Exception("some exception"))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -272,7 +252,7 @@ class TestPause:
 
     def test_normal(self, client, mocker, init):
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -280,11 +260,9 @@ class TestPause:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(MachineDAO, "update")
+        mocker.patch.object(CRUDMachine, "update")
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -296,16 +274,14 @@ class TestPause:
         validation関数自体は別テストケースとする。"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
                 collect_status=common.COLLECT_STATUS.RECORDED.value,
             ),
         )
-        mocker.patch.object(
-            controller, "validation", return_value=(False, "Some error occurred.", 500)
-        )
+        mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -317,7 +293,7 @@ class TestPause:
         """eventsインデックスの取得失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -341,7 +317,7 @@ class TestPause:
         """eventsインデックスのdocument作成失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -349,9 +325,7 @@ class TestPause:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post(self.endpoint)
@@ -364,7 +338,7 @@ class TestPause:
         """DBアップデート失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -372,13 +346,9 @@ class TestPause:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(
-            MachineDAO, "update", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDMachine, "update", side_effect=Exception("some exception"))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -395,7 +365,7 @@ class TestResume:
 
     def test_normal(self, client, mocker, init):
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -403,11 +373,9 @@ class TestResume:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "update_pause_event", return_value=True)
-        mocker.patch.object(MachineDAO, "update")
+        mocker.patch.object(CRUDMachine, "update")
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -419,16 +387,14 @@ class TestResume:
         validation関数自体は別テストケースとする。"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
                 collect_status=common.COLLECT_STATUS.RECORDED.value,
             ),
         )
-        mocker.patch.object(
-            controller, "validation", return_value=(False, "Some error occurred.", 500)
-        )
+        mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -440,7 +406,7 @@ class TestResume:
         """eventsインデックスの取得失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -464,7 +430,7 @@ class TestResume:
         """eventsインデックスのデータ更新失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -472,9 +438,7 @@ class TestResume:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "update_pause_event", return_value=False)
 
         response = client.post(self.endpoint)
@@ -487,7 +451,7 @@ class TestResume:
         """DBアップデート失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -495,13 +459,9 @@ class TestResume:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "update_pause_event", return_value=True)
-        mocker.patch.object(
-            MachineDAO, "update", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDMachine, "update", side_effect=Exception("some exception"))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -518,7 +478,7 @@ class TestStop:
 
     def test_normal(self, client, mocker, init):
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -526,11 +486,9 @@ class TestStop:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(ControllerDAO, "stop")
+        mocker.patch.object(CRUDController, "stop")
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -542,16 +500,14 @@ class TestStop:
         validation関数自体は別テストケースとする。"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
                 collect_status=common.COLLECT_STATUS.RECORDED.value,
             ),
         )
-        mocker.patch.object(
-            controller, "validation", return_value=(False, "Some error occurred.", 500)
-        )
+        mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -563,7 +519,7 @@ class TestStop:
         """eventsインデックスの取得失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -587,7 +543,7 @@ class TestStop:
         """eventsインデックスのdocument作成失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -595,9 +551,7 @@ class TestStop:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post(self.endpoint)
@@ -610,7 +564,7 @@ class TestStop:
         """DBアップデート失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -618,13 +572,9 @@ class TestStop:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(
-            ControllerDAO, "stop", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDController, "stop", side_effect=Exception("some exception"))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -641,7 +591,7 @@ class TestCheck:
 
     def test_normal(self, client, mocker, init):
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -649,14 +599,10 @@ class TestCheck:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            common, "get_config_value", return_value=("/mnt/datadrive/data/")
-        )
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(common, "get_config_value", return_value=("/mnt/datadrive/data/"))
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(ControllerDAO, "record")
+        mocker.patch.object(CRUDController, "record")
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -668,16 +614,14 @@ class TestCheck:
         validation関数自体は別テストケースとする。"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
                 collect_status=common.COLLECT_STATUS.RECORDED.value,
             ),
         )
-        mocker.patch.object(
-            controller, "validation", return_value=(False, "Some error occurred.", 500)
-        )
+        mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code
@@ -689,7 +633,7 @@ class TestCheck:
         """eventsインデックスの取得失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -713,7 +657,7 @@ class TestCheck:
         """eventsインデックスのdocument作成失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -721,9 +665,7 @@ class TestCheck:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=False)
 
         response = client.post(self.endpoint)
@@ -736,7 +678,7 @@ class TestCheck:
         """DBアップデート失敗"""
 
         mocker.patch.object(
-            MachineDAO,
+            CRUDMachine,
             "select_by_id",
             return_value=Machine(
                 machine_id="test_machine_001",
@@ -744,13 +686,9 @@ class TestCheck:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(
-            EventManager, "get_latest_events_index", return_value=("tmp_events_index")
-        )
+        mocker.patch.object(EventManager, "get_latest_events_index", return_value=("tmp_events_index"))
         mocker.patch.object(EventManager, "record_event", return_value=True)
-        mocker.patch.object(
-            ControllerDAO, "record", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDController, "record", side_effect=Exception("some exception"))
 
         response = client.post(self.endpoint)
         actual_code = response.status_code

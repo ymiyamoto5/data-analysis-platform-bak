@@ -1,5 +1,5 @@
 from typing import Callable
-from backend.data_collect_manager.models.sensor import Sensor
+from backend.app.models.sensor import Sensor
 
 
 class DataConverter:

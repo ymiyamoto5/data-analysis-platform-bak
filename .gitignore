@@ -32,7 +32,6 @@ pnpm-debug.log*
 *.sw?
 
 log
-data_analysis_platform/data_collect_manager/node_modules
 .coverage
 htmlcov
 *.log

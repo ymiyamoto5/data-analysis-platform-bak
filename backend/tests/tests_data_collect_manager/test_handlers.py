@@ -1,8 +1,5 @@
 import pytest
-import json
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.dao.handler_dao import HandlerDAO
-from backend.common import common
+from backend.app.crud.crud_handler import CRUDHandler
 
 
 class TestRead:
@@ -15,7 +12,7 @@ class TestRead:
         response = client.get(self.endpoint)
         actual_code = response.status_code
 
-        mocker.patch.object(HandlerDAO, "select_all")
+        mocker.patch.object(CRUDHandler, "select_all")
 
         assert actual_code == 200
 
@@ -24,16 +21,14 @@ class TestRead:
         response = client.get(endpoint)
         actual_code = response.status_code
 
-        mocker.patch.object(HandlerDAO, "select_by_id")
+        mocker.patch.object(CRUDHandler, "select_by_id")
 
         assert actual_code == 200
 
     def test_db_select_all_failed(self, client, mocker, init):
         """Handlerを起点に関連エンティティを全結合したデータ取得失敗"""
 
-        mocker.patch.object(
-            HandlerDAO, "select_all", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDHandler, "select_all", side_effect=Exception("some exception"))
 
         response = client.get(self.endpoint)
         actual_code = response.status_code
@@ -45,9 +40,7 @@ class TestRead:
         """指定Handlerのデータ取得失敗"""
 
         endpoint = f"{self.endpoint}/{self.handler_id}"
-        mocker.patch.object(
-            HandlerDAO, "select_by_id", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDHandler, "select_by_id", side_effect=Exception("some exception"))
 
         response = client.get(endpoint)
         actual_code = response.status_code

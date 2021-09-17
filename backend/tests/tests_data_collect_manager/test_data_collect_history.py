@@ -1,10 +1,5 @@
 import pytest
-import json
-from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
-from backend.data_collect_manager.dao.data_collect_history_dao import (
-    DataCollectHistoryDAO,
-)
-from backend.common import common
+from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 
 
 class TestRead:
@@ -16,16 +11,14 @@ class TestRead:
         response = client.get(self.endpoint)
         actual_code = response.status_code
 
-        mocker.patch.object(DataCollectHistoryDAO, "select_all")
+        mocker.patch.object(CRUDDataCollectHistory, "select_all")
 
         assert actual_code == 200
 
     def test_db_select_all_failed(self, client, mocker, init):
         """データ収集履歴取得失敗"""
 
-        mocker.patch.object(
-            DataCollectHistoryDAO, "select_all", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDDataCollectHistory, "select_all", side_effect=Exception("some exception"))
 
         response = client.get(self.endpoint)
         actual_code = response.status_code

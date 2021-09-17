@@ -1,8 +1,5 @@
 import pytest
-import json
-from backend.data_collect_manager.models.gateway import Gateway
-from backend.data_collect_manager.dao.gateway_dao import GatewayDAO
-from backend.common import common
+from backend.app.crud.crud_gateway import CRUDGateway
 
 
 class TestRead:
@@ -15,7 +12,7 @@ class TestRead:
         response = client.get(self.endpoint)
         actual_code = response.status_code
 
-        mocker.patch.object(GatewayDAO, "select_all")
+        mocker.patch.object(CRUDGateway, "select_all")
 
         assert actual_code == 200
 
@@ -24,16 +21,14 @@ class TestRead:
         response = client.get(endpoint)
         actual_code = response.status_code
 
-        mocker.patch.object(GatewayDAO, "select_by_id")
+        mocker.patch.object(CRUDGateway, "select_by_id")
 
         assert actual_code == 200
 
     def test_db_select_all_failed(self, client, mocker, init):
         """Gatewayを起点に関連エンティティを全結合したデータ取得失敗"""
 
-        mocker.patch.object(
-            GatewayDAO, "select_all", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDGateway, "select_all", side_effect=Exception("some exception"))
 
         response = client.get(self.endpoint)
         actual_code = response.status_code
@@ -45,9 +40,7 @@ class TestRead:
         """指定Gatewayのデータ取得失敗"""
 
         endpoint = f"{self.endpoint}/{self.gateway_id}"
-        mocker.patch.object(
-            GatewayDAO, "select_by_id", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDGateway, "select_by_id", side_effect=Exception("some exception"))
 
         response = client.get(endpoint)
         actual_code = response.status_code

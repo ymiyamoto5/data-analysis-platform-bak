@@ -1,7 +1,5 @@
 import pytest
-import json
-from backend.data_collect_manager.models.sensor import Sensor
-from backend.data_collect_manager.dao.sensor_dao import SensorDAO
+from backend.app.crud.crud_sensor import CRUDSensor
 from backend.common import common
 
 
@@ -15,7 +13,7 @@ class TestRead:
         response = client.get(self.endpoint)
         actual_code = response.status_code
 
-        mocker.patch.object(SensorDAO, "select_all")
+        mocker.patch.object(CRUDSensor, "select_all")
 
         assert actual_code == 200
 
@@ -24,16 +22,14 @@ class TestRead:
         response = client.get(endpoint)
         actual_code = response.status_code
 
-        mocker.patch.object(SensorDAO, "select_by_id")
+        mocker.patch.object(CRUDSensor, "select_by_id")
 
         assert actual_code == 200
 
     def test_db_select_all_failed(self, client, mocker, init):
         """Sensorを起点に関連エンティティを全結合したデータ取得失敗"""
 
-        mocker.patch.object(
-            SensorDAO, "select_all", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDSensor, "select_all", side_effect=Exception("some exception"))
 
         response = client.get(self.endpoint)
         actual_code = response.status_code
@@ -45,9 +41,7 @@ class TestRead:
         """指定Sensorのデータ取得失敗"""
 
         endpoint = f"{self.endpoint}/{self.sensor_id}"
-        mocker.patch.object(
-            SensorDAO, "select_by_id", side_effect=Exception("some exception")
-        )
+        mocker.patch.object(CRUDSensor, "select_by_id", side_effect=Exception("some exception"))
 
         response = client.get(endpoint)
         actual_code = response.status_code
