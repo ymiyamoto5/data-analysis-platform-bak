@@ -7,7 +7,7 @@ from backend.app.api.api import api_router
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="frontend/dist/"), name="static")
+app.mount("/static", StaticFiles(directory="frontend/dist/static"), name="static")
 
 templates = Jinja2Templates(directory="frontend/dist/")
 
