@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 from backend.app.schemas import sensor
 from sqlalchemy import desc
+from backend.app.crud.crud_handler import CRUDHandler
 
 
 class CRUDSensor:
@@ -69,6 +70,10 @@ class CRUDSensor:
             handler_id=obj_in.handler_id,
         )
 
+        # handlerのセンサー数を更新する
+        handler: Handler = CRUDHandler.select_by_id(db, obj_in.handler_id)
+        handler.sampling_ch_num += 1
+
         db.add(new_sensor)
         db.commit()
         db.refresh(new_sensor)
@@ -92,6 +97,11 @@ class CRUDSensor:
     @staticmethod
     def delete(db: Session, db_obj: Sensor) -> Sensor:
         db.delete(db_obj)
+
+        # handlerのセンサー数を更新する
+        handler: Handler = CRUDHandler.select_by_id(db, db_obj.handler_id)
+        handler.sampling_ch_num -= 1
+
         db.commit()
         return db_obj
 
