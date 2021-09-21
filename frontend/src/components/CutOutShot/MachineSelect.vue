@@ -11,7 +11,7 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-const MACHINES_API_URL = '/api/v1/machines'
+const MACHINES_API_URL = '/api/v1/machines/'
 
 export default {
   data() {

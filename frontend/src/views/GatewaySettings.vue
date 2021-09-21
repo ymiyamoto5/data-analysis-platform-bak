@@ -96,8 +96,8 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-const GATEWAYS_API_URL = '/api/v1/gateways'
-const MACHINES_API_URL = '/api/v1/machines'
+const GATEWAYS_API_URL = '/api/v1/gateways/'
+const MACHINES_API_URL = '/api/v1/machines/'
 
 export default {
   data: () => ({
@@ -236,7 +236,7 @@ export default {
 
       // update
       if (this.editedIndex > -1) {
-        url = GATEWAYS_API_URL + '/' + this.editedItem.gateway_id
+        url = GATEWAYS_API_URL + this.editedItem.gateway_id + '/'
         body = {
           log_level: this.editedItem.log_level,
         }
@@ -292,7 +292,7 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const url = GATEWAYS_API_URL + '/' + this.editedItem.gateway_id
+      const url = GATEWAYS_API_URL + this.editedItem.gateway_id + '/'
 
       const client = createBaseApiClient()
       await client

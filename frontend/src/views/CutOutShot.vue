@@ -69,8 +69,8 @@ import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
 import ChartCard from '@/components/CutOutShot/ChartCard.vue'
 import DisplacementRangeSlider from '@/components/CutOutShot/DisplacementRangeSlider.vue'
 
-const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
-const CUT_OUT_SHOT_API_URL = '/api/v1/cut_out_shot'
+const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
+const CUT_OUT_SHOT_API_URL = '/api/v1/cut_out_shot/'
 
 export default {
   components: {

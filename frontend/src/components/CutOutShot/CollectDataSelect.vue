@@ -13,7 +13,7 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import { formatDate } from '@/common/common'
 
-const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_history'
+const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_history/'
 
 export default {
   props: ['value'],
@@ -33,7 +33,7 @@ export default {
       const client = createBaseApiClient()
       let history = []
       await client
-        .get(DATA_COLLECT_HISTORY_API_URL + '/' + machineId)
+        .get(DATA_COLLECT_HISTORY_API_URL + machineId + '/')
         .then((res) => {
           if (res.data.length === 0) {
             return

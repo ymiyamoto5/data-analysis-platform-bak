@@ -128,14 +128,14 @@
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 
-const MACHINES_API_URL = '/api/v1/machines'
-const CONTROLLER_API_URL = '/api/v1/controller'
-const SETUP_API_URL = CONTROLLER_API_URL + '/setup/'
-const START_API_URL = CONTROLLER_API_URL + '/start/'
-const STOP_API_URL = CONTROLLER_API_URL + '/stop/'
-const CHECK_API_URL = CONTROLLER_API_URL + '/check/'
-const PAUSE_API_URL = CONTROLLER_API_URL + '/pause/'
-const RESUME_API_URL = CONTROLLER_API_URL + '/resume/'
+const MACHINES_API_URL = '/api/v1/machines/'
+const CONTROLLER_API_URL = '/api/v1/controller/'
+const SETUP_API_URL = CONTROLLER_API_URL + 'setup/'
+const START_API_URL = CONTROLLER_API_URL + 'start/'
+const STOP_API_URL = CONTROLLER_API_URL + 'stop/'
+const CHECK_API_URL = CONTROLLER_API_URL + 'check/'
+const PAUSE_API_URL = CONTROLLER_API_URL + 'pause/'
+const RESUME_API_URL = CONTROLLER_API_URL + 'resume/'
 
 export default {
   name: 'data-collect',
@@ -186,16 +186,13 @@ export default {
     },
     fetchTableData: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(MACHINES_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          console.log(data)
-          this.machines = data
+          this.machines = res.data
         })
         .catch((e) => {
           console.log(e.response.data.detail)
