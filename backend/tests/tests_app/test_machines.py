@@ -1,5 +1,4 @@
 import pytest
-import json
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
 from backend.app.models.machine_type import MachineType
