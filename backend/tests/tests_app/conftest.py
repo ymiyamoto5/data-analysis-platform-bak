@@ -11,12 +11,11 @@
 
 import pytest
 from backend.app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client():
-    app.config["TESTING"] = True
-
-    client = app.test_client()
+    client = TestClient(app)
 
     yield client

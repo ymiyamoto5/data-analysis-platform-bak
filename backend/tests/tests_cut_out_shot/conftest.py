@@ -29,6 +29,15 @@ def target():
     sensors: List[Sensor] = [
         Sensor(
             machine_id="machine-01",
+            sensor_id="displacement",
+            sensor_name="test_displacement01",
+            sensor_type_id="displacement",
+            base_volt=5,
+            base_load=5,
+            initial_volt=1,
+        ),
+        Sensor(
+            machine_id="machine-01",
             sensor_id="load01",
             sensor_name="test_load01",
             sensor_type_id="load",
@@ -61,15 +70,6 @@ def target():
             sensor_type_id="load",
             base_volt=1,
             base_load=1,
-            initial_volt=1,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="displacement01",
-            sensor_name="test_displacement01",
-            sensor_type_id="displacement",
-            base_volt=5,
-            base_load=5,
             initial_volt=1,
         ),
     ]
