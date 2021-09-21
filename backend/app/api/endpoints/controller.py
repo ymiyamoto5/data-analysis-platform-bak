@@ -82,7 +82,10 @@ def setup(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     if not successful:
         raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
-    CRUDController.setup(db, machine=machine, utc_now=utc_now)
+    try:
+        CRUDController.setup(db, machine=machine, utc_now=utc_now)
+    except Exception:
+        raise HTTPException(status_code=500, detail="DB update error.")
 
     return
 
@@ -113,8 +116,10 @@ def start(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     if not successful:
         raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
-    # DB更新
-    CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
+    try:
+        CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
+    except Exception:
+        raise HTTPException(status_code=500, detail="DB update error.")
 
     return
 
@@ -145,8 +150,10 @@ def pause(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     if not successful:
         raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
-    # DB更新
-    CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.PAUSE.value})
+    try:
+        CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.PAUSE.value})
+    except Exception:
+        raise HTTPException(status_code=500, detail="DB update error.")
 
     return
 
@@ -176,7 +183,10 @@ def resume(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
         raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
     # RESUMEはDBの状態としては保持しない。STARTに更新する。
-    CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
+    try:
+        CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
+    except Exception:
+        raise HTTPException(status_code=500, detail="DB update error.")
 
     return
 
@@ -208,7 +218,10 @@ def stop(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), d
         raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
     # DB更新
-    CRUDController.stop(db, machine=machine)
+    try:
+        CRUDController.stop(db, machine=machine)
+    except Exception:
+        raise HTTPException(status_code=500, detail="DB update error.")
 
     return
 
@@ -248,7 +261,9 @@ def check(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
         if not successful:
             raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
-        # DB更新
-        CRUDController.record(db, machine=machine, utc_now=utc_now)
+        try:
+            CRUDController.record(db, machine=machine, utc_now=utc_now)
+        except Exception:
+            raise HTTPException(status_code=500, detail="DB update error.")
 
         return
