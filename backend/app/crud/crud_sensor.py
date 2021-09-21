@@ -109,3 +109,11 @@ class CRUDSensor:
         machine_id: str = joined.Machine.machine_id
 
         return machine_id
+
+    @staticmethod
+    def fetch_sensors_by_machine_id(db: Session, machine_id: str) -> List[Sensor]:
+        """machine_idに紐づく全センサーを取得する"""
+
+        sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
+
+        return sensors
