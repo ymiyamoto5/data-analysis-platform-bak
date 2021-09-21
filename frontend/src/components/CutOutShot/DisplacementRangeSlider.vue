@@ -53,7 +53,7 @@ export default {
     return {
       min: 20,
       max: 60,
-      range: [45, 35],
+      range: [60, 20],
     }
   },
 }

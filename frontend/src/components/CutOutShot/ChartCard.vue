@@ -62,22 +62,34 @@ export default {
             borderColor: '#000080',
             borderWidth: 1,
             pointRadius: 0,
+            yAxisID: 'y-axis-1',
+          },
+          {
+            label: '荷重',
+            data: null,
+            fill: false,
+            borderColor: '#800080',
+            borderWidth: 1,
+            pointRadius: 0,
+            yAxisID: 'y-axis-2',
           },
           {
             label: '切り出し開始',
             data: null,
             fill: false,
             borderColor: '#008000',
-            borderWidth: 1,
+            borderWidth: 2,
             pointRadius: 0,
+            yAxisID: 'y-axis-1',
           },
           {
             label: '切り出し終了',
             data: null,
             fill: false,
             borderColor: '#ff0000',
-            borderWidth: 1,
+            borderWidth: 2,
             pointRadius: 0,
+            yAxisID: 'y-axis-1',
           },
         ],
       },
@@ -90,6 +102,20 @@ export default {
         },
         animation: {
           duration: 0,
+        },
+        scales: {
+          yAxes: [
+            {
+              id: 'y-axis-1',
+              type: 'linear',
+              position: 'left',
+            },
+            {
+              id: 'y-axis-2',
+              type: 'linear',
+              position: 'right',
+            },
+          ],
         },
       },
     }
@@ -126,27 +152,29 @@ export default {
       // let xData = data.map((x) => new Date(x.timestamp))
       let xData = data.map((x) => formatTime(x.timestamp))
       // y軸データ
-      let displacementData = data.map((x) => x.displacement)
+      const displacementData = data.map((x) => x.displacement)
+      // TODO: 動的に数を決定する
+      const load01 = data.map((x) => x.load01)
+
       // NOTE: chartをリアクティブにするためchartDataオブジェクトをディープコピー
       // https://qiita.com/nicopinpin/items/17457d38444b08953049
       let chartData = JSON.parse(JSON.stringify(this.chartDataTemplate))
       this.$set(chartData, 'labels', xData)
       this.$set(chartData.datasets[0], 'data', displacementData)
+      this.$set(chartData.datasets[1], 'data', load01)
 
-      if (this.startDisplacement !== 0) {
-        let startData = []
-        for (let i = 0; i < displacementData.length; i++) {
-          startData.push(this.startDisplacement)
-        }
-        this.$set(chartData.datasets[1], 'data', startData)
+      // 切り出し開始位置と終了位置の直線データ
+      let startData = []
+      for (let i = 0; i < displacementData.length; i++) {
+        startData.push(this.startDisplacement)
       }
-      if (this.endDisplacement !== 0) {
-        let endData = []
-        for (let i = 0; i < displacementData.length; i++) {
-          endData.push(this.endDisplacement)
-        }
-        this.$set(chartData.datasets[2], 'data', endData)
+      this.$set(chartData.datasets[2], 'data', startData)
+
+      let endData = []
+      for (let i = 0; i < displacementData.length; i++) {
+        endData.push(this.endDisplacement)
       }
+      this.$set(chartData.datasets[3], 'data', endData)
 
       this.chartData = chartData
     },
