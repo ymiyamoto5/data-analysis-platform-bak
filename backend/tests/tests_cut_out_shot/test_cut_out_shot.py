@@ -16,7 +16,6 @@ from typing import List
 from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
 import numpy as np
-
 from backend.cut_out_shot.cut_out_shot import CutOutShot
 from backend.data_converter.data_converter import DataConverter
 
@@ -611,16 +610,13 @@ class TestExcludeOverSample:
 
 
 class TestApplyPhysicalConversionFormula:
-    def test_normal(self, mocker, rawdata_df, handler, sensors):
+    def test_normal(self, mocker, rawdata_df):
         """正常系：lambda式適用"""
 
         machine_id = "machine-01"
+        target_date_str = "20201201103011"
 
-        cut_out_shot = CutOutShot(
-            machine_id=machine_id,
-            handler=handler,
-            sensors=sensors,
-        )
+        cut_out_shot = CutOutShot(machine_id=machine_id, target=target_date_str)
 
         # 全データを見る必要はないので一部スライス
         target_df: DataFrame = rawdata_df[:3].copy()
@@ -1276,16 +1272,10 @@ class TestCutOutShot:
         """異常系：切り出し開始しきい値よりも終了しきい値のほうが大きい場合"""
 
         with pytest.raises(SystemExit):
-            target.cut_out_shot("tmp", start_displacement=40.0, end_displacement=41.0)
+            target.cut_out_shot(start_displacement=40.0, end_displacement=41.0)
 
     def test_parameter_exception_2(self, target):
         """異常系：切り出し開始しきい値=終了しきい値の場合"""
 
         with pytest.raises(SystemExit):
-            target.cut_out_shot("tmp", start_displacement=40.0, end_displacement=40.0)
-
-    def test_dir_not_exists(self, target):
-        """異常系：対象データディレクトリが存在しない場合"""
-
-        with pytest.raises(SystemExit):
-            target.cut_out_shot("not_exists_dir", start_displacement=47.0, end_displacement=40.0)
+            target.cut_out_shot(start_displacement=40.0, end_displacement=40.0)
