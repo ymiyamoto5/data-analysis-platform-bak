@@ -5,3 +5,4 @@ from .handler import Handler
 from .sensor_type import SensorType
 from .sensor import Sensor
 from .data_collect_history import DataCollectHistory
+from .data_collect_history_detail import DataCollectHistoryDetail

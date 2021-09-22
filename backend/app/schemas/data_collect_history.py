@@ -13,6 +13,8 @@ class DataCollectHistory(DataCollectHistoryBase):
     machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     machine_name: str = Field(..., max_length=255)
     started_at: datetime
+    sampling_frequency: int
+    sampling_ch_num: int
 
     class Config:
         orm_mode = True
