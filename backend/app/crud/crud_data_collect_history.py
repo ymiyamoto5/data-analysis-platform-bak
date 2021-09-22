@@ -1,4 +1,5 @@
 from typing import List
+from datetime import datetime, timedelta
 from backend.app.models.data_collect_history import DataCollectHistory
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
@@ -35,6 +36,19 @@ class CRUDDataCollectHistory:
                 joinedload(DataCollectHistory.machine),
             )
             .all()
+        )
+
+        return history
+
+    @staticmethod
+    def select_by_machine_id_started_at(db: Session, machine_id: str, target_datetime_str: str) -> DataCollectHistory:
+
+        started_at: datetime = datetime.strptime(target_datetime_str, "%Y%m%d%H%M%S") - timedelta(hours=9)
+        history: DataCollectHistory = (
+            db.query(DataCollectHistory)
+            .filter(DataCollectHistory.machine_id == machine_id)
+            .filter(DataCollectHistory.started_at == started_at)
+            .one()
         )
 
         return history

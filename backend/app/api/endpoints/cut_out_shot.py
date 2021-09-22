@@ -17,11 +17,9 @@ router = APIRouter()
 
 
 @router.get("/target_dir")
-def fetch_target_dir(
-    machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN), target_date_timestamp: str = Query(...)
-):
-    """ショット切り出し対象となるディレクトリ名を返す"""
-    target_dir_name: str = CutOutShotService.get_target_dir(machine_id, target_date_timestamp)
+def fetch_target_date_str(target_date_timestamp: str = Query(...)):
+    """ショット切り出し対象となる日付文字列を返す"""
+    target_dir_name: str = CutOutShotService.get_target_dir(target_date_timestamp)
 
     return target_dir_name
 
@@ -29,12 +27,13 @@ def fetch_target_dir(
 @router.get("/shots")
 def fetch_shots(
     machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN),
-    target_dir: str = Query(...),
+    target_date_str: str = Query(...),
     page: int = Query(...),
     db: Session = Depends(get_db),
 ):
     """対象区間の最初のpklファイルを読み込み、変位値をリサンプリングして返す"""
 
+    target_dir = machine_id + "-" + target_date_str
     data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
     data_full_path: str = os.path.join(data_dir, target_dir)
 
@@ -70,13 +69,12 @@ def fetch_shots(
 
 
 @router.post("/")
-def cut_out_shot(cut_out_shot_in: CutOutShotBase):
+def cut_out_shot(cut_out_shot_in: CutOutShotBase, db: Session = Depends(get_db)):
     """ショット切り出し"""
 
     # TODO: サブプロセスでcut_out_shot実行
-    cut_out_shot = CutOutShot(machine_id=cut_out_shot_in.machine_id)
+    cut_out_shot = CutOutShot(machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db)
     cut_out_shot.cut_out_shot(
-        rawdata_dir_name=cut_out_shot_in.target_dir,
         start_displacement=cut_out_shot_in.start_displacement,
         end_displacement=cut_out_shot_in.end_displacement,
     )
