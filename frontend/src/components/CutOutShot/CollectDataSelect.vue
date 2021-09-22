@@ -13,7 +13,7 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import { formatDate } from '@/common/common'
 
-const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_history/'
+const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_histories/'
 
 export default {
   props: ['value'],

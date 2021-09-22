@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[data_collect_history.DataCollectHistory])
-def fetch_data_collect_history(db: Session = Depends(get_db)):
+def fetch_data_collect_histories(db: Session = Depends(get_db)):
     """データ収集履歴を返す"""
 
     history: List[DataCollectHistory] = CRUDDataCollectHistory.select_all(db)

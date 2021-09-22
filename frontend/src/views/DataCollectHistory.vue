@@ -45,7 +45,7 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import { formatDate } from '@/common/common'
 
-const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_history/'
+const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_histories/'
 
 export default {
   name: 'data-collect-history',
@@ -59,6 +59,8 @@ export default {
         machine_name: '',
         started_at: '',
         ended_at: '',
+        sampling_frequency: 0,
+        sampling_ch_num: 0,
       },
       headers: [
         {
@@ -73,6 +75,14 @@ export default {
         {
           text: '終了日時',
           value: 'ended_at',
+        },
+        {
+          text: 'サンプリングレート(Hz)',
+          value: 'sampling_frequency',
+        },
+        {
+          text: 'チャネル数',
+          value: 'sampling_ch_num',
         },
         { text: 'アクション', value: 'actions', sortable: false },
       ],

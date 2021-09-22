@@ -5,7 +5,7 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 class TestRead:
     @pytest.fixture
     def init(self):
-        self.endpoint = "/api/v1/data_collect_history"
+        self.endpoint = "/api/v1/data_collect_histories"
 
     def test_normal_db_select_all(self, client, mocker, init):
         response = client.get(self.endpoint)
