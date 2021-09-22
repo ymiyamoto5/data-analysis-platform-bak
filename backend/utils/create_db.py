@@ -362,6 +362,7 @@ db.add(sensor_05)
 data_collect_history_1 = DataCollectHistory(
     machine_id="machine-01",
     machine_name="テストプレス01",
+    machine_type_id=1,
     started_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9),
     ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
@@ -371,6 +372,7 @@ data_collect_history_1 = DataCollectHistory(
 data_collect_history_2 = DataCollectHistory(
     machine_id="machine-01",
     machine_name="テストプレス01",
+    machine_type_id=1,
     started_at=datetime(2021, 9, 8, 9, 0, 0, 0) + timedelta(hours=-9),
     ended_at=datetime(2021, 9, 8, 9, 0, 0, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
@@ -385,11 +387,6 @@ data_collect_history_detail_1 = DataCollectHistoryDetail(
     sensor_id="load01",
     sensor_name="荷重01",
     sensor_type_id=1,
-    sensor_type_name="荷重",
-    machine_id="machine-01",
-    machine_name="テストプレス01",
-    machine_type_id=1,
-    machine_type_name="プレス",
     base_volt=1.0,
     base_load=1.0,
     initial_volt=1.0,
@@ -400,11 +397,6 @@ data_collect_history_detail_2 = DataCollectHistoryDetail(
     sensor_id="load02",
     sensor_name="荷重02",
     sensor_type_id=1,
-    sensor_type_name="荷重",
-    machine_id="machine-01",
-    machine_name="テストプレス01",
-    machine_type_id=1,
-    machine_type_name="プレス",
     base_volt=1.0,
     base_load=1.0,
     initial_volt=1.0,
@@ -415,11 +407,6 @@ data_collect_history_detail_3 = DataCollectHistoryDetail(
     sensor_id="load03",
     sensor_name="荷重03",
     sensor_type_id=1,
-    sensor_type_name="荷重",
-    machine_id="machine-01",
-    machine_name="テストプレス01",
-    machine_type_id=1,
-    machine_type_name="プレス",
     base_volt=1.0,
     base_load=1.0,
     initial_volt=1.0,
@@ -430,11 +417,6 @@ data_collect_history_detail_4 = DataCollectHistoryDetail(
     sensor_id="load04",
     sensor_name="荷重04",
     sensor_type_id=1,
-    sensor_type_name="荷重",
-    machine_id="machine-01",
-    machine_name="テストプレス01",
-    machine_type_id=1,
-    machine_type_name="プレス",
     base_volt=1.0,
     base_load=1.0,
     initial_volt=1.0,
@@ -445,11 +427,6 @@ data_collect_history_detail_5 = DataCollectHistoryDetail(
     sensor_id="displacement",
     sensor_name="変位",
     sensor_type_id=2,
-    sensor_type_name="変位",
-    machine_id="machine-01",
-    machine_name="テストプレス01",
-    machine_type_id=1,
-    machine_type_name="プレス",
     base_volt=None,
     base_load=None,
     initial_volt=None,
@@ -459,6 +436,7 @@ db.add(data_collect_history_detail_1)
 db.add(data_collect_history_detail_2)
 db.add(data_collect_history_detail_3)
 db.add(data_collect_history_detail_4)
+db.add(data_collect_history_detail_5)
 
 
 db.commit()

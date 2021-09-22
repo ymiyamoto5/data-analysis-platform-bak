@@ -99,7 +99,16 @@ class CRUDMachine:
         return handler
 
     @staticmethod
-    def select_sensors_by_machine_id(machine_id: str) -> List[Sensor]:
+    def select_sensors_by_machine_id(db: Session, machine_id: str) -> List[Sensor]:
+        sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
+
+        return sensors
+
+    @staticmethod
+    def select_sensors_by_machine_id_from_job(machine_id: str) -> List[Sensor]:
+        """machine_idから紐づくセンサーリストを取得。ジョブからのDBアクセスで利用。
+        TODO: WebAPとジョブで関数を統一したい。
+        """
         with db_session() as db:
             sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
 
