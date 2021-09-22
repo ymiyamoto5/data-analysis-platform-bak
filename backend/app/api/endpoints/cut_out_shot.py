@@ -11,7 +11,7 @@ from backend.app.schemas.cut_out_shot import CutOutShotBase
 from fastapi import Depends, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
-
+from backend.app.services.cut_out_shot_service import CutOutShotService
 
 router = APIRouter()
 
@@ -21,11 +21,7 @@ def fetch_target_dir(
     machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN), target_date_timestamp: str = Query(...)
 ):
     """ショット切り出し対象となるディレクトリ名を返す"""
-
-    # NOTE: ブラウザからは文字列のUNIXTIME(ミリ秒)で与えられる。秒単位に直して変換。
-    target_date: datetime = datetime.fromtimestamp(int(target_date_timestamp) / 1000)
-    target_date_str: str = datetime.strftime(target_date, "%Y%m%d%H%M%S")
-    target_dir_name = machine_id + "-" + target_date_str
+    target_dir_name: str = CutOutShotService.get_target_dir(machine_id, target_date_timestamp)
 
     return target_dir_name
 

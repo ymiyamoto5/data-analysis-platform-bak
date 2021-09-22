@@ -20,6 +20,12 @@ class CRUDDataCollectHistory:
         return history
 
     @staticmethod
+    def select_by_id(db: Session, id: int) -> DataCollectHistory:
+        history: DataCollectHistory = db.query(DataCollectHistory).get(id)
+
+        return history
+
+    @staticmethod
     def select_by_machine_id(db: Session, machine_id: str) -> List[DataCollectHistory]:
         history: List[DataCollectHistory] = (
             db.query(DataCollectHistory)
@@ -32,3 +38,9 @@ class CRUDDataCollectHistory:
         )
 
         return history
+
+    @staticmethod
+    def delete(db: Session, db_obj: DataCollectHistory) -> DataCollectHistory:
+        db.delete(db_obj)
+        db.commit()
+        return db_obj

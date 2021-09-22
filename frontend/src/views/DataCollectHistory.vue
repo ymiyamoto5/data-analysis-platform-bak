@@ -11,11 +11,33 @@
         hide-details
       ></v-text-field>
     </v-card-title>
-    <v-data-table
-      :headers="headers"
-      :items="history"
-      :search="search"
-    ></v-data-table>
+
+    <v-data-table :headers="headers" :items="history" :search="search">
+      <template v-slot:top>
+        <v-dialog v-model="dialogDelete" max-width="500px">
+          <v-card>
+            <v-card-title class="text-h6">
+              この履歴を削除すると、収集したデータも削除されます。削除してもよいですか？
+            </v-card-title>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue darken-1" text @click="closeDelete"
+                >キャンセル</v-btn
+              >
+              <v-btn color="blue darken-1" text @click="deleteItemConfirm"
+                >OK</v-btn
+              >
+              <v-spacer></v-spacer>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </template>
+      <template v-slot:[`item.actions`]="{ item }">
+        <v-icon small @click="deleteItem(item)">
+          mdi-delete
+        </v-icon>
+      </template>
+    </v-data-table>
   </v-card>
 </template>
 
@@ -29,6 +51,15 @@ export default {
   name: 'data-collect-history',
   data() {
     return {
+      dialogDelete: false,
+      editedIndex: -1,
+      editedItem: {
+        id: -1,
+        machine_id: '',
+        machine_name: '',
+        started_at: '',
+        ended_at: '',
+      },
       headers: [
         {
           text: '機器名',
@@ -43,6 +74,7 @@ export default {
           text: '終了日時',
           value: 'ended_at',
         },
+        { text: 'アクション', value: 'actions', sortable: false },
       ],
       search: '',
       history: [],
@@ -51,6 +83,13 @@ export default {
   created: function() {
     this.fetchTableData()
   },
+  // dialogをwatchし、val（bool値）に応じてクローズ
+  watch: {
+    dialogDelete(val) {
+      val || this.closeDelete()
+    },
+  },
+
   methods: {
     fetchTableData: async function() {
       const client = createBaseApiClient()
@@ -73,6 +112,42 @@ export default {
         .catch((e) => {
           console.log(e.response.data.detail)
         })
+    },
+
+    // 削除ダイアログ表示
+    deleteItem(item) {
+      this.editedIndex = this.history.indexOf(item)
+      this.editedItem = Object.assign({}, item)
+      this.dialogDelete = true
+    },
+
+    // 削除
+    deleteItemConfirm: async function() {
+      const url = DATA_COLLECT_HISTORY_API_URL + this.editedItem.id + '/'
+
+      const client = createBaseApiClient()
+      await client
+        .delete(url)
+        .then(() => {
+          this.dialogDelete = false
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
+        })
+    },
+
+    // 削除ダイアログclose
+    closeDelete() {
+      this.dialogDelete = false
+      setTimeout(() => {
+        this.editedItem = Object.assign({}, this.defaultItem)
+        this.editedIndex = -1
+        if (this.$refs.form_group) {
+          this.$refs.form_group.resetValidation()
+        }
+      })
     },
   },
 }
