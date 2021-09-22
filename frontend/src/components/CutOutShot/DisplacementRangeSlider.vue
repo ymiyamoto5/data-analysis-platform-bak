@@ -42,9 +42,9 @@
 
 <script>
 export default {
-  props: ['targetDir'],
+  props: ['targetDateStr'],
   watch: {
-    targetDir: function() {
+    targetDateStr: function() {
       // TODO: 対象に応じて動的に設定
       console.log()
     },

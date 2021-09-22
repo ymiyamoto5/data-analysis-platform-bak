@@ -19,13 +19,13 @@
           <DisplacementRangeSlider
             v-if="dataSelected"
             @input="setDisplacementRange"
-            :targetDir="targetDir"
+            :targetDateStr="targetDateStr"
           ></DisplacementRangeSlider>
         </v-col>
         <v-col cols="9">
           <ChartCard
             :machineId="machineId"
-            :targetDir="targetDir"
+            :targetDateStr="targetDateStr"
             :startDisplacement="startDisplacement"
             :endDisplacement="endDisplacement"
             :page="page"
@@ -89,7 +89,7 @@ export default {
       displayPrevPage: false, // グラフを前に戻せるか
       displayNextPage: false, // グラフを先に進められるか
       machineId: '',
-      targetDir: '',
+      targetDateStr: '',
       startDisplacement: 0,
       endDisplacement: 0,
       collectData: '',
@@ -125,7 +125,7 @@ export default {
           if (res.data === null) {
             return
           }
-          this.targetDir = res.data
+          this.targetDateStr = res.data
         })
         .catch((e) => {
           console.log(e.response.data.detail)
@@ -144,7 +144,7 @@ export default {
         machine_id: this.machineId,
         start_displacement: this.startDisplacement,
         end_displacement: this.endDisplacement,
-        target_dir: this.targetDir,
+        target_date_str: this.targetDateStr,
       }
 
       const client = createBaseApiClient()

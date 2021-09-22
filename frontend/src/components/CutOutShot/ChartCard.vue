@@ -21,7 +21,7 @@ const SHOTS_API_URL = '/api/v1/cut_out_shot/shots/'
 export default {
   props: [
     'machineId',
-    'targetDir',
+    'targetDateStr',
     'startDisplacement',
     'endDisplacement',
     'page',
@@ -31,7 +31,7 @@ export default {
   },
   watch: {
     machineId: function() {},
-    targetDir: function() {
+    targetDateStr: function() {
       this.loaded = false
       this.fetchData()
     },
@@ -129,7 +129,7 @@ export default {
         .get(SHOTS_API_URL, {
           params: {
             machine_id: this.machineId,
-            target_dir: this.targetDir,
+            target_date_str: this.targetDateStr,
             page: this.page,
           },
         })
