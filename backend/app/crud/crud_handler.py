@@ -1,6 +1,7 @@
 from typing import List, Dict, Union, Any
 from backend.app.models.handler import Handler
 from backend.app.models.sensor import Sensor
+from backend.app.crud.crud_gateway import CRUDGateway
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 from backend.app.schemas import handler
@@ -44,7 +45,7 @@ class CRUDHandler:
         )
 
         # Handlerを更新したことをGatewayに知らせるため、gateway_resultを0に設定
-        gateway = db.query(Handler).filter(Handler.gateway_id == new_handler.gateway_id).one()
+        gateway = CRUDGateway.select_by_id(db, obj_in.gateway_id)
         gateway.gateway_result = 0
 
         db.add(new_handler)
