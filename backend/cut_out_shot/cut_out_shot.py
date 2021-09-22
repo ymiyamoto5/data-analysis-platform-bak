@@ -66,7 +66,7 @@ class CutOutShot:
 
         if sensors is None:
             try:
-                self.__sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(machine_id)
+                self.__sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id_from_job(machine_id)
             except Exception:
                 logger.error(traceback.format_exc())
                 sys.exit(1)
