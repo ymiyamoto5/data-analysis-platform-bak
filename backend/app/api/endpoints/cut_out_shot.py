@@ -4,8 +4,9 @@ from backend.file_manager.file_manager import FileInfo
 from backend.common import common
 from backend.cut_out_shot.cut_out_shot import CutOutShot
 from backend.app.schemas.cut_out_shot import CutOutShotBase
-from backend.app.models.sensor import Sensor
-from backend.app.crud.crud_sensor import CRUDSensor
+from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from fastapi import Depends, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
@@ -25,7 +26,7 @@ def fetch_target_date_str(target_date_timestamp: str = Query(...)):
 @router.get("/shots")
 def fetch_shots(
     machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN),
-    target_date_str: str = Query(...),
+    target_date_str: str = Query(...),  # yyyyMMddHHMMSS文字列
     page: int = Query(...),
     db: Session = Depends(get_db),
 ):
@@ -44,13 +45,19 @@ def fetch_shots(
     target_file = files_info[page].file_path
     df: DataFrame = CutOutShotService.fetch_df(target_file)
 
-    # リサンプリング
-    resampled_df: DataFrame = CutOutShotService.fetch_resampled_data(df)
+    # 機器に紐づく設定値を履歴から取得
+    history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
+        db, machine_id, target_date_str
+    )
 
-    # 機器に紐づくセンサー取得
-    sensors: List[Sensor] = CRUDSensor.fetch_sensors_by_machine_id(db, machine_id)
+    # リサンプリング
+    resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency)
+
+    # DataCollectHistoryDetailはセンサー毎の設定値
+    sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
+
     # センサー値を物理変換
-    converted_df: DataFrame = CutOutShotService.fetch_physical_converted_df(resampled_df, sensors)
+    converted_df: DataFrame = CutOutShotService.physical_convert_df(resampled_df, sensors)
 
     data: Dict[str, Any] = converted_df.to_dict(orient="records")
 
