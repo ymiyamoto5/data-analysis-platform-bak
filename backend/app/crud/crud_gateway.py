@@ -61,7 +61,8 @@ class CRUDGateway:
         for key, value in update_data.items():
             setattr(db_obj, key, value)
 
-        # 更新したことをGatewayに知らせるため、gateway_resultを0に設定
+        # 更新したことをGatewayに知らせるため、sequence_numberをインクリメントし、gateway_resultを0に設定
+        db_obj.sequence_number += 1
         db_obj.gateway_result = 0
 
         db.commit()
