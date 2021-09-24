@@ -35,9 +35,6 @@ class CutOutShotService:
         """引数で指定したファイル名のpklファイルを読み込みDataFrameで返す"""
 
         df = pd.read_pickle(target_file)
-        # timestampを日時に戻しdaterange indexとする。
-        df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
-        df = df.set_index(["timestamp"])
 
         return df
 
@@ -45,9 +42,7 @@ class CutOutShotService:
     def fetch_resampled_data(df: DataFrame) -> DataFrame:
         """引数のDataFrameをリサンプリングして返却する"""
 
-        # TODO: リサンプリングは別モジュール化して、間隔を可変にする
-        df = df.resample("10ms").mean()
-        df = df.reset_index()
+        df = DataConverter.down_sampling_df(df)
 
         return df
 

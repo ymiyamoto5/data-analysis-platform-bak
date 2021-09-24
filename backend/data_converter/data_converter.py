@@ -1,10 +1,12 @@
 from typing import Callable
 from backend.app.models.sensor import Sensor
+from pandas.core.frame import DataFrame
+from datetime import datetime
 
 
 class DataConverter:
-    @classmethod
-    def get_physical_conversion_formula(cls, sensor: Sensor) -> Callable[[float], float]:
+    @staticmethod
+    def get_physical_conversion_formula(sensor: Sensor) -> Callable[[float], float]:
         """センサー種別に応じた物理変換式を返却する"""
 
         if sensor.sensor_type_id == "load":
@@ -28,3 +30,19 @@ class DataConverter:
 
         else:
             return lambda v: v
+
+    @staticmethod
+    def down_sampling_df(df: DataFrame) -> DataFrame:
+        """sampling_time_intervalで指定した時間間隔でダウンサンプリングする"""
+
+        # timestampを日時に戻しdaterange indexとする。
+        df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+        df = df.set_index(["timestamp"])
+
+        # TODO: 元のサンプリングレートから動的に設定。
+        sampling_time_interval = "10ms"
+
+        df = df.resample(sampling_time_interval).mean()
+        df = df.reset_index()
+
+        return df
