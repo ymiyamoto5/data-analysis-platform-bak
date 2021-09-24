@@ -1,13 +1,11 @@
-import os
-import pandas as pd
-from typing import List, Optional
-from datetime import datetime
-from backend.file_manager.file_manager import FileManager, FileInfo
-from backend.data_converter.data_converter import DataConverter
+from typing import List, Optional, Dict, Any
+from pandas.core.frame import DataFrame
+from backend.file_manager.file_manager import FileInfo
 from backend.common import common
 from backend.cut_out_shot.cut_out_shot import CutOutShot
-from backend.app.crud.crud_sensor import CRUDSensor
 from backend.app.schemas.cut_out_shot import CutOutShotBase
+from backend.app.models.sensor import Sensor
+from backend.app.crud.crud_sensor import CRUDSensor
 from fastapi import Depends, APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
@@ -33,11 +31,7 @@ def fetch_shots(
 ):
     """対象区間の最初のpklファイルを読み込み、変位値をリサンプリングして返す"""
 
-    target_dir = machine_id + "-" + target_date_str
-    data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-    data_full_path: str = os.path.join(data_dir, target_dir)
-
-    files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
+    files_info: Optional[List[FileInfo]] = CutOutShotService.get_files_info(machine_id, target_date_str)
 
     if files_info is None:
         raise HTTPException(status_code=400, detail="対象ファイルがありません")
@@ -48,22 +42,17 @@ def fetch_shots(
 
     # 対象ディレクトリから1ファイル取得
     target_file = files_info[page].file_path
+    df: DataFrame = CutOutShotService.fetch_df(target_file)
 
-    df = pd.read_pickle(target_file)
-    # timestampを日時に戻しdaterange indexとする。
-    df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
-    df = df.set_index(["timestamp"])
+    # リサンプリング
+    resampled_df: DataFrame = CutOutShotService.fetch_resampled_data(df)
 
-    # TODO: リサンプリングは別モジュール化して、間隔を可変にする
-    df = df.resample("10ms").mean()
-    df = df.reset_index()
+    # 機器に紐づくセンサー取得
+    sensors: List[Sensor] = CRUDSensor.fetch_sensors_by_machine_id(db, machine_id)
+    # センサー値を物理変換
+    converted_df: DataFrame = CutOutShotService.fetch_physical_converted_df(resampled_df, sensors)
 
-    sensors = CRUDSensor.fetch_sensors_by_machine_id(db, machine_id)
-    for sensor in sensors:
-        func = DataConverter.get_physical_conversion_formula(sensor)
-        df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
-
-    data = df.to_dict(orient="records")
+    data: Dict[str, Any] = converted_df.to_dict(orient="records")
 
     return {"data": data, "fileCount": len(files_info)}
 

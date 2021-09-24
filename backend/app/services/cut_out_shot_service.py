@@ -1,4 +1,12 @@
+import os
+import pandas as pd
 from datetime import datetime
+from typing import Optional, List
+from backend.common import common
+from backend.file_manager.file_manager import FileManager, FileInfo
+from backend.app.models.sensor import Sensor
+from pandas.core.frame import DataFrame
+from backend.data_converter.data_converter import DataConverter
 
 
 class CutOutShotService:
@@ -11,3 +19,44 @@ class CutOutShotService:
         target_date_str: str = datetime.strftime(target_date, "%Y%m%d%H%M%S")
 
         return target_date_str
+
+    @staticmethod
+    def get_files_info(machine_id: str, target_date_str: str) -> Optional[List[FileInfo]]:
+        target_dir = machine_id + "-" + target_date_str
+        data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
+        data_full_path: str = os.path.join(data_dir, target_dir)
+
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
+
+        return files_info
+
+    @staticmethod
+    def fetch_df(target_file: str) -> DataFrame:
+        """引数で指定したファイル名のpklファイルを読み込みDataFrameで返す"""
+
+        df = pd.read_pickle(target_file)
+        # timestampを日時に戻しdaterange indexとする。
+        df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+        df = df.set_index(["timestamp"])
+
+        return df
+
+    @staticmethod
+    def fetch_resampled_data(df: DataFrame) -> DataFrame:
+        """引数のDataFrameをリサンプリングして返却する"""
+
+        # TODO: リサンプリングは別モジュール化して、間隔を可変にする
+        df = df.resample("10ms").mean()
+        df = df.reset_index()
+
+        return df
+
+    @staticmethod
+    def fetch_physical_converted_df(df: DataFrame, sensors: List[Sensor]) -> DataFrame:
+        """引数のDataFrameをリサンプリングして返却する"""
+
+        for sensor in sensors:
+            func = DataConverter.get_physical_conversion_formula(sensor)
+            df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
+
+        return df
