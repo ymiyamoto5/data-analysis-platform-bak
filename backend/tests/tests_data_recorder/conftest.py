@@ -14,6 +14,7 @@ import pathlib
 import dataclasses
 import struct
 from backend.app.models.handler import Handler
+from backend.app.crud.crud_machine import CRUDMachine
 
 
 @dataclasses.dataclass
@@ -51,10 +52,14 @@ def dat_files(tmp_path):
     yield dat_files
 
 
-@pytest.fixture()
-def handler():
-    handler: Handler = Handler(handler_id="TEST-HANDLDER-001", sampling_ch_num=5, sampling_frequency=100000)
+@pytest.fixture(scope="session", autouse=True)
+def handler(session_mocker):
+    """handlerオブジェクトのmock
+    TODO: オブジェクト自体をmockして挿しこむのではなく、InmemoryDBまたはテンポラリのDBファイルを作成して挿しこむ。
+    """
 
-    yield handler
+    handler: Handler = Handler(
+        handler_id="test-handler", gateway_id="test-gw", sampling_frequency=100_000, sampling_ch_num=5
+    )
 
-    del handler
+    session_mocker.patch.object(CRUDMachine, "fetch_handler_from_machine_id", return_value=handler)
