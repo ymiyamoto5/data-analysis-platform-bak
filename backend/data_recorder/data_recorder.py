@@ -19,26 +19,29 @@ import traceback
 from datetime import datetime
 from typing import Final, Tuple, List, Optional, Any
 import argparse
+from backend.app.db.session import SessionLocal
+from sqlalchemy.orm import Session
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.file_manager.file_manager import FileManager, FileInfo
 from backend.common import common
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
-from backend.app.models.handler import Handler
 from backend.common.common_logger import data_recorder_logger as logger
 
 
 class DataRecorder:
-    def __init__(self, machine_id: str, handler: Handler = None):
+    def __init__(self, machine_id: str, db: Session = None):
         self.machine_id: str = machine_id
 
-        if handler is None:
-            try:
-                handler = CRUDMachine.fetch_handler_from_machine_id(self.machine_id)
-            except Exception:
-                logger.exception(traceback.format_exc())
-                sys.exit(1)
+        if db is None:
+            db = SessionLocal()
+
+        try:
+            handler = CRUDMachine.fetch_handler_from_machine_id(db, self.machine_id)
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
 
         self.sampling_ch_num: int = handler.sampling_ch_num
         self.sampling_frequency: int = handler.sampling_frequency
