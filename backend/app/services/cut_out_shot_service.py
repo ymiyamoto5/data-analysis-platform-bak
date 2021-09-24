@@ -39,15 +39,16 @@ class CutOutShotService:
         return df
 
     @staticmethod
-    def fetch_resampled_data(df: DataFrame) -> DataFrame:
-        """引数のDataFrameをリサンプリングして返却する"""
+    def resample_df(df: DataFrame, sampling_frequency: int) -> DataFrame:
+        """引数のDataFrameについてリサンプリングして返却する"""
 
-        df = DataConverter.down_sampling_df(df)
+        # TODO: 倍率nを動的に設定
+        df = DataConverter.down_sampling_df(df, sampling_frequency, n=1000)
 
         return df
 
     @staticmethod
-    def fetch_physical_converted_df(df: DataFrame, sensors: List[Sensor]) -> DataFrame:
+    def physical_convert_df(df: DataFrame, sensors: List[Sensor]) -> DataFrame:
         """引数のDataFrameをリサンプリングして返却する"""
 
         for sensor in sensors:

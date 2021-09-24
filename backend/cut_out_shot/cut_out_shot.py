@@ -26,7 +26,7 @@ from backend.event_manager.event_manager import EventManager
 from backend.utils.throughput_counter import throughput_counter
 from backend.common import common
 from backend.common.common_logger import logger
-from backend.app.models.sensor import Sensor
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.data_converter.data_converter import DataConverter
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from sqlalchemy.orm import Session
@@ -74,10 +74,10 @@ class CutOutShot:
             history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
                 db, machine_id, target
             )
-            self.__max_samples_per_shot: int = (
-                int(60 / self.__min_spm) * history.sampling_frequency
-            )  # 100kサンプルにおける最大サンプル数
-            self.__sensors: List[Sensor] = history.data_collect_history_details
+            # 100kサンプルにおける最大サンプル数
+            self.__max_samples_per_shot: int = int(60 / self.__min_spm) * history.sampling_frequency
+            # DataCollectHistoryDetailはセンサー毎の設定値
+            self.__sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
 
         except Exception:
             logger.error(traceback.format_exc())
