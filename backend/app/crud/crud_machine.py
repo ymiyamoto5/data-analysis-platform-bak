@@ -80,21 +80,20 @@ class CRUDMachine:
         return db_obj
 
     @staticmethod
-    def fetch_handler_from_machine_id(machine_id: str) -> Handler:
+    def fetch_handler_from_machine_id(db: Session, machine_id: str) -> Handler:
         """DBからmachine_idをkeyにHandler情報を取得する。"""
 
-        with db_session() as db:
-            machine: Machine = (
-                db.query(Machine)
-                .filter(Machine.machine_id == machine_id)
-                .join(Gateway, Machine.gateways)
-                .join(Handler, Gateway.handlers)
-                .one()
-            )
+        machine: Machine = (
+            db.query(Machine)
+            .filter(Machine.machine_id == machine_id)
+            .join(Gateway, Machine.gateways)
+            .join(Handler, Gateway.handlers)
+            .one()
+        )
 
-            # NOTE: 1つ目のGW, 1つ目のHandlerを採用。複数GW, 複数Handlerには対応していない。
-            # NOTE: handlerがない場合はException
-            handler: Handler = machine.gateways[0].handlers[0]
+        # NOTE: 1つ目のGW, 1つ目のHandlerを採用。複数GW, 複数Handlerには対応していない。
+        # NOTE: handlerがない場合はException
+        handler: Handler = machine.gateways[0].handlers[0]
 
         return handler
 
