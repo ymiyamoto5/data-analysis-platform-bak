@@ -36,6 +36,10 @@ def target():
 
 @pytest.fixture(scope="session", autouse=True)
 def history(session_mocker):
+    """データ収集履歴のmock
+    TODO: オブジェクト自体をmockして挿しこむのではなく、InmemoryDBまたはテンポラリのDBファイルを作成して挿しこむ。
+    """
+
     data_collect_history_details = [
         DataCollectHistoryDetail(
             data_collect_history_id=1,
