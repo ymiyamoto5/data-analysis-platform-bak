@@ -72,7 +72,7 @@ def main() -> None:
     data_recorder_logger = getLogger("data_recorder")
 
     global uvicorn_logger
-    logger = getLogger("uvicorn")
+    uvicorn_logger = getLogger("uvicorn")
 
 
 # call main.

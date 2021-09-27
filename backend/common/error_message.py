@@ -36,15 +36,15 @@ class ErrorMessage:
         if error_type == ErrorTypes.EXCEPTION:
             return f"{ErrorTypes.EXCEPTION.value}"
         if error_type == ErrorTypes.CREATE_FAIL:
-            return f"{ErrorTypes.CREATE_FAIL.value}: {target}"
+            return f"{ErrorTypes.CREATE_FAIL.value}"
         if error_type == ErrorTypes.READ_FAIL:
-            return f"{ErrorTypes.READ_FAIL.value}: {target}"
+            return f"{ErrorTypes.READ_FAIL.value}"
         if error_type == ErrorTypes.UPDATE_FAIL:
-            return f"{ErrorTypes.UPDATE_FAIL.value}: {target}"
+            return f"{ErrorTypes.UPDATE_FAIL.value}"
         if error_type == ErrorTypes.DELETE_FAIL:
-            return f"{ErrorTypes.DELETE_FAIL.value}: {target}"
+            return f"{ErrorTypes.DELETE_FAIL.value}"
         if error_type == ErrorTypes.NOT_EXISTS:
-            return f"{ErrorTypes.NOT_EXISTS.value}: {target}"
+            return f"{ErrorTypes.NOT_EXISTS.value}"
         if error_type == ErrorTypes.VALID_ERROR:
             return f"{ErrorTypes.VALID_ERROR.value}: {target}"
         if error_type == ErrorTypes.NO_INPUT_DATA:
