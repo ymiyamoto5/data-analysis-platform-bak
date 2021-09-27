@@ -48,11 +48,6 @@
                   label="サンプリングレート(Hz)"
                 ></v-text-field>
                 <v-text-field
-                  v-model="editedItem.sampling_ch_num"
-                  :rules="[rules.required, rules.chRange]"
-                  label="チャンネル数"
-                ></v-text-field>
-                <v-text-field
                   v-model="editedItem.filewrite_time"
                   :rules="[rules.required, rules.filewriteTimeRange]"
                   label="ファイル出力間隔(秒)"
@@ -175,8 +170,6 @@ export default {
       },
       frequencyRange: (value) =>
         (value >= 1 && value <= 100000) || '1~100,000のみ使用可能です。',
-      chRange: (value) =>
-        (value >= 1 && value <= 99) || '1~99のみ使用可能です。',
       filewriteTimeRange: (value) =>
         (value >= 1 && value <= 360) || '1~360のみ使用可能です。',
     },
@@ -268,7 +261,6 @@ export default {
         body = {
           handler_type: this.editedItem.handler_type,
           adc_serial_num: this.editedItem.adc_serial_num,
-          sampling_frequency: this.editedItem.sampling_frequency,
           sampling_ch_num: this.editedItem.sampling_ch_num,
           filewrite_time: this.editedItem.filewrite_time,
         }
@@ -291,7 +283,6 @@ export default {
           handler_type: this.editedItem.handler_type,
           adc_serial_num: this.editedItem.adc_serial_num,
           sampling_frequency: this.editedItem.sampling_frequency,
-          sampling_ch_num: this.editedItem.sampling_ch_num,
           filewrite_time: this.editedItem.filewrite_time,
           gateway_id: this.editedItem.gateway_id,
         }
