@@ -68,6 +68,9 @@ class CRUDSensor:
             sensor_name=obj_in.sensor_name,
             sensor_type_id=obj_in.sensor_type_id,
             handler_id=obj_in.handler_id,
+            base_volt=obj_in.base_volt,
+            base_load=obj_in.base_load,
+            initial_volt=obj_in.initial_volt,
         )
 
         # handlerのセンサー数を更新する
