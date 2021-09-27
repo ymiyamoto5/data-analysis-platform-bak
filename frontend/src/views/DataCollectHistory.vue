@@ -14,7 +14,7 @@
 
     <v-data-table :headers="headers" :items="history" :search="search">
       <template v-slot:top>
-        <v-dialog v-model="dialog" max-width="500px">
+        <v-dialog v-model="dialog" max-width="700px">
           <v-card>
             <v-card-title>
               <span class="text-h5">編集</span>
@@ -24,10 +24,33 @@
               <v-form ref="form_group">
                 <v-text-field
                   v-model="editedItem.sampling_frequency"
-                  :rules="[rules.required]"
+                  :rules="[rules.required, rules.frequencyRange]"
                   label="サンプリングレート"
-                  v-bind="readOnlyID"
                 ></v-text-field>
+
+                <v-data-table
+                  :headers="detailHeaders"
+                  :items="editedItem.data_collect_history_details"
+                >
+                  <template v-slot:[`item.base_volt`]="props">
+                    <v-text-field
+                      v-model="props.item.base_volt"
+                      :rules="[rules.floatType]"
+                    ></v-text-field>
+                  </template>
+                  <template v-slot:[`item.base_load`]="props">
+                    <v-text-field
+                      v-model="props.item.base_load"
+                      :rules="[rules.floatType]"
+                    ></v-text-field>
+                  </template>
+                  <template v-slot:[`item.initial_volt`]="props">
+                    <v-text-field
+                      v-model="props.item.initial_volt"
+                      :rules="[rules.floatType]"
+                    ></v-text-field>
+                  </template>
+                </v-data-table>
               </v-form>
             </v-card-text>
 
@@ -83,6 +106,7 @@ export default {
   name: 'data-collect-history',
   data() {
     return {
+      dialog: false,
       dialogDelete: false,
       editedIndex: -1,
       editedItem: {
@@ -93,12 +117,7 @@ export default {
         ended_at: '',
         sampling_frequency: 0,
         sampling_ch_num: 0,
-      },
-      detailItem: {
-        id: -1,
-        base_volt: 0,
-        base_load: 0,
-        initial_volt: 0,
+        data_collect_history_details: [],
       },
       headers: [
         {
@@ -124,13 +143,54 @@ export default {
         },
         { text: 'アクション', value: 'actions', sortable: false },
       ],
+      detailHeaders: [
+        {
+          text: 'センサーID',
+          value: 'sensor_id',
+        },
+        {
+          text: 'センサー名',
+          value: 'sensor_name',
+        },
+        {
+          text: 'センサータイプ',
+          value: 'sensor_type_id',
+        },
+        {
+          text: '基準電圧',
+          value: 'base_volt',
+        },
+        {
+          text: '基準圧力',
+          value: 'base_load',
+        },
+        {
+          text: '初期電圧',
+          value: 'initial_volt',
+        },
+      ],
       defaultItem: {
         sampling_frequency: 0,
+        data_collect_history_details: [
+          {
+            data_collect_history_id: -1,
+            sensor_id: '',
+            sensor_name: '',
+            sensor_type_id: -1,
+            base_load: null,
+            base_volt: null,
+            initial_volt: null,
+          },
+        ],
       },
       search: '',
       history: [],
       rules: {
         required: (value) => !!value || '必須です。',
+        floatType: (value) =>
+          (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
+        frequencyRange: (value) =>
+          (value >= 1 && value <= 100000) || '1~100,000のみ使用可能です。',
       },
     }
   },
@@ -176,6 +236,41 @@ export default {
       this.editedIndex = this.history.indexOf(item)
       this.editedItem = Object.assign({}, item)
       this.dialog = true
+    },
+
+    // [保存] 押下時の処理（update）
+    save: async function() {
+      // form_groupと名付けたv-formを参照し、検証してエラーがあれば何もしない。
+      if (!this.$refs.form_group.validate()) {
+        return
+      }
+
+      const client = createBaseApiClient()
+
+      // 空文字の時nullに置き換え
+      this.editedItem.data_collect_history_details.map((obj) => {
+        obj.base_volt = obj.base_volt === '' ? null : obj.base_volt
+        obj.base_load = obj.base_load === '' ? null : obj.base_load
+        obj.initial_volt = obj.initial_volt === '' ? null : obj.initial_volt
+        return obj
+      })
+
+      const url = DATA_COLLECT_HISTORY_API_URL + this.editedItem.id
+      const body = {
+        sampling_frequency: this.editedItem.sampling_frequency,
+        data_collect_history_details: this.editedItem
+          .data_collect_history_details,
+      }
+      await client
+        .put(url, body)
+        .then(() => {
+          this.dialog = false
+          this.fetchTableData()
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
+        })
     },
 
     // 編集ダイアログclose

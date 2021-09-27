@@ -1,8 +1,6 @@
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from typing import List
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
-from backend.app.crud.crud_data_collect_history_detail import CRUDDataCollectHistoryDetail
 from backend.app.schemas import data_collect_history
 from backend.app.services.data_collect_history_service import DataCollectHistoryService
 from backend.common import common
@@ -32,6 +30,21 @@ def fetch_data_collect_history_by_machine(
     return history
 
 
+@router.put("/{id}", response_model=data_collect_history.DataCollectHistory)
+def update_data_collect_history(
+    id: int, data_collect_history_in: data_collect_history.DataCollectHistoryUpdate, db: Session = Depends(get_db)
+):
+    """履歴の更新"""
+
+    history: DataCollectHistory = CRUDDataCollectHistory.select_by_id(db, id)
+    if not history:
+        raise HTTPException(status_code=404, detail="対象の履歴が存在しません")
+
+    history = CRUDDataCollectHistory.update(db, history, data_collect_history_in)
+
+    return history
+
+
 @router.delete("/{id}", response_model=data_collect_history.DataCollectHistory)
 def delete_data_collect_history(id: int, db: Session = Depends(get_db)):
     """以下を削除する
@@ -57,25 +70,3 @@ def delete_data_collect_history(id: int, db: Session = Depends(get_db)):
     deleted: DataCollectHistory = CRUDDataCollectHistory.delete(db, db_obj=history)
 
     return deleted
-
-
-@router.get("/{id}")
-def fetch_data_collect_history_details(id: int, db: Session = Depends(get_db)):
-    history: DataCollectHistory = CRUDDataCollectHistory.select_by_id(db, id)
-    if not history:
-        raise HTTPException(status_code=404, detail="対象の履歴が存在しません")
-
-    history_details: List[DataCollectHistoryDetail] = history.data_collect_history_details
-
-    return history_details
-
-
-@router.put("/{id}")
-def update_data_collect_history_details(id: int, db: Session = Depends(get_db)):
-    """データ収集履歴の詳細（センサー毎の設定値）を更新する"""
-
-    history: DataCollectHistory = CRUDDataCollectHistory.select_by_id(db, id)
-    if not history:
-        raise HTTPException(status_code=404, detail="対象の履歴が存在しません")
-
-    CRUDDataCollectHistoryDetail.update(db, history.history_details)

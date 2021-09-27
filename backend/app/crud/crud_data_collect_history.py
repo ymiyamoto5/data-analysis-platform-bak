@@ -1,6 +1,7 @@
 from typing import List
 from datetime import datetime, timedelta
 from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.schemas.data_collect_history import DataCollectHistoryUpdate
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -13,7 +14,7 @@ class CRUDDataCollectHistory:
             db.query(DataCollectHistory)
             .order_by(desc(DataCollectHistory.started_at))
             .options(
-                joinedload(DataCollectHistory.machine),
+                joinedload(DataCollectHistory.machine), joinedload(DataCollectHistory.data_collect_history_details)
             )
             .all()
         )
@@ -52,6 +53,28 @@ class CRUDDataCollectHistory:
         )
 
         return history
+
+    @staticmethod
+    def update(db: Session, db_obj: DataCollectHistory, obj_in: DataCollectHistoryUpdate) -> DataCollectHistory:
+
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.dict(exclude_unset=True)
+
+        # 更新対象のプロパティをセット
+        for key, value in update_data.items():
+            # NOTE: プロパティにList[DataCollectHistoryDetail]を直接代入するとエラーになるため、ループしてセット
+            if key == "data_collect_history_details":
+                for detail_number, detail in enumerate(value):
+                    for k, v in detail.items():
+                        setattr(db_obj.data_collect_history_details[detail_number], k, v)
+            else:
+                setattr(db_obj, key, value)
+
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
     @staticmethod
     def delete(db: Session, db_obj: DataCollectHistory) -> DataCollectHistory:

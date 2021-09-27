@@ -1,7 +1,8 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
 from backend.common import common
-from typing import Optional
+from typing import Optional, List
+from backend.app.schemas.data_collect_history_detail import DataCollectHistoryDetail, DataCollectHistoryDetailUpdate
 
 
 class DataCollectHistoryBase(BaseModel):
@@ -16,6 +17,12 @@ class DataCollectHistory(DataCollectHistoryBase):
     started_at: datetime
     sampling_frequency: int
     sampling_ch_num: int
+    data_collect_history_details: List[DataCollectHistoryDetail]
 
     class Config:
         orm_mode = True
+
+
+class DataCollectHistoryUpdate(DataCollectHistoryBase):
+    sampling_frequency: int
+    data_collect_history_details: List[DataCollectHistoryDetailUpdate]
