@@ -14,6 +14,35 @@
 
     <v-data-table :headers="headers" :items="history" :search="search">
       <template v-slot:top>
+        <v-dialog v-model="dialog" max-width="500px">
+          <v-card>
+            <v-card-title>
+              <span class="text-h5">編集</span>
+            </v-card-title>
+
+            <v-card-text>
+              <v-form ref="form_group">
+                <v-text-field
+                  v-model="editedItem.sampling_frequency"
+                  :rules="[rules.required]"
+                  label="サンプリングレート"
+                  v-bind="readOnlyID"
+                ></v-text-field>
+              </v-form>
+            </v-card-text>
+
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue darken-1" text @click="close">
+                キャンセル
+              </v-btn>
+              <v-btn color="blue darken-1" text @click="save">
+                保存
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
         <v-dialog v-model="dialogDelete" max-width="500px">
           <v-card>
             <v-card-title class="text-h6">
@@ -33,6 +62,9 @@
         </v-dialog>
       </template>
       <template v-slot:[`item.actions`]="{ item }">
+        <v-icon small class="mr-2" @click="editItem(item)">
+          mdi-pencil
+        </v-icon>
         <v-icon small @click="deleteItem(item)">
           mdi-delete
         </v-icon>
@@ -62,6 +94,12 @@ export default {
         sampling_frequency: 0,
         sampling_ch_num: 0,
       },
+      detailItem: {
+        id: -1,
+        base_volt: 0,
+        base_load: 0,
+        initial_volt: 0,
+      },
       headers: [
         {
           text: '機器名',
@@ -86,8 +124,14 @@ export default {
         },
         { text: 'アクション', value: 'actions', sortable: false },
       ],
+      defaultItem: {
+        sampling_frequency: 0,
+      },
       search: '',
       history: [],
+      rules: {
+        required: (value) => !!value || '必須です。',
+      },
     }
   },
   created: function() {
@@ -95,6 +139,9 @@ export default {
   },
   // dialogをwatchし、val（bool値）に応じてクローズ
   watch: {
+    dialog(val) {
+      val || this.close()
+    },
     dialogDelete(val) {
       val || this.closeDelete()
     },
@@ -122,6 +169,24 @@ export default {
         .catch((e) => {
           console.log(e.response.data.detail)
         })
+    },
+
+    // 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
+    editItem(item) {
+      this.editedIndex = this.history.indexOf(item)
+      this.editedItem = Object.assign({}, item)
+      this.dialog = true
+    },
+
+    // 編集ダイアログclose
+    close() {
+      this.dialog = false
+      // HACK: https://qiita.com/funkj/items/f19bdab0f0430e45323d
+      setTimeout(() => {
+        this.editedItem = Object.assign({}, this.defaultItem)
+        this.editedIndex = -1
+        this.$refs.form_group.resetValidation()
+      }, 500)
     },
 
     // 削除ダイアログ表示
