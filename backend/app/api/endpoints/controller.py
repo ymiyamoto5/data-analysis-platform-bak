@@ -1,12 +1,14 @@
 import os
 import time
 import glob
+import traceback
 from typing import Optional, List, Tuple, Final
 from datetime import datetime
 from fastapi import Depends, APIRouter, HTTPException, Path
 from sqlalchemy.orm import Session
 from backend.common import common
 from backend.common.error_message import ErrorMessage, ErrorTypes
+from backend.common.common_logger import uvicorn_logger as logger
 from backend.app.models.machine import Machine
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.crud.crud_controller import CRUDController
@@ -85,6 +87,7 @@ def setup(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     try:
         CRUDController.setup(db, machine=machine, utc_now=utc_now)
     except Exception:
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
     return
@@ -119,6 +122,7 @@ def start(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     try:
         CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
     except Exception:
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
     return
@@ -153,6 +157,7 @@ def pause(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     try:
         CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.PAUSE.value})
     except Exception:
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
     return
@@ -186,6 +191,7 @@ def resume(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     try:
         CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
     except Exception:
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
     return
@@ -221,6 +227,7 @@ def stop(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), d
     try:
         CRUDController.stop(db, machine=machine)
     except Exception:
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
     return
