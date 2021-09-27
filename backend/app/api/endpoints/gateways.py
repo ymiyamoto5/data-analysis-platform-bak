@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
 from backend.app.schemas import gateway
 from backend.common import common
+from backend.common.error_message import ErrorMessage, ErrorTypes
+import traceback
+from backend.common.common_logger import uvicorn_logger as logger
 
 router = APIRouter()
 
@@ -13,16 +16,24 @@ router = APIRouter()
 def fetch_gateways(db: Session = Depends(get_db)):
     """Gatewayを起点に関連エンティティを全結合したデータを返す"""
 
-    gateways = CRUDGateway.select_all(db)
-    return gateways
+    try:
+        gateways = CRUDGateway.select_all(db)
+        return gateways
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
 
 @router.get("/{gateway_id}", response_model=gateway.Gateway)
 def fetch_gateway(gateway_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
     """指定gatewayの情報を取得"""
 
-    gateway = CRUDGateway.select_by_id(db, gateway_id)
-    return gateway
+    try:
+        gateway = CRUDGateway.select_by_id(db, gateway_id)
+        return gateway
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
 
 @router.post("/", response_model=gateway.Gateway)
@@ -33,8 +44,12 @@ def create(gateway_in: gateway.GatewayCreate, db: Session = Depends(get_db)):
     if gateway:
         raise HTTPException(status_code=400, detail="ゲートウェイIDが重複しています")
 
-    gateway = CRUDGateway.insert(db, obj_in=gateway_in)
-    return gateway
+    try:
+        gateway = CRUDGateway.insert(db, obj_in=gateway_in)
+        return gateway
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL))
 
 
 @router.put("/{gateway_id}", response_model=gateway.Gateway)
@@ -49,8 +64,12 @@ def update(
     if not gateway:
         raise HTTPException(status_code=404, detail="ゲートウェイが存在しません")
 
-    gateway = CRUDGateway.update(db, db_obj=gateway, obj_in=gateway_in)
-    return gateway
+    try:
+        gateway = CRUDGateway.update(db, db_obj=gateway, obj_in=gateway_in)
+        return gateway
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL))
 
 
 @router.delete("/{gateway_id}", response_model=gateway.Gateway)
@@ -61,5 +80,9 @@ def delete(gateway_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     if not gateway:
         raise HTTPException(status_code=404, detail="ゲートウェイが存在しません")
 
-    gateway = CRUDGateway.delete(db, db_obj=gateway)
-    return gateway
+    try:
+        gateway = CRUDGateway.delete(db, db_obj=gateway)
+        return gateway
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL))

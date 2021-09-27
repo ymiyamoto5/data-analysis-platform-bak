@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from backend.app.api.deps import get_db
 from backend.app.schemas import sensor
 from backend.common import common
+from backend.common.error_message import ErrorMessage, ErrorTypes
+import traceback
+from backend.common.common_logger import uvicorn_logger as logger
 
 router = APIRouter()
 
@@ -13,8 +16,12 @@ router = APIRouter()
 def fetch_sensors(db: Session = Depends(get_db)):
     """Sensorを起点に関連エンティティを全結合したデータを返す"""
 
-    sensors = CRUDSensor.select_all(db)
-    return sensors
+    try:
+        sensors = CRUDSensor.select_all(db)
+        return sensors
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
 
 @router.get("/{sensor_id}", response_model=sensor.Sensor)
@@ -25,16 +32,26 @@ def fetch_sensor(
 ):
     """指定sensorの情報を取得。machine_idはクエリパラメータで取得。"""
 
-    sensor = CRUDSensor.select_by_id(db, machine_id=machine_id, sensor_id=sensor_id)
-    return sensor
+    try:
+        sensor = CRUDSensor.select_by_id(db, machine_id=machine_id, sensor_id=sensor_id)
+        return sensor
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
 
 @router.post("/", response_model=sensor.Sensor)
 def create(sensor_in: sensor.SensorCreate, db: Session = Depends(get_db)):
-    """sensorの作成。machine_idはhandler_idから引く。"""
+    """sensorの作成"""
 
-    sensor = CRUDSensor.insert(db, obj_in=sensor_in)
-    return sensor
+    # TODO: 既に存在するかチェック
+
+    try:
+        sensor = CRUDSensor.insert(db, obj_in=sensor_in)
+        return sensor
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL))
 
 
 @router.put("/{sensor_id}", response_model=sensor.Sensor)
@@ -49,8 +66,12 @@ def update(
     if not sensor:
         raise HTTPException(status_code=404, detail="センサーが存在しません")
 
-    sensor = CRUDSensor.update(db, db_obj=sensor, obj_in=sensor_in)
-    return sensor
+    try:
+        sensor = CRUDSensor.update(db, db_obj=sensor, obj_in=sensor_in)
+        return sensor
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL))
 
 
 @router.delete("/{sensor_id}", response_model=sensor.Sensor)
@@ -65,5 +86,9 @@ def delete(
     if not sensor:
         raise HTTPException(status_code=404, detail="センサーが存在しません")
 
-    sensor = CRUDSensor.delete(db, db_obj=sensor)
-    return sensor
+    try:
+        sensor = CRUDSensor.delete(db, db_obj=sensor)
+        return sensor
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL))
