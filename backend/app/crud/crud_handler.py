@@ -39,7 +39,7 @@ class CRUDHandler:
             adc_serial_num=obj_in.adc_serial_num,
             handler_type=obj_in.handler_type,
             sampling_frequency=obj_in.sampling_frequency,
-            sampling_ch_num=obj_in.sampling_ch_num,
+            sampling_ch_num=0,
             filewrite_time=obj_in.filewrite_time,
             gateway_id=obj_in.gateway_id,
         )
