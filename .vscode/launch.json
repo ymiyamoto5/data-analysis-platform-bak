@@ -83,7 +83,7 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
-                "-d=machine-01-20210327141514"
+                "-d=test-machine-20210928101034"
             ]
         },
         {
