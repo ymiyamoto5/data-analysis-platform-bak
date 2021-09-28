@@ -45,10 +45,14 @@ class CRUDDataCollectHistory:
     def select_by_machine_id_started_at(db: Session, machine_id: str, target_datetime_str: str) -> DataCollectHistory:
 
         started_at: datetime = datetime.strptime(target_datetime_str, "%Y%m%d%H%M%S") - timedelta(hours=9)
+        # NOTE: ミリ秒以下の情報が抜け落ちているため完全一致ではfilterできない。1秒範囲内で一致確認する。
         history: DataCollectHistory = (
             db.query(DataCollectHistory)
             .filter(DataCollectHistory.machine_id == machine_id)
-            .filter(DataCollectHistory.started_at == started_at)
+            .filter(
+                DataCollectHistory.started_at >= started_at,
+                DataCollectHistory.started_at <= started_at + timedelta(seconds=1),
+            )
             .one()
         )
 

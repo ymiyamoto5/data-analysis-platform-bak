@@ -69,7 +69,9 @@ def cut_out_shot(cut_out_shot_in: CutOutShotBase, db: Session = Depends(get_db))
     """ショット切り出し"""
 
     # TODO: サブプロセスでcut_out_shot実行
-    cut_out_shot = CutOutShot(machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db)
+    cut_out_shot = CutOutShot(
+        machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db, margin=0
+    )
     cut_out_shot.cut_out_shot(
         start_displacement=cut_out_shot_in.start_displacement,
         end_displacement=cut_out_shot_in.end_displacement,

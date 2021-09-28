@@ -39,28 +39,33 @@ class CRUDSensor:
     def insert(db: Session, obj_in: sensor.SensorCreate) -> Sensor:
         machine_id: str = CRUDSensor.fetch_machine_by_handler_id(db, obj_in.handler_id)
 
-        # machineに紐づく特定sensor_typeのsensor（一番番号が大きいもの）を取得
-        tail_sensor = (
-            db.query(Machine, Handler, Gateway, Sensor)
-            .filter(Machine.machine_id == machine_id)
-            .filter(Machine.machine_id == Gateway.machine_id)
-            .filter(Gateway.gateway_id == Handler.gateway_id)
-            .filter(Handler.handler_id == Sensor.handler_id)
-            .filter(Sensor.sensor_type_id == obj_in.sensor_type_id)
-            .order_by(desc(Sensor.sensor_id))
-            .limit(1)
-            .one_or_none()
-        )
-
-        # 初登録のセンサーの場合
-        if tail_sensor is None:
-            sensor_id: str = obj_in.sensor_type_id + "01"
-        # 同種で2つめ以降のセンサーの場合
+        # NOTE: 変位センサー、パルスセンサーはサフィックス番号を付けない
+        if obj_in.sensor_type_id in ("displacement", "pulse"):
+            sensor_id: str = obj_in.sensor_type_id
+        # それ以外のセンサーの場合はサフィックス番号を付ける
         else:
-            # 'load01' -> '01' -> 1 -> 2 -> 'load02'
-            tail_sensor_id_suffix: str = tail_sensor.Sensor.sensor_id[-2:]
-            sensor_id_suffix: str = str(int(tail_sensor_id_suffix) + 1).zfill(2)
-            sensor_id = obj_in.sensor_type_id + sensor_id_suffix
+            # machineに紐づく特定sensor_typeのsensor（一番番号が大きいもの）を取得
+            tail_sensor = (
+                db.query(Machine, Handler, Gateway, Sensor)
+                .filter(Machine.machine_id == machine_id)
+                .filter(Machine.machine_id == Gateway.machine_id)
+                .filter(Gateway.gateway_id == Handler.gateway_id)
+                .filter(Handler.handler_id == Sensor.handler_id)
+                .filter(Sensor.sensor_type_id == obj_in.sensor_type_id)
+                .order_by(desc(Sensor.sensor_id))
+                .limit(1)
+                .one_or_none()
+            )
+
+            # 初登録のセンサーの場合
+            if tail_sensor is None:
+                sensor_id = obj_in.sensor_type_id + "01"
+            # 同種で2つめ以降のセンサーの場合
+            else:
+                # 'load01' -> '01' -> 1 -> 2 -> 'load02'
+                tail_sensor_id_suffix: str = tail_sensor.Sensor.sensor_id[-2:]
+                sensor_id_suffix: str = str(int(tail_sensor_id_suffix) + 1).zfill(2)
+                sensor_id = obj_in.sensor_type_id + sensor_id_suffix
 
         new_sensor = Sensor(
             machine_id=machine_id,

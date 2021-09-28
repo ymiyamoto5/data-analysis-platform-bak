@@ -16,7 +16,7 @@ class DataConverter:
 
             return lambda v: base_load / base_volt * v
 
-        elif sensor.sensor_type_id == "bolt":
+        elif sensor.sensor_type_id == "volt":
             base_volt = sensor.base_volt
             base_load = sensor.base_load
             initial_volt: float = sensor.initial_volt
