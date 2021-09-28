@@ -285,7 +285,7 @@ class DataRecorder:
 
         started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
 
-        rawdata_index: str = "rawdata-" + self.machine_id + "-" + target_dir_basename
+        rawdata_index: str = "rawdata-" + target_dir_basename
 
         # インデックスが存在すれば再作成
         ElasticManager.delete_exists_index(index=rawdata_index)
