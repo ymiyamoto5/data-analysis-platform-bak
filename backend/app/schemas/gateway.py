@@ -28,7 +28,11 @@ class GatewayCreate(GatewayBase):
 
 
 class GatewayUpdate(GatewayBase):
-    sequence_number: Optional[int]
-    gateway_result: Optional[int]
-    status: Optional[str]
-    log_level: Optional[int] = Field(..., ge=1, le=5)
+    log_level: int = Field(..., ge=1, le=5)
+
+
+class GatewayUpdateFromGateway(GatewayBase):
+    sequence_number: Optional[int] = None
+    gateway_result: Optional[int] = None
+    status: Optional[str] = None
+    log_level: Optional[int] = Field(None, ge=1, le=5)

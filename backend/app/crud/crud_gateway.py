@@ -65,6 +65,29 @@ class CRUDGateway:
         db_obj.sequence_number += 1
         db_obj.gateway_result = 0
 
+        # C言語のint上限値に達したら初期化
+        if db_obj.sequence_number >= 2_147_483_647:
+            db_obj.sequence_number = 1
+
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    @staticmethod
+    def update_from_gateway(
+        db: Session, db_obj: Gateway, obj_in: Union[gateway.GatewayUpdateFromGateway, Dict[str, Any]]
+    ) -> Gateway:
+        """GW側からの更新処理。sequence_numberとgateway_statusはGW側が送信してくる値にセットする。"""
+
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.dict(exclude_unset=True)
+
+        # 更新対象のプロパティをセット
+        for key, value in update_data.items():
+            setattr(db_obj, key, value)
+
         db.commit()
         db.refresh(db_obj)
         return db_obj
