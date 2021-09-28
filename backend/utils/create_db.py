@@ -29,7 +29,7 @@ machine_type_02 = MachineType(machine_type_name="圧力プレート")
 sensor_type_01 = SensorType(sensor_type_id="load", sensor_type_name="荷重")
 sensor_type_02 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
 sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
-sensor_type_04 = SensorType(sensor_type_id="bolt", sensor_type_name="ボルト")
+sensor_type_04 = SensorType(sensor_type_id="volt", sensor_type_name="ボルト")
 
 # Machine
 machine_01 = Machine(

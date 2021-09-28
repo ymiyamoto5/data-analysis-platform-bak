@@ -106,6 +106,7 @@ class DataRecorder:
             dataset: Tuple[Any, ...] = struct.unpack(UNPACK_FORMAT, binary_dataset)
             logger.debug(dataset)
 
+            # TODO: pluseへの対応
             sample: dict = {
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
