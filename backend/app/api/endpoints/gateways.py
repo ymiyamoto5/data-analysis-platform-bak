@@ -72,6 +72,26 @@ def update(
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL))
 
 
+@router.put("/{gateway_id}/update", response_model=gateway.Gateway)
+def update_from_gateway(
+    gateway_in: gateway.GatewayUpdateFromGateway,
+    gateway_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """GW側からの設定更新。更新対象のフィールドをパラメータとして受け取る。"""
+
+    gateway = CRUDGateway.select_by_id(db, gateway_id=gateway_id)
+    if not gateway:
+        raise HTTPException(status_code=404, detail="ゲートウェイが存在しません")
+
+    try:
+        gateway = CRUDGateway.update_from_gateway(db, db_obj=gateway, obj_in=gateway_in)
+        return gateway
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.UPDATE_FAIL))
+
+
 @router.delete("/{gateway_id}", response_model=gateway.Gateway)
 def delete(gateway_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
     """gatewayの削除"""
