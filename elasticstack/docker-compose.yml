@@ -23,6 +23,7 @@ services:
         ipv4_address: 172.30.10.1
     volumes:
       - /mnt/datadrive/data:/usr/share/elasticsearch/data
+      - /mnt/datadrive/logs:/usr/share/elasticsearch/logs
     extra_hosts:
       - 'doc-kibana:172.30.20.1'
   kibana:
