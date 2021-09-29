@@ -1,3 +1,0 @@
-0000000000000000000000000000000000000000 827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604036206 +0900	branch: Created from origin/feature_5_add_pytest
-827ba25a3fde3ff1d4aa95d36fc3f4a92a502058 c66487e0966b626da669263e98dbe66cd9df15a7 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604542310 +0900	pull --tags origin feature_5_add_pytest: Fast-forward
-c66487e0966b626da669263e98dbe66cd9df15a7 309a23ca6ab216f5d716af349e21a070ae589372 ymiyamoto5 <yuya.miyamoto@uniadex.co.jp> 1604544546 +0900	commit: 未使用のモジュールimport削除

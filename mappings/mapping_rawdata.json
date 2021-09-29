@@ -1,7 +1,0 @@
-{
-    "properties": {
-        "sequential_number": {
-            "type": "long"
-        }
-    }
-}
