@@ -2,7 +2,7 @@ version: '3'
 
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
     hostname: doc-elastic
     environment:
       - discovery.type=single-node
@@ -23,10 +23,11 @@ services:
         ipv4_address: 172.30.10.1
     volumes:
       - /mnt/datadrive/data:/usr/share/elasticsearch/data
+      # - /mnt/datadrive/logs:/usr/share/elasticsearch/logs
     extra_hosts:
       - 'doc-kibana:172.30.20.1'
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.13.2
+    image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
       SERVER_NAME: 'kibana'
       ELASTICSEARCH_HOSTS: 'http://doc-elastic:9200'
@@ -42,6 +43,17 @@ services:
       - 'doc-elastic:172.30.10.1'
     depends_on:
       - elasticsearch
+  notebook:
+    image: build_jupyter/base-notebook
+    build:
+      context: ~/data-analysis-platform
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - '8888:8888/tcp'
+    working_dir: '/home/jovyan/work'
+    volumes:
+      - ~/data-analysis-platform/notebooks:/home/jovyan/work
+    command: start-notebook.sh --NotebookApp.token=''
 
 networks:
   spark-nw:

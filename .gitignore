@@ -43,3 +43,5 @@ data_analysis_platform/utils/contour_data.py
 notebooks/jupyter2kibana
 notebooks/*-Copy*.ipynb
 notebooks/adhoc
+*.csv
+notebooks/features-*
