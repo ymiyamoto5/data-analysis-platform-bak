@@ -121,8 +121,12 @@ export default {
       },
       headers: [
         {
-          text: '機器名',
+          text: '機器ID',
           align: 'start',
+          value: 'machine_id',
+        },
+        {
+          text: '機器名',
           value: 'machine_name',
         },
         {
