@@ -7,9 +7,9 @@ from backend.app.api.api import api_router
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="frontend/dist/static"), name="static")
+app.mount("/static", StaticFiles(directory="backend/app/dist/static"), name="static")
 
-templates = Jinja2Templates(directory="frontend/dist/")
+templates = Jinja2Templates(directory="backend/app/dist/")
 
 # Set all CORS enabled origins
 app.add_middleware(
