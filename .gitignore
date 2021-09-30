@@ -45,3 +45,4 @@ notebooks/*-Copy*.ipynb
 notebooks/adhoc
 *.csv
 notebooks/features-*
+backend/app/dist
