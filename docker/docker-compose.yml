@@ -47,13 +47,17 @@ services:
     image: build_jupyter/base-notebook
     build:
       context: ~/data-analysis-platform
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ./docker/jupyter.dockerfile
     ports:
       - '8888:8888/tcp'
     working_dir: '/home/jovyan/work'
     volumes:
       - ~/data-analysis-platform/notebooks:/home/jovyan/work
+      - ~/data-analysis-platform/backend:/home/jovyan/backend
     command: start-notebook.sh --NotebookApp.token=''
+    networks:
+      spark-nw:
+        ipv4_address: 172.30.30.1
 
 networks:
   spark-nw:
