@@ -9,13 +9,14 @@
 
 """
 
-import pytest  # type: ignore
-import pandas as pd
 from datetime import datetime
-from pandas.testing import assert_frame_equal
-from typing import List, Tuple, Dict, Any
-from backend.tag_manager.tag_manager import TagManager
+from typing import Any, Dict, List, Tuple
+
+import pandas as pd
+import pytest  # type: ignore
 from backend.event_manager.event_manager import EventManager
+from backend.tag_manager.tag_manager import TagManager
+from pandas.testing import assert_frame_equal
 
 
 class TestGetTagEvent:

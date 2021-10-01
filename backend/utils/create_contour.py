@@ -1,7 +1,8 @@
 import os
 import sys
-import scipy
+
 import numpy as np
+import scipy
 from scipy import signal
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))

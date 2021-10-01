@@ -9,11 +9,12 @@
 
 """
 
-import sys
-import os
-import pytest
 import json
+import os
 import pathlib
+import sys
+
+import pytest
 
 sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../backend/"))
 

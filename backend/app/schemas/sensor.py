@@ -1,7 +1,8 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+
 from backend.app.schemas.sensor_type import SensorType
 from backend.common import common
+from pydantic import BaseModel, Field
 
 
 class SensorBase(BaseModel):
