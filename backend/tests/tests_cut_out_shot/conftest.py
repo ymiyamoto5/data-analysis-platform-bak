@@ -14,139 +14,98 @@ import pandas as pd
 from datetime import datetime
 from pandas.core.frame import DataFrame
 from typing import List
-
 from backend.cut_out_shot.cut_out_shot import CutOutShot
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.models.sensor import Sensor
+from backend.app.db.session import SessionLocal
 
 
-@pytest.fixture
+@pytest.fixture()
 def target():
-    """変換式のみ定義したCutOutShotインスタンス fixture"""
+    """CutOutShotインスタンス fixture"""
 
     machine_id = "machine-01"
-    handler: Handler = Handler(handler_id="TEST-HANDLDER-001", sampling_ch_num=5, sampling_frequency=100000)
-    sensors: List[Sensor] = [
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load01",
-            sensor_name="test_load01",
-            sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
-            initial_volt=2.5,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load02",
-            sensor_name="test_load02",
-            sensor_type_id="load",
-            base_volt=1,
-            base_load=1,
-            initial_volt=1,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load03",
-            sensor_name="test_load03",
-            sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
-            initial_volt=2.5,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load04",
-            sensor_name="test_load04",
-            sensor_type_id="load",
-            base_volt=1,
-            base_load=1,
-            initial_volt=1,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="displacement01",
-            sensor_name="test_displacement01",
-            sensor_type_id="displacement",
-            base_volt=5,
-            base_load=5,
-            initial_volt=1,
-        ),
-    ]
+    target_date_str = "20201201103011"
 
-    instance = CutOutShot(
-        machine_id=machine_id,
-        handler=handler,
-        sensors=sensors,
-    )
+    instance = CutOutShot(machine_id=machine_id, target=target_date_str, db=SessionLocal())
 
     yield instance
 
     del instance
 
 
-@pytest.fixture
-def handler():
-    handler: Handler = Handler(handler_id="TEST-HANDLDER-001", sampling_ch_num=5, sampling_frequency=100000)
-
-    yield handler
-
-    del handler
+@pytest.fixture(scope="module", autouse=True)
+def db():
+    db = SessionLocal()
+    yield db
 
 
-@pytest.fixture
-def sensors():
-    sensors: List[Sensor] = [
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load01",
-            sensor_name="test_load01",
-            sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
-            initial_volt=2.5,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load02",
-            sensor_name="test_load02",
-            sensor_type_id="load",
-            base_volt=1,
-            base_load=1,
-            initial_volt=1,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load03",
-            sensor_name="test_load03",
-            sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
-            initial_volt=2.5,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="load04",
-            sensor_name="test_load04",
-            sensor_type_id="load",
-            base_volt=1,
-            base_load=1,
-            initial_volt=1,
-        ),
-        Sensor(
-            machine_id="machine-01",
-            sensor_id="displacement",
-            sensor_name="test_displacement",
-            sensor_type_id="displacement",
-            base_volt=5,
-            base_load=5,
-            initial_volt=1,
-        ),
-    ]
+# @pytest.fixture(scope="session", autouse=True)
+# def history(session_mocker):
+#     """データ収集履歴のmock
+#     TODO: オブジェクト自体をmockして挿しこむのではなく、InmemoryDBまたはテンポラリのDBファイルを作成して挿しこむ。
+#     """
 
-    yield sensors
+# data_collect_history_details = [
+#     DataCollectHistoryDetail(
+#         data_collect_history_id=1,
+#         sensor_id="displacement",
+#         sensor_name="変位",
+#         sensor_type_id="displacement",
+#         base_volt=None,
+#         base_load=None,
+#         initial_volt=None,
+#     ),
+#     DataCollectHistoryDetail(
+#         data_collect_history_id=1,
+#         sensor_id="load01",
+#         sensor_name="荷重01",
+#         sensor_type_id="load",
+#         base_volt=1.0,
+#         base_load=1.0,
+#         initial_volt=1.0,
+#     ),
+#     DataCollectHistoryDetail(
+#         data_collect_history_id=1,
+#         sensor_id="load02",
+#         sensor_name="荷重02",
+#         sensor_type_id="load",
+#         base_volt=1.0,
+#         base_load=1.0,
+#         initial_volt=1.0,
+#     ),
+#     DataCollectHistoryDetail(
+#         data_collect_history_id=1,
+#         sensor_id="load03",
+#         sensor_name="荷重03",
+#         sensor_type_id="load",
+#         base_volt=1.0,
+#         base_load=1.0,
+#         initial_volt=1.0,
+#     ),
+#     DataCollectHistoryDetail(
+#         data_collect_history_id=1,
+#         sensor_id="load04",
+#         sensor_name="荷重04",
+#         sensor_type_id="load",
+#         base_volt=1.0,
+#         base_load=1.0,
+#         initial_volt=1.0,
+#     ),
+# ]
 
-    del sensors
+# data_collect_history = DataCollectHistory(
+#     machine_id="machine-01",
+#     machine_name="テストプレス01",
+#     machine_type_id=1,
+#     started_at=datetime(2020, 12, 1, 10, 30, 10, 111111) + timedelta(hours=-9),
+#     ended_at=datetime(2020, 12, 1, 11, 30, 10, 111111) + timedelta(hours=-9),
+#     sampling_frequency=100_000,
+#     sampling_ch_num=5,
+#     data_collect_history_details=data_collect_history_details,
+# )
+
+# session_mocker.patch.object(
+#     CRUDDataCollectHistory, "select_by_machine_id_started_at", return_value=data_collect_history
+# )
 
 
 @pytest.fixture
@@ -310,3 +269,78 @@ def shots_meta_df():
     yield shots_meta_df
 
     del shots_meta_df
+
+
+@pytest.fixture
+def rawdata_pulse_df():
+    """パルス信号生データ（物理変換後）のDataFrame fixture。
+    sequential_number: 1, 2, 4が切り出し対象
+    """
+
+    rawdata_pulse: List[dict] = [
+        # 切り出し区間前1
+        {
+            "sequential_number": 0,
+            "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
+            "pulse": 0,
+            "load01": 0.223,
+            "load02": 0.211,
+            "load03": 0.200,
+            "load04": 0.218,
+        },
+        # 切り出し区間1-1
+        {
+            "sequential_number": 1,
+            "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
+            "pulse": 1,
+            "load01": 0.155,
+            "load02": 0.171,
+            "load03": 0.180,
+            "load04": 0.146,
+        },
+        # 切り出し区間1-2
+        {
+            "sequential_number": 2,
+            "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
+            "pulse": 1,
+            "load01": 1.574,
+            "load02": 1.308,
+            "load03": 1.363,
+            "load04": 1.432,
+        },
+        # 切り出し範囲外
+        {
+            "sequential_number": 3,
+            "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
+            "pulse": 0,
+            "load01": 1.500,
+            "load02": 1.200,
+            "load03": 1.300,
+            "load04": 1.400,
+        },
+        # 切り出し区間2-1
+        {
+            "sequential_number": 4,
+            "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
+            "pulse": 1,
+            "load01": -0.256,
+            "load02": -0.078,
+            "load03": 0.881,
+            "load04": 0.454,
+        },
+        # 切り出し範囲外
+        {
+            "sequential_number": 5,
+            "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
+            "pulse": 0,
+            "load01": -0.130,
+            "load02": 0.020,
+            "load03": 0.483,
+            "load04": 0.419,
+        },
+    ]
+
+    rawdata_pulse_df: DataFrame = pd.DataFrame(rawdata_pulse)
+    yield rawdata_pulse_df
+
+    del rawdata_pulse_df

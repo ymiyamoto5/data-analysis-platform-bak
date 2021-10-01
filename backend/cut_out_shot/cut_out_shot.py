@@ -9,6 +9,7 @@
 
 """
 
+from backend.app.models.data_collect_history import DataCollectHistory
 import multiprocessing
 import os
 import sys
@@ -25,27 +26,28 @@ from backend.event_manager.event_manager import EventManager
 from backend.utils.throughput_counter import throughput_counter
 from backend.common import common
 from backend.common.common_logger import logger
-from backend.common.dao.handler_dao import HandlerDAO
-from backend.common.dao.sensor_dao import SensorDAO
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.models.sensor import Sensor
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.data_converter.data_converter import DataConverter
+from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from sqlalchemy.orm import Session
+from backend.app.db.session import SessionLocal
 
 
 class CutOutShot:
     def __init__(
         self,
         machine_id: str,
-        handler: Optional[Handler] = None,  # テスト時にInjection
-        sensors: Optional[List[Sensor]] = None,  # テスト時にInjection
+        target: str,  # yyyyMMddhhmmss文字列
         previous_size: int = 1000,
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
         margin: float = 0.3,
+        db: Session = None,
     ):
         self.__machine_id = machine_id
+        self.__rawdata_dir_name = machine_id + "-" + target
         self.__previous_size: int = previous_size
         self.__min_spm: int = min_spm
         self.__back_seconds_for_tagging: int = back_seconds_for_tagging
@@ -64,28 +66,25 @@ class CutOutShot:
             columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
         )
 
-        if sensors is None:
-            try:
-                self.__sensors: List[Sensor] = SensorDAO.select_sensors_by_machine_id(machine_id)
-            except Exception:
-                logger.error(traceback.format_exc())
-                sys.exit(1)
-        else:
-            self.__sensors = sensors
+        if db is None:
+            db = SessionLocal()
 
-        if len(self.__sensors) == 0:
-            logger.error(f"Machine {machine_id} has no sensor.")
+        try:
+            # データ収集時の履歴から、収集当時の設定値を取得する
+            history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
+                db, machine_id, target
+            )
+            # 100kサンプルにおける最大サンプル数
+            self.__max_samples_per_shot: int = int(60 / self.__min_spm) * history.sampling_frequency
+            # DataCollectHistoryDetailはセンサー毎の設定値
+            self.__sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
+            # pulse判定
+            sensor_types: List[str] = [sensor.sensor_type_id for sensor in self.__sensors]
+            self.__is_pulse: bool = "pulse" in sensor_types
+
+        except Exception:
+            logger.error(traceback.format_exc())
             sys.exit(1)
-
-        if handler is None:
-            try:
-                handler = HandlerDAO.fetch_handler(machine_id)
-            except Exception:
-                logger.exception(traceback.format_exc())
-                sys.exit(1)
-
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * handler.sampling_frequency  # 100kサンプルにおける最大サンプル数
-        self.__sampling_ch_num: int = handler.sampling_ch_num
 
     # テスト用の公開プロパティ
 
@@ -207,6 +206,11 @@ class CutOutShot:
 
         return (not self.__is_shot_section) and (end_displacement <= displacement <= start_displacement)
 
+    def _detect_pulse_shot_start(self, pulse: float, threshold: float) -> bool:
+        """ショット開始検知。ショットが未検出かつパルスがしきい値以上の場合、ショット開始とみなす。"""
+
+        return (not self.__is_shot_section) and (pulse >= threshold)
+
     def _detect_shot_end(self, displacement: float, start_displacement: float) -> bool:
         """ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
 
@@ -214,6 +218,11 @@ class CutOutShot:
         """
 
         return self.__is_shot_section and (displacement > start_displacement + self.__margin)
+
+    def _detect_pulse_shot_end(self, pulse: float, threshold: float) -> bool:
+        """ショット終了検知。ショットが検出されている状態かつパルスがしきい値を下回ったとき、ショット終了とみなす。"""
+
+        return self.__is_shot_section and (pulse < threshold)
 
     def _detect_cut_out_end(self, displacement: float, end_displacement: float) -> bool:
         """切り出し終了検知。切り出し区間として検知されており、かつ変位値が終了しきい値以下の場合、切り出し終了とみなす。"""
@@ -418,7 +427,6 @@ class CutOutShot:
 
     def cut_out_shot(
         self,
-        rawdata_dir_name: str,
         start_displacement: float,
         end_displacement: float,
         start_sequential_number: Optional[int] = None,
@@ -449,7 +457,7 @@ class CutOutShot:
 
         # 取り込むpickleファイルのリストを取得
         data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
-        rawdata_dir_path: str = os.path.join(data_dir, rawdata_dir_name)
+        rawdata_dir_path: str = os.path.join(data_dir, self.__rawdata_dir_name)
 
         if not os.path.exists(rawdata_dir_path):
             logger.error(f"Directory not found. {rawdata_dir_path}")
@@ -464,7 +472,7 @@ class CutOutShot:
         # パラメータによる範囲フィルター設定
         if start_sequential_number is not None or end_sequential_number is not None:
             has_target_interval: bool = True
-            rawdata_index: str = self.__machine_id + "-rawdata-" + rawdata_dir_name
+            rawdata_index: str = self.__machine_id + "-rawdata-" + self.__rawdata_dir_name
             rawdata_count: int = ElasticManager.count(index=rawdata_index)
             start_sequential_number = self._set_start_sequential_number(start_sequential_number, rawdata_count)
             end_sequential_number = self._set_end_sequential_number(
@@ -473,18 +481,18 @@ class CutOutShot:
         else:
             has_target_interval = False
 
-        shots_index: str = "shots-" + rawdata_dir_name + "-data"
+        shots_index: str = "shots-" + self.__rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
         setting_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_path")
         ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
-        shots_meta_index: str = "shots-" + rawdata_dir_name + "-meta"
+        shots_meta_index: str = "shots-" + self.__rawdata_dir_name + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
         setting_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_meta_path")
         ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
         # event_indexから各種イベント情報を取得する
-        events_index: str = "events-" + rawdata_dir_name
+        events_index: str = "events-" + self.__rawdata_dir_name
         events: List[dict] = EventManager.fetch_events(events_index)
 
         if len(events) == 0:
@@ -550,7 +558,12 @@ class CutOutShot:
             rawdata_df = self._apply_physical_conversion_formula(rawdata_df)
 
             # ショット切り出し
-            self._cut_out_shot(rawdata_df, start_displacement, end_displacement)
+            if self.__is_pulse:
+                # TODO: DBから取得
+                threshold: float = 1.0
+                self._cut_out_shot_by_pulse(rawdata_df, threshold)
+            else:
+                self._cut_out_shot(rawdata_df, start_displacement, end_displacement)
 
             # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップからデータを得る。
             self._backup_df_tail(rawdata_df)
@@ -611,7 +624,50 @@ class CutOutShot:
 
         logger.info("Cut out shot finished.")
 
-    def _cut_out_shot(self, rawdata_df: DataFrame, start_displacement: float, end_displacement: float):
+    def _cut_out_shot_by_pulse(self, rawdata_df: DataFrame, threshold: float) -> None:
+        """パルス信号によるショット切り出し
+        パルス値がしきい値を超えたタイミングでショット区間開始
+        メタ情報を記録
+        以降、ループごとにパルス値を確認し、しきい値を下回っていたらショット区間終了
+        """
+
+        for row_number, rawdata in enumerate(rawdata_df.itertuples()):
+            # pulseがしきい値以上のとき、ショットとして記録開始
+            if self._detect_pulse_shot_start(rawdata.pulse, threshold):
+                if self.__shot_number == 0:
+                    self.__previous_shot_start_time = rawdata.timestamp
+                # 2つめ以降のショット検知時は、1つ前のショットのspmを計算して記録する
+                else:
+                    spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
+
+                    if self.__previous_shot_start_time is None:
+                        logger.error("self.__previous_shot_start_time should not be None.")
+                        sys.exit(1)
+
+                    self.__shots_meta_df = self.__shots_meta_df.append(
+                        {
+                            "timestamp": datetime.fromtimestamp(self.__previous_shot_start_time),
+                            "shot_number": self.__shot_number,
+                            "spm": spm,
+                            "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
+                        },
+                        ignore_index=True,
+                    )
+                    self.__previous_shot_start_time = rawdata.timestamp
+
+                self._initialize_when_shot_detected()
+
+            if self._detect_pulse_shot_end(rawdata.pulse, threshold):
+                self.__is_shot_section = False
+
+            # ショット未開始ならば後続は何もしない
+            if not self.__is_shot_section:
+                continue
+
+            # ここに到達するのはショット区間かつ切り出し区間
+            self._add_cut_out_target(rawdata)
+
+    def _cut_out_shot(self, rawdata_df: DataFrame, start_displacement: float, end_displacement: float) -> None:
         """ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。"""
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
@@ -675,15 +731,19 @@ if __name__ == "__main__":
     # target_dir: str = machine_id + "-" + target
     # cut_out_shot.cut_out_shot(rawdata_dir_name=target_dir, start_displacement=150.0, end_displacement=25.0)
 
+    target: str = "20210327141514"
+
+    db = SessionLocal()
+
     cut_out_shot = CutOutShot(
         machine_id=machine_id,
+        target=target,
         min_spm=15,
         back_seconds_for_tagging=120,
         previous_size=1_000,
         chunk_size=5_000,
         margin=0.3,
+        db=db,
     )
 
-    target: str = "20210327141514"
-    target_dir: str = machine_id + "-" + target
-    cut_out_shot.cut_out_shot(rawdata_dir_name=target_dir, start_displacement=47.0, end_displacement=34.0)
+    cut_out_shot.cut_out_shot(start_displacement=47.0, end_displacement=34.0)

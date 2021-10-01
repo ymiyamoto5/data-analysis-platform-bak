@@ -128,14 +128,14 @@
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 
-const MACHINES_API_URL = '/api/v1/machines'
-const CONTROLLER_API_URL = '/api/v1/controller'
-const SETUP_API_URL = CONTROLLER_API_URL + '/setup/'
-const START_API_URL = CONTROLLER_API_URL + '/start/'
-const STOP_API_URL = CONTROLLER_API_URL + '/stop/'
-const CHECK_API_URL = CONTROLLER_API_URL + '/check/'
-const PAUSE_API_URL = CONTROLLER_API_URL + '/pause/'
-const RESUME_API_URL = CONTROLLER_API_URL + '/resume/'
+const MACHINES_API_URL = '/api/v1/machines/'
+const CONTROLLER_API_URL = '/api/v1/controller/'
+const SETUP_API_URL = CONTROLLER_API_URL + 'setup/'
+const START_API_URL = CONTROLLER_API_URL + 'start/'
+const STOP_API_URL = CONTROLLER_API_URL + 'stop/'
+const CHECK_API_URL = CONTROLLER_API_URL + 'check/'
+const PAUSE_API_URL = CONTROLLER_API_URL + 'pause/'
+const RESUME_API_URL = CONTROLLER_API_URL + 'resume/'
 
 export default {
   name: 'data-collect',
@@ -186,20 +186,17 @@ export default {
     },
     fetchTableData: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(MACHINES_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          console.log(data)
-          this.machines = data
+          this.machines = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
     setup: async function(machine_id) {
@@ -210,8 +207,8 @@ export default {
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
     start: async function(machine_id) {
@@ -222,8 +219,8 @@ export default {
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
     beforeStop(machine_id) {
@@ -239,8 +236,8 @@ export default {
           this.check(machine_id)
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
     check: async function(machine_id) {
@@ -251,8 +248,8 @@ export default {
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
     pause: async function(machine_id) {
@@ -263,8 +260,8 @@ export default {
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
     resume: async function(machine_id) {
@@ -275,8 +272,8 @@ export default {
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
   },

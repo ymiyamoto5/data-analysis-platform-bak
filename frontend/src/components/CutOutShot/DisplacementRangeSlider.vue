@@ -42,18 +42,18 @@
 
 <script>
 export default {
-  props: ['targetDir'],
+  props: ['targetDateStr'],
   watch: {
-    targetDir: function() {
+    targetDateStr: function() {
       // TODO: 対象に応じて動的に設定
       console.log()
     },
   },
   data() {
     return {
-      min: 20,
-      max: 60,
-      range: [45, 35],
+      min: 0,
+      max: 100,
+      range: [100, 0],
     }
   },
 }

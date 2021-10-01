@@ -112,8 +112,8 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-const SENSORS_API_URL = '/api/v1/sensors'
-const HANDLERS_API_URL = '/api/v1/handlers'
+const SENSORS_API_URL = '/api/v1/sensors/'
+const HANDLERS_API_URL = '/api/v1/handlers/'
 
 export default {
   data: () => ({
@@ -209,55 +209,49 @@ export default {
     // ドロップダウンリスト用データ取得
     fetchHandlerId: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(HANDLERS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          this.handlers = data
+          this.handlers = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 
     fetchSensorTypes: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(SENSORS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          this.sensorTypes = data
+          this.sensorTypes = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 
     fetchTableData: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(SENSORS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          this.sensors = data
+          this.sensors = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 
@@ -274,8 +268,10 @@ export default {
       if (!this.$refs.form_group.validate()) {
         return
       }
-      let postUrl = ''
-      let postData = {}
+      let url = ''
+      let body = {}
+      const client = createBaseApiClient()
+
       // 空文字の時nullに置き換え
       const base_load =
         this.editedItem.base_load === '' ? null : this.editedItem.base_load
@@ -288,8 +284,9 @@ export default {
 
       // update
       if (this.editedIndex > -1) {
-        postUrl = SENSORS_API_URL + '/' + this.editedItem.sensor_id + '/update'
-        postData = {
+        url = SENSORS_API_URL + this.editedItem.sensor_id + '/'
+        body = {
+          machine_id: this.editedItem.machine_id,
           sensor_name: this.editedItem.sensor_name,
           sensor_type_id: this.editedItem.sensor_type_id,
           base_load: base_load,
@@ -297,11 +294,21 @@ export default {
           initial_volt: initial_volt,
           handler_id: this.editedItem.handler_id,
         }
+        await client
+          .put(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            console.log(e.response.data.detail)
+            this.errorDialog(e.response.data.detail)
+          })
       }
       // insert
       else {
-        postUrl = SENSORS_API_URL
-        postData = {
+        url = SENSORS_API_URL
+        body = {
           sensor_name: this.editedItem.sensor_name,
           sensor_type_id: this.editedItem.sensor_type_id,
           base_load: base_load,
@@ -309,20 +316,17 @@ export default {
           initial_volt: initial_volt,
           handler_id: this.editedItem.handler_id,
         }
+        await client
+          .post(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            console.log(e.response.data.detail)
+            this.errorDialog(e.response.data.detail)
+          })
       }
-
-      const client = createBaseApiClient()
-      await client
-        .post(postUrl, postData)
-        .then(() => {
-          // this.close()
-          this.dialog = false
-          this.fetchTableData()
-        })
-        .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
-        })
     },
 
     // 新規作成 or 編集ダイアログclose
@@ -345,23 +349,28 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      let postUrl = ''
-      let postData = {}
-      postUrl = SENSORS_API_URL + '/' + this.editedItem.sensor_id + '/delete'
-      postData = {
-        handler_id: this.editedItem.handler_id,
+      let url = ''
+      let body = {}
+      url = SENSORS_API_URL + this.editedItem.sensor_id + '/'
+      body = {
+        machine_id: this.editedItem.machine_id,
       }
 
       const client = createBaseApiClient()
+      // HACK: https://teratail.com/questions/296013
       await client
-        .post(postUrl, postData)
+        .request({
+          method: 'delete',
+          url: url,
+          data: body,
+        })
         .then(() => {
           this.dialogDelete = false
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 

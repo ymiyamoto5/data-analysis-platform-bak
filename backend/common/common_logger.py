@@ -7,6 +7,7 @@ CONF_FILE_NAME = "logging.conf"
 ENV_KEY: str = "LOGGING_CONF"
 logger: Logger
 data_recorder_logger: Logger
+uvicorn_logger: Logger
 
 
 def findConf() -> str:
@@ -69,6 +70,9 @@ def main() -> None:
 
     global data_recorder_logger
     data_recorder_logger = getLogger("data_recorder")
+
+    global uvicorn_logger
+    uvicorn_logger = getLogger("uvicorn")
 
 
 # call main.

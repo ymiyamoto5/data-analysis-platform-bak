@@ -4,21 +4,22 @@ from datetime import datetime, timedelta
 
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
-from backend.data_collect_manager.models.machine_type import MachineType
-from backend.data_collect_manager.models.machine import Machine
-from backend.data_collect_manager.models.gateway import Gateway
-from backend.data_collect_manager.models.handler import Handler
-from backend.data_collect_manager.models.sensor_type import SensorType
-from backend.data_collect_manager.models.sensor import Sensor
-from backend.data_collect_manager.models.data_collect_history import DataCollectHistory
-from backend.data_collect_manager.models.db import register_db
+from backend.app.models.machine_type import MachineType
+from backend.app.models.machine import Machine
+from backend.app.models.gateway import Gateway
+from backend.app.models.handler import Handler
+from backend.app.models.sensor_type import SensorType
+from backend.app.models.sensor import Sensor
+from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.common import common
-from flask import Flask
+from backend.app.db.session import engine, Base
+from backend.app.db.session import SessionLocal
 
-app = Flask("app")
-db = register_db(app)
-db.drop_all()
-db.create_all()
+Base.metadata.drop_all(bind=engine)
+Base.metadata.create_all(bind=engine)
+
+db = SessionLocal()
 
 # MachineType
 machine_type_01 = MachineType(machine_type_name="プレス")
@@ -28,7 +29,7 @@ machine_type_02 = MachineType(machine_type_name="圧力プレート")
 sensor_type_01 = SensorType(sensor_type_id="load", sensor_type_name="荷重")
 sensor_type_02 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
 sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
-sensor_type_04 = SensorType(sensor_type_id="bolt", sensor_type_name="ボルト")
+sensor_type_04 = SensorType(sensor_type_id="volt", sensor_type_name="ボルト")
 
 # Machine
 machine_01 = Machine(
@@ -335,52 +336,236 @@ machine_02.gateways.append(gateway_02)
 machine_03.gateways.append(gateway_03)
 machine_04.gateways.append(gateway_04)
 
-db.session.add(machine_type_01)
-db.session.add(machine_type_02)
+db.add(machine_type_01)
+db.add(machine_type_02)
 
-db.session.add(sensor_type_01)
-db.session.add(sensor_type_02)
-db.session.add(sensor_type_03)
+db.add(sensor_type_01)
+db.add(sensor_type_02)
+db.add(sensor_type_03)
 
-db.session.add(machine_01)
-db.session.add(machine_02)
-db.session.add(machine_03)
-db.session.add(machine_04)
+db.add(machine_01)
+db.add(machine_02)
+db.add(machine_03)
+db.add(machine_04)
 
-db.session.add(gateway_01)
-db.session.add(gateway_02)
-db.session.add(gateway_03)
-db.session.add(gateway_04)
+db.add(gateway_01)
+db.add(gateway_02)
+db.add(gateway_03)
+db.add(gateway_04)
 
-db.session.add(sensor_01)
-db.session.add(sensor_02)
-db.session.add(sensor_03)
-db.session.add(sensor_04)
-db.session.add(sensor_05)
+db.add(sensor_01)
+db.add(sensor_02)
+db.add(sensor_03)
+db.add(sensor_04)
+db.add(sensor_05)
 
 data_collect_history_1 = DataCollectHistory(
     machine_id="machine-01",
     machine_name="テストプレス01",
-    started_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9),
-    ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
+    machine_type_id=1,
+    started_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9),
+    ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
+    sampling_frequency=100_000,
+    sampling_ch_num=5,
 )
 
 data_collect_history_2 = DataCollectHistory(
-    machine_id="machine-01",
-    machine_name="テストプレス01",
-    started_at=datetime(2021, 9, 8, 9, 0, 0, 0) + timedelta(hours=-9),
-    ended_at=datetime(2021, 9, 8, 9, 0, 0, 0) + timedelta(hours=-9) + timedelta(hours=1),
+    machine_id="machine-02",
+    machine_name="テストプレス02",
+    machine_type_id=1,
+    started_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9),
+    ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
+    sampling_frequency=100_000,
+    sampling_ch_num=5,
 )
 
-db.session.add(data_collect_history_1)
-db.session.add(data_collect_history_2)
+data_collect_history_3 = DataCollectHistory(
+    machine_id="machine-01",
+    machine_name="テストプレス01",
+    machine_type_id=3,
+    started_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9),
+    ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
+    sampling_frequency=100_000,
+    sampling_ch_num=5,
+)
 
-db.session.commit()
+db.add(data_collect_history_1)
+db.add(data_collect_history_2)
+db.add(data_collect_history_3)
 
-[print(vars(x)) for x in MachineType.query.all()]
-[print(vars(x)) for x in Machine.query.all()]
-[print(vars(x)) for x in Gateway.query.all()]
-[print(vars(x)) for x in Handler.query.all()]
-[print(vars(x)) for x in Sensor.query.all()]
-[print(vars(x)) for x in SensorType.query.all()]
-[print(vars(x)) for x in DataCollectHistory.query.all()]
+data_collect_history_detail_1 = DataCollectHistoryDetail(
+    data_collect_history_id=1,
+    sensor_id="load01",
+    sensor_name="荷重01",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_2 = DataCollectHistoryDetail(
+    data_collect_history_id=1,
+    sensor_id="load02",
+    sensor_name="荷重02",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_3 = DataCollectHistoryDetail(
+    data_collect_history_id=1,
+    sensor_id="load03",
+    sensor_name="荷重03",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_4 = DataCollectHistoryDetail(
+    data_collect_history_id=1,
+    sensor_id="load04",
+    sensor_name="荷重04",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_5 = DataCollectHistoryDetail(
+    data_collect_history_id=1,
+    sensor_id="displacement",
+    sensor_name="変位",
+    sensor_type_id="displacement",
+    base_volt=None,
+    base_load=None,
+    initial_volt=None,
+)
+
+data_collect_history_detail_2_1 = DataCollectHistoryDetail(
+    data_collect_history_id=2,
+    sensor_id="load01",
+    sensor_name="荷重01",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_2_2 = DataCollectHistoryDetail(
+    data_collect_history_id=2,
+    sensor_id="load02",
+    sensor_name="荷重02",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_2_3 = DataCollectHistoryDetail(
+    data_collect_history_id=2,
+    sensor_id="load03",
+    sensor_name="荷重03",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_2_4 = DataCollectHistoryDetail(
+    data_collect_history_id=2,
+    sensor_id="load04",
+    sensor_name="荷重04",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_2_5 = DataCollectHistoryDetail(
+    data_collect_history_id=2,
+    sensor_id="pulse",
+    sensor_name="パルス",
+    sensor_type_id="pulse",
+    base_volt=None,
+    base_load=None,
+    initial_volt=None,
+)
+
+data_collect_history_detail_3_1 = DataCollectHistoryDetail(
+    data_collect_history_id=3,
+    sensor_id="load01",
+    sensor_name="荷重01",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_3_2 = DataCollectHistoryDetail(
+    data_collect_history_id=3,
+    sensor_id="load02",
+    sensor_name="荷重02",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_3_3 = DataCollectHistoryDetail(
+    data_collect_history_id=3,
+    sensor_id="load03",
+    sensor_name="荷重03",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_3_4 = DataCollectHistoryDetail(
+    data_collect_history_id=3,
+    sensor_id="load04",
+    sensor_name="荷重04",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_3_5 = DataCollectHistoryDetail(
+    data_collect_history_id=3,
+    sensor_id="displacement",
+    sensor_name="変位",
+    sensor_type_id="displacement",
+    base_volt=None,
+    base_load=None,
+    initial_volt=None,
+)
+
+db.add(data_collect_history_detail_1)
+db.add(data_collect_history_detail_2)
+db.add(data_collect_history_detail_3)
+db.add(data_collect_history_detail_4)
+db.add(data_collect_history_detail_5)
+db.add(data_collect_history_detail_2_1)
+db.add(data_collect_history_detail_2_2)
+db.add(data_collect_history_detail_2_3)
+db.add(data_collect_history_detail_2_4)
+db.add(data_collect_history_detail_2_5)
+db.add(data_collect_history_detail_3_1)
+db.add(data_collect_history_detail_3_2)
+db.add(data_collect_history_detail_3_3)
+db.add(data_collect_history_detail_3_4)
+db.add(data_collect_history_detail_3_5)
+
+db.commit()
+
+[print(vars(x)) for x in db.query(MachineType).all()]
+[print(vars(x)) for x in db.query(Machine).all()]
+[print(vars(x)) for x in db.query(Gateway).all()]
+[print(vars(x)) for x in db.query(Handler).all()]
+[print(vars(x)) for x in db.query(Sensor).all()]
+[print(vars(x)) for x in db.query(SensorType).all()]
+[print(vars(x)) for x in db.query(DataCollectHistory).all()]
+[print(vars(x)) for x in db.query(DataCollectHistoryDetail).all()]

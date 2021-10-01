@@ -14,9 +14,13 @@
 
 ショット切り出し処理を行う。
 
-#### data_collect_manager
+#### app
 
 データ収集をコントロールするための Web アプリケーション。
+
+##### app.models
+
+models に model(エンティティ)を追加する場合、\_\_init\_\_.py への model インポート追加が必要。
 
 #### data_reader
 
