@@ -281,7 +281,7 @@ sensor_20 = Sensor(
 sensor_21 = Sensor(
     machine_id="machine-03",
     sensor_id="pulse",
-    sensor_name="pulse",
+    sensor_name="パルス",
     sensor_type_id="pulse",
 )
 sensor_22 = Sensor(
@@ -304,7 +304,7 @@ sensor_23 = Sensor(
 demo_sensor_1 = Sensor(
     machine_id="demo-machine",
     sensor_id="pulse",
-    sensor_name="pulse",
+    sensor_name="パルス",
     sensor_type_id="pulse",
 )
 
@@ -382,16 +382,6 @@ data_collect_history_1 = DataCollectHistory(
 )
 
 data_collect_history_2 = DataCollectHistory(
-    machine_id="machine-02",
-    machine_name="テストプレス02",
-    machine_type_id=1,
-    started_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9),
-    ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
-    sampling_frequency=100_000,
-    sampling_ch_num=5,
-)
-
-data_collect_history_3 = DataCollectHistory(
     machine_id="machine-01",
     machine_name="テストプレス01",
     machine_type_id=1,
@@ -507,9 +497,9 @@ data_collect_history_detail_2_4 = DataCollectHistoryDetail(
 
 data_collect_history_detail_2_5 = DataCollectHistoryDetail(
     data_collect_history_id=2,
-    sensor_id="pulse",
-    sensor_name="パルス",
-    sensor_type_id="pulse",
+    sensor_id="displacement",
+    sensor_name="変位",
+    sensor_type_id="displacement",
     base_volt=None,
     base_load=None,
     initial_volt=None,
@@ -530,7 +520,7 @@ data_collect_history_detail_3_1 = DataCollectHistoryDetail(
 data_collect_history_detail_3_2 = DataCollectHistoryDetail(
     data_collect_history_id=3,
     sensor_id="pulse",
-    sensor_name="pulse",
+    sensor_name="パルス",
     sensor_type_id="pulse",
     base_volt=None,
     base_load=None,
