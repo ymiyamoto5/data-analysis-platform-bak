@@ -401,9 +401,21 @@ data_collect_history_3 = DataCollectHistory(
     sampling_ch_num=2,
 )
 
+# pulse unittest用
+data_collect_history_4 = DataCollectHistory(
+    machine_id="machine-02",
+    machine_name="テストプレス02",
+    machine_type_id=1,
+    started_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9),
+    ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
+    sampling_frequency=100_000,
+    sampling_ch_num=5,
+)
+
 db.add(data_collect_history_1)
 db.add(data_collect_history_2)
 db.add(data_collect_history_3)
+db.add(data_collect_history_4)
 
 data_collect_history_detail_1 = DataCollectHistoryDetail(
     data_collect_history_id=1,
@@ -527,6 +539,58 @@ data_collect_history_detail_3_2 = DataCollectHistoryDetail(
     initial_volt=None,
 )
 
+# pulse unittest用
+data_collect_history_detail_4_1 = DataCollectHistoryDetail(
+    data_collect_history_id=4,
+    sensor_id="load01",
+    sensor_name="荷重01",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_4_2 = DataCollectHistoryDetail(
+    data_collect_history_id=4,
+    sensor_id="load02",
+    sensor_name="荷重02",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_4_3 = DataCollectHistoryDetail(
+    data_collect_history_id=4,
+    sensor_id="load03",
+    sensor_name="荷重03",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_4_4 = DataCollectHistoryDetail(
+    data_collect_history_id=4,
+    sensor_id="load04",
+    sensor_name="荷重04",
+    sensor_type_id="load",
+    base_volt=1.0,
+    base_load=1.0,
+    initial_volt=1.0,
+)
+
+data_collect_history_detail_4_5 = DataCollectHistoryDetail(
+    data_collect_history_id=4,
+    sensor_id="pulse",
+    sensor_name="パルス",
+    sensor_type_id="pulse",
+    base_volt=None,
+    base_load=None,
+    initial_volt=None,
+)
+
+
 db.add(data_collect_history_detail_1)
 db.add(data_collect_history_detail_2)
 db.add(data_collect_history_detail_3)
@@ -539,6 +603,11 @@ db.add(data_collect_history_detail_2_4)
 db.add(data_collect_history_detail_2_5)
 db.add(data_collect_history_detail_3_1)
 db.add(data_collect_history_detail_3_2)
+db.add(data_collect_history_detail_4_1)
+db.add(data_collect_history_detail_4_2)
+db.add(data_collect_history_detail_4_3)
+db.add(data_collect_history_detail_4_4)
+db.add(data_collect_history_detail_4_5)
 
 db.commit()
 
