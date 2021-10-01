@@ -50,9 +50,9 @@ machine_03 = Machine(
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=2,
 )
-machine_04 = Machine(
-    machine_id="machine-04",
-    machine_name="テストマシン01",
+demo_machine = Machine(
+    machine_id="demo-machine",
+    machine_name="デモ用プレス機",
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
 )
@@ -79,10 +79,10 @@ gateway_03 = Gateway(
     status=common.STATUS.STOP.value,
     log_level=5,
 )
-gateway_04 = Gateway(
-    gateway_id="GW-04",
-    sequence_number=4,
-    gateway_result=0,
+demo_gateway = Gateway(
+    gateway_id="demo-GW",
+    sequence_number=0,
+    gateway_result=1,
     status=common.STATUS.STOP.value,
     log_level=5,
 )
@@ -112,12 +112,12 @@ handler_03 = Handler(
     sampling_ch_num=16,
     filewrite_time=1,
 )
-handler_04 = Handler(
-    handler_id="AD-USB-yyy2",
-    handler_type="USB_yyyyHS",
-    adc_serial_num="YYYYYYY2",
-    sampling_frequency=1000,
-    sampling_ch_num=16,
+demo_handler = Handler(
+    handler_id="demo-handler",
+    handler_type="USB",
+    adc_serial_num="sample",
+    sampling_frequency=100000,
+    sampling_ch_num=2,
     filewrite_time=1,
 )
 
@@ -301,6 +301,22 @@ sensor_23 = Sensor(
     base_load=2.5,
 )
 
+demo_sensor_1 = Sensor(
+    machine_id="demo-machine",
+    sensor_id="pulse",
+    sensor_name="pulse",
+    sensor_type_id="pulse",
+)
+
+demo_sensor_2 = Sensor(
+    machine_id="demo-machine",
+    sensor_id="load01",
+    sensor_name="load01",
+    sensor_type_id="load",
+    base_volt=2.5,
+    base_load=2.5,
+)
+
 handler_01.sensors.append(sensor_01)
 handler_01.sensors.append(sensor_02)
 handler_01.sensors.append(sensor_22)
@@ -317,24 +333,18 @@ handler_03.sensors.append(sensor_10)
 handler_03.sensors.append(sensor_11)
 handler_03.sensors.append(sensor_12)
 handler_03.sensors.append(sensor_13)
-handler_04.sensors.append(sensor_14)
-handler_04.sensors.append(sensor_15)
-handler_04.sensors.append(sensor_16)
-handler_04.sensors.append(sensor_17)
-handler_04.sensors.append(sensor_18)
-handler_04.sensors.append(sensor_19)
-handler_04.sensors.append(sensor_20)
-handler_04.sensors.append(sensor_21)
+demo_handler.sensors.append(demo_sensor_1)
+demo_handler.sensors.append(demo_sensor_2)
 
 gateway_01.handlers.append(handler_01)
 gateway_02.handlers.append(handler_02)
 gateway_03.handlers.append(handler_03)
-gateway_03.handlers.append(handler_04)
+demo_gateway.handlers.append(demo_handler)
 
 machine_01.gateways.append(gateway_01)
 machine_02.gateways.append(gateway_02)
 machine_03.gateways.append(gateway_03)
-machine_04.gateways.append(gateway_04)
+demo_machine.gateways.append(demo_gateway)
 
 db.add(machine_type_01)
 db.add(machine_type_02)
@@ -346,18 +356,20 @@ db.add(sensor_type_03)
 db.add(machine_01)
 db.add(machine_02)
 db.add(machine_03)
-db.add(machine_04)
+db.add(demo_machine)
 
 db.add(gateway_01)
 db.add(gateway_02)
 db.add(gateway_03)
-db.add(gateway_04)
+db.add(demo_gateway)
 
 db.add(sensor_01)
 db.add(sensor_02)
 db.add(sensor_03)
 db.add(sensor_04)
 db.add(sensor_05)
+db.add(demo_sensor_1)
+db.add(demo_sensor_2)
 
 data_collect_history_1 = DataCollectHistory(
     machine_id="machine-01",
@@ -382,11 +394,21 @@ data_collect_history_2 = DataCollectHistory(
 data_collect_history_3 = DataCollectHistory(
     machine_id="machine-01",
     machine_name="テストプレス01",
-    machine_type_id=3,
+    machine_type_id=1,
     started_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9),
     ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
     sampling_ch_num=5,
+)
+
+data_collect_history_3 = DataCollectHistory(
+    machine_id="demo-machine",
+    machine_name="デモ用プレス機",
+    machine_type_id=1,
+    started_at=datetime(2021, 7, 9, 19, 0, 0, 0) + timedelta(hours=-9),
+    ended_at=datetime(2021, 7, 9, 19, 0, 0, 0) + timedelta(hours=-9) + timedelta(minutes=5),
+    sampling_frequency=100_000,
+    sampling_ch_num=2,
 )
 
 db.add(data_collect_history_1)
@@ -493,6 +515,8 @@ data_collect_history_detail_2_5 = DataCollectHistoryDetail(
     initial_volt=None,
 )
 
+
+# デモ用
 data_collect_history_detail_3_1 = DataCollectHistoryDetail(
     data_collect_history_id=3,
     sensor_id="load01",
@@ -505,39 +529,9 @@ data_collect_history_detail_3_1 = DataCollectHistoryDetail(
 
 data_collect_history_detail_3_2 = DataCollectHistoryDetail(
     data_collect_history_id=3,
-    sensor_id="load02",
-    sensor_name="荷重02",
-    sensor_type_id="load",
-    base_volt=1.0,
-    base_load=1.0,
-    initial_volt=1.0,
-)
-
-data_collect_history_detail_3_3 = DataCollectHistoryDetail(
-    data_collect_history_id=3,
-    sensor_id="load03",
-    sensor_name="荷重03",
-    sensor_type_id="load",
-    base_volt=1.0,
-    base_load=1.0,
-    initial_volt=1.0,
-)
-
-data_collect_history_detail_3_4 = DataCollectHistoryDetail(
-    data_collect_history_id=3,
-    sensor_id="load04",
-    sensor_name="荷重04",
-    sensor_type_id="load",
-    base_volt=1.0,
-    base_load=1.0,
-    initial_volt=1.0,
-)
-
-data_collect_history_detail_3_5 = DataCollectHistoryDetail(
-    data_collect_history_id=3,
-    sensor_id="displacement",
-    sensor_name="変位",
-    sensor_type_id="displacement",
+    sensor_id="pulse",
+    sensor_name="pulse",
+    sensor_type_id="pulse",
     base_volt=None,
     base_load=None,
     initial_volt=None,
@@ -555,9 +549,6 @@ db.add(data_collect_history_detail_2_4)
 db.add(data_collect_history_detail_2_5)
 db.add(data_collect_history_detail_3_1)
 db.add(data_collect_history_detail_3_2)
-db.add(data_collect_history_detail_3_3)
-db.add(data_collect_history_detail_3_4)
-db.add(data_collect_history_detail_3_5)
 
 db.commit()
 
