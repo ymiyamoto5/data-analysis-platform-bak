@@ -898,7 +898,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df
@@ -965,7 +965,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df
@@ -1077,7 +1077,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df
@@ -1245,7 +1245,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df

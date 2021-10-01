@@ -78,6 +78,9 @@ class CutOutShot:
             self.__max_samples_per_shot: int = int(60 / self.__min_spm) * history.sampling_frequency
             # DataCollectHistoryDetailはセンサー毎の設定値
             self.__sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
+            # pulse判定
+            sensor_types: List[str] = [sensor.sensor_type_id for sensor in self.__sensors]
+            self.__is_pulse: bool = "pulse" in sensor_types
 
         except Exception:
             logger.error(traceback.format_exc())
@@ -203,6 +206,11 @@ class CutOutShot:
 
         return (not self.__is_shot_section) and (end_displacement <= displacement <= start_displacement)
 
+    def _detect_pulse_shot_start(self, pulse: float, threshold: float) -> bool:
+        """ショット開始検知。ショットが未検出かつパルスがしきい値以上の場合、ショット開始とみなす。"""
+
+        return (not self.__is_shot_section) and (pulse >= threshold)
+
     def _detect_shot_end(self, displacement: float, start_displacement: float) -> bool:
         """ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
 
@@ -210,6 +218,11 @@ class CutOutShot:
         """
 
         return self.__is_shot_section and (displacement > start_displacement + self.__margin)
+
+    def _detect_pulse_shot_end(self, pulse: float, threshold: float) -> bool:
+        """ショット終了検知。ショットが検出されている状態かつパルスがしきい値を下回ったとき、ショット終了とみなす。"""
+
+        return self.__is_shot_section and (pulse < threshold)
 
     def _detect_cut_out_end(self, displacement: float, end_displacement: float) -> bool:
         """切り出し終了検知。切り出し区間として検知されており、かつ変位値が終了しきい値以下の場合、切り出し終了とみなす。"""
@@ -545,7 +558,12 @@ class CutOutShot:
             rawdata_df = self._apply_physical_conversion_formula(rawdata_df)
 
             # ショット切り出し
-            self._cut_out_shot(rawdata_df, start_displacement, end_displacement)
+            if self.__is_pulse:
+                # TODO: DBから取得
+                threshold: float = 1.0
+                self._cut_out_shot_by_pulse(rawdata_df, threshold)
+            else:
+                self._cut_out_shot(rawdata_df, start_displacement, end_displacement)
 
             # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップからデータを得る。
             self._backup_df_tail(rawdata_df)
@@ -606,7 +624,50 @@ class CutOutShot:
 
         logger.info("Cut out shot finished.")
 
-    def _cut_out_shot(self, rawdata_df: DataFrame, start_displacement: float, end_displacement: float):
+    def _cut_out_shot_by_pulse(self, rawdata_df: DataFrame, threshold: float) -> None:
+        """パルス信号によるショット切り出し
+        パルス値がしきい値を超えたタイミングでショット区間開始
+        メタ情報を記録
+        以降、ループごとにパルス値を確認し、しきい値を下回っていたらショット区間終了
+        """
+
+        for row_number, rawdata in enumerate(rawdata_df.itertuples()):
+            # pulseがしきい値以上のとき、ショットとして記録開始
+            if self._detect_pulse_shot_start(rawdata.pulse, threshold):
+                if self.__shot_number == 0:
+                    self.__previous_shot_start_time = rawdata.timestamp
+                # 2つめ以降のショット検知時は、1つ前のショットのspmを計算して記録する
+                else:
+                    spm: Optional[float] = self._calculate_spm(rawdata.timestamp)
+
+                    if self.__previous_shot_start_time is None:
+                        logger.error("self.__previous_shot_start_time should not be None.")
+                        sys.exit(1)
+
+                    self.__shots_meta_df = self.__shots_meta_df.append(
+                        {
+                            "timestamp": datetime.fromtimestamp(self.__previous_shot_start_time),
+                            "shot_number": self.__shot_number,
+                            "spm": spm,
+                            "num_of_samples_in_cut_out": self.__sequential_number_by_shot,
+                        },
+                        ignore_index=True,
+                    )
+                    self.__previous_shot_start_time = rawdata.timestamp
+
+                self._initialize_when_shot_detected()
+
+            if self._detect_pulse_shot_end(rawdata.pulse, threshold):
+                self.__is_shot_section = False
+
+            # ショット未開始ならば後続は何もしない
+            if not self.__is_shot_section:
+                continue
+
+            # ここに到達するのはショット区間かつ切り出し区間
+            self._add_cut_out_target(rawdata)
+
+    def _cut_out_shot(self, rawdata_df: DataFrame, start_displacement: float, end_displacement: float) -> None:
         """ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。"""
 
         for row_number, rawdata in enumerate(rawdata_df.itertuples()):
