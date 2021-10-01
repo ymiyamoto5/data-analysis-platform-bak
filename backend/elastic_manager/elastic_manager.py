@@ -9,15 +9,15 @@
 
 """
 
-from elasticsearch import Elasticsearch
-from elasticsearch import exceptions
-from elasticsearch import helpers
-import pandas as pd
 import json
-from typing import Iterable, Tuple, List, Optional, Final, Generator, Collection, Dict, Any
 import multiprocessing
-from backend.common.common_logger import logger
+from typing import (Any, Collection, Dict, Final, Generator, Iterable, List,
+                    Optional, Tuple)
+
+import pandas as pd
 from backend.common import common
+from backend.common.common_logger import logger
+from elasticsearch import Elasticsearch, exceptions, helpers
 
 ELASTIC_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_url")
 ELASTIC_USER: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "elastic_user")

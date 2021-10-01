@@ -1,9 +1,10 @@
 from datetime import datetime
-from pandas.core.frame import DataFrame
 from typing import Tuple
-from backend.data_reader.data_reader import DataReader
+
 from backend.common import common
+from backend.data_reader.data_reader import DataReader
 from backend.utils.df_to_els import df_to_els  # type: ignore
+from pandas.core.frame import DataFrame
 
 
 def resampling(shots_df: DataFrame, resampling_rate: int, exclude_shots: Tuple[int, ...]):

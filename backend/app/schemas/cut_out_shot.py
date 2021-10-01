@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
 from backend.common import common
+from pydantic import BaseModel, Field
 
 
 class CutOutShotBase(BaseModel):

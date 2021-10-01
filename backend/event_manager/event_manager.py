@@ -1,9 +1,10 @@
 import sys
 from datetime import datetime, timedelta
-from typing import List, Optional, Final, Tuple
+from typing import Final, List, Optional, Tuple
+
+from backend.common import common  # noqa
 from backend.common.common_logger import logger
 from backend.elastic_manager.elastic_manager import ElasticManager
-from backend.common import common  # noqa
 
 
 class EventManager:

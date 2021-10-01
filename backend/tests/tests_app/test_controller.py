@@ -10,12 +10,12 @@
 """
 
 import pytest
-from backend.event_manager.event_manager import EventManager
-from backend.app.models.machine import Machine
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.crud.crud_controller import CRUDController
-from backend.common import common
 from backend.app.api.endpoints import controller
+from backend.app.crud.crud_controller import CRUDController
+from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.models.machine import Machine
+from backend.common import common
+from backend.event_manager.event_manager import EventManager
 
 
 class TestSetup:

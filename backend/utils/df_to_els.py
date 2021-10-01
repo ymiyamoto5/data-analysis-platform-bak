@@ -1,7 +1,8 @@
 from typing import List
-from pandas.core.frame import DataFrame
-from backend.elastic_manager.elastic_manager import ElasticManager
+
 from backend.common.common_logger import logger
+from backend.elastic_manager.elastic_manager import ElasticManager
+from pandas.core.frame import DataFrame
 
 
 def df_to_els(df: DataFrame, index: str, mapping: str = None, setting: str = None):

@@ -9,8 +9,9 @@
 
 """
 
-import pytest  # type: ignore
 from datetime import datetime
+
+import pytest  # type: ignore
 from backend.event_manager.event_manager import EventManager  # type: ignore
 
 

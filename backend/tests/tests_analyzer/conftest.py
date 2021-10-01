@@ -9,9 +9,10 @@
 
 """
 
-import pytest
-import pandas as pd
 from typing import List
+
+import pandas as pd
+import pytest
 from pandas.core.frame import DataFrame
 
 

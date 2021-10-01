@@ -1,9 +1,10 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
-from typing import List
-from pandas.core.frame import DataFrame
-from backend.event_manager.event_manager import EventManager
 from backend.common.common_logger import logger
+from backend.event_manager.event_manager import EventManager
+from pandas.core.frame import DataFrame
 
 
 class TagManager:
