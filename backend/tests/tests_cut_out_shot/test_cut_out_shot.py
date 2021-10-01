@@ -16,7 +16,6 @@ from typing import List
 from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
 import numpy as np
-
 from backend.cut_out_shot.cut_out_shot import CutOutShot
 from backend.data_converter.data_converter import DataConverter
 
@@ -611,16 +610,13 @@ class TestExcludeOverSample:
 
 
 class TestApplyPhysicalConversionFormula:
-    def test_normal(self, mocker, rawdata_df, handler, sensors):
+    def test_normal(self, mocker, rawdata_df):
         """正常系：lambda式適用"""
 
         machine_id = "machine-01"
+        target_date_str = "20201201103011"
 
-        cut_out_shot = CutOutShot(
-            machine_id=machine_id,
-            handler=handler,
-            sensors=sensors,
-        )
+        cut_out_shot = CutOutShot(machine_id=machine_id, target=target_date_str)
 
         # 全データを見る必要はないので一部スライス
         target_df: DataFrame = rawdata_df[:3].copy()
@@ -792,9 +788,9 @@ class TestCutOutShot:
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 1,
-                "displacement": 47.534,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.534,
                 "load01": 0.155,
                 "load02": 0.171,
                 "load03": 0.180,
@@ -806,9 +802,9 @@ class TestCutOutShot:
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 2,
-                "displacement": 47.0,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
@@ -820,9 +816,9 @@ class TestCutOutShot:
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 3,
-                "displacement": 47.1,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
@@ -834,9 +830,9 @@ class TestCutOutShot:
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 4,
-                "displacement": 34.961,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
@@ -848,9 +844,9 @@ class TestCutOutShot:
                 "sequential_number": 4,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 8,
-                "displacement": 47.150,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 47.150,
                 "load01": 0.156,
                 "load02": 0.172,
                 "load03": 0.181,
@@ -862,9 +858,9 @@ class TestCutOutShot:
                 "sequential_number": 5,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 9,
-                "displacement": 47.0,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
@@ -876,9 +872,9 @@ class TestCutOutShot:
                 "sequential_number": 6,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 10,
-                "displacement": 47.1,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
@@ -890,9 +886,9 @@ class TestCutOutShot:
                 "sequential_number": 7,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 11,
-                "displacement": 34.961,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
@@ -902,7 +898,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df
@@ -943,9 +939,9 @@ class TestCutOutShot:
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 4,
-                "displacement": 34.961,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
@@ -957,9 +953,9 @@ class TestCutOutShot:
                 "sequential_number": 1,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 11,
-                "displacement": 34.961,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
@@ -969,7 +965,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df
@@ -1013,9 +1009,9 @@ class TestCutOutShot:
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 0,
-                "displacement": 49.284,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 49.284,
                 "load01": 0.223,
                 "load02": 0.211,
                 "load03": 0.200,
@@ -1027,9 +1023,9 @@ class TestCutOutShot:
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 1,
-                "displacement": 47.534,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.534,
                 "load01": 0.155,
                 "load02": 0.171,
                 "load03": 0.180,
@@ -1041,9 +1037,9 @@ class TestCutOutShot:
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 2,
-                "displacement": 47.0,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
@@ -1055,9 +1051,9 @@ class TestCutOutShot:
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 3,
-                "displacement": 47.1,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
@@ -1069,9 +1065,9 @@ class TestCutOutShot:
                 "sequential_number": 4,
                 "sequential_number_by_shot": 4,
                 "rawdata_sequential_number": 4,
-                "displacement": 34.961,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
@@ -1081,7 +1077,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df
@@ -1112,9 +1108,9 @@ class TestCutOutShot:
                 "sequential_number": 0,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 2,
-                "displacement": 47.0,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
@@ -1126,9 +1122,9 @@ class TestCutOutShot:
                 "sequential_number": 1,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 3,
-                "displacement": 47.1,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
@@ -1140,9 +1136,9 @@ class TestCutOutShot:
                 "sequential_number": 2,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 4,
-                "displacement": 34.961,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
@@ -1154,9 +1150,9 @@ class TestCutOutShot:
                 "sequential_number": 3,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 5,
-                "displacement": 30.599,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 30.599,
                 "load01": -0.130,
                 "load02": 0.020,
                 "load03": 0.483,
@@ -1168,9 +1164,9 @@ class TestCutOutShot:
                 "sequential_number": 4,
                 "sequential_number_by_shot": 4,
                 "rawdata_sequential_number": 6,
-                "displacement": 24.867,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 24.867,
                 "load01": -0.052,
                 "load02": 0.035,
                 "load03": 0.402,
@@ -1182,9 +1178,9 @@ class TestCutOutShot:
                 "sequential_number": 5,
                 "sequential_number_by_shot": 5,
                 "rawdata_sequential_number": 7,
-                "displacement": 47.100,
                 "shot_number": 1,
                 "tags": [],
+                "displacement": 47.100,
                 "load01": 0.155,
                 "load02": 0.171,
                 "load03": 0.180,
@@ -1196,9 +1192,9 @@ class TestCutOutShot:
                 "sequential_number": 6,
                 "sequential_number_by_shot": 0,
                 "rawdata_sequential_number": 9,
-                "displacement": 47.0,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 47.0,
                 "load01": 1.574,
                 "load02": 1.308,
                 "load03": 1.363,
@@ -1210,9 +1206,9 @@ class TestCutOutShot:
                 "sequential_number": 7,
                 "sequential_number_by_shot": 1,
                 "rawdata_sequential_number": 10,
-                "displacement": 47.1,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 47.1,
                 "load01": 1.500,
                 "load02": 1.200,
                 "load03": 1.300,
@@ -1224,9 +1220,9 @@ class TestCutOutShot:
                 "sequential_number": 8,
                 "sequential_number_by_shot": 2,
                 "rawdata_sequential_number": 11,
-                "displacement": 34.961,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 34.961,
                 "load01": -0.256,
                 "load02": -0.078,
                 "load03": 0.881,
@@ -1237,9 +1233,9 @@ class TestCutOutShot:
                 "sequential_number": 9,
                 "sequential_number_by_shot": 3,
                 "rawdata_sequential_number": 12,
-                "displacement": 30.599,
                 "shot_number": 2,
                 "tags": [],
+                "displacement": 30.599,
                 "load01": -0.130,
                 "load02": 0.020,
                 "load03": 0.483,
@@ -1249,7 +1245,7 @@ class TestCutOutShot:
 
         expected_df = pd.DataFrame(expected)
 
-        assert_frame_equal(actual_df, expected_df)
+        assert_frame_equal(actual_df, expected_df, check_like=True)
 
         # shots_meta_dfの確認
         actual_shots_meta_df: DataFrame = target.shots_meta_df
@@ -1276,16 +1272,10 @@ class TestCutOutShot:
         """異常系：切り出し開始しきい値よりも終了しきい値のほうが大きい場合"""
 
         with pytest.raises(SystemExit):
-            target.cut_out_shot("tmp", start_displacement=40.0, end_displacement=41.0)
+            target.cut_out_shot(start_displacement=40.0, end_displacement=41.0)
 
     def test_parameter_exception_2(self, target):
         """異常系：切り出し開始しきい値=終了しきい値の場合"""
 
         with pytest.raises(SystemExit):
-            target.cut_out_shot("tmp", start_displacement=40.0, end_displacement=40.0)
-
-    def test_dir_not_exists(self, target):
-        """異常系：対象データディレクトリが存在しない場合"""
-
-        with pytest.raises(SystemExit):
-            target.cut_out_shot("not_exists_dir", start_displacement=47.0, end_displacement=40.0)
+            target.cut_out_shot(start_displacement=40.0, end_displacement=40.0)

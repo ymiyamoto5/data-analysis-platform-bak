@@ -96,8 +96,8 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-const GATEWAYS_API_URL = '/api/v1/gateways'
-const MACHINES_API_URL = '/api/v1/machines'
+const GATEWAYS_API_URL = '/api/v1/gateways/'
+const MACHINES_API_URL = '/api/v1/machines/'
 
 export default {
   data: () => ({
@@ -196,26 +196,24 @@ export default {
           this.machines = data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 
     fetchTableData: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(GATEWAYS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          this.gateways = data
+          this.gateways = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 
@@ -232,38 +230,46 @@ export default {
       if (!this.$refs.form_group.validate()) {
         return
       }
-      let postUrl = ''
-      let postData = {}
+      let url = ''
+      let body = {}
+      const client = createBaseApiClient()
+
       // update
       if (this.editedIndex > -1) {
-        postUrl =
-          GATEWAYS_API_URL + '/' + this.editedItem.gateway_id + '/update'
-        postData = {
+        url = GATEWAYS_API_URL + this.editedItem.gateway_id + '/'
+        body = {
           log_level: this.editedItem.log_level,
         }
+        await client
+          .put(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            console.log(e.response.data.detail)
+            this.errorDialog(e.response.data.detail)
+          })
       }
       // insert
       else {
-        postUrl = GATEWAYS_API_URL
-        postData = {
+        url = GATEWAYS_API_URL
+        body = {
           gateway_id: this.editedItem.gateway_id,
           log_level: this.editedItem.log_level,
           machine_id: this.editedItem.machine_id,
         }
+        await client
+          .post(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            console.log(e.response.data.detail)
+            this.errorDialog(e.response.data.detail)
+          })
       }
-
-      const client = createBaseApiClient()
-      await client
-        .post(postUrl, postData)
-        .then(() => {
-          // this.close()
-          this.dialog = false
-          this.fetchTableData()
-        })
-        .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
-        })
     },
 
     // 新規作成 or 編集ダイアログclose
@@ -286,19 +292,18 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const postUrl =
-        GATEWAYS_API_URL + '/' + this.editedItem.gateway_id + '/delete'
+      const url = GATEWAYS_API_URL + this.editedItem.gateway_id + '/'
 
       const client = createBaseApiClient()
       await client
-        .post(postUrl)
+        .delete(url)
         .then(() => {
           this.dialogDelete = false
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 

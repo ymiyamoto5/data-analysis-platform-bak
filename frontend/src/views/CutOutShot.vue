@@ -19,13 +19,13 @@
           <DisplacementRangeSlider
             v-if="dataSelected"
             @input="setDisplacementRange"
-            :targetDir="targetDir"
+            :targetDateStr="targetDateStr"
           ></DisplacementRangeSlider>
         </v-col>
         <v-col cols="9">
           <ChartCard
             :machineId="machineId"
-            :targetDir="targetDir"
+            :targetDateStr="targetDateStr"
             :startDisplacement="startDisplacement"
             :endDisplacement="endDisplacement"
             :page="page"
@@ -69,8 +69,8 @@ import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
 import ChartCard from '@/components/CutOutShot/ChartCard.vue'
 import DisplacementRangeSlider from '@/components/CutOutShot/DisplacementRangeSlider.vue'
 
-const TARGET_DIR_API_URL = '/api/v1/target_dir'
-const CUT_OUT_SHOT_API_URL = '/api/v1/cut_out_shot'
+const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
+const CUT_OUT_SHOT_API_URL = '/api/v1/cut_out_shot/'
 
 export default {
   components: {
@@ -89,7 +89,7 @@ export default {
       displayPrevPage: false, // グラフを前に戻せるか
       displayNextPage: false, // グラフを先に進められるか
       machineId: '',
-      targetDir: '',
+      targetDateStr: '',
       startDisplacement: 0,
       endDisplacement: 0,
       collectData: '',
@@ -118,17 +118,17 @@ export default {
         .get(TARGET_DIR_API_URL, {
           params: {
             machine_id: this.machineId,
-            targetDate: targetDate,
+            target_date_timestamp: targetDate,
           },
         })
         .then((res) => {
           if (res.data === null) {
             return
           }
-          this.targetDir = res.data
+          this.targetDateStr = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
+          console.log(e.response.data.detail)
         })
     },
     setDisplacementRange(range) {
@@ -144,7 +144,7 @@ export default {
         machine_id: this.machineId,
         start_displacement: this.startDisplacement,
         end_displacement: this.endDisplacement,
-        target_dir: this.targetDir,
+        target_date_str: this.targetDateStr,
       }
 
       const client = createBaseApiClient()
@@ -154,7 +154,7 @@ export default {
           this.running = false
         })
         .catch((e) => {
-          console.log(e.response.data.message)
+          console.log(e.response.data.detail)
         })
     },
     setMaxPage(maxPage) {

@@ -13,7 +13,7 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import { formatDate } from '@/common/common'
 
-const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_history'
+const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_histories/'
 
 export default {
   props: ['value'],
@@ -33,19 +33,17 @@ export default {
       const client = createBaseApiClient()
       let history = []
       await client
-        .get(DATA_COLLECT_HISTORY_API_URL + '/' + machineId)
+        .get(DATA_COLLECT_HISTORY_API_URL + machineId + '/')
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
           // 日付文字列を表示用にフォーマット
           history = res.data.map((obj) => {
-            const started_at = new Date(obj.started_at)
-            obj.started_at = formatDate(started_at)
+            obj.started_at = formatDate(obj.started_at)
 
             if (obj.ended_at !== null) {
-              const ended_at = new Date(obj.ended_at)
-              obj.ended_at = formatDate(ended_at)
+              obj.ended_at = formatDate(obj.ended_at)
             }
             return obj
           })
@@ -53,8 +51,8 @@ export default {
           this.items = history.map((x) => x.started_at + ' - ' + x.ended_at)
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
   },

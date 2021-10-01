@@ -1,30 +1,28 @@
+import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone'
+
+const FORMAT = 'YYYY/MM/DD HH:mm:ss'
+const FORMAT_TIME = 'HH:mm:ss'
+const TIME_ZONE_TOKYO = 'Asia/Tokyo'
+
 // Date型を表示用にフォーマットして返す
 function formatDate(x) {
-  const formatted =
-    x.getFullYear() +
-    '/' +
-    ('00' + (x.getMonth() + 1)).slice(-2) +
-    '/' +
-    ('00' + x.getDate()).slice(-2) +
-    ' ' +
-    ('00' + x.getHours()).slice(-2) +
-    ':' +
-    ('00' + x.getMinutes()).slice(-2) +
-    ':' +
-    ('00' + x.getSeconds()).slice(-2)
-
+  // サーバーから取得した文字列日時をUTCのDateにする
+  const utcDate = parseFromTimeZone(x, { timeZone: 'UTC' })
+  // UTC Dateを表示用フォーマットに変換
+  const formatted = formatToTimeZone(utcDate, FORMAT, {
+    timeZone: TIME_ZONE_TOKYO,
+  })
   return formatted
 }
 
 // Date型の時刻のみフォーマットして返す
 function formatTime(x) {
-  const formatted =
-    ('00' + x.getHours()).slice(-2) +
-    ':' +
-    ('00' + x.getMinutes()).slice(-2) +
-    ':' +
-    ('00' + x.getSeconds()).slice(-2)
-
+  // サーバーから取得した文字列日時をUTCのDateにする
+  const utcDate = parseFromTimeZone(x, { timeZone: 'UTC' })
+  // UTC Dateを表示用フォーマットに変換
+  const formatted = formatToTimeZone(utcDate, FORMAT_TIME, {
+    timeZone: TIME_ZONE_TOKYO,
+  })
   return formatted
 }
 

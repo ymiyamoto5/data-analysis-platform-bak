@@ -17,6 +17,7 @@ from typing import Final
 from datetime import datetime, timedelta
 from pytz import timezone
 from enum import Enum
+
 from backend.common.common_logger import logger
 
 
@@ -26,6 +27,7 @@ ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
 TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
 NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
 NUM_OF_LOAD_SENSOR: Final[int] = 4
+ID_PATTERN: Final[str] = "^[0-9a-zA-Z-]+$"
 
 
 class STATUS(Enum):

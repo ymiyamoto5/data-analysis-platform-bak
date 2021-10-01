@@ -37,7 +37,7 @@
                   v-model="editedItem.machine_type_id"
                   :rules="[rules.required]"
                   item-text="machine_type_name"
-                  item-value="id"
+                  item-value="machine_type_id"
                   :items="machineTypes"
                   label="機種"
                 >
@@ -88,8 +88,8 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-const MACHINES_API_URL = '/api/v1/machines'
-const MACHINE_TYPES_API_URL = '/api/v1/machine_types'
+const MACHINES_API_URL = '/api/v1/machines/'
+const MACHINE_TYPES_API_URL = '/api/v1/machine_types/'
 
 export default {
   data: () => ({
@@ -165,19 +165,17 @@ export default {
     // ドロップダウンリスト用データ取得
     fetchMachineTypes: async function() {
       const client = createBaseApiClient()
-      let data = []
       await client
         .get(MACHINE_TYPES_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
           }
-          data = res.data
-          this.machineTypes = data
+          this.machineTypes = res.data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 
@@ -194,8 +192,8 @@ export default {
           this.machines = data
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 
@@ -212,39 +210,47 @@ export default {
       if (!this.$refs.form_group.validate()) {
         return
       }
-      let postUrl = ''
-      let postData = {}
+
+      let url = ''
+      let body = {}
+      const client = createBaseApiClient()
+
       // update
       if (this.editedIndex > -1) {
-        postUrl =
-          MACHINES_API_URL + '/' + this.editedItem.machine_id + '/update'
-        postData = {
+        url = MACHINES_API_URL + this.editedItem.machine_id + '/'
+        body = {
           machine_name: this.editedItem.machine_name,
           machine_type_id: this.editedItem.machine_type_id,
         }
+        await client
+          .put(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            console.log(e.response.data.detail)
+            this.errorDialog(e.response.data.detail)
+          })
       }
       // insert
       else {
-        postUrl = MACHINES_API_URL
-        postData = {
+        url = MACHINES_API_URL
+        body = {
           machine_id: this.editedItem.machine_id,
           machine_name: this.editedItem.machine_name,
           machine_type_id: this.editedItem.machine_type_id,
         }
+        await client
+          .post(url, body)
+          .then(() => {
+            this.dialog = false
+            this.fetchTableData()
+          })
+          .catch((e) => {
+            this.errorDialog(e.response.data.detail)
+          })
       }
-
-      const client = createBaseApiClient()
-      await client
-        .post(postUrl, postData)
-        .then(() => {
-          // this.close()
-          this.dialog = false
-          this.fetchTableData()
-        })
-        .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
-        })
     },
 
     // 新規作成 or 編集ダイアログclose
@@ -267,19 +273,18 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const postUrl =
-        MACHINES_API_URL + '/' + this.editedItem.machine_id + '/delete'
+      const url = MACHINES_API_URL + this.editedItem.machine_id + '/'
 
       const client = createBaseApiClient()
       await client
-        .post(postUrl)
+        .delete(url)
         .then(() => {
           this.dialogDelete = false
           this.fetchTableData()
         })
         .catch((e) => {
-          console.log(e.response.data.message)
-          this.errorDialog(e.response.data.message)
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
         })
     },
 

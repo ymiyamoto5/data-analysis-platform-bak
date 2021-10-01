@@ -19,7 +19,7 @@ from backend.common.common import TIMESTAMP_MAX
 
 
 class TestGetTargetInterval:
-    def test_setup_end_are_set(self, handler):
+    def test_setup_end_are_set(self):
         """start_timeとend_timeの設定が正しく行われること"""
 
         setup_time: datetime = datetime.now()
@@ -32,14 +32,14 @@ class TestGetTargetInterval:
             {"event_type": "stop", "occurred_time": end_time_str},
         ]
 
-        dr = DataRecorder(machine_id="machine-01", handler=handler)
+        dr = DataRecorder(machine_id="machine-01")
         actual = dr._get_target_interval(events)
 
         expected = (setup_time.timestamp(), end_time.timestamp() + 5.0)
 
         assert actual == expected
 
-    def test_end_is_not_set(self, handler):
+    def test_end_is_not_set(self):
         """setup_timeのみが設定されている場合、end_timeはmaxとして設定される"""
 
         setup_time: datetime = datetime.now()
@@ -49,7 +49,7 @@ class TestGetTargetInterval:
             {"event_type": "setup", "occurred_time": setup_time_str},
         ]
 
-        dr = DataRecorder(machine_id="machine-01", handler=handler)
+        dr = DataRecorder(machine_id="machine-01")
 
         actual = dr._get_target_interval(events)
 
@@ -57,10 +57,10 @@ class TestGetTargetInterval:
 
         assert actual == expected
 
-    def test_is_not_setuped(self, handler):
+    def test_is_not_setuped(self):
         """setup_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
-        dr = DataRecorder(machine_id="machine-01", handler=handler)
+        dr = DataRecorder(machine_id="machine-01")
 
         events = []
 
@@ -69,11 +69,11 @@ class TestGetTargetInterval:
 
 
 class TestSetTimestamp:
-    def test_first_process(self, handler, mocker):
+    def test_first_process(self, mocker):
         """正常系：データ収集開始後、最初のプロセス"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id=machine_id, handler=handler)
+        dr = DataRecorder(machine_id=machine_id)
 
         mocker.patch.object(ElasticManager, "get_docs", return_value=[])
         started_timestamp: float = datetime(2020, 12, 16, 8, 0, 58, 0).timestamp()
@@ -83,11 +83,11 @@ class TestSetTimestamp:
 
         assert actual == expected
 
-    def test_not_first_prcess(self, handler, mocker):
+    def test_not_first_prcess(self, mocker):
         """正常系：データ収集開始後、2回目以降のプロセス"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id=machine_id, handler=handler)
+        dr = DataRecorder(machine_id=machine_id)
 
         return_value = [{"timestamp": datetime(2020, 12, 16, 8, 1, 58, 0).timestamp()}]
 
@@ -102,11 +102,11 @@ class TestSetTimestamp:
 
 
 class TestReadBinaryFiles:
-    def test_normal(self, handler, dat_files):
+    def test_normal(self, dat_files):
         """正常系：バイナリファイルが正常に読めること"""
 
         machine_id: str = "machine-01"
-        dr = DataRecorder(machine_id=machine_id, handler=handler)
+        dr = DataRecorder(machine_id=machine_id)
 
         file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
         file = file_infos[0]

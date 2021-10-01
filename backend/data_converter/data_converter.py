@@ -1,10 +1,13 @@
 from typing import Callable
-from backend.data_collect_manager.models.sensor import Sensor
+from backend.app.models.sensor import Sensor
+from pandas.core.frame import DataFrame
+from datetime import datetime
+from backend.common.common_logger import logger
 
 
 class DataConverter:
-    @classmethod
-    def get_physical_conversion_formula(cls, sensor: Sensor) -> Callable[[float], float]:
+    @staticmethod
+    def get_physical_conversion_formula(sensor: Sensor) -> Callable[[float], float]:
         """センサー種別に応じた物理変換式を返却する"""
 
         if sensor.sensor_type_id == "load":
@@ -13,7 +16,7 @@ class DataConverter:
 
             return lambda v: base_load / base_volt * v
 
-        elif sensor.sensor_type_id == "bolt":
+        elif sensor.sensor_type_id == "volt":
             base_volt = sensor.base_volt
             base_load = sensor.base_load
             initial_volt: float = sensor.initial_volt
@@ -28,3 +31,36 @@ class DataConverter:
 
         else:
             return lambda v: v
+
+    @staticmethod
+    def down_sampling_df(df: DataFrame, sampling_frequency: int, n: int) -> DataFrame:
+        """データ収集時のサンプリング間隔を元に、n倍のダウンサンプリングする
+        ex) 元のsampling_frequency=100,000(間隔10μs) をn=1,000(倍)ダウンサンプリング --> リサンプリング間隔100ms
+            元のsampling_frequency=1,000(間隔1ms) をn=1,000(倍)ダウンサンプリング --> リサンプリング間隔1s
+        """
+
+        # n < 1、つまりアップサンプリングは許可しない
+        if n < 1:
+            logger.error(f"Invalid parameter 'n'={n}. 'n' should be greater than 1.")
+            return df
+
+        # timestampを日時に戻しdaterange indexとする。
+        df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+        df = df.set_index(["timestamp"])
+
+        sampling_interval: float = 1 / sampling_frequency
+        resampling_interval: float = sampling_interval * n
+
+        # ミリ秒未満、例えば10μ秒⇒1μ秒等のリサンプリングは対応しない。最も粒度の細かい1ms秒に強制する。
+        if resampling_interval < 1e-3:
+            logger.warn(f"Invalid resampling_interval={resampling_interval}.")
+            resampling_interval_str = "1ms"
+        elif resampling_interval < 1:
+            resampling_interval_str = str(int(resampling_interval * 1000)) + "ms"
+        else:
+            resampling_interval_str = str(int(resampling_interval)) + "s"
+
+        df = df.resample(resampling_interval_str).mean()
+        df = df.reset_index()
+
+        return df
