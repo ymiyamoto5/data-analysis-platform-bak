@@ -25,7 +25,7 @@ def target():
     machine_id = "machine-01"
     target_date_str = "20201201103011"
 
-    instance = CutOutShot(machine_id=machine_id, target=target_date_str)
+    instance = CutOutShot(machine_id=machine_id, target=target_date_str, db=SessionLocal())
 
     yield instance
 
