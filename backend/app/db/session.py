@@ -1,9 +1,9 @@
 from typing import Final
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
+
 from backend.common import common
-from sqlalchemy import event
+from sqlalchemy import create_engine, event
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 app_config_path: str = common.APP_CONFIG_PATH
 SQLALCHEMY_DATABASE_URI: Final[str] = common.get_config_value(app_config_path, "SQLALCHEMY_DATABASE_URI")

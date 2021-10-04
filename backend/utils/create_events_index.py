@@ -1,7 +1,8 @@
 import os
 import sys
-import pandas as pd
 from datetime import datetime, timedelta
+
+import pandas as pd
 
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))

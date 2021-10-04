@@ -9,13 +9,14 @@
 
 """
 
-import pytest
-import pandas as pd
 from datetime import datetime
-from pandas.core.frame import DataFrame
 from typing import List
-from backend.cut_out_shot.cut_out_shot import CutOutShot
+
+import pandas as pd
+import pytest
 from backend.app.db.session import SessionLocal
+from backend.cut_out_shot.cut_out_shot import CutOutShot
+from pandas.core.frame import DataFrame
 
 
 @pytest.fixture()

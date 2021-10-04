@@ -1,13 +1,15 @@
-from typing import List
 from datetime import datetime
-from sqlalchemy import desc
-from backend.app.models.machine import Machine
-from backend.app.models.handler import Handler
-from backend.app.models.sensor import Sensor
-from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from typing import List
+
 from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_detail import \
+    DataCollectHistoryDetail
+from backend.app.models.handler import Handler
+from backend.app.models.machine import Machine
+from backend.app.models.sensor import Sensor
 from backend.common import common
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 

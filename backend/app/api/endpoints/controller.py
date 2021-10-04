@@ -1,19 +1,20 @@
+import glob
 import os
 import time
-import glob
 import traceback
-from typing import Optional, List, Tuple, Final
 from datetime import datetime
-from fastapi import Depends, APIRouter, HTTPException, Path
-from sqlalchemy.orm import Session
-from backend.common import common
-from backend.common.error_message import ErrorMessage, ErrorTypes
-from backend.common.common_logger import uvicorn_logger as logger
-from backend.app.models.machine import Machine
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.crud.crud_controller import CRUDController
-from backend.event_manager.event_manager import EventManager
+from typing import Final, List, Optional, Tuple
+
 from backend.app.api.deps import get_db
+from backend.app.crud.crud_controller import CRUDController
+from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.models.machine import Machine
+from backend.common import common
+from backend.common.common_logger import uvicorn_logger as logger
+from backend.common.error_message import ErrorMessage, ErrorTypes
+from backend.event_manager.event_manager import EventManager
+from fastapi import APIRouter, Depends, HTTPException, Path
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

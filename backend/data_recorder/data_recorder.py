@@ -9,25 +9,26 @@
 
 """
 
+import argparse
 import multiprocessing
 import os
-import sys
 import shutil
 import struct
+import sys
 import time
 import traceback
 from datetime import datetime
-from typing import Final, Tuple, List, Optional, Any
-import argparse
+from typing import Any, Final, List, Optional, Tuple
+
+from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.db.session import SessionLocal
-from sqlalchemy.orm import Session
+from backend.app.models.machine import Machine
+from backend.common import common
+from backend.common.common_logger import data_recorder_logger as logger
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
-from backend.file_manager.file_manager import FileManager, FileInfo
-from backend.common import common
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.models.machine import Machine
-from backend.common.common_logger import data_recorder_logger as logger
+from backend.file_manager.file_manager import FileInfo, FileManager
+from sqlalchemy.orm import Session
 
 
 class DataRecorder:

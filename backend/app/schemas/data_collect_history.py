@@ -1,8 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import List, Optional
+
+from backend.app.schemas.data_collect_history_detail import (
+    DataCollectHistoryDetail, DataCollectHistoryDetailUpdate)
 from backend.common import common
-from typing import Optional, List
-from backend.app.schemas.data_collect_history_detail import DataCollectHistoryDetail, DataCollectHistoryDetailUpdate
+from pydantic import BaseModel, Field
 
 
 class DataCollectHistoryBase(BaseModel):

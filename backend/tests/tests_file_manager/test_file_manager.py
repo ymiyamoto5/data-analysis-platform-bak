@@ -1,7 +1,8 @@
 import pathlib
 from datetime import datetime, timedelta
+
 from backend.elastic_manager.elastic_manager import ElasticManager
-from backend.file_manager.file_manager import FileManager, FileInfo
+from backend.file_manager.file_manager import FileInfo, FileManager
 
 
 class TestCreateFileTimestamp:
