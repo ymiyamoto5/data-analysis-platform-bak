@@ -74,3 +74,12 @@ class FileManager:
         pickle_filename: str = os.path.splitext(os.path.basename(file.file_path))[0]
         pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
+
+    @staticmethod
+    def get_files(dir_path: str, pattern: str) -> List[str]:
+        """指定したディレクトリから、指定した形式のファイル名に一致するファイル名リストを取得する"""
+
+        files: List[str] = glob.glob(os.path.join(dir_path, pattern))
+        files.sort()
+
+        return files
