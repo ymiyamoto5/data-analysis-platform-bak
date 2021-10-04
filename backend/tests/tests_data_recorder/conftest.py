@@ -9,12 +9,13 @@
 
 """
 
-import pytest
-import pathlib
 import dataclasses
+import pathlib
 import struct
-from backend.app.models.handler import Handler
+
+import pytest
 from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.models.handler import Handler
 
 
 @dataclasses.dataclass

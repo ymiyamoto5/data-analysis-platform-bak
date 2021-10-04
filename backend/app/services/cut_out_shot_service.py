@@ -1,12 +1,13 @@
 import os
-import pandas as pd
 from datetime import datetime
-from typing import Optional, List
-from backend.common import common
-from backend.file_manager.file_manager import FileManager, FileInfo
+from typing import List, Optional
+
+import pandas as pd
 from backend.app.models.sensor import Sensor
-from pandas.core.frame import DataFrame
+from backend.common import common
 from backend.data_converter.data_converter import DataConverter
+from backend.file_manager.file_manager import FileInfo, FileManager
+from pandas.core.frame import DataFrame
 
 
 class CutOutShotService:

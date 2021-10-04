@@ -9,13 +9,14 @@
 
 """
 
-import pytest
-import pandas as pd
-from pandas.core.frame import DataFrame
 from typing import List, Optional, Tuple
-from pandas.testing import assert_frame_equal
+
+import pandas as pd
+import pytest
 from backend.analyzer.analyzer import Analyzer
 from backend.elastic_manager.elastic_manager import ElasticManager
+from pandas.core.frame import DataFrame
+from pandas.testing import assert_frame_equal
 
 
 class TestExtractBreakChannels:

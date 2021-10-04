@@ -9,11 +9,12 @@
 
 """
 
-import pytest
-import pandas as pd
 from datetime import datetime
-from pandas.core.frame import DataFrame
 from typing import List
+
+import pandas as pd
+import pytest
+from pandas.core.frame import DataFrame
 
 
 @pytest.fixture

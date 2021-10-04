@@ -1,8 +1,9 @@
-from typing import Callable
-from backend.app.models.sensor import Sensor
-from pandas.core.frame import DataFrame
 from datetime import datetime
+from typing import Callable
+
+from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
+from pandas.core.frame import DataFrame
 
 
 class DataConverter:

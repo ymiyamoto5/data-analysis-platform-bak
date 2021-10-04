@@ -12,8 +12,8 @@
 
 try:
     __IPYTHON__  # type: ignore # Jupyter/IPythonでインタラクティブにグラフ描画可能な環境でのみ実行。__IPYTHON__が定義されていない環境ではNameErrorが発生し以下は実行されない。
-    from bokeh.plotting import figure, show, output_notebook
     from bokeh.models import Range1d
+    from bokeh.plotting import figure, output_notebook, show
 
     output_notebook()
 except NameError:

@@ -10,11 +10,12 @@
 """
 
 from typing import List
-from pandas.core.frame import DataFrame
+
 import pandas as pd
-from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.common import common
 from backend.common.common_logger import logger
+from backend.elastic_manager.elastic_manager import ElasticManager
+from pandas.core.frame import DataFrame
 
 
 class DataReader:
