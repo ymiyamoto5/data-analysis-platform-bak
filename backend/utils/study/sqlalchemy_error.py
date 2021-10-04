@@ -1,10 +1,11 @@
 # https://stackoverflow.com/questions/32922210/why-does-a-query-invoke-a-auto-flush-in-sqlalchemy
 
-import os.path
 import os
+import os.path
+
 import sqlalchemy as sa
-import sqlalchemy.orm as sao
 import sqlalchemy.ext.declarative as sad
+import sqlalchemy.orm as sao
 from sqlalchemy_utils import create_database  # type: ignore
 
 _Base = sad.declarative_base()

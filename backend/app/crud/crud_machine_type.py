@@ -1,4 +1,5 @@
 from typing import List
+
 from backend.app.models.machine_type import MachineType
 from sqlalchemy.orm import Session
 

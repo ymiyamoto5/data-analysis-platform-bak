@@ -1,13 +1,14 @@
+import traceback
 from typing import List
-from backend.app.crud.crud_gateway import CRUDGateway
-from fastapi import Depends, APIRouter, HTTPException, Path
-from sqlalchemy.orm import Session
+
 from backend.app.api.deps import get_db
+from backend.app.crud.crud_gateway import CRUDGateway
 from backend.app.schemas import gateway
 from backend.common import common
-from backend.common.error_message import ErrorMessage, ErrorTypes
-import traceback
 from backend.common.common_logger import uvicorn_logger as logger
+from backend.common.error_message import ErrorMessage, ErrorTypes
+from fastapi import APIRouter, Depends, HTTPException, Path
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

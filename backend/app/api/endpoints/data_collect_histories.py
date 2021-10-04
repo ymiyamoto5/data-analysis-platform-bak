@@ -1,16 +1,17 @@
-from typing import List
-from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
-from backend.app.schemas import data_collect_history
-from backend.app.services.data_collect_history_service import DataCollectHistoryService
-from backend.common import common
-from fastapi import Depends, APIRouter, Path, HTTPException
-from sqlalchemy.orm import Session
-from backend.app.api.deps import get_db
-from backend.common.error_message import ErrorMessage, ErrorTypes
 import traceback
-from backend.common.common_logger import uvicorn_logger as logger
+from typing import List
 
+from backend.app.api.deps import get_db
+from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.schemas import data_collect_history
+from backend.app.services.data_collect_history_service import \
+    DataCollectHistoryService
+from backend.common import common
+from backend.common.common_logger import uvicorn_logger as logger
+from backend.common.error_message import ErrorMessage, ErrorTypes
+from fastapi import APIRouter, Depends, HTTPException, Path
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

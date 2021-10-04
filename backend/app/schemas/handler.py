@@ -1,7 +1,8 @@
 from typing import List, Optional
+
 from backend.app.schemas.sensor import Sensor
-from pydantic import BaseModel, Field
 from backend.common import common
+from pydantic import BaseModel, Field
 
 
 class HandlerBase(BaseModel):
