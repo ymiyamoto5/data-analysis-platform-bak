@@ -15,7 +15,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-import glob
+from backend.file_manager.file_manager import FileManager
 from typing import Callable, Final, List, Optional
 from datetime import datetime
 from pandas.core.frame import DataFrame
@@ -167,14 +167,6 @@ class CutOutShot:
     @shots_meta_df.setter
     def shots_meta_df(self, shots_meta_df: DataFrame):
         self.__shots_meta_df = shots_meta_df
-
-    def _get_pickle_list(self, rawdata_dir_path: str) -> List[str]:
-        """取り込むファイルのリストを取得する"""
-
-        pickle_file_list: List[str] = glob.glob(os.path.join(rawdata_dir_path, f"{self.__machine_id}_*.pkl"))
-        pickle_file_list.sort()
-
-        return pickle_file_list
 
     @staticmethod
     def _exclude_non_target_interval(
@@ -463,7 +455,9 @@ class CutOutShot:
             logger.error(f"Directory not found. {rawdata_dir_path}")
             sys.exit(1)
 
-        pickle_files: List[str] = self._get_pickle_list(rawdata_dir_path)
+        pickle_files: List[str] = FileManager.get_files(
+            dir_path=rawdata_dir_path, pattern=f"{self.__machine_id}_*.pkl"
+        )
 
         if len(pickle_files) == 0:
             logger.error("pickle files not found.")
