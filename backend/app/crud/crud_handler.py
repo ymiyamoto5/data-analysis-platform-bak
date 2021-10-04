@@ -1,10 +1,10 @@
-from typing import List, Dict, Union, Any
+from typing import Any, Dict, List, Union
+
+from backend.app.crud.crud_gateway import CRUDGateway
 from backend.app.models.handler import Handler
 from backend.app.models.sensor import Sensor
-from backend.app.crud.crud_gateway import CRUDGateway
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm import Session
 from backend.app.schemas import handler
+from sqlalchemy.orm import Session, joinedload
 
 
 class CRUDHandler:

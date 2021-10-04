@@ -1,13 +1,8 @@
+from backend.app.api.endpoints import (controller, cut_out_shot,
+                                       data_collect_histories, gateways,
+                                       handlers, machine_types, machines,
+                                       sensor_types, sensors)
 from fastapi import APIRouter
-from backend.app.api.endpoints import machines
-from backend.app.api.endpoints import machine_types
-from backend.app.api.endpoints import gateways
-from backend.app.api.endpoints import handlers
-from backend.app.api.endpoints import sensors
-from backend.app.api.endpoints import sensor_types
-from backend.app.api.endpoints import controller
-from backend.app.api.endpoints import cut_out_shot
-from backend.app.api.endpoints import data_collect_histories
 
 api_router = APIRouter()
 

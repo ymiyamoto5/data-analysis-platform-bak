@@ -1,5 +1,5 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
 from backend.app.db.session import Base
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 

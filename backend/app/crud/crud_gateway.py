@@ -1,11 +1,11 @@
-from typing import List, Dict, Union, Any
+from typing import Any, Dict, List, Union
+
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.sensor import Sensor
-from sqlalchemy.orm import joinedload
-from backend.common import common
-from sqlalchemy.orm import Session
 from backend.app.schemas import gateway
+from backend.common import common
+from sqlalchemy.orm import Session, joinedload
 
 
 class CRUDGateway:

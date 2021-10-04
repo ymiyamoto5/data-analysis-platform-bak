@@ -1,7 +1,8 @@
 import os
 import sys
+from logging import Logger, config, getLogger
+
 import yaml
-from logging import config, getLogger, Logger
 
 CONF_FILE_NAME = "logging.conf"
 ENV_KEY: str = "LOGGING_CONF"
