@@ -145,3 +145,51 @@ class TestGetNotTargetFiles:
         expected = []
 
         assert actual == expected
+
+
+class TestGetFiles:
+    def test_normal_1(self, tmp_path):
+
+        machine_id = "machine-01"
+
+        tmp_file_1 = tmp_path / f"{machine_id}_AD-00_20201216-080001.853297.pkl"
+        tmp_file_2 = tmp_path / f"{machine_id}_AD-00_20201216-080000.280213.pkl"
+        tmp_file_3 = tmp_path / f"{machine_id}_AD-00_20201216-075958.708968.pkl"
+
+        tmp_file_1.write_text("")
+        tmp_file_2.write_text("")
+        tmp_file_3.write_text("")
+
+        actual = FileManager.get_files(tmp_path, pattern=f"{machine_id}_*.pkl")
+
+        expected = [
+            tmp_file_3._str,
+            tmp_file_2._str,
+            tmp_file_1._str,
+        ]
+
+        assert actual == expected
+
+    def test_normal_2(self, tmp_path):
+
+        machine_id = "machine-01"
+
+        tmp_file_1 = tmp_path / f"{machine_id}_AD-00_20201216-075958.708968.pkl"
+        tmp_file_2 = tmp_path / f"{machine_id}_AD-00_20201216-075958.708968.dat"
+        tmp_file_3 = tmp_path / f"{machine_id}_AD-00_20201216-080000.280213.pkl"
+        tmp_file_4 = tmp_path / f"{machine_id}_AD-00_20201216-080001.853297.pkl"
+
+        tmp_file_1.write_text("")
+        tmp_file_2.write_text("")
+        tmp_file_3.write_text("")
+        tmp_file_4.write_text("")
+
+        actual = FileManager.get_files(tmp_path, pattern=f"{machine_id}_*.pkl")
+
+        expected = [
+            tmp_file_1._str,
+            tmp_file_3._str,
+            tmp_file_4._str,
+        ]
+
+        assert actual == expected
