@@ -40,7 +40,9 @@ class DisplacementCutter:
         return self.__is_target_of_cut_out and (displacement <= self.__end_displacement)
 
     def _add_cut_out_target(self, rawdata) -> None:
-        """切り出し対象としてデータを追加"""
+        """切り出し対象としてデータを追加
+        TODO: 共通化
+        """
 
         cut_out_target: dict = {
             "timestamp": rawdata.timestamp,

@@ -43,7 +43,6 @@ class CutOutShot:
         cutter: Union[DisplacementCutter, PulseCutter],
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
-        previous_size: int = 1000,
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
@@ -52,14 +51,10 @@ class CutOutShot:
     ):
         self.__machine_id = machine_id
         self.__rawdata_dir_name = machine_id + "-" + target
-        self.__previous_size: int = previous_size
         self.__min_spm: int = min_spm
         self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
-        self.__shot_number: int = 0
-        self.__previous_shot_start_time: Optional[float] = None
-        self.__previous_df_tail: DataFrame = pd.DataFrame()
         self.__shots_meta_df: DataFrame = pd.DataFrame(
             columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
         )
@@ -76,9 +71,6 @@ class CutOutShot:
             self.__max_samples_per_shot: int = int(60 / self.__min_spm) * history.sampling_frequency
             # DataCollectHistoryDetailはセンサー毎の設定値
             self.__sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
-            # pulse判定
-            # sensor_types: List[str] = [sensor.sensor_type_id for sensor in self.__sensors]
-            # self.__is_pulse: bool = "pulse" in sensor_types
 
         except Exception:
             logger.error(traceback.format_exc())
@@ -88,23 +80,6 @@ class CutOutShot:
         self.cutter.set_sensors(sensors=self.__sensors)
 
     # テスト用の公開プロパティ
-
-    @property
-    def previous_size(self):
-        return self.__previous_size
-
-    @previous_size.setter
-    def previous_size(self, previous_size: int):
-        self.__previous_size = previous_size
-
-    @property
-    def previous_df_tail(self):
-        return self.__previous_df_tail
-
-    @previous_df_tail.setter
-    def previous_df_tail(self, previous_df_tail: DataFrame):
-        self.__previous_df_tail = previous_df_tail
-
     @property
     def min_spm(self):
         return self.__min_spm
@@ -138,30 +113,6 @@ class CutOutShot:
         self.__margin = margin
 
     @property
-    def shot_number(self):
-        return self.__shot_number
-
-    @shot_number.setter
-    def shot_number(self, shot_number: int):
-        self.__shot_number = shot_number
-
-    @property
-    def previous_shot_start_time(self):
-        return self.__previous_shot_start_time
-
-    @previous_shot_start_time.setter
-    def previous_shot_start_time(self, previous_shot_start_time: Optional[float]):
-        self.__previous_shot_start_time = previous_shot_start_time
-
-    @property
-    def cut_out_targets(self):
-        return self.__cut_out_targets
-
-    @cut_out_targets.setter
-    def cut_out_targets(self, cut_out_targets: List[dict]):
-        self.__cut_out_targets = cut_out_targets
-
-    @property
     def shots_meta_df(self):
         return self.__shots_meta_df
 
@@ -193,59 +144,6 @@ class CutOutShot:
             df = df[(df["timestamp"] < pause_event["start_time"]) | (pause_event["end_time"] < df["timestamp"])]
 
         return df
-
-    def _backup_df_tail(self, df: DataFrame) -> None:
-        """現在のchunkの末尾を保持する"""
-
-        N: Final[int] = self.__previous_size
-        self.__previous_df_tail = df[-N:].copy()
-
-    # def _get_preceding_df(self, row_number: int, rawdata_df: DataFrame) -> DataFrame:
-    #     """ショット開始点からN件遡ったデータを取得する"""
-
-    #     N: Final[int] = self.__previous_size
-
-    #     # 遡って取得するデータが現在のDataFrameに含まれる場合
-    #     # ex) N=1000で、row_number=1500でショットを検知した場合、rawdata_df[500:1500]を取得
-    #     if row_number >= N:
-    #         start_index: int = row_number - N
-    #         end_index: int = row_number
-    #         return rawdata_df[start_index:end_index]
-
-    #     # 初めのpklでショットを検出し、遡って取得するデータが現在のDataFrameに含まれない場合
-    #     # ex) N=1000で、初めのchunkにおいてrow_number=100でショットを検知した場合、rawdata_df[:100]を取得
-    #     if len(self.__previous_df_tail) == 0:
-    #         return rawdata_df[:row_number]
-
-    #     # 遡って取得するデータが現在のDataFrameに含まれない場合
-    #     # ex) N=1000で、row_number=200でショットを検知した場合、previous_df_tail[200:] + rawdata_df[:200]を取得
-    #     start_index = row_number
-    #     end_index = row_number
-    #     return pd.concat([self.__previous_df_tail[start_index:], rawdata_df[:end_index]], axis=0)
-
-    def _calculate_spm(self, timestamp: float) -> Optional[float]:
-        """spm (shot per minute) 計算。ショット検出時、前ショットの開始時間との差分を計算する。"""
-
-        if self.__previous_shot_start_time is None:
-            logger.error("Invalid process. previous_shot_start_time is None.")
-            sys.exit(1)
-
-        try:
-            # NOTE: 小数点以下計算に誤差があるため、下2桁で丸め
-            spm: Optional[float] = 60.0 / round((timestamp - self.__previous_shot_start_time), 2)
-        except ZeroDivisionError:
-            logger.error(f"ZeroDivisionError. shot_number: {self.__shot_number}")
-            spm = None
-
-        logger.debug(f"shot_number: {self.__shot_number}, spm: {spm}")
-
-        return spm
-
-    # def _include_previous_data(self, preceding_df: DataFrame) -> None:
-    #     """ショット検出時、previous_size分のデータを遡って切り出し対象に含める。荷重立ち上がり点取りこぼし防止のため。"""
-
-    #     for row in preceding_df.itertuples():
-    #         self._add_cut_out_target(row)
 
     def _set_to_none_for_low_spm(self) -> DataFrame:
         """切り出したショットの内、最低spmを下回るショットのspmはNoneに設定する"""
@@ -290,7 +188,7 @@ class CutOutShot:
         try:
             shots_summary_df["spm"] = round(60.0 / shots_summary_df["diff"], 2)
         except ZeroDivisionError:
-            logger.error(f"ZeroDivisionError. shot_number: {self.__shot_number}")
+            logger.error(traceback.format_exc())
 
         self.__shots_meta_df = shots_summary_df.drop(columns=["diff"])
 
@@ -298,8 +196,6 @@ class CutOutShot:
         """ショットメタデータをshots_metaインデックスに出力"""
 
         self.__shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
-        # shots_meta_df = shots_meta_df.astype({"shot_number": int, "num_of_samples_in_cut_out": int})
-
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
         ElasticManager.bulk_insert(shots_meta_data, shots_meta_index)
@@ -382,8 +278,8 @@ class CutOutShot:
 
         Args:
             rawdata_filename: 生データcsvのファイル名
-            start_displacement: ショット開始となる変位値
-            end_displacement: ショット終了となる変位値
+            start_sequential_number: 開始位置
+            end_sequential_number: 終了位置
         """
 
         logger.info("Cut out shot start.")
@@ -484,8 +380,6 @@ class CutOutShot:
 
             if len(rawdata_df) == 0:
                 logger.info(f"All data was excluded by pause interval. {pickle_file}")
-                # self.__previous_df_tailを空にしておく
-                self._backup_df_tail(rawdata_df)
                 continue
 
             # NOTE: 変換式適用.パフォーマンス的には変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
@@ -494,9 +388,6 @@ class CutOutShot:
 
             # ショット切り出し
             self.cutter.cut_out_shot(rawdata_df)
-
-            # 現在のファイルに含まれる末尾データをバックアップ。ファイル開始直後にショットを検知した場合、このバックアップからデータを得る。
-            self._backup_df_tail(rawdata_df)
 
             # スループット表示
             if loop_count != 0:
@@ -569,8 +460,6 @@ if __name__ == "__main__":
         target=target,
         min_spm=15,
         back_seconds_for_tagging=120,
-        previous_size=1_000,
-        chunk_size=5_000,
         db=db,
     )
 
