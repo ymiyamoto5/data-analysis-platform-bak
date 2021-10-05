@@ -88,7 +88,7 @@ import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
 const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor/'
 const CUT_OUT_SHOT_DISPLACEMENT_API_URL = '/api/v1/cut_out_shot/displacement/'
-// const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse/'
+const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse/'
 
 export default {
   components: {
@@ -176,8 +176,6 @@ export default {
             return
           }
           this.cutOutSensor = res.data.cut_out_sensor
-          console.log(this.cutOutSensor)
-          // this.$set(this.cutOutSensor, res.data.cut_out_sensor)
         })
         .catch((e) => {
           console.log(e.response.data.detail)
@@ -198,16 +196,28 @@ export default {
       this.started = true
       this.running = true
 
-      const postData = {
-        machine_id: this.machineId,
-        start_displacement: this.startDisplacement,
-        end_displacement: this.endDisplacement,
-        target_date_str: this.targetDateStr,
+      let url = ''
+      let postData = {}
+      if (this.cutOutSensor === 'displacement') {
+        url = CUT_OUT_SHOT_DISPLACEMENT_API_URL
+        postData = {
+          machine_id: this.machineId,
+          start_displacement: this.startDisplacement,
+          end_displacement: this.endDisplacement,
+          target_date_str: this.targetDateStr,
+        }
+      } else if (this.cutOutSensor === 'pulse') {
+        url = CUT_OUT_SHOT_PULSE_API_URL
+        postData = {
+          machine_id: this.machineId,
+          threshold: this.threshold,
+          target_date_str: this.targetDateStr,
+        }
       }
 
       const client = createBaseApiClient()
       await client
-        .post(CUT_OUT_SHOT_DISPLACEMENT_API_URL, postData)
+        .post(url, postData)
         .then(() => {
           this.running = false
         })
