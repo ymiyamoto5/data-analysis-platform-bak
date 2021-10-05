@@ -29,9 +29,15 @@ export default {
   components: {
     Chart,
   },
+  // 初回表示時に必要
+  mounted() {
+    this.loaded = false
+    this.fetchData()
+  },
   watch: {
     machineId: function() {},
     targetDateStr: function() {
+      console.log('change!!!')
       this.loaded = false
       this.fetchData()
     },
@@ -139,9 +145,9 @@ export default {
           }
           this.responseData = res.data.data
           this.maxPage = res.data.fileCount
-          this.$emit('setMaxPage', this.maxPage)
           this.createChartData(this.responseData)
           this.loaded = true
+          this.$emit('setMaxPage', this.maxPage)
         })
         .catch((e) => {
           console.log(e.response.data.detail)
@@ -149,7 +155,6 @@ export default {
     },
     createChartData: function(data) {
       // x軸データ
-      // let xData = data.map((x) => new Date(x.timestamp))
       let xData = data.map((x) => formatTime(x.timestamp))
       // y軸データ
       const displacementData = data.map((x) => x.displacement)

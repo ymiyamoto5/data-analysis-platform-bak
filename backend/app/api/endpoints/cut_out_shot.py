@@ -26,6 +26,27 @@ def fetch_target_date_str(target_date_timestamp: str = Query(...)):
     return target_dir_name
 
 
+@router.get("/cut_out_sensor")
+def fetch_cut_out_sensor(
+    machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN),
+    target_date_str: str = Query(...),  # yyyyMMddHHMMSS文字列
+    db: Session = Depends(get_db),
+):
+    """切り出しの基準となるセンサーが変位、パルスどちらであるかを返す"""
+
+    # 機器に紐づく設定値を履歴から取得
+    history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
+        db, machine_id, target_date_str
+    )
+
+    # NOTE: 切り出しの基準となるセンサーはただひとつのみ存在する前提
+    cut_out_sensor = [
+        sensor for sensor in history.data_collect_history_details if sensor.sensor_type_id in ("displacement", "pulse")
+    ][0]
+
+    return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
+
+
 @router.get("/shots")
 def fetch_shots(
     machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN),

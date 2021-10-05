@@ -17,17 +17,31 @@
       <v-row dense>
         <v-col cols="1">
           <DisplacementRangeSlider
-            v-if="dataSelected"
+            v-if="dataSelected && cutOutSensor === 'displacement'"
             @input="setDisplacementRange"
             :targetDateStr="targetDateStr"
           ></DisplacementRangeSlider>
+          <ThresholdSlider
+            v-if="dataSelected && cutOutSensor === 'pulse'"
+            @input="setThreshold"
+            :targetDateStr="targetDateStr"
+          ></ThresholdSlider>
         </v-col>
         <v-col cols="9">
-          <ChartCard
+          <ChartCardDisplacement
+            v-if="cutOutSensor === 'displacement'"
             :machineId="machineId"
             :targetDateStr="targetDateStr"
             :startDisplacement="startDisplacement"
             :endDisplacement="endDisplacement"
+            :page="page"
+            @setMaxPage="setMaxPage"
+          />
+          <ChartCardPulse
+            v-if="cutOutSensor === 'pulse'"
+            :machineId="machineId"
+            :targetDateStr="targetDateStr"
+            :threshold="threshold"
             :page="page"
             @setMaxPage="setMaxPage"
           />
@@ -66,10 +80,13 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import MachineSelect from '@/components/CutOutShot/MachineSelect.vue'
 import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
-import ChartCard from '@/components/CutOutShot/ChartCard.vue'
+import ChartCardDisplacement from '@/components/CutOutShot/ChartCardDisplacement.vue'
+import ChartCardPulse from '@/components/CutOutShot/ChartCardPulse.vue'
 import DisplacementRangeSlider from '@/components/CutOutShot/DisplacementRangeSlider.vue'
+import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
+const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor/'
 const CUT_OUT_SHOT_DISPLACEMENT_API_URL = '/api/v1/cut_out_shot/displacement/'
 // const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse/'
 
@@ -77,8 +94,10 @@ export default {
   components: {
     MachineSelect,
     DisplacementRangeSlider,
+    ThresholdSlider,
     CollectDataSelect,
-    ChartCard,
+    ChartCardDisplacement,
+    ChartCardPulse,
   },
   data() {
     return {
@@ -90,19 +109,26 @@ export default {
       displayPrevPage: false, // グラフを前に戻せるか
       displayNextPage: false, // グラフを先に進められるか
       machineId: '',
-      targetDateStr: '',
-      startDisplacement: 0,
-      endDisplacement: 0,
-      collectData: '',
+      targetDateStr: '', // yyyyMMdd文字列
+      cutOutSensor: '', // 切り出し対象となるセンサー種（変位またはパルス）
+      startDisplacement: 0, // 変位センサーで切り出す場合のショット開始変位値
+      endDisplacement: 0, // 変位センサーで切り出す場合のショット終了変位値
+      threshold: 0, // パルスで切り出す場合のしきい値
+      collectData: '', // データ収集開始日時 - 終了日時文字列
     }
   },
   methods: {
     setMachine(value) {
+      this.dataSelected = false
+      this.targetDateStr = ''
+      this.cutOutSensor = ''
       this.machineId = value
     },
     setCollectData(value) {
       this.collectData = value
       this.dataSelected = true
+      this.targetDateStr = ''
+      this.cutOutSensor = ''
       this.fetchTargetDir()
       this.page = 0
       this.maxPage = 0
@@ -127,15 +153,46 @@ export default {
             return
           }
           this.targetDateStr = res.data
+          // 切り出し対象センサー特定
+          this.fetchCutOutSensor()
         })
         .catch((e) => {
           console.log(e.response.data.detail)
         })
     },
+
+    // 切り出しの基準となるセンサー特定
+    fetchCutOutSensor: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(CUT_OUT_SENSOR_API_URL, {
+          params: {
+            machine_id: this.machineId,
+            target_date_str: this.targetDateStr,
+          },
+        })
+        .then((res) => {
+          if (res.data === null) {
+            return
+          }
+          this.cutOutSensor = res.data.cut_out_sensor
+          console.log(this.cutOutSensor)
+          // this.$set(this.cutOutSensor, res.data.cut_out_sensor)
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+        })
+    },
+
     setDisplacementRange(range) {
       this.startDisplacement = range[1]
       this.endDisplacement = range[0]
     },
+
+    setThreshold(value) {
+      this.threshold = value
+    },
+
     // ショット切り出し開始
     start: async function() {
       this.started = true
@@ -192,11 +249,4 @@ export default {
 }
 </script>
 
-<style scoped>
-/* #prev {
-  margin-top: 200px;
-}
-#next {
-  margin-top: 200px;
-} */
-</style>
+<style scoped></style>
