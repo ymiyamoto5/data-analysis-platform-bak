@@ -31,18 +31,12 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
-log
 .coverage
 htmlcov
 *.log
 node_modules
-cron_job.sh
-data_analysis_platform/utils/rawdata_importer.py
-app_config_dev.json
-data_analysis_platform/utils/contour_data.py
 notebooks/jupyter2kibana
 notebooks/*-Copy*.ipynb
 notebooks/adhoc
 *.csv
-notebooks/features-*
 backend/app/dist
