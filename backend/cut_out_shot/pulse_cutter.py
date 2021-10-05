@@ -29,7 +29,9 @@ class PulseCutter:
         return self.__is_shot_section and (pulse < self.__threshold)
 
     def _add_cut_out_target(self, rawdata) -> None:
-        """切り出し対象としてデータを追加"""
+        """切り出し対象としてデータを追加
+        TODO: 共通化
+        """
 
         cut_out_target: dict = {
             "timestamp": rawdata.timestamp,
