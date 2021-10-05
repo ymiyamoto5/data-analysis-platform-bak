@@ -1,6 +1,6 @@
 {
-    "SQLALCHEMY_DATABASE_URI": "sqlite:////datadrive/app.db",
-    "data_dir": "/datadrive/data/",
+    "SQLALCHEMY_DATABASE_URI": "sqlite:////mnt/datadrive/app.db",
+    "data_dir": "/mnt/datadrive/data/",
     "elastic_url": "0.0.0.0:9200",
     "elastic_user": "elastic",
     "elastic_password": "P@ssw0rd",
