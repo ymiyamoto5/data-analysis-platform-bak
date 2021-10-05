@@ -1,5 +1,3 @@
-from typing import Optional
-
 from backend.common import common
 from pydantic import BaseModel, Field
 
