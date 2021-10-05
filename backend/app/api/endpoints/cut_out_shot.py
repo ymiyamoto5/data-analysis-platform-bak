@@ -3,12 +3,13 @@ from typing import Any, Dict, List, Optional
 from backend.app.api.deps import get_db
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import \
-    DataCollectHistoryDetail
-from backend.app.schemas.cut_out_shot import CutOutShotBase
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.schemas.cut_out_shot import CutOutShotDisplacement, CutOutShotPulse
 from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.common import common
 from backend.cut_out_shot.cut_out_shot import CutOutShot
+from backend.cut_out_shot.displacement_cutter import DisplacementCutter
+from backend.cut_out_shot.pulse_cutter import PulseCutter
 from backend.file_manager.file_manager import FileInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pandas.core.frame import DataFrame
@@ -66,17 +67,31 @@ def fetch_shots(
     return {"data": data, "fileCount": len(files_info)}
 
 
-@router.post("/")
-def cut_out_shot(cut_out_shot_in: CutOutShotBase, db: Session = Depends(get_db)):
-    """ショット切り出し"""
+@router.post("/displacement")
+def cut_out_shot_displacement(cut_out_shot_in: CutOutShotDisplacement, db: Session = Depends(get_db)):
+    """変位値でのショット切り出し"""
+
+    cutter = DisplacementCutter(cut_out_shot_in.start_displacement, cut_out_shot_in.end_displacement, margin=0.1)
 
     # TODO: サブプロセスでcut_out_shot実行
     cut_out_shot = CutOutShot(
-        machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db, margin=0
+        cutter=cutter, machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db
     )
-    cut_out_shot.cut_out_shot(
-        start_displacement=cut_out_shot_in.start_displacement,
-        end_displacement=cut_out_shot_in.end_displacement,
+    cut_out_shot.cut_out_shot()
+
+    return
+
+
+@router.post("/pulse")
+def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(get_db)):
+    """変位値でのショット切り出し"""
+
+    cutter = PulseCutter(cut_out_shot_in.threshold)
+
+    # TODO: サブプロセスでcut_out_shot実行
+    cut_out_shot = CutOutShot(
+        cutter=cutter, machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db
     )
+    cut_out_shot.cut_out_shot()
 
     return

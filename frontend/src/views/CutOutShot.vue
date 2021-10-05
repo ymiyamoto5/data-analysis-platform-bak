@@ -70,7 +70,8 @@ import ChartCard from '@/components/CutOutShot/ChartCard.vue'
 import DisplacementRangeSlider from '@/components/CutOutShot/DisplacementRangeSlider.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
-const CUT_OUT_SHOT_API_URL = '/api/v1/cut_out_shot/'
+const CUT_OUT_SHOT_DISPLACEMENT_API_URL = '/api/v1/cut_out_shot/displacement/'
+// const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse/'
 
 export default {
   components: {
@@ -149,7 +150,7 @@ export default {
 
       const client = createBaseApiClient()
       await client
-        .post(CUT_OUT_SHOT_API_URL, postData)
+        .post(CUT_OUT_SHOT_DISPLACEMENT_API_URL, postData)
         .then(() => {
           this.running = false
         })
