@@ -15,7 +15,9 @@ from typing import List
 import pandas as pd
 import pytest
 from backend.app.db.session import SessionLocal
+from backend.app.models.sensor import Sensor
 from backend.cut_out_shot.cut_out_shot import CutOutShot
+from backend.cut_out_shot.displacement_cutter import DisplacementCutter
 from pandas.core.frame import DataFrame
 
 
@@ -26,7 +28,8 @@ def target():
     machine_id = "machine-01"
     target_date_str = "20201201103011"
 
-    instance = CutOutShot(machine_id=machine_id, target=target_date_str, db=SessionLocal())
+    cutter = DisplacementCutter(0, 0, 0)  # dummy
+    instance = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, db=SessionLocal())
 
     yield instance
 
@@ -37,76 +40,6 @@ def target():
 def db():
     db = SessionLocal()
     yield db
-
-
-# @pytest.fixture(scope="session", autouse=True)
-# def history(session_mocker):
-#     """データ収集履歴のmock
-#     TODO: オブジェクト自体をmockして挿しこむのではなく、InmemoryDBまたはテンポラリのDBファイルを作成して挿しこむ。
-#     """
-
-# data_collect_history_details = [
-#     DataCollectHistoryDetail(
-#         data_collect_history_id=1,
-#         sensor_id="displacement",
-#         sensor_name="変位",
-#         sensor_type_id="displacement",
-#         base_volt=None,
-#         base_load=None,
-#         initial_volt=None,
-#     ),
-#     DataCollectHistoryDetail(
-#         data_collect_history_id=1,
-#         sensor_id="load01",
-#         sensor_name="荷重01",
-#         sensor_type_id="load",
-#         base_volt=1.0,
-#         base_load=1.0,
-#         initial_volt=1.0,
-#     ),
-#     DataCollectHistoryDetail(
-#         data_collect_history_id=1,
-#         sensor_id="load02",
-#         sensor_name="荷重02",
-#         sensor_type_id="load",
-#         base_volt=1.0,
-#         base_load=1.0,
-#         initial_volt=1.0,
-#     ),
-#     DataCollectHistoryDetail(
-#         data_collect_history_id=1,
-#         sensor_id="load03",
-#         sensor_name="荷重03",
-#         sensor_type_id="load",
-#         base_volt=1.0,
-#         base_load=1.0,
-#         initial_volt=1.0,
-#     ),
-#     DataCollectHistoryDetail(
-#         data_collect_history_id=1,
-#         sensor_id="load04",
-#         sensor_name="荷重04",
-#         sensor_type_id="load",
-#         base_volt=1.0,
-#         base_load=1.0,
-#         initial_volt=1.0,
-#     ),
-# ]
-
-# data_collect_history = DataCollectHistory(
-#     machine_id="machine-01",
-#     machine_name="テストプレス01",
-#     machine_type_id=1,
-#     started_at=datetime(2020, 12, 1, 10, 30, 10, 111111) + timedelta(hours=-9),
-#     ended_at=datetime(2020, 12, 1, 11, 30, 10, 111111) + timedelta(hours=-9),
-#     sampling_frequency=100_000,
-#     sampling_ch_num=5,
-#     data_collect_history_details=data_collect_history_details,
-# )
-
-# session_mocker.patch.object(
-#     CRUDDataCollectHistory, "select_by_machine_id_started_at", return_value=data_collect_history
-# )
 
 
 @pytest.fixture
@@ -345,3 +278,99 @@ def rawdata_pulse_df():
     yield rawdata_pulse_df
 
     del rawdata_pulse_df
+
+
+@pytest.fixture
+def displacement_sensors():
+    displacement_sensors: List[Sensor] = [
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="displacement",
+            sensor_name="displacement",
+            sensor_type_id="displacement",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load01",
+            sensor_name="load01",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load02",
+            sensor_name="load02",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load03",
+            sensor_name="load03",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-01",
+            sensor_id="load04",
+            sensor_name="load04",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+    ]
+
+    yield displacement_sensors
+
+
+@pytest.fixture
+def pulse_sensors():
+    pulse_sensors: List[Sensor] = [
+        Sensor(
+            machine_id="machine-02",
+            sensor_id="pulse",
+            sensor_name="pulse",
+            sensor_type_id="pulse",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-02",
+            sensor_id="load01",
+            sensor_name="load01",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-02",
+            sensor_id="load02",
+            sensor_name="load02",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-02",
+            sensor_id="load03",
+            sensor_name="load03",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+        Sensor(
+            machine_id="machine-02",
+            sensor_id="load04",
+            sensor_name="load04",
+            sensor_type_id="load",
+            base_volt=2.5,
+            base_load=2.5,
+        ),
+    ]
+
+    yield pulse_sensors

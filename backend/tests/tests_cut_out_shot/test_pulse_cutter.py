@@ -2,19 +2,20 @@ from datetime import datetime
 from typing import List
 
 import pandas as pd
-from backend.cut_out_shot.cut_out_shot import CutOutShot
+from backend.cut_out_shot.pulse_cutter import PulseCutter
 from pandas.testing import assert_frame_equal
 
 
-class TestCutOutShotByPulse:
+class TestCutOutShot:
     """パルス信号からの切り出しテスト。物理変換後データでのテストとなっている。"""
 
-    def test_normal_1(self, rawdata_pulse_df, db):
+    def test_normal_1(self, rawdata_pulse_df, pulse_sensors):
 
-        cut_out_shot = CutOutShot(machine_id="machine-02", target="20201201103011", previous_size=0, margin=0, db=db)
-        cut_out_shot._cut_out_shot_by_pulse(rawdata_pulse_df, 1.0)
+        cutter = PulseCutter(threshold=1.0)
+        cutter.set_sensors(pulse_sensors)
 
-        actual: List[dict] = cut_out_shot.cut_out_targets
+        cutter.cut_out_shot(rawdata_pulse_df)
+        actual: List[dict] = cutter.cut_out_targets
         actual_df = pd.DataFrame(actual)
 
         expected = [
