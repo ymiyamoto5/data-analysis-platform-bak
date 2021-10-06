@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Final, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.common import common
 from backend.common.common_logger import logger
@@ -433,11 +432,17 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    machine_id: str = "machine-01"
+    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
+    from backend.app.db.session import SessionLocal  # noqa
 
+    machine_id: str = "machine-01"
     target: str = "20210327141514"
     db = SessionLocal()
-    cutter = DisplacementCutter(start_displacement=47.0, end_displacement=34.0, margin=0.3)
+    history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
+
+    cutter = DisplacementCutter(
+        start_displacement=47.0, end_displacement=34.0, margin=0.3, sensors=history.data_collect_history_details
+    )
 
     cut_out_shot = CutOutShot(
         cutter=cutter,
@@ -445,7 +450,8 @@ if __name__ == "__main__":
         target=target,
         min_spm=15,
         back_seconds_for_tagging=120,
-        db=db,
+        sampling_frequency=history.sampling_frequency,
+        sensors=history.data_collect_history_details,
     )
 
     cut_out_shot.cut_out_shot()
