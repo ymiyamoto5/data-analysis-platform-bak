@@ -401,6 +401,8 @@ class CutOutShot:
 
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
             cut_out_df: DataFrame = pd.DataFrame(self.cutter.cut_out_targets)
+            # cutter.cut_out_targetは以降使わないためクリア
+            self.cutter.cut_out_targets = []
 
             # 最大サンプル数を超えたショットの削除
             cut_out_df = self._exclude_over_sample(cut_out_df)

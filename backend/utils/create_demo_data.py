@@ -31,6 +31,7 @@ def main():
         os.makedirs(file_dir)
 
     start_time = datetime(2021, 7, 9, 19, 0, 0)
+    start_time_utc = start_time - timedelta(hours=9)
     sequential_number = 0
 
     # 4000ショット分ループ
@@ -49,20 +50,20 @@ def main():
         for i in range(len(shot_df)):
             sequential_numbers.append(sequential_number)
             sequential_number += 1
-            time = start_time + timedelta(microseconds=10) * i
+            time = start_time_utc + timedelta(microseconds=10) * i
             datetime_list.append(time.timestamp())
         shot_df["sequential_number"] = sequential_numbers
         shot_df["timestamp"] = datetime_list
 
         # pickleに出力
-        datetime_utc = start_time - timedelta(hours=9)
-        file_datetime_str = datetime.strftime(datetime_utc, "%Y%m%d-%H%M%S.%f")
+        file_datetime_str = datetime.strftime(start_time_utc, "%Y%m%d-%H%M%S.%f")
         pickle_filename: str = machine_id + "_demo-GW_demo-handler_" + file_datetime_str + ".pkl"
         pickle_filepath: str = os.path.join(file_dir, pickle_filename)
         shot_df.to_pickle(pickle_filepath)
+        print(f"{pickle_filepath} processed.")
 
         # 次のループのために1カウント進める
-        start_time = time + timedelta(microseconds=10)
+        start_time_utc = time + timedelta(microseconds=10)
 
 
 if __name__ == "__main__":
