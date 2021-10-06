@@ -1,22 +1,20 @@
 from typing import List
 
-from backend.app.models.sensor import Sensor
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.common.common_logger import logger
 from pandas.core.frame import DataFrame
 
 
 class PulseCutter:
-    def __init__(self, threshold: float):
+    def __init__(self, threshold: float, sensors: List[DataCollectHistoryDetail]):
         self.__threshold = threshold
         self.__shot_number: int = 0
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
+        self.__sensors: List[DataCollectHistoryDetail] = sensors
         self.cut_out_targets: List[dict] = []
         self.shots_summary: List[dict] = []
-
-    def set_sensors(self, sensors: List[Sensor]):
-        self.__sensors = sensors
 
     def _detect_pulse_shot_start(self, pulse: float) -> bool:
         """ショット開始検知。ショットが未検出かつパルスがしきい値以上の場合、ショット開始とみなす。"""

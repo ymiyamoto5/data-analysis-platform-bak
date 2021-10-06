@@ -7,6 +7,7 @@ from backend.app.models.data_collect_history_detail import DataCollectHistoryDet
 from backend.app.schemas.cut_out_shot import CutOutShotDisplacement, CutOutShotPulse
 from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.common import common
+from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.cut_out_shot.cut_out_shot import CutOutShot
 from backend.cut_out_shot.displacement_cutter import DisplacementCutter
 from backend.cut_out_shot.pulse_cutter import PulseCutter
@@ -101,11 +102,29 @@ def fetch_shots(
 def cut_out_shot_displacement(cut_out_shot_in: CutOutShotDisplacement, db: Session = Depends(get_db)):
     """変位値でのショット切り出し"""
 
-    cutter = DisplacementCutter(cut_out_shot_in.start_displacement, cut_out_shot_in.end_displacement, margin=0.1)
+    try:
+        # データ収集時の履歴から、収集当時の設定値を取得する
+        history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
+            db, cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+    # TODO: margin動的設定
+    cutter = DisplacementCutter(
+        cut_out_shot_in.start_displacement,
+        cut_out_shot_in.end_displacement,
+        margin=0.1,
+        sensors=history.data_collect_history_details,
+    )
 
     # TODO: サブプロセスでcut_out_shot実行
     cut_out_shot = CutOutShot(
-        cutter=cutter, machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db
+        cutter=cutter,
+        machine_id=cut_out_shot_in.machine_id,
+        target=cut_out_shot_in.target_date_str,
+        sampling_frequency=history.sampling_frequency,
+        sensors=history.data_collect_history_details,
     )
     cut_out_shot.cut_out_shot()
 
@@ -114,13 +133,25 @@ def cut_out_shot_displacement(cut_out_shot_in: CutOutShotDisplacement, db: Sessi
 
 @router.post("/pulse")
 def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(get_db)):
-    """変位値でのショット切り出し"""
+    """パルスでのショット切り出し"""
 
-    cutter = PulseCutter(cut_out_shot_in.threshold)
+    try:
+        # データ収集時の履歴から、収集当時の設定値を取得する
+        history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
+            db, cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+    cutter = PulseCutter(threshold=cut_out_shot_in.threshold, sensors=history.data_collect_history_details)
 
     # TODO: サブプロセスでcut_out_shot実行
     cut_out_shot = CutOutShot(
-        cutter=cutter, machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, db=db
+        cutter=cutter,
+        machine_id=cut_out_shot_in.machine_id,
+        target=cut_out_shot_in.target_date_str,
+        sampling_frequency=history.sampling_frequency,
+        sensors=history.data_collect_history_details,
     )
     cut_out_shot.cut_out_shot()
 
