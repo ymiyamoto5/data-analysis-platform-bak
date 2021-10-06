@@ -73,7 +73,8 @@
             "console": "integratedTerminal",
             "args": [
                 "--debug"
-            ]
+            ],
+            "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "data_recorder(manual record)",
@@ -83,8 +84,9 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
-                "-d=test-machine-20210928101034"
-            ]
+                "-d=machine-01-20210327141514"
+            ],
+            "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "elastic_manager",
@@ -189,6 +191,20 @@
             "configurations": [
                 "FastAPI",
                 "chrome"
+            ]
+        },
+        {
+            "name": "data_recorder with FastAPI",
+            "configurations": [
+                "FastAPI",
+                "data_recorder"
+            ]
+        },
+        {
+            "name": "data_recorder(manual) with FastAPI",
+            "configurations": [
+                "FastAPI",
+                "data_recorder(manual record)"
             ]
         }
     ]

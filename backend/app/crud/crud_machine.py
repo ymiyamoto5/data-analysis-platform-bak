@@ -104,20 +104,9 @@ class CRUDMachine:
         return sensors
 
     @staticmethod
-    def select_sensors_by_machine_id_from_job(machine_id: str) -> List[Sensor]:
-        """machine_idから紐づくセンサーリストを取得。ジョブからのDBアクセスで利用。
-        TODO: WebAPとジョブで関数を統一したい。
-        """
-        with db_session() as db:
-            sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
-
-        return sensors
-
-    @staticmethod
-    def select_machines_has_handler() -> List[Machine]:
-        with db_session() as db:
-            machines: List[Machine] = (
-                db.query(Machine).join(Gateway, Machine.gateways).join(Handler, Gateway.handlers).all()
-            )
+    def select_machines_has_handler(db: Session) -> List[Machine]:
+        machines: List[Machine] = (
+            db.query(Machine).join(Gateway, Machine.gateways).join(Handler, Gateway.handlers).all()
+        )
 
         return machines
