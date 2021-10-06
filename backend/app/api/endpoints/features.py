@@ -11,11 +11,16 @@ router = APIRouter()
 def fetch_features():
     """特徴量の一覧を返す"""
 
-    feature_list = [
-        {"machine_id": "machine-01", "target_dir": "20210709190000"},
+    df = ElasticManager.show_indices()
+    indices = [
+        *filter(
+            None, [re.search(r"^shots-(.*)-(\d{14})-.*-point$", i) for i in df["index"]]
+        )
     ]
 
-    return feature_list
+    feature_list = set([ind.groups() for ind in indices])
+
+    return {"data": feature_list}
 
 
 @router.get("/")

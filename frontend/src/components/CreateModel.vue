@@ -3,15 +3,7 @@
         <v-container class="mt-6">
             <v-row dense>
                 <v-col cols="5">
-                    <FeatureSelect @input="setMachine"></FeatureSelect>
-                </v-col>
-            </v-row>
-            <v-row dense>
-                <v-col cols="7">
-                    <CollectDataSelect
-                        @input="setTargetDir"
-                        :value="machineId"
-                    ></CollectDataSelect>
+                    <FeatureSelect @input="setFeature"></FeatureSelect>
                 </v-col>
             </v-row>
             <v-row dense>
@@ -80,7 +72,6 @@
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 import FeatureSelect from '@/components/CreateModel/FeatureSelect.vue'
-import CollectDataSelect from '@/components/CreateModel/CollectDataSelect.vue'
 import ChartCard from '@/components/CreateModel/ChartCard.vue'
 import FeatureSelectSlider from '@/components/CreateModel/FeatureSelectSlider.vue'
 import AlgorithmSelect from '@/components/CreateModel/AlgorithmSelect.vue'
@@ -92,7 +83,6 @@ export default {
     components: {
         FeatureSelect,
         FeatureSelectSlider,
-        CollectDataSelect,
         ChartCard,
         AlgorithmSelect,
         ParameterSlider,
@@ -114,33 +104,14 @@ export default {
         }
     },
     methods: {
-        setMachine(value) {
-            this.machineId = value
+        setFeature(value) {
+            this.machineId = value[0]
+            this.targetDir = value[1]
+            this.dataSelected = true
         },
         setAlgorithm(value) {
             this.algorithm = value
             this.algorithmSelected = true
-        },
-        setTargetDir(value) {
-            const targetDate = new Date(value.split('-')[0].slice(0, -1))
-            this.targetDir = `${targetDate.getFullYear()}${(
-                targetDate.getMonth() + 1
-            )
-                .toString()
-                .padStart(2, '0')}${targetDate
-                .getDate()
-                .toString()
-                .padStart(2, '0')}${targetDate
-                .getHours()
-                .toString()
-                .padStart(2, '0')}${targetDate
-                .getMinutes()
-                .toString()
-                .padStart(2, '0')}${targetDate
-                .getSeconds()
-                .toString()
-                .padStart(2, '0')}`
-            this.dataSelected = true
         },
         setFeatureIndex(index) {
             this.featureIndex = index

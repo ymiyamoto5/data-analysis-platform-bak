@@ -1,42 +1,62 @@
 <template>
-    <v-select
-        class="select"
-        :items="machines"
-        label="特徴量"
-        outlined
-        dense
-        @input="$emit('input', $event)"
-    ></v-select>
+    <v-container>
+        <v-select
+            class="select"
+            :items="machines"
+            label="特徴量"
+            outlined
+            dense
+            @input="setMachine"
+        ></v-select>
+        <v-select
+            class="select"
+            :items="datasets"
+            label="収集データ"
+            outlined
+            dense
+            @input="$emit('input', [selectedMachine, $event])"
+        ></v-select>
+    </v-container>
 </template>
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-const MACHINES_API_URL = '/api/v1/machines/'
+const FEATURES_LIST_API_URL = '/api/v1/features/list'
 
 export default {
     data() {
         return {
+            features: [],
             machines: [],
+            selectedMachine: '',
+            datasets: [],
         }
     },
     mounted() {
-        this.fetchMachines()
+        this.fetchFeatures()
     },
     methods: {
-        fetchMachines: async function() {
+        fetchFeatures: async function() {
             const client = createBaseApiClient()
             await client
-                .get(MACHINES_API_URL)
+                .get(FEATURES_LIST_API_URL)
                 .then((res) => {
                     if (res.data.length === 0) {
                         return
                     }
-                    this.machines = res.data.map((x) => x.machine_id)
+                    this.features = res.data.data
+                    this.machines = this.features.map((x) => x[0])
                 })
                 .catch((e) => {
                     console.log(e.response.data.detail)
                     this.errorDialog(e.response.data.detail)
                 })
+        },
+        setMachine(value) {
+            this.selectedMachine = value
+            this.datasets = this.features
+                .filter((x) => x[0] == value)
+                .map((x) => x[1])
         },
     },
 }
