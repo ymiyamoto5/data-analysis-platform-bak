@@ -1,20 +1,19 @@
 <template>
-  <v-container>
-    <v-row>
-      <v-slider
-        v-model="value"
-        vertical
-        hide-details
-        min="-2"
-        max="2"
-        height="300px"
-        dense
-        step="0.1"
-        class="align-center"
-        @input="$emit('input', $event)"
-      ></v-slider>
-    </v-row>
-  </v-container>
+  <v-slider
+    v-model="value"
+    vertical
+    hide-details
+    min="-2"
+    max="2"
+    height="300px"
+    dense
+    step="0.1"
+    class="align-center"
+    thumb-label="always"
+    :thumb-size="24"
+    @input="$emit('input', $event)"
+  >
+  </v-slider>
 </template>
 
 <script>
