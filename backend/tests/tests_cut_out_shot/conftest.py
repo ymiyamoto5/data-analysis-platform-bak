@@ -22,14 +22,37 @@ from pandas.core.frame import DataFrame
 
 
 @pytest.fixture()
-def target():
+def displacement_target():
     """CutOutShotインスタンス fixture"""
 
     machine_id = "machine-01"
     target_date_str = "20201201103011"
 
-    cutter = DisplacementCutter(0, 0, 0)  # dummy
-    instance = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, db=SessionLocal())
+    sensors = create_displacement_sensors()
+
+    cutter = DisplacementCutter(start_displacement=0, end_displacement=0, margin=0, sensors=sensors)  # dummy
+    instance = CutOutShot(
+        cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors
+    )
+
+    yield instance
+
+    del instance
+
+
+@pytest.fixture()
+def pulse_target():
+    """CutOutShotインスタンス fixture"""
+
+    machine_id = "machine-01"
+    target_date_str = "20201201103011"
+
+    sensors = create_pulse_sensors()
+
+    cutter = DisplacementCutter(start_displacement=0, end_displacement=0, margin=0, sensors=sensors)  # dummy
+    instance = CutOutShot(
+        cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors
+    )
 
     yield instance
 
@@ -282,7 +305,13 @@ def rawdata_pulse_df():
 
 @pytest.fixture
 def displacement_sensors():
-    displacement_sensors: List[Sensor] = [
+    displacement_sensors: List[Sensor] = create_displacement_sensors()
+
+    yield displacement_sensors
+
+
+def create_displacement_sensors():
+    return [
         Sensor(
             machine_id="machine-01",
             sensor_id="displacement",
@@ -325,12 +354,16 @@ def displacement_sensors():
         ),
     ]
 
-    yield displacement_sensors
-
 
 @pytest.fixture
 def pulse_sensors():
-    pulse_sensors: List[Sensor] = [
+    pulse_sensors: List[Sensor] = create_pulse_sensors()
+
+    yield pulse_sensors
+
+
+def create_pulse_sensors():
+    return [
         Sensor(
             machine_id="machine-02",
             sensor_id="pulse",
@@ -372,5 +405,3 @@ def pulse_sensors():
             base_load=2.5,
         ),
     ]
-
-    yield pulse_sensors

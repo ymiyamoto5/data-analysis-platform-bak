@@ -14,8 +14,9 @@ class TestCutOutShot:
         全13サンプル中8サンプルが切り出される。
         """
 
-        displacement_cutter = DisplacementCutter(start_displacement=47.0, end_displacement=34.0, margin=0.1)
-        displacement_cutter.set_sensors(displacement_sensors)
+        displacement_cutter = DisplacementCutter(
+            start_displacement=47.0, end_displacement=34.0, margin=0.1, sensors=displacement_sensors
+        )
 
         displacement_cutter.cut_out_shot(rawdata_df)
         actual: List[dict] = displacement_cutter.cut_out_targets
@@ -117,8 +118,9 @@ class TestCutOutShot:
         全13サンプル中2サンプルが切り出される。
         """
 
-        displacement_cutter = DisplacementCutter(start_displacement=46.9, end_displacement=34.0, margin=0.1)
-        displacement_cutter.set_sensors(displacement_sensors)
+        displacement_cutter = DisplacementCutter(
+            start_displacement=46.9, end_displacement=34.0, margin=0.1, sensors=displacement_sensors
+        )
 
         displacement_cutter.cut_out_shot(rawdata_df)
         actual: List[dict] = displacement_cutter.cut_out_targets
