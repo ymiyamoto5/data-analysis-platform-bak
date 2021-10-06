@@ -40,11 +40,10 @@ class CutOutShotService:
         return df
 
     @staticmethod
-    def resample_df(df: DataFrame, sampling_frequency: int) -> DataFrame:
+    def resample_df(df: DataFrame, sampling_frequency: int, rate: int) -> DataFrame:
         """引数のDataFrameについてリサンプリングして返却する"""
 
-        # TODO: 倍率nを動的に設定
-        df = DataConverter.down_sampling_df(df, sampling_frequency, n=1000)
+        df = DataConverter.down_sampling_df(df, sampling_frequency, rate=rate)
 
         return df
 
