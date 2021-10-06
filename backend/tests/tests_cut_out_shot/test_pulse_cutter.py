@@ -11,8 +11,7 @@ class TestCutOutShot:
 
     def test_normal_1(self, rawdata_pulse_df, pulse_sensors):
 
-        cutter = PulseCutter(threshold=1.0)
-        cutter.set_sensors(pulse_sensors)
+        cutter = PulseCutter(threshold=1.0, sensors=pulse_sensors)
 
         cutter.cut_out_shot(rawdata_pulse_df)
         actual: List[dict] = cutter.cut_out_targets
