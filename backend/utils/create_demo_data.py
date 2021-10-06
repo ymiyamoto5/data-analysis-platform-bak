@@ -12,16 +12,17 @@
 
 import os
 import sys
+from datetime import datetime, timedelta
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
 
 
 def main():
 
     machine_id = "demo-machine"
     # ファイル読み込み
-    target_file_path = "/datadrive/data/"
+    target_file_path = "/mnt/datadrive/data/"
     target_file = "press_senario.npy"
     arr = np.load(target_file_path + target_file)
     # 出力先
