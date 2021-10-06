@@ -70,6 +70,14 @@ export default {
                             position: 'left',
                         },
                     ],
+                    xAxes: [
+                        {
+                            ticks: {
+                                callback: (value) =>
+                                    value % 5 == 0 ? value : '',
+                            },
+                        },
+                    ],
                 },
             },
         }
@@ -102,7 +110,7 @@ export default {
         },
         createChartData: function(featureName) {
             const data = this.responseData[featureName]
-            const xData = data.map((x) => [...Array(x.length).keys()])
+            const xData = [...data.keys()]
 
             // NOTE: chartをリアクティブにするためchartDataオブジェクトをディープコピー
             // https://qiita.com/nicopinpin/items/17457d38444b08953049
