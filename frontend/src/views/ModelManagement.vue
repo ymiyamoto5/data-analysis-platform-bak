@@ -6,7 +6,7 @@
             <v-tab v-for="item in items" :key="item">
                 {{ item }}
             </v-tab>
-            <v-tab href="http://10.3.18.117:5000" target="_blank">
+            <v-tab :href="mlflowUri" target="_blank">
                 MLflow
             </v-tab>
         </v-tabs>
@@ -34,6 +34,7 @@ export default {
         return {
             tab: null,
             items: ['Create Model', 'Serving Model'],
+            mlflowUri: process.env.VUE_APP_MLFLOW_URL,
         }
     },
     methods: {},

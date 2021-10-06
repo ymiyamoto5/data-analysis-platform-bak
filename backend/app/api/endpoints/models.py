@@ -1,24 +1,23 @@
 from typing import List
-from fastapi import APIRouter
-from backend.app.schemas import model
-from backend.app.api.endpoints import features
-
-from sklearn.covariance import EllipticEnvelope
-import pandas as pd
-
-import mlflow
-from mlflow.tracking import MlflowClient
-
-from backend.app.services.bento_service import ModelClassifier
 
 import docker
+import mlflow
+import pandas as pd
+from backend.app.api.endpoints import features
+from backend.app.schemas import model
+from backend.app.services.bento_service import ModelClassifier
+from backend.common import common
+from fastapi import APIRouter
+from mlflow.tracking import MlflowClient
+from sklearn.covariance import EllipticEnvelope
 
 router = APIRouter()
 docker_client = docker.from_env()
 
-# TODO: 設定値化
-mlflow_server_uri = "http://10.3.18.117:5000"
-mlflow_experiment_name = "DataAnalysisPlatform"
+mlflow_server_uri = common.get_config_value(common.APP_CONFIG_PATH, "mlflow_server_uri")
+mlflow_experiment_name = common.get_config_value(
+    common.APP_CONFIG_PATH, "mlflow_experiment_name"
+)
 
 mlflow.set_tracking_uri(mlflow_server_uri)
 mlflow.sklearn.autolog()
