@@ -18,9 +18,7 @@ from typing import Any, Callable, Dict, Final, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.db.session import SessionLocal
-from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.common import common
 from backend.common.common_logger import logger
@@ -31,7 +29,6 @@ from backend.file_manager.file_manager import FileManager
 from backend.tag_manager.tag_manager import TagManager
 from backend.utils.throughput_counter import throughput_counter
 from pandas.core.frame import DataFrame
-from sqlalchemy.orm import Session
 
 from .displacement_cutter import DisplacementCutter
 from .pulse_cutter import PulseCutter
@@ -41,13 +38,14 @@ class CutOutShot:
     def __init__(
         self,
         cutter: Union[DisplacementCutter, PulseCutter],
+        sensors: List[DataCollectHistoryDetail],
+        sampling_frequency: int,
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
         min_spm: int = 15,
         back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
-        db: Session = None,
     ):
         self.__machine_id = machine_id
         self.__rawdata_dir_name = machine_id + "-" + target
@@ -58,26 +56,9 @@ class CutOutShot:
         self.__shots_meta_df: DataFrame = pd.DataFrame(
             columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
         )
-
-        if db is None:
-            db = SessionLocal()
-
-        try:
-            # データ収集時の履歴から、収集当時の設定値を取得する
-            history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
-                db, machine_id, target
-            )
-            # 100kサンプルにおける最大サンプル数
-            self.__max_samples_per_shot: int = int(60 / self.__min_spm) * history.sampling_frequency
-            # DataCollectHistoryDetailはセンサー毎の設定値
-            self.__sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
-
-        except Exception:
-            logger.error(traceback.format_exc())
-            sys.exit(1)
-
+        self.__sensors: List[DataCollectHistoryDetail] = sensors
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * sampling_frequency
         self.cutter: Union[DisplacementCutter, PulseCutter] = cutter
-        self.cutter.set_sensors(sensors=self.__sensors)
 
     # テスト用の公開プロパティ
     @property
