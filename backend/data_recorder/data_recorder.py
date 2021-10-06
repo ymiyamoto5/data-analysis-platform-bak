@@ -18,34 +18,31 @@ import sys
 import time
 import traceback
 from datetime import datetime
-from typing import Any, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.db.session import SessionLocal
-from backend.app.models.machine import Machine
+import requests
 from backend.common import common
 from backend.common.common_logger import data_recorder_logger as logger
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.event_manager.event_manager import EventManager
 from backend.file_manager.file_manager import FileInfo, FileManager
-from sqlalchemy.orm import Session
+
+API_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "API_URL")
 
 
 class DataRecorder:
-    def __init__(self, machine_id: str, db: Session = None):
+    def __init__(self, machine_id: str):
         self.machine_id: str = machine_id
 
-        if db is None:
-            db = SessionLocal()
-
         try:
-            handler = CRUDMachine.fetch_handler_from_machine_id(db, self.machine_id)
+            response = requests.get(API_URL + f"/machines/{machine_id}/handler")
+            handler: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        self.sampling_ch_num: int = handler.sampling_ch_num
-        self.sampling_frequency: int = handler.sampling_frequency
+        self.sampling_ch_num: int = handler["sampling_ch_num"]
+        self.sampling_frequency: int = handler["sampling_frequency"]
         self.sampling_interval: float = 1.0 / self.sampling_frequency
 
     @staticmethod
@@ -305,12 +302,14 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    machines: List[Machine] = CRUDMachine.select_machines_has_handler()
+    os.environ["NO_PROXY"] = "localhost"
+    response = requests.get(API_URL + "/machines/machines/has_handler")
+    machines: List[Dict[str, Any]] = response.json()
 
     # スケジュール実行
     if args.dir is None:
         for m in machines:
-            data_recorder = DataRecorder(m.machine_id)
+            data_recorder = DataRecorder(m["machine_id"])
             data_recorder.auto_record(args.debug)
 
     # 手動インポート

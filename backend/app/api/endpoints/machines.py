@@ -87,3 +87,29 @@ def delete(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     except Exception:
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL))
+
+
+@router.get("/machines/has_handler", response_model=List[machine.Machine])
+def fetch_machines_has_handler(db: Session = Depends(get_db)):
+    """handlerを1つ以上もつmachineのリストを取得"""
+
+    try:
+        machines = CRUDMachine.select_machines_has_handler(db)
+        return machines
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+
+@router.get("/{machine_id}/handler")
+def fetch_handler_from_machine_id(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)
+):
+    """machine_idに一致するhandlerを取得する"""
+
+    try:
+        handler = CRUDMachine.fetch_handler_from_machine_id(db, machine_id)
+        return handler
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
