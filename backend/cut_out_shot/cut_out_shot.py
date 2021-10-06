@@ -196,6 +196,8 @@ class CutOutShot:
         """ショットメタデータをshots_metaインデックスに出力"""
 
         self.__shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
+        self.__shots_meta_df["timestamp"] = self.__shots_meta_df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
         ElasticManager.bulk_insert(shots_meta_data, shots_meta_index)
