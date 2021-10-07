@@ -10,16 +10,19 @@
 """
 
 from datetime import datetime, timedelta
+from typing import Final
 
 import pytest
-from backend.common.common import TIMESTAMP_MAX
+from backend.common import common
 from backend.data_recorder.data_recorder import DataRecorder
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
 
+API_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "API_URL")
+
 
 class TestGetTargetInterval:
-    def test_setup_end_are_set(self):
+    def test_setup_end_are_set(self, mocker, mocked_requests_get):
         """start_timeとend_timeの設定が正しく行われること"""
 
         setup_time: datetime = datetime.now()
@@ -32,14 +35,17 @@ class TestGetTargetInterval:
             {"event_type": "stop", "occurred_time": end_time_str},
         ]
 
-        dr = DataRecorder(machine_id="machine-01")
+        machine_id = "machine-01"
+        mocker.patch("requests.get").return_value = mocked_requests_get
+
+        dr = DataRecorder(machine_id)
         actual = dr._get_target_interval(events)
 
         expected = (setup_time.timestamp(), end_time.timestamp() + 5.0)
 
         assert actual == expected
 
-    def test_end_is_not_set(self):
+    def test_end_is_not_set(self, mocker, mocked_requests_get):
         """setup_timeのみが設定されている場合、end_timeはmaxとして設定される"""
 
         setup_time: datetime = datetime.now()
@@ -49,18 +55,24 @@ class TestGetTargetInterval:
             {"event_type": "setup", "occurred_time": setup_time_str},
         ]
 
-        dr = DataRecorder(machine_id="machine-01")
+        machine_id = "machine-01"
+        mocker.patch("requests.get").return_value = mocked_requests_get
+
+        dr = DataRecorder(machine_id)
 
         actual = dr._get_target_interval(events)
 
-        expected = (setup_time.timestamp(), TIMESTAMP_MAX)
+        expected = (setup_time.timestamp(), common.TIMESTAMP_MAX)
 
         assert actual == expected
 
-    def test_is_not_setuped(self):
+    def test_is_not_setuped(self, mocker, mocked_requests_get):
         """setup_time, end_timeが設定されていないときは、対象区間は (None, None) となる。"""
 
-        dr = DataRecorder(machine_id="machine-01")
+        machine_id = "machine-01"
+        mocker.patch("requests.get").return_value = mocked_requests_get
+
+        dr = DataRecorder(machine_id)
 
         events = []
 
@@ -69,10 +81,12 @@ class TestGetTargetInterval:
 
 
 class TestSetTimestamp:
-    def test_first_process(self, mocker):
+    def test_first_process(self, mocker, mocked_requests_get):
         """正常系：データ収集開始後、最初のプロセス"""
 
         machine_id: str = "machine-01"
+        mocker.patch("requests.get").return_value = mocked_requests_get
+
         dr = DataRecorder(machine_id=machine_id)
 
         mocker.patch.object(ElasticManager, "get_docs", return_value=[])
@@ -83,10 +97,12 @@ class TestSetTimestamp:
 
         assert actual == expected
 
-    def test_not_first_prcess(self, mocker):
+    def test_not_first_prcess(self, mocker, mocked_requests_get):
         """正常系：データ収集開始後、2回目以降のプロセス"""
 
         machine_id: str = "machine-01"
+        mocker.patch("requests.get").return_value = mocked_requests_get
+
         dr = DataRecorder(machine_id=machine_id)
 
         return_value = [{"timestamp": datetime(2020, 12, 16, 8, 1, 58, 0).timestamp()}]
@@ -102,10 +118,12 @@ class TestSetTimestamp:
 
 
 class TestReadBinaryFiles:
-    def test_normal(self, dat_files):
+    def test_normal(self, dat_files, mocker, mocked_requests_get):
         """正常系：バイナリファイルが正常に読めること"""
 
         machine_id: str = "machine-01"
+        mocker.patch("requests.get").return_value = mocked_requests_get
+
         dr = DataRecorder(machine_id=machine_id)
 
         file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
