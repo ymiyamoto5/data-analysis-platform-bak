@@ -6,7 +6,6 @@ from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.schemas import machine
 from backend.common import common
-from backend.common.db_session import db_session
 from sqlalchemy.orm import Session, joinedload
 
 
