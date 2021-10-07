@@ -24,7 +24,7 @@ class DataConverter:
 
             return lambda v: base_load * (v - initial_volt) / (base_volt - initial_volt)
 
-        elif sensor.sensor_type_id == "displacement":
+        elif sensor.sensor_type_id == "stroke_displacement":
             return lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
 
         elif sensor.sensor_type_id == "pulse":

@@ -5,16 +5,16 @@ from backend.common.common_logger import logger
 from pandas.core.frame import DataFrame
 
 
-class DisplacementCutter:
+class StrokeDisplacementCutter:
     def __init__(
         self,
-        start_displacement: float,
-        end_displacement: float,
+        start_stroke_displacement: float,
+        end_stroke_displacement: float,
         margin: float,
         sensors: List[DataCollectHistoryDetail],
     ):
-        self.__start_displacement: float = start_displacement
-        self.__end_displacement: float = end_displacement
+        self.__start_stroke_displacement: float = start_stroke_displacement
+        self.__end_stroke_displacement: float = end_stroke_displacement
         self.__margin: float = margin
         self.__shot_number: int = 0
         self.__sequential_number: int = 0
@@ -25,23 +25,25 @@ class DisplacementCutter:
         self.cut_out_targets: List[dict] = []
         self.shots_summary: List[dict] = []
 
-    def _detect_shot_start(self, displacement: float) -> bool:
-        """ショット開始検知。ショットが未検出かつ変位値が終了しきい値以上開始しきい値以下の場合、ショット開始とみなす。"""
+    def _detect_shot_start(self, stroke_displacement: float) -> bool:
+        """ショット開始検知。ショットが未検出かつストローク変位値が終了しきい値以上開始しきい値以下の場合、ショット開始とみなす。"""
 
-        return (not self.__is_shot_section) and (self.__end_displacement <= displacement <= self.__start_displacement)
+        return (not self.__is_shot_section) and (
+            self.__end_stroke_displacement <= stroke_displacement <= self.__start_stroke_displacement
+        )
 
-    def _detect_shot_end(self, displacement: float) -> bool:
-        """ショット終了検知。ショットが検出されている状態かつ変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
+    def _detect_shot_end(self, stroke_displacement: float) -> bool:
+        """ショット終了検知。ショットが検出されている状態かつストローク変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
 
-        margin: ノイズの影響等で変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
+        margin: ノイズの影響等でストローク変位値が単調減少しなかった場合、ショット区間がすぐに終わってしまうことを防ぐためのマージン
         """
 
-        return self.__is_shot_section and (displacement > self.__start_displacement + self.__margin)
+        return self.__is_shot_section and (stroke_displacement > self.__start_stroke_displacement + self.__margin)
 
-    def _detect_cut_out_end(self, displacement: float) -> bool:
-        """切り出し終了検知。切り出し区間として検知されており、かつ変位値が終了しきい値以下の場合、切り出し終了とみなす。"""
+    def _detect_cut_out_end(self, stroke_displacement: float) -> bool:
+        """切り出し終了検知。切り出し区間として検知されており、かつストローク変位値が終了しきい値以下の場合、切り出し終了とみなす。"""
 
-        return self.__is_target_of_cut_out and (displacement <= self.__end_displacement)
+        return self.__is_target_of_cut_out and (stroke_displacement <= self.__end_stroke_displacement)
 
     def _add_cut_out_target(self, rawdata) -> None:
         """切り出し対象としてデータを追加
@@ -63,10 +65,10 @@ class DisplacementCutter:
         self.cut_out_targets.append(cut_out_target)
 
     def cut_out_shot(self, rawdata_df: DataFrame) -> None:
-        """ショット切り出し処理。生データの変位値を参照し、ショット対象となるデータのみをリストに含めて返す。"""
+        """ショット切り出し処理。生データのストローク変位値を参照し、ショット対象となるデータのみをリストに含めて返す。"""
 
         for rawdata in rawdata_df.itertuples():
-            if self._detect_shot_start(rawdata.displacement):
+            if self._detect_shot_start(rawdata.stroke_displacement):
                 self.__is_shot_section = True  # ショット開始
                 self.__is_target_of_cut_out = True  # ショット開始 = 切り出し区間開始
                 self.__shot_number += 1
@@ -75,7 +77,7 @@ class DisplacementCutter:
                 self.shots_summary.append({"shot_number": self.__shot_number, "timestamp": rawdata.timestamp})
 
             # ショット区間終了判定
-            if self._detect_shot_end(rawdata.displacement):
+            if self._detect_shot_end(rawdata.stroke_displacement):
                 self.__is_shot_section = False
 
             # ショット未開始ならば後続は何もしない
@@ -83,7 +85,7 @@ class DisplacementCutter:
                 continue
 
             # 切り出し区間終了判定
-            if self._detect_cut_out_end(rawdata.displacement):
+            if self._detect_cut_out_end(rawdata.stroke_displacement):
                 logger.info(
                     f"{self.__sequential_number_by_shot} samples cutted out in shot_number: {self.__shot_number}"
                 )
