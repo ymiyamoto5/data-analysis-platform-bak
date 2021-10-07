@@ -1,15 +1,15 @@
 import os
 import sys
 
+# backendディレクトリのパスを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../"))
 from logging.config import fileConfig
 
 from backend.app.db.session import Base
-from backend.app.models.machine import Machine
 from backend.common import common
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
+from alembic import context  # type: ignore
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -17,7 +17,7 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-fileConfig(config.config_file_name)
+fileConfig(config.config_file_name)  # type: ignore
 
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -66,9 +66,7 @@ def run_migrations_online():
     """
     configuration = config.get_section(config.config_ini_section)
     app_config_path: str = common.APP_CONFIG_PATH
-    configuration["sqlalchemy.url"] = common.get_config_value(
-        app_config_path, "SQLALCHEMY_DATABASE_URI"
-    )
+    configuration["sqlalchemy.url"] = common.get_config_value(app_config_path, "SQLALCHEMY_DATABASE_URI")
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",

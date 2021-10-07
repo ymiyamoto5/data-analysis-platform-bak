@@ -4,10 +4,9 @@ from datetime import datetime, timedelta
 
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
-from backend.app.db.session import Base, SessionLocal, engine
+from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import \
-    DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -15,9 +14,6 @@ from backend.app.models.machine_type import MachineType
 from backend.app.models.sensor import Sensor
 from backend.app.models.sensor_type import SensorType
 from backend.common import common
-
-Base.metadata.drop_all(bind=engine)
-Base.metadata.create_all(bind=engine)
 
 db = SessionLocal()
 
@@ -611,11 +607,11 @@ db.add(data_collect_history_detail_4_5)
 
 db.commit()
 
-[print(vars(x)) for x in db.query(MachineType).all()]
-[print(vars(x)) for x in db.query(Machine).all()]
-[print(vars(x)) for x in db.query(Gateway).all()]
-[print(vars(x)) for x in db.query(Handler).all()]
-[print(vars(x)) for x in db.query(Sensor).all()]
-[print(vars(x)) for x in db.query(SensorType).all()]
-[print(vars(x)) for x in db.query(DataCollectHistory).all()]
-[print(vars(x)) for x in db.query(DataCollectHistoryDetail).all()]
+[print(vars(x)) for x in db.query(MachineType).all()]  # type: ignore
+[print(vars(x)) for x in db.query(Machine).all()]  # type: ignore
+[print(vars(x)) for x in db.query(Gateway).all()]  # type: ignore
+[print(vars(x)) for x in db.query(Handler).all()]  # type: ignore
+[print(vars(x)) for x in db.query(Sensor).all()]  # type: ignore
+[print(vars(x)) for x in db.query(SensorType).all()]  # type: ignore
+[print(vars(x)) for x in db.query(DataCollectHistory).all()]  # type: ignore
+[print(vars(x)) for x in db.query(DataCollectHistoryDetail).all()]  # type: ignore
