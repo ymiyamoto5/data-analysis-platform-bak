@@ -22,8 +22,8 @@ export default {
   props: [
     'machineId',
     'targetDateStr',
-    'startDisplacement',
-    'endDisplacement',
+    'startStrokeDisplacement',
+    'endStrokeDisplacement',
     'page',
   ],
   components: {
@@ -41,10 +41,10 @@ export default {
       this.loaded = false
       this.fetchData()
     },
-    startDisplacement: function() {
+    startStrokeDisplacement: function() {
       this.createChartData(this.responseData)
     },
-    endDisplacement: function() {
+    endStrokeDisplacement: function() {
       this.createChartData(this.responseData)
     },
     page: function() {
@@ -62,7 +62,7 @@ export default {
         labels: null,
         datasets: [
           {
-            label: '変位値',
+            label: 'ストローク変位値',
             data: null,
             fill: false,
             borderColor: '#000080',
@@ -157,7 +157,7 @@ export default {
       // x軸データ
       let xData = data.map((x) => formatTime(x.timestamp))
       // y軸データ
-      const displacementData = data.map((x) => x.displacement)
+      const stroke_displacementData = data.map((x) => x.stroke_displacement)
       // TODO: 動的に数を決定する
       const load01 = data.map((x) => x.load01)
 
@@ -165,19 +165,19 @@ export default {
       // https://qiita.com/nicopinpin/items/17457d38444b08953049
       let chartData = JSON.parse(JSON.stringify(this.chartDataTemplate))
       this.$set(chartData, 'labels', xData)
-      this.$set(chartData.datasets[0], 'data', displacementData)
+      this.$set(chartData.datasets[0], 'data', stroke_displacementData)
       this.$set(chartData.datasets[1], 'data', load01)
 
       // 切り出し開始位置と終了位置の直線データ
       let startData = []
-      for (let i = 0; i < displacementData.length; i++) {
-        startData.push(this.startDisplacement)
+      for (let i = 0; i < stroke_displacementData.length; i++) {
+        startData.push(this.startStrokeDisplacement)
       }
       this.$set(chartData.datasets[2], 'data', startData)
 
       let endData = []
-      for (let i = 0; i < displacementData.length; i++) {
-        endData.push(this.endDisplacement)
+      for (let i = 0; i < stroke_displacementData.length; i++) {
+        endData.push(this.endStrokeDisplacement)
       }
       this.$set(chartData.datasets[3], 'data', endData)
 

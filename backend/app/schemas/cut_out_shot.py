@@ -7,9 +7,9 @@ class CutOutShotBase(BaseModel):
     target_date_str: str
 
 
-class CutOutShotDisplacement(CutOutShotBase):
-    start_displacement: float = Field(..., ge=0.0, le=100.0)
-    end_displacement: float = Field(..., ge=0.0, le=100.0)
+class CutOutShotStrokeDisplacement(CutOutShotBase):
+    start_stroke_displacement: float = Field(..., ge=0.0, le=100.0)
+    end_stroke_displacement: float = Field(..., ge=0.0, le=100.0)
 
 
 class CutOutShotPulse(CutOutShotBase):

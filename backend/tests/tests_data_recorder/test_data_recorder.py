@@ -136,7 +136,7 @@ class TestReadBinaryFiles:
                 {
                     "sequential_number": 0,
                     "timestamp": file.timestamp,
-                    "displacement": 10.0,
+                    "stroke_displacement": 10.0,
                     "load01": 1.1,
                     "load02": 2.2,
                     "load03": 3.3,
@@ -145,7 +145,7 @@ class TestReadBinaryFiles:
                 {
                     "sequential_number": 1,
                     "timestamp": file.timestamp + 0.000010,
-                    "displacement": 9.0,
+                    "stroke_displacement": 9.0,
                     "load01": 1.2,
                     "load02": 2.3,
                     "load03": 3.4,
