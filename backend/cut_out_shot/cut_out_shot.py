@@ -29,14 +29,14 @@ from backend.tag_manager.tag_manager import TagManager
 from backend.utils.throughput_counter import throughput_counter
 from pandas.core.frame import DataFrame
 
-from .displacement_cutter import DisplacementCutter
+from .stroke_displacement_cutter import StrokeDisplacementCutter
 from .pulse_cutter import PulseCutter
 
 
 class CutOutShot:
     def __init__(
         self,
-        cutter: Union[DisplacementCutter, PulseCutter],
+        cutter: Union[StrokeDisplacementCutter, PulseCutter],
         sensors: List[DataCollectHistoryDetail],
         sampling_frequency: int,
         machine_id: str,
@@ -57,7 +57,7 @@ class CutOutShot:
         )
         self.__sensors: List[DataCollectHistoryDetail] = sensors
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * sampling_frequency
-        self.cutter: Union[DisplacementCutter, PulseCutter] = cutter
+        self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
     # テスト用の公開プロパティ
     @property
@@ -364,7 +364,7 @@ class CutOutShot:
                 logger.info(f"All data was excluded by pause interval. {pickle_file}")
                 continue
 
-            # NOTE: 変換式適用.パフォーマンス的には変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
+            # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
             # コードのシンプルさを優先し、全列まとめて物理変換している。
             rawdata_df = self._apply_physical_conversion_formula(rawdata_df)
 
@@ -440,8 +440,11 @@ if __name__ == "__main__":
     db = SessionLocal()
     history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
 
-    cutter = DisplacementCutter(
-        start_displacement=47.0, end_displacement=34.0, margin=0.3, sensors=history.data_collect_history_details
+    cutter = StrokeDisplacementCutter(
+        start_stroke_displacement=47.0,
+        end_stroke_displacement=34.0,
+        margin=0.3,
+        sensors=history.data_collect_history_details,
     )
 
     cut_out_shot = CutOutShot(

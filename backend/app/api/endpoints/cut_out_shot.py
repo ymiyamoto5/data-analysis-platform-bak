@@ -4,13 +4,13 @@ from backend.app.api.deps import get_db
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
-from backend.app.schemas.cut_out_shot import CutOutShotDisplacement, CutOutShotPulse
+from backend.app.schemas.cut_out_shot import CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.common import common
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.cut_out_shot.cut_out_shot import CutOutShot
-from backend.cut_out_shot.displacement_cutter import DisplacementCutter
 from backend.cut_out_shot.pulse_cutter import PulseCutter
+from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
 from backend.file_manager.file_manager import FileInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pandas.core.frame import DataFrame
@@ -33,7 +33,7 @@ def fetch_cut_out_sensor(
     target_date_str: str = Query(...),  # yyyyMMddHHMMSS文字列
     db: Session = Depends(get_db),
 ):
-    """切り出しの基準となるセンサーが変位、パルスどちらであるかを返す"""
+    """切り出しの基準となるセンサーがストローク変位、パルスどちらであるかを返す"""
 
     # 機器に紐づく設定値を履歴から取得
     history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
@@ -42,7 +42,9 @@ def fetch_cut_out_sensor(
 
     # NOTE: 切り出しの基準となるセンサーはただひとつのみ存在する前提
     cut_out_sensor = [
-        sensor for sensor in history.data_collect_history_details if sensor.sensor_type_id in ("displacement", "pulse")
+        sensor
+        for sensor in history.data_collect_history_details
+        if sensor.sensor_type_id in ("stroke_displacement", "pulse")
     ][0]
 
     return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
@@ -55,7 +57,7 @@ def fetch_shots(
     page: int = Query(...),
     db: Session = Depends(get_db),
 ):
-    """対象区間の最初のpklファイルを読み込み、変位値をリサンプリングして返す"""
+    """対象区間の最初のpklファイルを読み込み、ストローク変位値をリサンプリングして返す"""
 
     files_info: Optional[List[FileInfo]] = CutOutShotService.get_files_info(machine_id, target_date_str)
 
@@ -83,10 +85,10 @@ def fetch_shots(
     cut_out_sensor_type: str = [
         sensor.sensor_type_id
         for sensor in history.data_collect_history_details
-        if sensor.sensor_type_id in ("displacement", "pulse")
+        if sensor.sensor_type_id in ("stroke_displacement", "pulse")
     ][0]
 
-    rate: int = 1000 if cut_out_sensor_type == "displacement" else 10
+    rate: int = 1000 if cut_out_sensor_type == "stroke_displacement" else 10
 
     resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency, rate)
 
@@ -98,9 +100,9 @@ def fetch_shots(
     return {"data": data, "fileCount": len(files_info)}
 
 
-@router.post("/displacement")
-def cut_out_shot_displacement(cut_out_shot_in: CutOutShotDisplacement, db: Session = Depends(get_db)):
-    """変位値でのショット切り出し"""
+@router.post("/stroke_displacement")
+def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplacement, db: Session = Depends(get_db)):
+    """ストローク変位値でのショット切り出し"""
 
     try:
         # データ収集時の履歴から、収集当時の設定値を取得する
@@ -111,9 +113,9 @@ def cut_out_shot_displacement(cut_out_shot_in: CutOutShotDisplacement, db: Sessi
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
     # TODO: margin動的設定
-    cutter = DisplacementCutter(
-        cut_out_shot_in.start_displacement,
-        cut_out_shot_in.end_displacement,
+    cutter = StrokeDisplacementCutter(
+        cut_out_shot_in.start_stroke_displacement,
+        cut_out_shot_in.end_stroke_displacement,
         margin=0.1,
         sensors=history.data_collect_history_details,
     )

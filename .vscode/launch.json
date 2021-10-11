@@ -84,7 +84,7 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
-                "-d=machine-01-20210327141514"
+                "-d=demo-machine-20210709190000"
             ],
             "preLaunchTask": "Sleepdelay"
         },

@@ -108,7 +108,7 @@ class DataRecorder:
             sample: dict = {
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
-                "displacement": round(dataset[0], 3),
+                "stroke_displacement": round(dataset[0], 3),
             }
 
             # 荷重センサーの数だけdictに追加

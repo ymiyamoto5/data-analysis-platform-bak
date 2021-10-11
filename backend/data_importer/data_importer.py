@@ -105,8 +105,8 @@ class DataImporter:
         for file in files:
             # FIXME: ヘッダーありの場合等の考慮
             df = pd.read_csv(file, header=None, skiprows=0, usecols=use_cols)
-            # TODO: 変位を強制的に追加
-            df["displacement"] = df.iloc[:, 0]
+            # TODO: ストローク変位を強制的に追加
+            df["stroke_displacement"] = df.iloc[:, 0]
 
             df = df.set_axis(cols_name, axis="columns")
 
@@ -264,9 +264,9 @@ if __name__ == "__main__":
 
     # 何列目を使うか。
     # use_cols = [2, 6, 7, 11, 57]
-    # cols_name: List[str] = ["load01", "load02", "load03", "load04", "displacement"]
+    # cols_name: List[str] = ["load01", "load02", "load03", "load04", "stroke_displacement"]
     use_cols = [0]
-    cols_name: List[str] = ["load01", "displacement"]
+    cols_name: List[str] = ["load01", "stroke_displacement"]
 
     sampling_interval = 10  # 100k
     # sampling_interval = 1000  # 1k
