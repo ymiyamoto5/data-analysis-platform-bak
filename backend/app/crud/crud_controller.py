@@ -38,6 +38,7 @@ class CRUDController:
             ended_at=None,
             sampling_frequency=handler.sampling_frequency,
             sampling_ch_num=handler.sampling_ch_num,
+            sample_count=0,
         )
 
         db.add(new_data_collect_history)

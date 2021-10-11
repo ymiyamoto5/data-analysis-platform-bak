@@ -14,6 +14,7 @@ class DataCollectHistory(Base):
     ended_at = Column(DateTime)
     sampling_frequency = Column(Integer, nullable=False)
     sampling_ch_num = Column(Integer, nullable=False)
+    sample_count = Column(Integer, nullable=False)
 
     # Many To One
     machine = relationship("Machine", back_populates="data_collect_histories")
