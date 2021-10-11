@@ -383,6 +383,7 @@ data_collect_history_1 = DataCollectHistory(
     ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
     sampling_ch_num=5,
+    sample_count=0,
 )
 
 data_collect_history_2 = DataCollectHistory(
@@ -393,6 +394,7 @@ data_collect_history_2 = DataCollectHistory(
     ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
     sampling_ch_num=5,
+    sample_count=0,
 )
 
 data_collect_history_3 = DataCollectHistory(
@@ -403,6 +405,7 @@ data_collect_history_3 = DataCollectHistory(
     ended_at=datetime(2021, 7, 9, 19, 0, 0, 0) + timedelta(hours=-9) + timedelta(minutes=5),
     sampling_frequency=100_000,
     sampling_ch_num=2,
+    sample_count=0,
 )
 
 # pulse unittest用
@@ -414,6 +417,7 @@ data_collect_history_4 = DataCollectHistory(
     ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
     sampling_ch_num=5,
+    sample_count=0,
 )
 
 db.add(data_collect_history_1)
