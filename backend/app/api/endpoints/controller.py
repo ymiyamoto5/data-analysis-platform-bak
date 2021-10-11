@@ -12,7 +12,6 @@ from backend.app.models.machine import Machine
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
-from backend.event_manager.event_manager import EventManager
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
@@ -141,11 +140,16 @@ def resume(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
 
 @router.post("/stop/{machine_id}")
 def stop(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
-    """指定機器のデータ収集開始"""
+    """指定機器のデータ収集停止"""
 
     utc_now: datetime = datetime.utcnow()
 
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+
+    # 収集開始状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        raise HTTPException(status_code=error_code, detail=message)
 
     # DB更新
     try:
