@@ -40,3 +40,4 @@ notebooks/*-Copy*.ipynb
 notebooks/adhoc
 *.csv
 backend/app/dist
+notebooks/20210810
