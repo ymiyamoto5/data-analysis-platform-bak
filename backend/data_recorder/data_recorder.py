@@ -49,6 +49,7 @@ class DataRecorder:
     def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
         """処理対象となる区間（開始/終了時刻）を取得する"""
 
+        # start_time: Optional[float] = EventManager.get_collect_setup_time(events)
         start_time: Optional[float] = EventManager.get_collect_setup_time(events)
 
         if start_time is None:
@@ -185,30 +186,28 @@ class DataRecorder:
             logger.info(f"No files in {data_dir}")
             return
 
-        # 対象機器について、直近のevents_indexからイベント取得
-        latest_events_index: Optional[str] = EventManager.get_latest_events_index(self.machine_id)
+        try:
+            response = requests.get(API_URL + f"/data_collect_histories/{machine_id}/latest")
+            latest_data_collect_history: Dict[str, Any] = response.json()
+            events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
 
-        if latest_events_index is None:
-            logger.error("events_index is not found.")
-            return
-
-        datetime_str: str = latest_events_index.split("-")[-1]  # YYYYmmddHHMMSS文字列
-        suffix: str = self.machine_id + "-" + datetime_str
-        events_index: str = "events-" + suffix
-        events: List[dict] = EventManager.fetch_events(events_index)
+        suffix = latest_data_collect_history["started_at"]
 
         if len(events) == 0:
             logger.error("Exits because no events.")
             return
 
         # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
-        if events[-1]["event_type"] == common.COLLECT_STATUS.RECORDED.value:
+        if events[-1]["event_name"] == common.COLLECT_STATUS.RECORDED.value:
             logger.info(
                 f"Exits because the latest event is '{common.COLLECT_STATUS.RECORDED.value}'. May be data collect has not started yet."
             )
             return
 
-        started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
+        started_timestamp: float = datetime.fromisoformat(events[0]["occurred_at"]).timestamp()
 
         start_time: float
         end_time: float
@@ -268,21 +267,26 @@ class DataRecorder:
             logger.info(f"No files in {target_dir}")
             return
 
-        target_dir_basename: str = os.path.basename(target_dir)
-        events_index: str = "events-" + target_dir_basename
-        events: List[dict] = EventManager.fetch_events(events_index)
+        try:
+            response = requests.get(API_URL + f"/data_collect_histories/{machine_id}/latest")
+            latest_data_collect_history: Dict[str, Any] = response.json()
+            events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
 
         if len(events) == 0:
             logger.error("Exits because no events.")
             return
 
         # 直近のイベントがrecordedでない（データ収集が完了していない）場合は、手動実行させない。
-        if events[-1]["event_type"] != common.COLLECT_STATUS.RECORDED.value:
+        if events[-1]["event_name"] != common.COLLECT_STATUS.RECORDED.value:
             logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
             return
 
-        started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
+        started_timestamp: float = datetime.fromisoformat(events[0]["occurred_at"]).timestamp()
 
+        target_dir_basename: str = os.path.basename(target_dir)
         rawdata_index: str = "rawdata-" + target_dir_basename
 
         # インデックスが存在すれば再作成

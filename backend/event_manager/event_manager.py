@@ -17,15 +17,15 @@ class EventManager:
 
         return successful, events_index
 
-    @staticmethod
-    def record_event(events_index: str, event_type: str, occurred_time: datetime) -> bool:
-        """イベントをevents_indexに保存する"""
+    # @staticmethod
+    # def record_event(events_index: str, event_type: str, occurred_time: datetime) -> bool:
+    #     """イベントをevents_indexに保存する"""
 
-        doc_id: int = ElasticManager.count(events_index)
-        query = {"event_id": doc_id, "event_type": event_type, "occurred_time": occurred_time}
-        successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
+    #     doc_id: int = ElasticManager.count(events_index)
+    #     query = {"event_id": doc_id, "event_type": event_type, "occurred_time": occurred_time}
+    #     successful: bool = ElasticManager.create_doc(events_index, doc_id, query)
 
-        return successful
+    #     return successful
 
     @staticmethod
     def record_tag_event(events_index: str, tag: str, occurred_time: datetime) -> bool:
@@ -38,22 +38,6 @@ class EventManager:
         return successful
 
     @staticmethod
-    def update_pause_event(events_index: str, occurred_time: datetime) -> bool:
-        """中断イベントを更新する"""
-
-        # 更新対象は最新のdocument（pause）イベントである前提
-        latest_event_type: str = EventManager.get_latest_event(events_index)[0]["event_type"]
-        if latest_event_type != "pause":
-            logger.error(f"latest event type is invalid status {latest_event_type}")
-            return False
-
-        doc_id: int = ElasticManager.count(events_index) - 1
-        query: dict = {"end_time": occurred_time}
-        successful: bool = ElasticManager.update_doc(events_index, doc_id, query)
-
-        return successful
-
-    @staticmethod
     def get_latest_events_index(machine_id: str) -> Optional[str]:
         """最新のevents_indexの名前を返す"""
 
@@ -61,95 +45,95 @@ class EventManager:
 
         return ElasticManager.get_latest_index(index)
 
-    @staticmethod
-    def get_latest_event(events_index: str) -> List[dict]:
-        """最新イベントを返す"""
+    # @staticmethod
+    # def get_latest_event(events_index: str) -> List[dict]:
+    #     """最新イベントを返す"""
 
-        query: dict = {"sort": {"event_id": {"order": "desc"}}}
-        return ElasticManager.get_docs(index=events_index, query=query, size=1)
+    #     query: dict = {"sort": {"event_id": {"order": "desc"}}}
+    #     return ElasticManager.get_docs(index=events_index, query=query, size=1)
 
-    @staticmethod
-    def fetch_events(events_index: str) -> List[dict]:
-        """events_index からイベント情報を取得し、返却する"""
+    # @staticmethod
+    # def fetch_events(events_index: str) -> List[dict]:
+    #     """events_index からイベント情報を取得し、返却する"""
 
-        logger.info(f"Fetch events from {events_index}.")
+    #     logger.info(f"Fetch events from {events_index}.")
 
-        query: dict = {"sort": {"event_id": {"order": "asc"}}}
-        events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
+    #     query: dict = {"sort": {"event_id": {"order": "asc"}}}
+    #     events: List[dict] = ElasticManager.get_docs(index=events_index, query=query)
 
-        return events
+    #     return events
 
-    @staticmethod
-    def get_collect_setup_time(events: List[dict]) -> Optional[float]:
-        """events_indexから収集（段取）開始時間を取得"""
+    # @staticmethod
+    # def get_collect_setup_time(events: List[dict]) -> Optional[float]:
+    #     """events_indexから収集（段取）開始時間を取得"""
 
-        setup_events: List[dict] = [x for x in events if x["event_type"] == "setup"]
+    #     setup_events: List[dict] = [x for x in events if x["event_type"] == "setup"]
 
-        if len(setup_events) == 0:
-            logger.error("Data collection has not setup yet.")
-            sys.exit(1)
+    #     if len(setup_events) == 0:
+    #         logger.error("Data collection has not setup yet.")
+    #         sys.exit(1)
 
-        setup_event: dict = setup_events[0]
-        collect_start_time: float = datetime.fromisoformat(setup_event["occurred_time"]).timestamp()
+    #     setup_event: dict = setup_events[0]
+    #     collect_start_time: float = datetime.fromisoformat(setup_event["occurred_time"]).timestamp()
 
-        return collect_start_time
+    #     return collect_start_time
 
-    @staticmethod
-    def get_collect_start_time(events: List[dict]) -> Optional[float]:
-        """イベントリストから収集開始時間を取得し、timestampにして返却する"""
+    # @staticmethod
+    # def get_collect_start_time(events: List[dict]) -> Optional[float]:
+    #     """イベントリストから収集開始時間を取得し、timestampにして返却する"""
 
-        start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
+    #     start_events: List[dict] = [x for x in events if x["event_type"] == "start"]
 
-        if len(start_events) == 0:
-            logger.error("Data collection has not started yet.")
-            sys.exit(1)
+    #     if len(start_events) == 0:
+    #         logger.error("Data collection has not started yet.")
+    #         sys.exit(1)
 
-        start_event: dict = start_events[0]
-        collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
+    #     start_event: dict = start_events[0]
+    #     collect_start_time: float = datetime.fromisoformat(start_event["occurred_time"]).timestamp()
 
-        return collect_start_time
+    #     return collect_start_time
 
-    @staticmethod
-    def get_collect_end_time(events: List[dict]) -> float:
-        """events_indexから収集終了時間を取得"""
+    # @staticmethod
+    # def get_collect_end_time(events: List[dict]) -> float:
+    #     """events_indexから収集終了時間を取得"""
 
-        end_events: List[dict] = [x for x in events if x["event_type"] == "stop"]
+    #     end_events: List[dict] = [x for x in events if x["event_type"] == "stop"]
 
-        if len(end_events) == 0:
-            logger.info("Data collect is not finished yet. end_time is set to max.")
-            end_time: float = common.TIMESTAMP_MAX
-        else:
-            end_event: dict = end_events[0]
-            BUFFER: Final[float] = 5.0  # 安全バッファ
-            end_time = datetime.fromisoformat(end_event["occurred_time"]).timestamp() + BUFFER
+    #     if len(end_events) == 0:
+    #         logger.info("Data collect is not finished yet. end_time is set to max.")
+    #         end_time: float = common.TIMESTAMP_MAX
+    #     else:
+    #         end_event: dict = end_events[0]
+    #         BUFFER: Final[float] = 5.0  # 安全バッファ
+    #         end_time = datetime.fromisoformat(end_event["occurred_time"]).timestamp() + BUFFER
 
-        return end_time
+    #     return end_time
 
-    @staticmethod
-    def get_pause_events(events: List[dict]) -> List[dict]:
-        """events_indexから中断イベントを取得し、timestampにして返却する。"""
+    # @staticmethod
+    # def get_pause_events(events: List[dict]) -> List[dict]:
+    #     """events_indexから中断イベントを取得し、timestampにして返却する。"""
 
-        pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
+    #     pause_events: List[dict] = [x for x in events if x["event_type"] == "pause"]
 
-        if len(pause_events) == 0:
-            return []
+    #     if len(pause_events) == 0:
+    #         return []
 
-        for pause_event in pause_events:
-            if pause_event.get("start_time") is None:
-                logger.exception("Invalid status in pause event. Not found [start_time] key.")
-                raise KeyError
+    #     for pause_event in pause_events:
+    #         if pause_event.get("start_time") is None:
+    #             logger.exception("Invalid status in pause event. Not found [start_time] key.")
+    #             raise KeyError
 
-            if pause_event.get("end_time") is None:
-                logger.exception("Pause event does not finished. Please retry after finish pause.")
-                raise KeyError
-            # str to datetime
-            pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
-            pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
-            # datetime to unixtime
-            pause_event["start_time"] = pause_event["start_time"].timestamp()
-            pause_event["end_time"] = pause_event["end_time"].timestamp()
+    #         if pause_event.get("end_time") is None:
+    #             logger.exception("Pause event does not finished. Please retry after finish pause.")
+    #             raise KeyError
+    #         # str to datetime
+    #         pause_event["start_time"] = datetime.fromisoformat(pause_event["start_time"])
+    #         pause_event["end_time"] = datetime.fromisoformat(pause_event["end_time"])
+    #         # datetime to unixtime
+    #         pause_event["start_time"] = pause_event["start_time"].timestamp()
+    #         pause_event["end_time"] = pause_event["end_time"].timestamp()
 
-        return pause_events
+    #     return pause_events
 
     @staticmethod
     def get_tag_events(events: List[dict], back_seconds_for_tagging: int = 120) -> List[dict]:

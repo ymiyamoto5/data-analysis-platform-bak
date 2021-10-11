@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import List, Optional
 
-from backend.app.schemas.data_collect_history_detail import (
-    DataCollectHistoryDetail, DataCollectHistoryDetailUpdate)
+from backend.app.schemas.data_collect_history_detail import DataCollectHistoryDetail, DataCollectHistoryDetailUpdate
+from backend.app.schemas.data_collect_history_event import DataCollectHistoryEvent
 from backend.common import common
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,7 @@ class DataCollectHistory(DataCollectHistoryBase):
     sampling_frequency: int
     sampling_ch_num: int
     data_collect_history_details: List[DataCollectHistoryDetail]
+    data_collect_history_events: List[DataCollectHistoryEvent]
 
     class Config:
         orm_mode = True
