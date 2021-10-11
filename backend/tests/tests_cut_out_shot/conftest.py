@@ -17,20 +17,22 @@ import pytest
 from backend.app.db.session import SessionLocal
 from backend.app.models.sensor import Sensor
 from backend.cut_out_shot.cut_out_shot import CutOutShot
-from backend.cut_out_shot.displacement_cutter import DisplacementCutter
+from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
 from pandas.core.frame import DataFrame
 
 
 @pytest.fixture()
-def displacement_target():
+def stroke_displacement_target():
     """CutOutShotインスタンス fixture"""
 
     machine_id = "machine-01"
     target_date_str = "20201201103011"
 
-    sensors = create_displacement_sensors()
+    sensors = create_stroke_displacement_sensors()
 
-    cutter = DisplacementCutter(start_displacement=0, end_displacement=0, margin=0, sensors=sensors)  # dummy
+    cutter = StrokeDisplacementCutter(
+        start_stroke_displacement=0, end_stroke_displacement=0, margin=0, sensors=sensors
+    )  # dummy
     instance = CutOutShot(
         cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors
     )
@@ -49,7 +51,9 @@ def pulse_target():
 
     sensors = create_pulse_sensors()
 
-    cutter = DisplacementCutter(start_displacement=0, end_displacement=0, margin=0, sensors=sensors)  # dummy
+    cutter = StrokeDisplacementCutter(
+        start_stroke_displacement=0, end_stroke_displacement=0, margin=0, sensors=sensors
+    )  # dummy
     instance = CutOutShot(
         cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors
     )
@@ -68,7 +72,7 @@ def db():
 @pytest.fixture
 def rawdata_df():
     """生データ（物理変換後）のDataFrame fixture。
-    切り出しの開始変位値 47.0, 終了変位値 34.0 を想定したデータ。
+    切り出しの開始ストローク変位値 47.0, 終了ストローク変位値 34.0 を想定したデータ。
     """
 
     rawdata: List[dict] = [
@@ -76,7 +80,7 @@ def rawdata_df():
         {
             "sequential_number": 0,
             "timestamp": datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp(),
-            "displacement": 49.284,
+            "stroke_displacement": 49.284,
             "load01": 0.223,
             "load02": 0.211,
             "load03": 0.200,
@@ -86,7 +90,7 @@ def rawdata_df():
         {
             "sequential_number": 1,
             "timestamp": datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp(),
-            "displacement": 47.534,
+            "stroke_displacement": 47.534,
             "load01": 0.155,
             "load02": 0.171,
             "load03": 0.180,
@@ -96,7 +100,7 @@ def rawdata_df():
         {
             "sequential_number": 2,
             "timestamp": datetime(2020, 12, 1, 10, 30, 12, 111111).timestamp(),
-            "displacement": 47.0,
+            "stroke_displacement": 47.0,
             "load01": 1.574,
             "load02": 1.308,
             "load03": 1.363,
@@ -106,7 +110,7 @@ def rawdata_df():
         {
             "sequential_number": 3,
             "timestamp": datetime(2020, 12, 1, 10, 30, 13, 111111).timestamp(),
-            "displacement": 47.1,
+            "stroke_displacement": 47.1,
             "load01": 1.500,
             "load02": 1.200,
             "load03": 1.300,
@@ -116,7 +120,7 @@ def rawdata_df():
         {
             "sequential_number": 4,
             "timestamp": datetime(2020, 12, 1, 10, 30, 14, 111111).timestamp(),
-            "displacement": 34.961,
+            "stroke_displacement": 34.961,
             "load01": -0.256,
             "load02": -0.078,
             "load03": 0.881,
@@ -126,7 +130,7 @@ def rawdata_df():
         {
             "sequential_number": 5,
             "timestamp": datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp(),
-            "displacement": 30.599,
+            "stroke_displacement": 30.599,
             "load01": -0.130,
             "load02": 0.020,
             "load03": 0.483,
@@ -136,17 +140,17 @@ def rawdata_df():
         {
             "sequential_number": 6,
             "timestamp": datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp(),
-            "displacement": 24.867,
+            "stroke_displacement": 24.867,
             "load01": -0.052,
             "load02": 0.035,
             "load03": 0.402,
             "load04": 0.278,
         },
-        # 切り出し区間後3(変位にmargin=0.1を加算した場合、ショットの終了と見做されない変位値)
+        # 切り出し区間後3(ストローク変位にmargin=0.1を加算した場合、ショットの終了と見做されないストローク変位値)
         {
             "sequential_number": 7,
             "timestamp": datetime(2020, 12, 1, 10, 30, 17, 111111).timestamp(),
-            "displacement": 47.100,
+            "stroke_displacement": 47.100,
             "load01": 0.155,
             "load02": 0.171,
             "load03": 0.180,
@@ -156,7 +160,7 @@ def rawdata_df():
         {
             "sequential_number": 8,
             "timestamp": datetime(2020, 12, 1, 10, 30, 18, 111111).timestamp(),
-            "displacement": 47.150,
+            "stroke_displacement": 47.150,
             "load01": 0.156,
             "load02": 0.172,
             "load03": 0.181,
@@ -166,7 +170,7 @@ def rawdata_df():
         {
             "sequential_number": 9,
             "timestamp": datetime(2020, 12, 1, 10, 30, 19, 111111).timestamp(),
-            "displacement": 47.0,
+            "stroke_displacement": 47.0,
             "load01": 1.574,
             "load02": 1.308,
             "load03": 1.363,
@@ -176,7 +180,7 @@ def rawdata_df():
         {
             "sequential_number": 10,
             "timestamp": datetime(2020, 12, 1, 10, 30, 20, 111111).timestamp(),
-            "displacement": 47.1,
+            "stroke_displacement": 47.1,
             "load01": 1.500,
             "load02": 1.200,
             "load03": 1.300,
@@ -186,7 +190,7 @@ def rawdata_df():
         {
             "sequential_number": 11,
             "timestamp": datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp(),
-            "displacement": 34.961,
+            "stroke_displacement": 34.961,
             "load01": -0.256,
             "load02": -0.078,
             "load03": 0.881,
@@ -196,7 +200,7 @@ def rawdata_df():
         {
             "sequential_number": 12,
             "timestamp": datetime(2020, 12, 1, 10, 30, 22, 111111).timestamp(),
-            "displacement": 30.599,
+            "stroke_displacement": 30.599,
             "load01": -0.130,
             "load02": 0.020,
             "load03": 0.483,
@@ -304,19 +308,19 @@ def rawdata_pulse_df():
 
 
 @pytest.fixture
-def displacement_sensors():
-    displacement_sensors: List[Sensor] = create_displacement_sensors()
+def stroke_displacement_sensors():
+    stroke_displacement_sensors: List[Sensor] = create_stroke_displacement_sensors()
 
-    yield displacement_sensors
+    yield stroke_displacement_sensors
 
 
-def create_displacement_sensors():
+def create_stroke_displacement_sensors():
     return [
         Sensor(
             machine_id="machine-01",
-            sensor_id="displacement",
-            sensor_name="displacement",
-            sensor_type_id="displacement",
+            sensor_id="stroke_displacement",
+            sensor_name="stroke_displacement",
+            sensor_type_id="stroke_displacement",
             base_volt=2.5,
             base_load=2.5,
         ),

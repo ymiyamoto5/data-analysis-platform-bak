@@ -16,11 +16,11 @@
       </v-row>
       <v-row dense>
         <v-col cols="1">
-          <DisplacementRangeSlider
-            v-if="dataSelected && cutOutSensor === 'displacement'"
-            @input="setDisplacementRange"
+          <StrokeDisplacementRangeSlider
+            v-if="dataSelected && cutOutSensor === 'stroke_displacement'"
+            @input="setStrokeDisplacementRange"
             :targetDateStr="targetDateStr"
-          ></DisplacementRangeSlider>
+          ></StrokeDisplacementRangeSlider>
           <ThresholdSlider
             v-if="dataSelected && cutOutSensor === 'pulse'"
             @input="setThreshold"
@@ -28,12 +28,12 @@
           ></ThresholdSlider>
         </v-col>
         <v-col cols="9">
-          <ChartCardDisplacement
-            v-if="cutOutSensor === 'displacement'"
+          <ChartCardStrokeDisplacement
+            v-if="cutOutSensor === 'stroke_displacement'"
             :machineId="machineId"
             :targetDateStr="targetDateStr"
-            :startDisplacement="startDisplacement"
-            :endDisplacement="endDisplacement"
+            :startStrokeDisplacement="startStrokeDisplacement"
+            :endStrokeDisplacement="endStrokeDisplacement"
             :page="page"
             @setMaxPage="setMaxPage"
           />
@@ -80,23 +80,24 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import MachineSelect from '@/components/CutOutShot/MachineSelect.vue'
 import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
-import ChartCardDisplacement from '@/components/CutOutShot/ChartCardDisplacement.vue'
+import ChartCardStrokeDisplacement from '@/components/CutOutShot/ChartCardStrokeDisplacement.vue'
 import ChartCardPulse from '@/components/CutOutShot/ChartCardPulse.vue'
-import DisplacementRangeSlider from '@/components/CutOutShot/DisplacementRangeSlider.vue'
+import StrokeDisplacementRangeSlider from '@/components/CutOutShot/StrokeDisplacementRangeSlider.vue'
 import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
 const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor/'
-const CUT_OUT_SHOT_DISPLACEMENT_API_URL = '/api/v1/cut_out_shot/displacement/'
+const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
+  '/api/v1/cut_out_shot/stroke_displacement/'
 const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse/'
 
 export default {
   components: {
     MachineSelect,
-    DisplacementRangeSlider,
+    StrokeDisplacementRangeSlider,
     ThresholdSlider,
     CollectDataSelect,
-    ChartCardDisplacement,
+    ChartCardStrokeDisplacement,
     ChartCardPulse,
   },
   data() {
@@ -110,9 +111,9 @@ export default {
       displayNextPage: false, // グラフを先に進められるか
       machineId: '',
       targetDateStr: '', // yyyyMMdd文字列
-      cutOutSensor: '', // 切り出し対象となるセンサー種（変位またはパルス）
-      startDisplacement: 0, // 変位センサーで切り出す場合のショット開始変位値
-      endDisplacement: 0, // 変位センサーで切り出す場合のショット終了変位値
+      cutOutSensor: '', // 切り出し対象となるセンサー種（ストローク変位またはパルス）
+      startStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット開始ストローク変位値
+      endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
     }
@@ -182,9 +183,9 @@ export default {
         })
     },
 
-    setDisplacementRange(range) {
-      this.startDisplacement = range[1]
-      this.endDisplacement = range[0]
+    setStrokeDisplacementRange(range) {
+      this.startStrokeDisplacement = range[1]
+      this.endStrokeDisplacement = range[0]
     },
 
     setThreshold(value) {
@@ -198,12 +199,12 @@ export default {
 
       let url = ''
       let postData = {}
-      if (this.cutOutSensor === 'displacement') {
+      if (this.cutOutSensor === 'stroke_displacement') {
         url = CUT_OUT_SHOT_DISPLACEMENT_API_URL
         postData = {
           machine_id: this.machineId,
-          start_displacement: this.startDisplacement,
-          end_displacement: this.endDisplacement,
+          start_stroke_displacement: this.startStrokeDisplacement,
+          end_stroke_displacement: this.endStrokeDisplacement,
           target_date_str: this.targetDateStr,
         }
       } else if (this.cutOutSensor === 'pulse') {

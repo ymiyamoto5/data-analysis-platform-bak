@@ -26,9 +26,11 @@ machine_type_02 = MachineType(machine_type_name="圧力プレート")
 
 # SensorType
 sensor_type_01 = SensorType(sensor_type_id="load", sensor_type_name="荷重")
-sensor_type_02 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
+sensor_type_02 = SensorType(sensor_type_id="stroke_displacement", sensor_type_name="ストローク変位")
 sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
 sensor_type_04 = SensorType(sensor_type_id="volt", sensor_type_name="ボルト")
+sensor_type_05 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
+
 
 # Machine
 machine_01 = Machine(
@@ -139,9 +141,9 @@ sensor_02 = Sensor(
 )
 sensor_03 = Sensor(
     machine_id="machine-01",
-    sensor_id="displacement",
-    sensor_name="displacement",
-    sensor_type_id="displacement",
+    sensor_id="stroke_displacement",
+    sensor_name="stroke_displacement",
+    sensor_type_id="stroke_displacement",
 )
 sensor_04 = Sensor(
     machine_id="machine-02",
@@ -153,9 +155,9 @@ sensor_04 = Sensor(
 )
 sensor_05 = Sensor(
     machine_id="machine-02",
-    sensor_id="displacement",
-    sensor_name="displacement",
-    sensor_type_id="displacement",
+    sensor_id="stroke_displacement",
+    sensor_name="stroke_displacement",
+    sensor_type_id="stroke_displacement",
 )
 sensor_06 = Sensor(
     machine_id="machine-03",
@@ -460,9 +462,9 @@ data_collect_history_detail_4 = DataCollectHistoryDetail(
 
 data_collect_history_detail_5 = DataCollectHistoryDetail(
     data_collect_history_id=1,
-    sensor_id="displacement",
-    sensor_name="変位",
-    sensor_type_id="displacement",
+    sensor_id="stroke_displacement",
+    sensor_name="ストローク変位",
+    sensor_type_id="stroke_displacement",
     base_volt=None,
     base_load=None,
     initial_volt=None,
@@ -510,9 +512,9 @@ data_collect_history_detail_2_4 = DataCollectHistoryDetail(
 
 data_collect_history_detail_2_5 = DataCollectHistoryDetail(
     data_collect_history_id=2,
-    sensor_id="displacement",
-    sensor_name="変位",
-    sensor_type_id="displacement",
+    sensor_id="stroke_displacement",
+    sensor_name="ストローク変位",
+    sensor_type_id="stroke_displacement",
     base_volt=None,
     base_load=None,
     initial_volt=None,
