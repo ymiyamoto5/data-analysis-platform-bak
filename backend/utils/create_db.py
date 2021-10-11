@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
-from backend.app.db.session import SessionLocal
+from backend.app.db.session import Base, SessionLocal, engine
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.gateway import Gateway
@@ -14,6 +14,9 @@ from backend.app.models.machine_type import MachineType
 from backend.app.models.sensor import Sensor
 from backend.app.models.sensor_type import SensorType
 from backend.common import common
+
+Base.metadata.drop_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 db = SessionLocal()
 
@@ -348,6 +351,8 @@ db.add(machine_type_02)
 db.add(sensor_type_01)
 db.add(sensor_type_02)
 db.add(sensor_type_03)
+db.add(sensor_type_04)
+db.add(sensor_type_05)
 
 db.add(machine_01)
 db.add(machine_02)
