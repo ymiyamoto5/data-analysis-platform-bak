@@ -31,7 +31,7 @@
                 <v-select
                   v-model="editedItem.sensor_type_id"
                   :rules="[rules.required]"
-                  item-text="sensor_type.sensor_type_name"
+                  item-text="sensor_type_name"
                   item-value="sensor_type_id"
                   :items="sensorTypes"
                   label="センサー種別"
@@ -113,6 +113,7 @@
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 const SENSORS_API_URL = '/api/v1/sensors/'
+const SENSOR_TYPES_API_URL = '/api/v1/sensor_types/'
 const HANDLERS_API_URL = '/api/v1/handlers/'
 
 export default {
@@ -143,7 +144,7 @@ export default {
     editedIndex: -1,
     editedItem: {
       sensor_name: '',
-      sensor_type_id: 0,
+      sensor_type_id: '',
       base_load: null,
       base_volt: null,
       initial_volt: null,
@@ -151,7 +152,7 @@ export default {
     },
     defaultItem: {
       sensor_name: '',
-      sensor_type_id: 0,
+      sensor_type_id: '',
       base_load: null,
       base_volt: null,
       initial_volt: null,
@@ -226,7 +227,7 @@ export default {
     fetchSensorTypes: async function() {
       const client = createBaseApiClient()
       await client
-        .get(SENSORS_API_URL)
+        .get(SENSOR_TYPES_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
             return
