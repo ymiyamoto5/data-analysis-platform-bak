@@ -21,3 +21,7 @@ class DataCollectHistory(Base):
     data_collect_history_details = relationship(
         "DataCollectHistoryDetail", back_populates="data_collect_history", cascade="all, delete"
     )
+    # One to Many
+    data_collect_history_events = relationship(
+        "DataCollectHistoryEvent", back_populates="data_collect_history", cascade="all, delete"
+    )
