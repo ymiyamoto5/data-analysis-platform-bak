@@ -98,22 +98,6 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "event_manager",
-            "type": "python",
-            "module": "backend.event_manager.event_manager",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "tag_manager",
-            "type": "python",
-            "module": "backend.tag_manager.tag_manager",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
-        },
-        {
             "name": "FastAPI",
             "type": "python",
             "request": "launch",
