@@ -103,7 +103,7 @@ handler_02 = Handler(
     handler_type="USB_xxxxHS",
     adc_serial_num="ZZZZZZZ",
     sampling_frequency=1000,
-    sampling_ch_num=16,
+    sampling_ch_num=2,
     filewrite_time=1,
 )
 handler_03 = Handler(

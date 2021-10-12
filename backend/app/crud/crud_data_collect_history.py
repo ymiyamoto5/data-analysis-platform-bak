@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from typing import List
 
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.schemas.data_collect_history import DataCollectHistoryUpdate
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
