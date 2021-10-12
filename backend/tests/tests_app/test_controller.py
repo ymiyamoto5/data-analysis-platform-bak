@@ -15,7 +15,6 @@ from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
 from backend.common import common
-from backend.event_manager.event_manager import EventManager
 
 
 class TestSetup:
