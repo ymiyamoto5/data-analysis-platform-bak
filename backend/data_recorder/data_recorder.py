@@ -16,7 +16,8 @@ import struct
 import sys
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any, Dict, Final, List, Optional, Tuple
 
 import requests
@@ -32,7 +33,7 @@ class DataRecorder:
         self.machine_id: str = machine_id
 
         try:
-            response = requests.get(API_URL + f"/machines/{machine_id}/handler")
+            response = requests.get(API_URL + f"/machines/{self.machine_id}/handler")
             handler: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
@@ -40,11 +41,33 @@ class DataRecorder:
 
         self.sampling_ch_num: int = handler["sampling_ch_num"]
         self.sampling_frequency: int = handler["sampling_frequency"]
-        self.sampling_interval: float = 1.0 / self.sampling_frequency
+        self.sampling_interval: Decimal = Decimal(1.0 / self.sampling_frequency)
+
+    def _get_processed_dir_path(self, data_dir: str, started_at: str) -> str:
+        """処理済みファイルおよびpklファイル格納用のディレクトリ取得（なければ作成）"""
+
+        jst_started_at: datetime = datetime.fromisoformat(started_at) + timedelta(hours=9)
+        datetime_suffix: str = (
+            str(jst_started_at.year)
+            + str(jst_started_at.month)
+            + str(jst_started_at.day)
+            + str(jst_started_at.hour)
+            + str(jst_started_at.minute)
+            + str(jst_started_at.second)
+        )
+        suffix: str = self.machine_id + "-" + datetime_suffix
+        processed_dir_path: str = os.path.join(data_dir, suffix)
+        if os.path.isdir(processed_dir_path):
+            logger.debug(f"{processed_dir_path} is already exists")
+        else:
+            os.makedirs(processed_dir_path)
+            logger.info(f"{processed_dir_path} created.")
+
+        return processed_dir_path
 
     def _read_binary_files(
-        self, file: FileInfo, sequential_number: int, timestamp: float
-    ) -> Tuple[List[Dict[str, Any]], int, float]:
+        self, file: FileInfo, sequential_number: int, timestamp: Decimal
+    ) -> Tuple[List[Dict[str, Any]], int, Decimal]:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 
         BYTE_SIZE: Final[int] = 8
@@ -97,7 +120,7 @@ class DataRecorder:
         latest_history_id: int,
         target_files: List[FileInfo],
         processed_dir_path: str,
-        started_timestamp: float,
+        started_timestamp: Decimal,
         sample_count: int,
         is_manual: bool = False,
     ) -> None:
@@ -105,8 +128,7 @@ class DataRecorder:
 
         sequential_number: int = sample_count
         # プロセス跨ぎを考慮した時刻付け
-        timestamp: float = started_timestamp + sample_count * self.sampling_interval
-        # logger.info(f"sequential_number(count):{sample_count}, started:{started_timestamp}, timestamp:{timestamp}")
+        timestamp: Decimal = started_timestamp + sample_count * self.sampling_interval
 
         for file in target_files:
             # バイナリファイルを読み取り、データリストを取得
@@ -143,7 +165,7 @@ class DataRecorder:
             return
 
         try:
-            response = requests.get(API_URL + f"/data_collect_histories/{machine_id}/latest")
+            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
             latest_data_collect_history: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
@@ -188,21 +210,16 @@ class DataRecorder:
 
         logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
-        # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成
-        suffix: str = started_at
-        processed_dir_path: str = os.path.join(data_dir, suffix)
-        if os.path.isdir(processed_dir_path):
-            logger.debug(f"{processed_dir_path} is already exists")
-        else:
-            os.makedirs(processed_dir_path)
-            logger.info(f"{processed_dir_path} created.")
+        processed_dir_path: str = self._get_processed_dir_path(data_dir, started_at)
 
         # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
         time.sleep(3)
 
         sample_count: int = latest_data_collect_history["sample_count"]
         latest_history_id: int = latest_data_collect_history["id"]
-        self._data_record(latest_history_id, target_files, processed_dir_path, started_timestamp, sample_count)
+        self._data_record(
+            latest_history_id, target_files, processed_dir_path, Decimal(started_timestamp), sample_count
+        )
 
         logger.info("all file processed.")
 
@@ -218,7 +235,7 @@ class DataRecorder:
             return
 
         try:
-            response = requests.get(API_URL + f"/data_collect_histories/{machine_id}/latest")
+            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
             latest_data_collect_history: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
@@ -238,7 +255,9 @@ class DataRecorder:
         latest_history_id: int = latest_data_collect_history["id"]
         started_timestamp: float = datetime.fromisoformat(latest_data_collect_history["started_at"]).timestamp()
 
-        self._data_record(latest_history_id, files_info, target_dir, started_timestamp, sample_count=0, is_manual=True)
+        self._data_record(
+            latest_history_id, files_info, target_dir, Decimal(started_timestamp), sample_count=0, is_manual=True
+        )
 
         logger.info("manual import finished.")
 
