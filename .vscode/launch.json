@@ -46,7 +46,8 @@
             "module": "backend.cut_out_shot.cut_out_shot",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "data_importer",
@@ -191,6 +192,13 @@
             "configurations": [
                 "FastAPI",
                 "chrome"
+            ]
+        },
+        {
+            "name": "cut_out_shot with FastAPI",
+            "configurations": [
+                "FastAPI",
+                "cut_out_shot"
             ]
         },
         {

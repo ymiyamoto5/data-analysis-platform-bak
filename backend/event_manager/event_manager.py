@@ -141,7 +141,7 @@ class EventManager:
         記録された時刻（end_time）からN秒前(back_seconds_for_tagging)に遡り、start_timeとする。
         """
 
-        tag_events: List[dict] = [x for x in events if x["event_type"] == "tag"]
+        tag_events: List[dict] = [x for x in events if x["event_name"] == "tag"]
         logger.debug(tag_events)
 
         if len(tag_events) == 0:

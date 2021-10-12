@@ -627,19 +627,19 @@ data_collect_history_event_2 = DataCollectHistoryEvent(
     data_collect_history_id=2,
     event_id=1,
     event_name=common.COLLECT_STATUS.START.value,
-    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=10),
+    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9),
 )
 data_collect_history_event_3 = DataCollectHistoryEvent(
     data_collect_history_id=2,
     event_id=2,
     event_name=common.COLLECT_STATUS.STOP.value,
-    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=20),
+    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=120),
 )
 data_collect_history_event_4 = DataCollectHistoryEvent(
     data_collect_history_id=2,
     event_id=3,
     event_name=common.COLLECT_STATUS.RECORDED.value,
-    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=30),
+    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=121),
 )
 
 db.add(data_collect_history_event_1)
