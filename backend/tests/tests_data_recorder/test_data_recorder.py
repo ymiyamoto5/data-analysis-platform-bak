@@ -9,6 +9,7 @@
 
 """
 
+from decimal import Decimal
 from typing import Final
 
 from backend.common import common
@@ -30,13 +31,13 @@ class TestReadBinaryFiles:
         file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
         file = file_infos[0]
 
-        actual = dr._read_binary_files(file=file, sequential_number=0, timestamp=file.timestamp)
+        actual = dr._read_binary_files(file=file, sequential_number=0, timestamp=Decimal(file.timestamp))
 
         expected = (
             [
                 {
                     "sequential_number": 0,
-                    "timestamp": file.timestamp,
+                    "timestamp": Decimal(file.timestamp),
                     "stroke_displacement": 10.0,
                     "load01": 1.1,
                     "load02": 2.2,
@@ -45,7 +46,7 @@ class TestReadBinaryFiles:
                 },
                 {
                     "sequential_number": 1,
-                    "timestamp": file.timestamp + 0.000010,
+                    "timestamp": Decimal(file.timestamp) + Decimal(0.00001),
                     "stroke_displacement": 9.0,
                     "load01": 1.2,
                     "load02": 2.3,
@@ -54,7 +55,7 @@ class TestReadBinaryFiles:
                 },
             ],
             2,
-            file.timestamp + 0.000010 + 0.000010,
+            Decimal(file.timestamp) + Decimal(0.00001) + Decimal(0.00001),
         )
 
         assert actual == expected

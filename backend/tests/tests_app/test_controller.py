@@ -70,8 +70,6 @@ class TestSetup:
             ),
         )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(EventManager, "create_events_index", return_value=(True, "tmp_events_index"))
-        mocker.patch.object(EventManager, "record_event", return_value=True)
         mocker.patch.object(CRUDController, "setup", side_effect=Exception("some exception"))
 
         response = client.post(self.endpoint)

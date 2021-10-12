@@ -10,6 +10,7 @@
 """
 
 from datetime import datetime
+from decimal import Decimal
 
 import numpy as np
 import pandas as pd
@@ -24,7 +25,7 @@ class TestExcludeSetupInterval:
     def test_normal_exclude_all(self, stroke_displacement_target, rawdata_df):
         """正常系：段取区間除外（全データ）"""
 
-        collect_start_time: float = datetime(2020, 12, 1, 10, 30, 22, 111112).timestamp()
+        collect_start_time: Decimal = Decimal(datetime(2020, 12, 1, 10, 30, 22, 111112).timestamp())
         actual: DataFrame = stroke_displacement_target._exclude_setup_interval(rawdata_df, collect_start_time)
 
         expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:])
@@ -34,7 +35,7 @@ class TestExcludeSetupInterval:
     def test_normal_exclude_some_data(self, stroke_displacement_target, rawdata_df):
         """正常系：段取区間除外（部分データ）"""
 
-        collect_start_time: float = datetime(2020, 12, 1, 10, 30, 20, 0).timestamp()
+        collect_start_time: Decimal = Decimal(datetime(2020, 12, 1, 10, 30, 20, 0).timestamp())
         actual: DataFrame = stroke_displacement_target._exclude_setup_interval(rawdata_df, collect_start_time)
 
         expected: DataFrame = rawdata_df.drop(index=rawdata_df.index[:-3])
@@ -45,7 +46,7 @@ class TestExcludeSetupInterval:
         """正常系：段取区間除外（除外対象なし）"""
 
         # rawdata_dfの最初のサンプルと同時刻
-        collect_start_time: float = datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp()
+        collect_start_time: Decimal = Decimal(datetime(2020, 12, 1, 10, 30, 10, 111111).timestamp())
         actual: DataFrame = stroke_displacement_target._exclude_setup_interval(rawdata_df, collect_start_time)
 
         expected: DataFrame = rawdata_df
@@ -57,10 +58,10 @@ class TestExcludePauseInterval:
     def test_normal_exclude_one_interval(self, stroke_displacement_target, rawdata_df):
         """正常系：中断区間(1回)除外"""
 
-        start_time: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
-        end_time: float = datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp()
+        start_time = datetime(2020, 12, 1, 10, 30, 11, 111111).isoformat()
+        end_time = datetime(2020, 12, 1, 10, 30, 21, 111111).isoformat()
 
-        pause_events = [{"event_type": "pause", "start_time": start_time, "end_time": end_time}]
+        pause_events = [{"event_name": "pause", "occurred_at": start_time, "ended_at": end_time}]
 
         actual: DataFrame = stroke_displacement_target._exclude_pause_interval(rawdata_df, pause_events)
 
@@ -72,14 +73,14 @@ class TestExcludePauseInterval:
     def test_normal_exclude_two_interval(self, stroke_displacement_target, rawdata_df):
         """正常系：中断区間(2回)除外"""
 
-        start_time_1: float = datetime(2020, 12, 1, 10, 30, 11, 111111).timestamp()
-        end_time_1: float = datetime(2020, 12, 1, 10, 30, 15, 111111).timestamp()
-        start_time_2: float = datetime(2020, 12, 1, 10, 30, 16, 111111).timestamp()
-        end_time_2: float = datetime(2020, 12, 1, 10, 30, 21, 111111).timestamp()
+        start_time_1 = datetime(2020, 12, 1, 10, 30, 11, 111111).isoformat()
+        end_time_1 = datetime(2020, 12, 1, 10, 30, 15, 111111).isoformat()
+        start_time_2 = datetime(2020, 12, 1, 10, 30, 16, 111111).isoformat()
+        end_time_2 = datetime(2020, 12, 1, 10, 30, 21, 111111).isoformat()
 
         pause_events = [
-            {"event_type": "pause", "start_time": start_time_1, "end_time": end_time_1},
-            {"event_type": "pause", "start_time": start_time_2, "end_time": end_time_2},
+            {"event_name": "pause", "occurred_at": start_time_1, "ended_at": end_time_1},
+            {"event_name": "pause", "occurred_at": start_time_2, "ended_at": end_time_2},
         ]
 
         actual: DataFrame = stroke_displacement_target._exclude_pause_interval(rawdata_df, pause_events)
