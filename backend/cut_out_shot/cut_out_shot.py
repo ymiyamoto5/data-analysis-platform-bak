@@ -26,7 +26,6 @@ from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
-from backend.tag_manager.tag_manager import TagManager
 from backend.utils.throughput_counter import throughput_counter
 from pandas.core.frame import DataFrame
 
@@ -46,14 +45,12 @@ class CutOutShot:
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
         min_spm: int = 15,
-        back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
     ):
         self.__machine_id = machine_id
         self.__rawdata_dir_name = machine_id + "-" + target
         self.__min_spm: int = min_spm
-        self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
         self.__shots_meta_df: DataFrame = pd.DataFrame(
@@ -408,10 +405,6 @@ class CutOutShot:
                 logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
 
-            # タグ付け
-            tm = TagManager(back_seconds_for_tagging=self.__back_seconds_for_tagging)
-            cut_out_df = tm.tagging(cut_out_df, events)
-
             # timestampをdatetimeに変換する
             cut_out_df["timestamp"] = cut_out_df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
 
@@ -471,7 +464,6 @@ if __name__ == "__main__":
         machine_id=machine_id,
         target=target,
         min_spm=15,
-        back_seconds_for_tagging=120,
         sampling_frequency=history.sampling_frequency,
         sensors=history.data_collect_history_details,
     )
