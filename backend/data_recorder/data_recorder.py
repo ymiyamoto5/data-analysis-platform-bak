@@ -42,18 +42,9 @@ class DataRecorder:
         self.sampling_frequency: int = handler["sampling_frequency"]
         self.sampling_interval: float = 1.0 / self.sampling_frequency
 
-    def _set_timestamp(self, sample_count: int, started_timestamp: float) -> float:
-        """プロセス跨ぎのタイムスタンプ設定。"""
-
-        timestamp: float = (
-            started_timestamp if sample_count == 0 else started_timestamp + sample_count * self.sampling_interval
-        )
-
-        return timestamp
-
     def _read_binary_files(
         self, file: FileInfo, sequential_number: int, timestamp: float
-    ) -> Tuple[List[dict], int, float]:
+    ) -> Tuple[List[Dict[str, Any]], int, float]:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 
         BYTE_SIZE: Final[int] = 8
@@ -61,7 +52,7 @@ class DataRecorder:
         UNPACK_FORMAT: Final[str] = "<" + "d" * self.sampling_ch_num  # 5chの場合 "<ddddd"
 
         dataset_number: int = 0  # ファイル内での連番
-        samples: List[dict] = []
+        samples: List[Dict[str, Any]] = []
 
         with open(file.file_path, "rb") as f:
             binary: bytes = f.read()
@@ -79,13 +70,13 @@ class DataRecorder:
             logger.debug(dataset)
 
             # TODO: pluseへの対応
-            sample: dict = {
+            sample: Dict[str, Any] = {
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
                 "stroke_displacement": round(dataset[0], 3),
             }
 
-            # 荷重センサーの数だけdictに追加
+            # TODO: 荷重センサー以外の対応
             for ch in range(1, self.sampling_ch_num):
                 str_ch = str(ch).zfill(2)
                 load: str = "load" + str_ch
@@ -113,23 +104,14 @@ class DataRecorder:
         """バイナリファイル読み取りおよびES/pkl出力"""
 
         sequential_number: int = sample_count
-
-        timestamp: float = self._set_timestamp(sample_count, started_timestamp)
-
-        logger.debug(f"sequential_number(count):{sample_count}, started:{started_timestamp}, timestamp:{timestamp}")
+        # プロセス跨ぎを考慮した時刻付け
+        timestamp: float = started_timestamp + sample_count * self.sampling_interval
+        # logger.info(f"sequential_number(count):{sample_count}, started:{started_timestamp}, timestamp:{timestamp}")
 
         for file in target_files:
             # バイナリファイルを読み取り、データリストを取得
-            samples: List[dict]
+            samples: List[Dict[str, Any]]
             samples, sequential_number, timestamp = self._read_binary_files(file, sequential_number, timestamp)
-
-            try:
-                requests.put(
-                    API_URL + f"/data_collect_histories/{latest_history_id}/", json={"sample_count": sequential_number}
-                )
-            except Exception:
-                logger.exception(traceback.format_exc())
-                sys.exit(1)
 
             # pklファイルに出力
             FileManager.export_to_pickle(samples, file, processed_dir_path)
@@ -138,7 +120,16 @@ class DataRecorder:
             if not is_manual:
                 shutil.move(file.file_path, processed_dir_path)
 
-            logger.info(f"processed: {file.file_path}")
+            logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
+
+        # 処理件数を履歴に記録し、プロセス跨ぎのサンプル連番/時刻付けに利用する。
+        try:
+            requests.put(
+                API_URL + f"/data_collect_histories/{latest_history_id}/", json={"sample_count": sequential_number}
+            )
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
 
     def auto_record(self, is_debug_mode: bool = False) -> None:
         """スケジュール実行による自動インポート"""
@@ -229,9 +220,6 @@ class DataRecorder:
         try:
             response = requests.get(API_URL + f"/data_collect_histories/{machine_id}/latest")
             latest_data_collect_history: Dict[str, Any] = response.json()
-            # sample_countを0に初期化する。
-            latest_history_id: int = latest_data_collect_history["id"]
-            requests.put(API_URL + f"/data_collect_histories/{latest_history_id}/", json={"sample_count": 0})
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
@@ -247,10 +235,10 @@ class DataRecorder:
             logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
             return
 
+        latest_history_id: int = latest_data_collect_history["id"]
         started_timestamp: float = datetime.fromisoformat(latest_data_collect_history["started_at"]).timestamp()
-        sample_count: int = latest_data_collect_history["sample_count"]
 
-        self._data_record(latest_history_id, files_info, target_dir, started_timestamp, sample_count, is_manual=True)
+        self._data_record(latest_history_id, files_info, target_dir, started_timestamp, sample_count=0, is_manual=True)
 
         logger.info("manual import finished.")
 
