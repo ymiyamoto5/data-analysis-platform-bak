@@ -46,7 +46,8 @@
             "module": "backend.cut_out_shot.cut_out_shot",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "data_importer",
@@ -92,22 +93,6 @@
             "name": "elastic_manager",
             "type": "python",
             "module": "backend.elastic_manager.elastic_manager",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "event_manager",
-            "type": "python",
-            "module": "backend.event_manager.event_manager",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "tag_manager",
-            "type": "python",
-            "module": "backend.tag_manager.tag_manager",
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
@@ -191,6 +176,13 @@
             "configurations": [
                 "FastAPI",
                 "chrome"
+            ]
+        },
+        {
+            "name": "cut_out_shot with FastAPI",
+            "configurations": [
+                "FastAPI",
+                "cut_out_shot"
             ]
         },
         {

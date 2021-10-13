@@ -1,5 +1,7 @@
 {
     "API_URL": "http://localhost:8000/api/v1",
+    "mlflow_server_uri": "http://10.3.18.117:5000",
+    "mlflow_experiment_name": "any",
     "SQLALCHEMY_DATABASE_URI": "sqlite:////mnt/datadrive/app.db",
     "data_dir": "/mnt/datadrive/data/",
     "elastic_url": "0.0.0.0:9200",

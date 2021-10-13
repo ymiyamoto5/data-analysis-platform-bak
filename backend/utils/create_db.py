@@ -7,6 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.app.db.session import Base, SessionLocal, engine
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -102,7 +103,7 @@ handler_02 = Handler(
     handler_type="USB_xxxxHS",
     adc_serial_num="ZZZZZZZ",
     sampling_frequency=1000,
-    sampling_ch_num=16,
+    sampling_ch_num=2,
     filewrite_time=1,
 )
 handler_03 = Handler(
@@ -382,6 +383,7 @@ data_collect_history_1 = DataCollectHistory(
     ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
     sampling_ch_num=5,
+    sample_count=0,
 )
 
 data_collect_history_2 = DataCollectHistory(
@@ -392,6 +394,7 @@ data_collect_history_2 = DataCollectHistory(
     ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
     sampling_ch_num=5,
+    sample_count=0,
 )
 
 data_collect_history_3 = DataCollectHistory(
@@ -402,6 +405,7 @@ data_collect_history_3 = DataCollectHistory(
     ended_at=datetime(2021, 7, 9, 19, 0, 0, 0) + timedelta(hours=-9) + timedelta(minutes=5),
     sampling_frequency=100_000,
     sampling_ch_num=2,
+    sample_count=0,
 )
 
 # pulse unittest用
@@ -413,6 +417,7 @@ data_collect_history_4 = DataCollectHistory(
     ended_at=datetime(2020, 12, 1, 10, 30, 11, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100_000,
     sampling_ch_num=5,
+    sample_count=0,
 )
 
 db.add(data_collect_history_1)
@@ -611,6 +616,36 @@ db.add(data_collect_history_detail_4_2)
 db.add(data_collect_history_detail_4_3)
 db.add(data_collect_history_detail_4_4)
 db.add(data_collect_history_detail_4_5)
+
+data_collect_history_event_1 = DataCollectHistoryEvent(
+    data_collect_history_id=2,
+    event_id=0,
+    event_name=common.COLLECT_STATUS.SETUP.value,
+    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9),
+)
+data_collect_history_event_2 = DataCollectHistoryEvent(
+    data_collect_history_id=2,
+    event_id=1,
+    event_name=common.COLLECT_STATUS.START.value,
+    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9),
+)
+data_collect_history_event_3 = DataCollectHistoryEvent(
+    data_collect_history_id=2,
+    event_id=2,
+    event_name=common.COLLECT_STATUS.STOP.value,
+    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=120),
+)
+data_collect_history_event_4 = DataCollectHistoryEvent(
+    data_collect_history_id=2,
+    event_id=3,
+    event_name=common.COLLECT_STATUS.RECORDED.value,
+    occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=121),
+)
+
+db.add(data_collect_history_event_1)
+db.add(data_collect_history_event_2)
+db.add(data_collect_history_event_3)
+db.add(data_collect_history_event_4)
 
 db.commit()
 
