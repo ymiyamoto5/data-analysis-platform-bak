@@ -9,12 +9,12 @@
 
 """
 
-import pytest
-import pathlib
 import dataclasses
+import json
+import pathlib
 import struct
-from backend.app.models.handler import Handler
-from backend.app.crud.crud_machine import CRUDMachine
+
+import pytest
 
 
 @dataclasses.dataclass
@@ -52,14 +52,22 @@ def dat_files(tmp_path):
     yield dat_files
 
 
-@pytest.fixture(scope="session", autouse=True)
-def handler(session_mocker):
-    """handlerオブジェクトのmock
-    TODO: オブジェクト自体をmockして挿しこむのではなく、InmemoryDBまたはテンポラリのDBファイルを作成して挿しこむ。
-    """
+@pytest.fixture
+def mocked_requests_get():
+    class MockResponse:
+        def __init__(self, json_data, status_code):
+            self.json_data = json_data
+            self.status_code = status_code
 
-    handler: Handler = Handler(
-        handler_id="test-handler", gateway_id="test-gw", sampling_frequency=100_000, sampling_ch_num=5
-    )
+        def json(self):
+            d = json.loads(self.json_data)
+            return d
 
-    session_mocker.patch.object(CRUDMachine, "fetch_handler_from_machine_id", return_value=handler)
+    handler = {
+        "handler_id": "test-handler",
+        "gateway_id": "test-gw",
+        "sampling_frequency": 100_000,
+        "sampling_ch_num": 5,
+    }
+
+    return MockResponse(json.dumps(handler), 200)

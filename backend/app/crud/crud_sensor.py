@@ -1,13 +1,13 @@
-from typing import List, Dict, Union, Any
-from backend.app.models.machine import Machine
+from typing import Any, Dict, List, Union
+
+from backend.app.crud.crud_handler import CRUDHandler
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
+from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm import Session
 from backend.app.schemas import sensor
 from sqlalchemy import desc
-from backend.app.crud.crud_handler import CRUDHandler
+from sqlalchemy.orm import Session, joinedload
 
 
 class CRUDSensor:
@@ -39,8 +39,8 @@ class CRUDSensor:
     def insert(db: Session, obj_in: sensor.SensorCreate) -> Sensor:
         machine_id: str = CRUDSensor.fetch_machine_by_handler_id(db, obj_in.handler_id)
 
-        # NOTE: 変位センサー、パルスセンサーはサフィックス番号を付けない
-        if obj_in.sensor_type_id in ("displacement", "pulse"):
+        # NOTE: ストローク変位センサー、パルスセンサーはサフィックス番号を付けない
+        if obj_in.sensor_type_id in ("stroke_displacement", "pulse"):
             sensor_id: str = obj_in.sensor_type_id
         # それ以外のセンサーの場合はサフィックス番号を付ける
         else:

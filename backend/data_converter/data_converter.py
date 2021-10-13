@@ -1,8 +1,9 @@
-from typing import Callable
-from backend.app.models.sensor import Sensor
-from pandas.core.frame import DataFrame
 from datetime import datetime
+from typing import Callable
+
+from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
+from pandas.core.frame import DataFrame
 
 
 class DataConverter:
@@ -23,7 +24,7 @@ class DataConverter:
 
             return lambda v: base_load * (v - initial_volt) / (base_volt - initial_volt)
 
-        elif sensor.sensor_type_id == "displacement":
+        elif sensor.sensor_type_id == "stroke_displacement":
             return lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
 
         elif sensor.sensor_type_id == "pulse":
@@ -33,23 +34,23 @@ class DataConverter:
             return lambda v: v
 
     @staticmethod
-    def down_sampling_df(df: DataFrame, sampling_frequency: int, n: int) -> DataFrame:
-        """データ収集時のサンプリング間隔を元に、n倍のダウンサンプリングする
-        ex) 元のsampling_frequency=100,000(間隔10μs) をn=1,000(倍)ダウンサンプリング --> リサンプリング間隔100ms
-            元のsampling_frequency=1,000(間隔1ms) をn=1,000(倍)ダウンサンプリング --> リサンプリング間隔1s
+    def down_sampling_df(df: DataFrame, sampling_frequency: int, rate: int) -> DataFrame:
+        """データ収集時のサンプリング間隔を元に、rate倍のダウンサンプリングする
+        ex) 元のsampling_frequency=100,000(間隔10μs) をrate=1,000(倍)ダウンサンプリング --> リサンプリング間隔100ms
+            元のsampling_frequency=1,000(間隔1ms) をrate=1,000(倍)ダウンサンプリング --> リサンプリング間隔1s
         """
 
-        # n < 1、つまりアップサンプリングは許可しない
-        if n < 1:
-            logger.error(f"Invalid parameter 'n'={n}. 'n' should be greater than 1.")
+        # rate < 1、つまりアップサンプリングは許可しない
+        if rate < 1:
+            logger.error(f"Invalid parameter 'rate'={rate}. 'n' should be greater than 1.")
             return df
 
         # timestampを日時に戻しdaterange indexとする。
-        df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+        df["timestamp"] = df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
         df = df.set_index(["timestamp"])
 
         sampling_interval: float = 1 / sampling_frequency
-        resampling_interval: float = sampling_interval * n
+        resampling_interval: float = sampling_interval * rate
 
         # ミリ秒未満、例えば10μ秒⇒1μ秒等のリサンプリングは対応しない。最も粒度の細かい1ms秒に強制する。
         if resampling_interval < 1e-3:

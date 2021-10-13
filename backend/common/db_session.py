@@ -1,5 +1,6 @@
-from backend.app.db.session import SessionLocal
 from contextlib import contextmanager
+
+from backend.app.db.session import SessionLocal
 
 
 @contextmanager

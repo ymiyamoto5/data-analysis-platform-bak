@@ -9,79 +9,65 @@
 
 """
 
-import multiprocessing
+import argparse
 import os
-import sys
 import shutil
 import struct
+import sys
 import time
 import traceback
-from datetime import datetime
-from typing import Final, Tuple, List, Optional, Any
-import argparse
-from backend.app.db.session import SessionLocal
-from sqlalchemy.orm import Session
-from backend.elastic_manager.elastic_manager import ElasticManager
-from backend.event_manager.event_manager import EventManager
-from backend.file_manager.file_manager import FileManager, FileInfo
+from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import Any, Dict, Final, List, Optional, Tuple
+
+import requests
 from backend.common import common
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.models.machine import Machine
 from backend.common.common_logger import data_recorder_logger as logger
+from backend.file_manager.file_manager import FileInfo, FileManager
+
+API_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "API_URL")
 
 
 class DataRecorder:
-    def __init__(self, machine_id: str, db: Session = None):
+    def __init__(self, machine_id: str):
         self.machine_id: str = machine_id
 
-        if db is None:
-            db = SessionLocal()
-
         try:
-            handler = CRUDMachine.fetch_handler_from_machine_id(db, self.machine_id)
+            response = requests.get(API_URL + f"/machines/{self.machine_id}/handler")
+            handler: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        self.sampling_ch_num: int = handler.sampling_ch_num
-        self.sampling_frequency: int = handler.sampling_frequency
-        self.sampling_interval: float = 1.0 / self.sampling_frequency
+        self.sampling_ch_num: int = handler["sampling_ch_num"]
+        self.sampling_frequency: int = handler["sampling_frequency"]
+        self.sampling_interval: Decimal = Decimal(1.0 / self.sampling_frequency)
 
-    @staticmethod
-    def _get_target_interval(events: List[dict]) -> Tuple[float, float]:
-        """処理対象となる区間（開始/終了時刻）を取得する"""
+    def _get_processed_dir_path(self, data_dir: str, started_at: str) -> str:
+        """処理済みファイルおよびpklファイル格納用のディレクトリ取得（なければ作成）"""
 
-        start_time: Optional[float] = EventManager.get_collect_setup_time(events)
-
-        if start_time is None:
-            sys.exit(1)
-
-        end_time: float = EventManager.get_collect_end_time(events)
-
-        if end_time == common.TIMESTAMP_MAX:
-            logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - ")
-        else:
-            logger.info(f"target interval: {datetime.fromtimestamp(start_time)} - {datetime.fromtimestamp(end_time)}")
-
-        return start_time, end_time
-
-    def _set_timestamp(self, rawdata_index: str, started_timestamp: float) -> float:
-        """プロセス跨ぎのタイムスタンプ設定。
-        rawdataインデックスの最新データから取得（なければデータ収集開始時間）
-        """
-
-        query: dict = {"sort": {"sequential_number": {"order": "desc"}}}
-        latest_rawdata: List[dict] = ElasticManager.get_docs(index=rawdata_index, query=query, size=1)
-
-        timestamp: float = (
-            started_timestamp if len(latest_rawdata) == 0 else latest_rawdata[0]["timestamp"] + self.sampling_interval
+        jst_started_at: datetime = datetime.fromisoformat(started_at) + timedelta(hours=9)
+        datetime_suffix: str = (
+            str(jst_started_at.year)
+            + str(jst_started_at.month)
+            + str(jst_started_at.day)
+            + str(jst_started_at.hour)
+            + str(jst_started_at.minute)
+            + str(jst_started_at.second)
         )
+        suffix: str = self.machine_id + "-" + datetime_suffix
+        processed_dir_path: str = os.path.join(data_dir, suffix)
+        if os.path.isdir(processed_dir_path):
+            logger.debug(f"{processed_dir_path} is already exists")
+        else:
+            os.makedirs(processed_dir_path)
+            logger.info(f"{processed_dir_path} created.")
 
-        return timestamp
+        return processed_dir_path
 
     def _read_binary_files(
-        self, file: FileInfo, sequential_number: int, timestamp: float
-    ) -> Tuple[List[dict], int, float]:
+        self, file: FileInfo, sequential_number: int, timestamp: Decimal
+    ) -> Tuple[List[Dict[str, Any]], int, Decimal]:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 
         BYTE_SIZE: Final[int] = 8
@@ -89,7 +75,7 @@ class DataRecorder:
         UNPACK_FORMAT: Final[str] = "<" + "d" * self.sampling_ch_num  # 5chの場合 "<ddddd"
 
         dataset_number: int = 0  # ファイル内での連番
-        samples: List[dict] = []
+        samples: List[Dict[str, Any]] = []
 
         with open(file.file_path, "rb") as f:
             binary: bytes = f.read()
@@ -107,13 +93,13 @@ class DataRecorder:
             logger.debug(dataset)
 
             # TODO: pluseへの対応
-            sample: dict = {
+            sample: Dict[str, Any] = {
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
-                "displacement": round(dataset[0], 3),
+                "stroke_displacement": round(dataset[0], 3),
             }
 
-            # 荷重センサーの数だけdictに追加
+            # TODO: 荷重センサー以外の対応
             for ch in range(1, self.sampling_ch_num):
                 str_ch = str(ch).zfill(2)
                 load: str = "load" + str_ch
@@ -131,38 +117,24 @@ class DataRecorder:
 
     def _data_record(
         self,
-        rawdata_index: str,
+        latest_history_id: int,
         target_files: List[FileInfo],
         processed_dir_path: str,
-        started_timestamp: float,
+        started_timestamp: Decimal,
+        sample_count: int,
         is_manual: bool = False,
     ) -> None:
         """バイナリファイル読み取りおよびES/pkl出力"""
 
-        sequential_number: int = ElasticManager.count(rawdata_index)  # ファイル（プロセス）を跨いだ連番
-        timestamp: float = self._set_timestamp(rawdata_index, started_timestamp)
-
-        logger.debug(
-            f"sequential_number(count):{sequential_number}, started:{started_timestamp}, timestamp:{timestamp}"
-        )
-
-        procs: List[multiprocessing.context.Process] = []
+        sequential_number: int = sample_count
+        # プロセス跨ぎを考慮した時刻付け
+        timestamp: Decimal = started_timestamp + sample_count * self.sampling_interval
 
         for file in target_files:
             # バイナリファイルを読み取り、データリストを取得
-            samples: List[dict]
-            sequential_number
+            samples: List[Dict[str, Any]]
             samples, sequential_number, timestamp = self._read_binary_files(file, sequential_number, timestamp)
 
-            # 子プロセスが残っていればjoin
-            if len(procs) > 0:
-                for p in procs:
-                    p.join()
-
-            # 子プロセスでElasticsearchのrawdata_indexに出力
-            procs = ElasticManager.multi_process_bulk_lazy_join(
-                data=samples, index_to_import=rawdata_index, num_of_process=common.NUM_OF_PROCESS, chunk_size=5000
-            )
             # pklファイルに出力
             FileManager.export_to_pickle(samples, file, processed_dir_path)
 
@@ -170,11 +142,16 @@ class DataRecorder:
             if not is_manual:
                 shutil.move(file.file_path, processed_dir_path)
 
-            logger.info(f"processed: {file.file_path}")
+            logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
 
-        if len(procs) > 0:
-            for p in procs:
-                p.join()
+        # 処理件数を履歴に記録し、プロセス跨ぎのサンプル連番/時刻付けに利用する。
+        try:
+            requests.put(
+                API_URL + f"/data_collect_histories/{latest_history_id}/", json={"sample_count": sequential_number}
+            )
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
 
     def auto_record(self, is_debug_mode: bool = False) -> None:
         """スケジュール実行による自動インポート"""
@@ -187,41 +164,42 @@ class DataRecorder:
             logger.info(f"No files in {data_dir}")
             return
 
-        # 対象機器について、直近のevents_indexからイベント取得
-        latest_events_index: Optional[str] = EventManager.get_latest_events_index(self.machine_id)
+        try:
+            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
+            latest_data_collect_history: Dict[str, Any] = response.json()
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
 
-        if latest_events_index is None:
-            logger.error("events_index is not found.")
-            return
-
-        datetime_str: str = latest_events_index.split("-")[-1]  # YYYYmmddHHMMSS文字列
-        suffix: str = self.machine_id + "-" + datetime_str
-        events_index: str = "events-" + suffix
-        events: List[dict] = EventManager.fetch_events(events_index)
+        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
 
         if len(events) == 0:
             logger.error("Exits because no events.")
             return
 
         # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
-        if events[-1]["event_type"] == common.COLLECT_STATUS.RECORDED.value:
+        if events[-1]["event_name"] == common.COLLECT_STATUS.RECORDED.value:
             logger.info(
                 f"Exits because the latest event is '{common.COLLECT_STATUS.RECORDED.value}'. May be data collect has not started yet."
             )
             return
 
-        started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
-
-        start_time: float
-        end_time: float
-        start_time, end_time = self._get_target_interval(events)
+        started_at: str = latest_data_collect_history["started_at"]
+        started_timestamp: float = datetime.fromisoformat(started_at).timestamp()
+        ended_at: Optional[str] = latest_data_collect_history["ended_at"]
+        if ended_at is not None:
+            ended_timestamp: float = datetime.fromisoformat(ended_at).timestamp()
+        else:
+            ended_timestamp = common.TIMESTAMP_MAX
 
         # 対象となるファイルに絞り込む
-        target_files: List[FileInfo] = FileManager.get_target_files(files_info, start_time, end_time)
+        target_files: List[FileInfo] = FileManager.get_target_files(files_info, started_timestamp, ended_timestamp)
 
         # 含まれないファイルは削除するが、debug_modeでは削除しない
         if not is_debug_mode:
-            not_target_files: List[FileInfo] = FileManager.get_not_target_files(files_info, start_time, end_time)
+            not_target_files: List[FileInfo] = FileManager.get_not_target_files(
+                files_info, started_timestamp, ended_timestamp
+            )
             for file in not_target_files:
                 os.remove(file.file_path)
                 logger.info(f"{file.file_path} has been deleted because it is out of range.")
@@ -232,36 +210,22 @@ class DataRecorder:
 
         logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
 
-        # 処理済みファイルおよびテンポラリファイル格納用のディレクトリ作成
-        processed_dir_path: str = os.path.join(data_dir, suffix)
-        if os.path.isdir(processed_dir_path):
-            logger.debug(f"{processed_dir_path} is already exists")
-        else:
-            os.makedirs(processed_dir_path)
-            logger.info(f"{processed_dir_path} created.")
-
-        # Elasticsearch rawdataインデックス名
-        rawdata_index: str = "rawdata-" + suffix
-
-        # start_timeが変わらない（格納先が変わらない）限り、同一インデックスにデータを追記していく
-        if not ElasticManager.exists_index(rawdata_index):
-            logger.info(f"{rawdata_index} not exists. Creating...")
-            mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
-            setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-            ElasticManager.create_index(rawdata_index, mapping_file=mapping_file, setting_file=setting_file)
+        processed_dir_path: str = self._get_processed_dir_path(data_dir, started_at)
 
         # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
         time.sleep(3)
 
-        self._data_record(rawdata_index, target_files, processed_dir_path, started_timestamp)
+        sample_count: int = latest_data_collect_history["sample_count"]
+        latest_history_id: int = latest_data_collect_history["id"]
+        self._data_record(
+            latest_history_id, target_files, processed_dir_path, Decimal(started_timestamp), sample_count
+        )
 
         logger.info("all file processed.")
 
     def manual_record(self, target_dir: str):
         """手動での生データ取り込み。前提条件は以下。
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
-        * 対応するevents_indexが存在すること。
-        * 対応するevents_indexの最後のドキュメントがrecordedであること。
         """
 
         files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, self.machine_id, "dat")
@@ -270,30 +234,30 @@ class DataRecorder:
             logger.info(f"No files in {target_dir}")
             return
 
-        target_dir_basename: str = os.path.basename(target_dir)
-        events_index: str = "events-" + target_dir_basename
-        events: List[dict] = EventManager.fetch_events(events_index)
+        try:
+            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
+            latest_data_collect_history: Dict[str, Any] = response.json()
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
+        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
 
         if len(events) == 0:
             logger.error("Exits because no events.")
             return
 
         # 直近のイベントがrecordedでない（データ収集が完了していない）場合は、手動実行させない。
-        if events[-1]["event_type"] != common.COLLECT_STATUS.RECORDED.value:
+        if events[-1]["event_name"] != common.COLLECT_STATUS.RECORDED.value:
             logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
             return
 
-        started_timestamp: float = datetime.fromisoformat(events[0]["occurred_time"]).timestamp()
+        latest_history_id: int = latest_data_collect_history["id"]
+        started_timestamp: float = datetime.fromisoformat(latest_data_collect_history["started_at"]).timestamp()
 
-        rawdata_index: str = "rawdata-" + target_dir_basename
-
-        # インデックスが存在すれば再作成
-        ElasticManager.delete_exists_index(index=rawdata_index)
-        mapping_file: str = common.get_config_value(common.APP_CONFIG_PATH, "mapping_rawdata_path")
-        setting_file: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_rawdata_path")
-        ElasticManager.create_index(rawdata_index, mapping_file=mapping_file, setting_file=setting_file)
-
-        self._data_record(rawdata_index, files_info, target_dir, started_timestamp, is_manual=True)
+        self._data_record(
+            latest_history_id, files_info, target_dir, Decimal(started_timestamp), sample_count=0, is_manual=True
+        )
 
         logger.info("manual import finished.")
 
@@ -304,12 +268,14 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    machines: List[Machine] = CRUDMachine.select_machines_has_handler()
+    os.environ["NO_PROXY"] = "localhost"
+    response = requests.get(API_URL + "/machines/machines/has_handler")
+    machines: List[Dict[str, Any]] = response.json()
 
     # スケジュール実行
     if args.dir is None:
         for m in machines:
-            data_recorder = DataRecorder(m.machine_id)
+            data_recorder = DataRecorder(m["machine_id"])
             data_recorder.auto_record(args.debug)
 
     # 手動インポート

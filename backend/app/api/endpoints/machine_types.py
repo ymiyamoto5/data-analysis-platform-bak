@@ -1,13 +1,13 @@
-from typing import List
-from backend.app.crud.crud_machine_type import CRUDMachineType
-from fastapi import Depends, APIRouter, HTTPException
-from sqlalchemy.orm import Session
-from backend.app.api.deps import get_db
-from backend.app.schemas import machine_type
-from backend.common.error_message import ErrorMessage, ErrorTypes
 import traceback
-from backend.common.common_logger import uvicorn_logger as logger
+from typing import List
 
+from backend.app.api.deps import get_db
+from backend.app.crud.crud_machine_type import CRUDMachineType
+from backend.app.schemas import machine_type
+from backend.common.common_logger import uvicorn_logger as logger
+from backend.common.error_message import ErrorMessage, ErrorTypes
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

@@ -16,18 +16,32 @@
       </v-row>
       <v-row dense>
         <v-col cols="1">
-          <DisplacementRangeSlider
-            v-if="dataSelected"
-            @input="setDisplacementRange"
+          <StrokeDisplacementRangeSlider
+            v-if="dataSelected && cutOutSensor === 'stroke_displacement'"
+            @input="setStrokeDisplacementRange"
             :targetDateStr="targetDateStr"
-          ></DisplacementRangeSlider>
+          ></StrokeDisplacementRangeSlider>
+          <ThresholdSlider
+            v-if="dataSelected && cutOutSensor === 'pulse'"
+            @input="setThreshold"
+            :targetDateStr="targetDateStr"
+          ></ThresholdSlider>
         </v-col>
         <v-col cols="9">
-          <ChartCard
+          <ChartCardStrokeDisplacement
+            v-if="cutOutSensor === 'stroke_displacement'"
             :machineId="machineId"
             :targetDateStr="targetDateStr"
-            :startDisplacement="startDisplacement"
-            :endDisplacement="endDisplacement"
+            :startStrokeDisplacement="startStrokeDisplacement"
+            :endStrokeDisplacement="endStrokeDisplacement"
+            :page="page"
+            @setMaxPage="setMaxPage"
+          />
+          <ChartCardPulse
+            v-if="cutOutSensor === 'pulse'"
+            :machineId="machineId"
+            :targetDateStr="targetDateStr"
+            :threshold="threshold"
             :page="page"
             @setMaxPage="setMaxPage"
           />
@@ -66,18 +80,25 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import MachineSelect from '@/components/CutOutShot/MachineSelect.vue'
 import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
-import ChartCard from '@/components/CutOutShot/ChartCard.vue'
-import DisplacementRangeSlider from '@/components/CutOutShot/DisplacementRangeSlider.vue'
+import ChartCardStrokeDisplacement from '@/components/CutOutShot/ChartCardStrokeDisplacement.vue'
+import ChartCardPulse from '@/components/CutOutShot/ChartCardPulse.vue'
+import StrokeDisplacementRangeSlider from '@/components/CutOutShot/StrokeDisplacementRangeSlider.vue'
+import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
-const CUT_OUT_SHOT_API_URL = '/api/v1/cut_out_shot/'
+const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor/'
+const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
+  '/api/v1/cut_out_shot/stroke_displacement/'
+const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse/'
 
 export default {
   components: {
     MachineSelect,
-    DisplacementRangeSlider,
+    StrokeDisplacementRangeSlider,
+    ThresholdSlider,
     CollectDataSelect,
-    ChartCard,
+    ChartCardStrokeDisplacement,
+    ChartCardPulse,
   },
   data() {
     return {
@@ -89,19 +110,26 @@ export default {
       displayPrevPage: false, // グラフを前に戻せるか
       displayNextPage: false, // グラフを先に進められるか
       machineId: '',
-      targetDateStr: '',
-      startDisplacement: 0,
-      endDisplacement: 0,
-      collectData: '',
+      targetDateStr: '', // yyyyMMdd文字列
+      cutOutSensor: '', // 切り出し対象となるセンサー種（ストローク変位またはパルス）
+      startStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット開始ストローク変位値
+      endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
+      threshold: 0, // パルスで切り出す場合のしきい値
+      collectData: '', // データ収集開始日時 - 終了日時文字列
     }
   },
   methods: {
     setMachine(value) {
+      this.dataSelected = false
+      this.targetDateStr = ''
+      this.cutOutSensor = ''
       this.machineId = value
     },
     setCollectData(value) {
       this.collectData = value
       this.dataSelected = true
+      this.targetDateStr = ''
+      this.cutOutSensor = ''
       this.fetchTargetDir()
       this.page = 0
       this.maxPage = 0
@@ -126,30 +154,71 @@ export default {
             return
           }
           this.targetDateStr = res.data
+          // 切り出し対象センサー特定
+          this.fetchCutOutSensor()
         })
         .catch((e) => {
           console.log(e.response.data.detail)
         })
     },
-    setDisplacementRange(range) {
-      this.startDisplacement = range[1]
-      this.endDisplacement = range[0]
+
+    // 切り出しの基準となるセンサー特定
+    fetchCutOutSensor: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(CUT_OUT_SENSOR_API_URL, {
+          params: {
+            machine_id: this.machineId,
+            target_date_str: this.targetDateStr,
+          },
+        })
+        .then((res) => {
+          if (res.data === null) {
+            return
+          }
+          this.cutOutSensor = res.data.cut_out_sensor
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+        })
     },
+
+    setStrokeDisplacementRange(range) {
+      this.startStrokeDisplacement = range[1]
+      this.endStrokeDisplacement = range[0]
+    },
+
+    setThreshold(value) {
+      this.threshold = value
+    },
+
     // ショット切り出し開始
     start: async function() {
       this.started = true
       this.running = true
 
-      const postData = {
-        machine_id: this.machineId,
-        start_displacement: this.startDisplacement,
-        end_displacement: this.endDisplacement,
-        target_date_str: this.targetDateStr,
+      let url = ''
+      let postData = {}
+      if (this.cutOutSensor === 'stroke_displacement') {
+        url = CUT_OUT_SHOT_DISPLACEMENT_API_URL
+        postData = {
+          machine_id: this.machineId,
+          start_stroke_displacement: this.startStrokeDisplacement,
+          end_stroke_displacement: this.endStrokeDisplacement,
+          target_date_str: this.targetDateStr,
+        }
+      } else if (this.cutOutSensor === 'pulse') {
+        url = CUT_OUT_SHOT_PULSE_API_URL
+        postData = {
+          machine_id: this.machineId,
+          threshold: this.threshold,
+          target_date_str: this.targetDateStr,
+        }
       }
 
       const client = createBaseApiClient()
       await client
-        .post(CUT_OUT_SHOT_API_URL, postData)
+        .post(url, postData)
         .then(() => {
           this.running = false
         })
@@ -191,11 +260,4 @@ export default {
 }
 </script>
 
-<style scoped>
-/* #prev {
-  margin-top: 200px;
-}
-#next {
-  margin-top: 200px;
-} */
-</style>
+<style scoped></style>

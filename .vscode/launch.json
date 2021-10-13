@@ -46,7 +46,8 @@
             "module": "backend.cut_out_shot.cut_out_shot",
             "request": "launch",
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "data_importer",
@@ -73,7 +74,8 @@
             "console": "integratedTerminal",
             "args": [
                 "--debug"
-            ]
+            ],
+            "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "data_recorder(manual record)",
@@ -83,29 +85,14 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
-                "-d=test-machine-20210928101034"
-            ]
+                "-d=machine-01-20210327141514"
+            ],
+            "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "elastic_manager",
             "type": "python",
             "module": "backend.elastic_manager.elastic_manager",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "event_manager",
-            "type": "python",
-            "module": "backend.event_manager.event_manager",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "tag_manager",
-            "type": "python",
-            "module": "backend.tag_manager.tag_manager",
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
@@ -189,6 +176,27 @@
             "configurations": [
                 "FastAPI",
                 "chrome"
+            ]
+        },
+        {
+            "name": "cut_out_shot with FastAPI",
+            "configurations": [
+                "FastAPI",
+                "cut_out_shot"
+            ]
+        },
+        {
+            "name": "data_recorder with FastAPI",
+            "configurations": [
+                "FastAPI",
+                "data_recorder"
+            ]
+        },
+        {
+            "name": "data_recorder(manual) with FastAPI",
+            "configurations": [
+                "FastAPI",
+                "data_recorder(manual record)"
             ]
         }
     ]

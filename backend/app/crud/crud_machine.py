@@ -1,13 +1,12 @@
-from typing import List, Dict, Union, Any
-from backend.app.models.machine import Machine
+from typing import Any, Dict, List, Union
+
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
+from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
-from sqlalchemy.orm import joinedload
-from backend.common import common
-from sqlalchemy.orm import Session
 from backend.app.schemas import machine
-from backend.common.db_session import db_session
+from backend.common import common
+from sqlalchemy.orm import Session, joinedload
 
 
 class CRUDMachine:
@@ -104,20 +103,9 @@ class CRUDMachine:
         return sensors
 
     @staticmethod
-    def select_sensors_by_machine_id_from_job(machine_id: str) -> List[Sensor]:
-        """machine_idから紐づくセンサーリストを取得。ジョブからのDBアクセスで利用。
-        TODO: WebAPとジョブで関数を統一したい。
-        """
-        with db_session() as db:
-            sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
-
-        return sensors
-
-    @staticmethod
-    def select_machines_has_handler() -> List[Machine]:
-        with db_session() as db:
-            machines: List[Machine] = (
-                db.query(Machine).join(Gateway, Machine.gateways).join(Handler, Gateway.handlers).all()
-            )
+    def select_machines_has_handler(db: Session) -> List[Machine]:
+        machines: List[Machine] = (
+            db.query(Machine).join(Gateway, Machine.gateways).join(Handler, Gateway.handlers).all()
+        )
 
         return machines
