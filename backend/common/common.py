@@ -23,7 +23,6 @@ from pytz import timezone
 load_dotenv()
 
 # グローバル定数
-APP_CONFIG_PATH: Final[str] = os.getenv("APP_CONFIG_PATH", "default_config_path.json")
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
 TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
 NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
