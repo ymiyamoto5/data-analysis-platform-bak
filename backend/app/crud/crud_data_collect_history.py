@@ -59,6 +59,20 @@ class CRUDDataCollectHistory:
         return history
 
     @staticmethod
+    def select_latest_by_machine_id(db: Session, machine_id: str) -> DataCollectHistory:
+        history: DataCollectHistory = (
+            db.query(DataCollectHistory)
+            .filter_by(machine_id=machine_id)
+            .order_by(desc(DataCollectHistory.started_at))
+            .options(
+                joinedload(DataCollectHistory.machine),
+            )
+            .first()
+        )
+
+        return history
+
+    @staticmethod
     def update(db: Session, db_obj: DataCollectHistory, obj_in: DataCollectHistoryUpdate) -> DataCollectHistory:
 
         if isinstance(obj_in, dict):

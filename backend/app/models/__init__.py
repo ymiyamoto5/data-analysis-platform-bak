@@ -1,5 +1,6 @@
 from .data_collect_history import DataCollectHistory  # noqa
 from .data_collect_history_detail import DataCollectHistoryDetail  # noqa
+from .data_collect_history_event import DataCollectHistoryEvent  # noqa
 from .gateway import Gateway  # noqa
 from .handler import Handler  # noqa
 from .machine import Machine  # noqa

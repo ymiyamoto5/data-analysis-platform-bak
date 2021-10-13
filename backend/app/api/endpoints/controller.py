@@ -12,7 +12,6 @@ from backend.app.models.machine import Machine
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
-from backend.event_manager.event_manager import EventManager
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
@@ -60,7 +59,6 @@ def setup(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     """指定機器のデータ収集段取開始"""
 
     utc_now: datetime = datetime.utcnow()
-    jst_now: common.DisplayTime = common.DisplayTime(utc_now)
 
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
@@ -68,22 +66,6 @@ def setup(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.RECORDED.value, common.STATUS.STOP.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
-
-    # events_index作成(events-<gw-id>-yyyyMMddHHMMSS(jst))
-    successful: bool
-    events_index: str
-    successful, events_index = EventManager.create_events_index(machine.machine_id, jst_now.to_string())
-
-    if not successful:
-        raise HTTPException(status_code=500, detail="events_indexの作成に失敗しました。")
-
-    # events_indexに段取り開始(setup)を記録
-    successful = EventManager.record_event(
-        events_index, event_type=common.COLLECT_STATUS.SETUP.value, occurred_time=utc_now
-    )
-
-    if not successful:
-        raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
     try:
         CRUDController.setup(db, machine=machine, utc_now=utc_now)
@@ -107,21 +89,8 @@ def start(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
-
-    if events_index is None:
-        raise HTTPException(status_code=500, detail="対象のevents_indexがありません。")
-
-    # events_indexに収集開始(start)を記録
-    successful: bool = EventManager.record_event(
-        events_index, event_type=common.COLLECT_STATUS.START.value, occurred_time=utc_now
-    )
-
-    if not successful:
-        raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
-
     try:
-        CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
+        CRUDController.start(db, machine=machine, utc_now=utc_now)
     except Exception:
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
@@ -137,26 +106,8 @@ def pause(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
 
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
-    # 収集開始状態かつGW開始状態であることが前提
-    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
-    if not is_valid:
-        raise HTTPException(status_code=error_code, detail=message)
-
-    events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
-
-    if events_index is None:
-        raise HTTPException(status_code=500, detail="対象のevents_indexがありません。")
-
-    # events_indexに中断(pause)を記録
-    successful: bool = EventManager.record_event(
-        events_index, event_type=common.COLLECT_STATUS.PAUSE.value, occurred_time=utc_now
-    )
-
-    if not successful:
-        raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
-
     try:
-        CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.PAUSE.value})
+        CRUDController.pause(db, machine=machine, utc_now=utc_now)
     except Exception:
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
@@ -177,20 +128,9 @@ def resume(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
-
-    if events_index is None:
-        raise HTTPException(status_code=500, detail="対象のevents_indexがありません。")
-
-    # events_indexの中断イベントに再開イベントを追加
-    successful: bool = EventManager.update_pause_event(events_index, occurred_time=utc_now)
-
-    if not successful:
-        raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
-
     # RESUMEはDBの状態としては保持しない。STARTに更新する。
     try:
-        CRUDMachine.update(db, db_obj=machine, obj_in={"collect_status": common.COLLECT_STATUS.START.value})
+        CRUDController.resume(db, machine=machine, utc_now=utc_now)
     except Exception:
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
@@ -200,7 +140,7 @@ def resume(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
 
 @router.post("/stop/{machine_id}")
 def stop(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
-    """指定機器のデータ収集開始"""
+    """指定機器のデータ収集停止"""
 
     utc_now: datetime = datetime.utcnow()
 
@@ -211,22 +151,9 @@ def stop(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), d
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
-
-    if events_index is None:
-        raise HTTPException(status_code=500, detail="対象のevents_indexがありません。")
-
-    # events_indexに収集停止(stop)を記録
-    successful: bool = EventManager.record_event(
-        events_index, event_type=common.COLLECT_STATUS.STOP.value, occurred_time=utc_now
-    )
-
-    if not successful:
-        raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
-
     # DB更新
     try:
-        CRUDController.stop(db, machine=machine)
+        CRUDController.stop(db, machine=machine, utc_now=utc_now)
     except Exception:
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
@@ -254,20 +181,7 @@ def check(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), 
             time.sleep(WAIT_SECONDS)
             continue
 
-        # 最新のevents_indexを取得し、記録完了イベントを記録
-        events_index: Optional[str] = EventManager.get_latest_events_index(machine_id)
-
-        if events_index is None:
-            raise HTTPException(status_code=500, detail="対象のevents_indexがありません。")
-
         utc_now: datetime = datetime.utcnow()
-
-        successful: bool = EventManager.record_event(
-            events_index, event_type=common.COLLECT_STATUS.RECORDED.value, occurred_time=utc_now
-        )
-
-        if not successful:
-            raise HTTPException(status_code=500, detail="events_indexのデータ投入に失敗しました。")
 
         try:
             CRUDController.record(db, machine=machine, utc_now=utc_now)

@@ -5,8 +5,7 @@ from backend.app.api.deps import get_db
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.schemas import data_collect_history
-from backend.app.services.data_collect_history_service import \
-    DataCollectHistoryService
+from backend.app.services.data_collect_history_service import DataCollectHistoryService
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
@@ -29,13 +28,27 @@ def fetch_data_collect_histories(db: Session = Depends(get_db)):
 
 
 @router.get("/{machine_id}", response_model=List[data_collect_history.DataCollectHistory])
-def fetch_data_collect_history_by_machine(
+def fetch_data_collect_histories_by_machine(
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)
 ):
     """特定機器のデータ収集履歴を返す"""
 
     try:
         history: List[DataCollectHistory] = CRUDDataCollectHistory.select_by_machine_id(db, machine_id)
+        return history
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+
+@router.get("/{machine_id}/latest", response_model=data_collect_history.DataCollectHistory)
+def fetch_latest_data_collect_history_by_machine(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)
+):
+    """特定機器の最新のデータ収集履歴を返す"""
+
+    try:
+        history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
         return history
     except Exception:
         logger.error(traceback.format_exc())

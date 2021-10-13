@@ -14,23 +14,26 @@ import os
 import sys
 import traceback
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Callable, Dict, Final, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+import requests
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.elastic_manager.elastic_manager import ElasticManager
-from backend.event_manager.event_manager import EventManager
 from backend.file_manager.file_manager import FileManager
-from backend.tag_manager.tag_manager import TagManager
 from backend.utils.throughput_counter import throughput_counter
 from pandas.core.frame import DataFrame
 
-from .stroke_displacement_cutter import StrokeDisplacementCutter
 from .pulse_cutter import PulseCutter
+from .stroke_displacement_cutter import StrokeDisplacementCutter
+
+API_URL: Final[str] = common.get_config_value(common.APP_CONFIG_PATH, "API_URL")
+os.environ["NO_PROXY"] = "localhost"
 
 
 class CutOutShot:
@@ -42,14 +45,12 @@ class CutOutShot:
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
         min_spm: int = 15,
-        back_seconds_for_tagging: int = 120,
         num_of_process: int = common.NUM_OF_PROCESS,
         chunk_size: int = 5_000,
     ):
         self.__machine_id = machine_id
         self.__rawdata_dir_name = machine_id + "-" + target
         self.__min_spm: int = min_spm
-        self.__back_seconds_for_tagging: int = back_seconds_for_tagging
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
         self.__shots_meta_df: DataFrame = pd.DataFrame(
@@ -111,7 +112,7 @@ class CutOutShot:
         ]
 
     @staticmethod
-    def _exclude_setup_interval(df: DataFrame, collect_start_time: float) -> DataFrame:
+    def _exclude_setup_interval(df: DataFrame, collect_start_time: Decimal) -> DataFrame:
         """収集開始前(段取中)のデータを除外"""
 
         return df[df["timestamp"] >= collect_start_time]
@@ -121,7 +122,9 @@ class CutOutShot:
         """中断区間のデータを除外"""
 
         for pause_event in pause_events:
-            df = df[(df["timestamp"] < pause_event["start_time"]) | (pause_event["end_time"] < df["timestamp"])]
+            start_time: Decimal = Decimal(datetime.fromisoformat(pause_event["occurred_at"]).timestamp())
+            end_time: Decimal = Decimal(datetime.fromisoformat(pause_event["ended_at"]).timestamp())
+            df = df[(df["timestamp"] < start_time) | (end_time < df["timestamp"])]
 
         return df
 
@@ -166,7 +169,7 @@ class CutOutShot:
         shots_summary_df["diff"] = shots_summary_df["timestamp"].diff().shift(-1)
 
         try:
-            shots_summary_df["spm"] = round(60.0 / shots_summary_df["diff"], 2)
+            shots_summary_df["spm"] = round(60.0 / shots_summary_df["diff"].astype(float), 2)
         except ZeroDivisionError:
             logger.error(traceback.format_exc())
 
@@ -176,7 +179,9 @@ class CutOutShot:
         """ショットメタデータをshots_metaインデックスに出力"""
 
         self.__shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
-        self.__shots_meta_df["timestamp"] = self.__shots_meta_df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+        self.__shots_meta_df["timestamp"] = (
+            self.__shots_meta_df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
+        )
 
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
@@ -304,25 +309,32 @@ class CutOutShot:
         setting_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_meta_path")
         ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
-        # event_indexから各種イベント情報を取得する
-        events_index: str = "events-" + self.__rawdata_dir_name
-        events: List[dict] = EventManager.fetch_events(events_index)
+        # イベント情報を取得する
+        try:
+            response = requests.get(API_URL + f"/data_collect_histories/{self.__machine_id}/latest")
+            latest_data_collect_history: Dict[str, Any] = response.json()
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
+        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
 
         if len(events) == 0:
             logger.error("Exits because no events.")
             return
 
         # 最後のイベントが記録済み(recorded)であることが前提
-        if events[-1]["event_type"] != common.COLLECT_STATUS.RECORDED.value:
+        if events[-1]["event_name"] != common.COLLECT_STATUS.RECORDED.value:
             logger.error("Exits because the status is not recorded.")
             return
 
-        collect_start_time: Optional[float] = EventManager.get_collect_start_time(events)
-        if collect_start_time is None:
-            logger.error("Exits because collect time is not recorded.")
-            return
+        start_event: Dict[str, Any] = [e for e in events if e["event_name"] == common.COLLECT_STATUS.START.value][0]
 
-        pause_events: List[dict] = EventManager.get_pause_events(events)
+        collect_start_time: Decimal = Decimal(datetime.fromisoformat(start_event["occurred_at"]).timestamp())
+
+        pause_events: List[Dict[str, Any]] = [
+            e for e in events if e["event_name"] == common.COLLECT_STATUS.PAUSE.value
+        ]
 
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
@@ -393,12 +405,8 @@ class CutOutShot:
                 logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
 
-            # タグ付け
-            tm = TagManager(back_seconds_for_tagging=self.__back_seconds_for_tagging)
-            cut_out_df = tm.tagging(cut_out_df, events)
-
             # timestampをdatetimeに変換する
-            cut_out_df["timestamp"] = cut_out_df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+            cut_out_df["timestamp"] = cut_out_df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
 
             # Elasticsearchに格納するため、dictに戻す
             cut_out_targets = cut_out_df.to_dict(orient="records")
@@ -418,6 +426,10 @@ class CutOutShot:
 
         # 全ファイル走査後、子プロセスが残っていればjoin
         procs = self.__join_process(procs)
+
+        if len(self.cutter.shots_summary) == 0:
+            logger.info("Shot is not detected.")
+            return
 
         # ショットメタデータDF作成
         self._create_shots_meta_df(self.cutter.shots_summary)
@@ -452,7 +464,6 @@ if __name__ == "__main__":
         machine_id=machine_id,
         target=target,
         min_spm=15,
-        back_seconds_for_tagging=120,
         sampling_frequency=history.sampling_frequency,
         sensors=history.data_collect_history_details,
     )

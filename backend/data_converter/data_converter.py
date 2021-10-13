@@ -46,7 +46,7 @@ class DataConverter:
             return df
 
         # timestampを日時に戻しdaterange indexとする。
-        df["timestamp"] = df["timestamp"].map(lambda x: datetime.fromtimestamp(x))
+        df["timestamp"] = df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
         df = df.set_index(["timestamp"])
 
         sampling_interval: float = 1 / sampling_frequency
