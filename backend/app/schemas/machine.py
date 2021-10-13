@@ -1,8 +1,9 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field, validator
-from backend.common import common
+
 from backend.app.schemas.gateway import Gateway
 from backend.app.schemas.machine_type import MachineType
+from backend.common import common
+from pydantic import BaseModel, Field, validator
 
 
 class MachineBase(BaseModel):

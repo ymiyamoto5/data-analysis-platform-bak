@@ -9,8 +9,9 @@
 
 """
 
-from typing import Callable, TypeVar
 from datetime import datetime
+from typing import Callable, TypeVar
+
 from backend.common.common_logger import logger
 
 RT = TypeVar("RT")

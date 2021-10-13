@@ -9,10 +9,11 @@
   Author: UNIADEX, Ltd.
 
 """
-import numpy as np
-import pandas as pd
 import os
 import sys
+
+import numpy as np
+import pandas as pd
 
 # from fft_tools import *
 from backend.analyzer.fft_tools import *
@@ -1142,7 +1143,7 @@ if __name__ == "__main__":
             continue
 
         df1 = df1.rename(
-            {"v1": "load01", "v2": "load02", "v3": "load03", "v4": "load04", "c1": "displacement"}, axis=1
+            {"v1": "load01", "v2": "load02", "v3": "load03", "v4": "load04", "c1": "stroke_displacement"}, axis=1
         )
 
         # argmax,valmax,debugval = extract_features(df1, 80.0, max_load)    # SPMここでは固定

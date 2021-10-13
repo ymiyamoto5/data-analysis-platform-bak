@@ -9,10 +9,11 @@
 
 """
 
-import pytest
-import pathlib
 import dataclasses
+import pathlib
 import struct
+
+import pytest
 
 
 @dataclasses.dataclass

@@ -1,4 +1,5 @@
 from typing import List
+
 from backend.app.models.sensor_type import SensorType
 from sqlalchemy.orm import Session
 

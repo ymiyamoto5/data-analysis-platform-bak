@@ -1,10 +1,10 @@
-from typing import List
 from datetime import datetime, timedelta
+from typing import List
+
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.schemas.data_collect_history import DataCollectHistoryUpdate
-from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 
 class CRUDDataCollectHistory:
@@ -54,6 +54,20 @@ class CRUDDataCollectHistory:
                 DataCollectHistory.started_at <= started_at + timedelta(seconds=1),
             )
             .one()
+        )
+
+        return history
+
+    @staticmethod
+    def select_latest_by_machine_id(db: Session, machine_id: str) -> DataCollectHistory:
+        history: DataCollectHistory = (
+            db.query(DataCollectHistory)
+            .filter_by(machine_id=machine_id)
+            .order_by(desc(DataCollectHistory.started_at))
+            .options(
+                joinedload(DataCollectHistory.machine),
+            )
+            .first()
         )
 
         return history

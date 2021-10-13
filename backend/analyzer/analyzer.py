@@ -15,14 +15,15 @@ warnings.simplefilter("ignore")
 import multiprocessing
 import sys
 import traceback
-import pandas as pd
-from typing import Callable, List, Tuple, Optional
-from pandas.core.frame import DataFrame
+from typing import Callable, List, Optional, Tuple
+
 import backend.analyzer.h_one_extract_features as ef
-from backend.elastic_manager.elastic_manager import ElasticManager
-from backend.data_reader.data_reader import DataReader
+import pandas as pd
 from backend.common import common
 from backend.common.common_logger import logger
+from backend.data_reader.data_reader import DataReader
+from backend.elastic_manager.elastic_manager import ElasticManager
+from pandas.core.frame import DataFrame
 
 
 class Analyzer:
