@@ -17,7 +17,10 @@ from enum import Enum
 from typing import Final
 
 from backend.common.common_logger import logger
+from dotenv import load_dotenv
 from pytz import timezone
+
+load_dotenv()
 
 # グローバル定数
 APP_CONFIG_PATH: Final[str] = os.getenv("APP_CONFIG_PATH", "default_config_path.json")
