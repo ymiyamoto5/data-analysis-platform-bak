@@ -208,7 +208,7 @@ def check(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    data_dir: str = common.get_config_value("data_dir", "/mnt/datadrive/data/")
+    data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
 
     while True:
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
