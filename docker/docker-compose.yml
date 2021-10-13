@@ -58,6 +58,22 @@ services:
     networks:
       spark-nw:
         ipv4_address: 172.30.30.1
+  webap:
+    build:
+      context: ~/data-analysis-platform
+      dockerfile: ./docker/webap.dockerfile
+    environment:
+      MODULE_NAME: 'backend.app.main'
+    ports:
+      - '8002:80/tcp'
+    volumes:
+      - /mnt/datadrive:/mnt/datadrive
+      # - ~/data-analysis-platform/backend:/app/backend
+    networks:
+      spark-nw:
+        ipv4_address: 172.30.40.1
+    depends_on:
+      - elasticsearch
 
 networks:
   spark-nw:

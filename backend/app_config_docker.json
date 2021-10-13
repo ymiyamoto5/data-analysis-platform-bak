@@ -1,7 +1,10 @@
 {
-    "SQLALCHEMY_DATABASE_URI": "sqlite:////datadrive/app.db",
-    "data_dir": "/datadrive/data/",
-    "elastic_url": "0.0.0.0:9200",
+    "API_URL": "http://localhost:80/api/v1",
+    "mlflow_server_uri": "http://10.3.18.117:5000",
+    "mlflow_experiment_name": "any",
+    "SQLALCHEMY_DATABASE_URI": "sqlite:////mnt/datadrive/app.db",
+    "data_dir": "/mnt/datadrive/data/",
+    "elastic_url": "172.30.10.1:9200",
     "elastic_user": "elastic",
     "elastic_password": "P@ssw0rd",
     "mapping_rawdata_path": "backend/mappings/mapping_rawdata.json",
