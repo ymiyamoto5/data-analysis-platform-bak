@@ -88,7 +88,9 @@ def fetch_shots(
         if sensor.sensor_type_id in ("stroke_displacement", "pulse")
     ][0]
 
+    # TODO: rate可変化
     rate: int = 1000 if cut_out_sensor_type == "stroke_displacement" else 10
+    # rate: int = 1
 
     resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency, rate)
 
