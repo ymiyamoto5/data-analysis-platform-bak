@@ -120,6 +120,8 @@ export default {
       endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
+      snackbar: false,
+      snackbarMessage: '',
     }
   },
   methods: {
