@@ -61,18 +61,23 @@
       </v-row>
 
       <v-row justify="center" v-if="dataSelected">
-        <v-btn color="primary" @click="start" :disabled="running"
+        <v-btn
+          color="primary"
+          @click="start"
+          :disabled="running"
+          :loading="running"
           >ショット切り出し開始</v-btn
         >
       </v-row>
-      <v-row justify="center">
-        <v-progress-circular
-          v-if="started === true && running === true"
-          indeterminate
-          color="#53e09c"
-        />
-      </v-row>
     </v-container>
+    <v-snackbar v-model="snackbar" timeout="5000" top color="success">
+      {{ snackbarMessage }}
+      <template v-slot:action="{ attrs }">
+        <v-btn color="white" text v-bind="attrs" @click="snackbar = false">
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
@@ -103,7 +108,6 @@ export default {
   data() {
     return {
       dataSelected: false,
-      started: false,
       running: false,
       page: 0, // グラフの表示ファイル
       maxPage: 0, // グラフの最大ページング数（対象データのファイル数）
@@ -116,6 +120,8 @@ export default {
       endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
+      snackbar: false,
+      snackbarMessage: '',
     }
   },
   methods: {
@@ -194,7 +200,6 @@ export default {
 
     // ショット切り出し開始
     start: async function() {
-      this.started = true
       this.running = true
 
       let url = ''
@@ -221,6 +226,8 @@ export default {
         .post(url, postData)
         .then(() => {
           this.running = false
+          this.snackbarMessage = 'ショット切り出しが完了しました'
+          this.snackbar = true
         })
         .catch((e) => {
           console.log(e.response.data.detail)
