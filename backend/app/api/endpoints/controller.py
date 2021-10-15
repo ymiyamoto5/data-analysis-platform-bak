@@ -211,7 +211,9 @@ def check(
     data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
 
     while True:
-        data_file_list: List[str] = glob.glob(os.path.join(data_dir, "*.dat"))
+        data_file_list: List[str] = glob.glob(
+            os.path.join(data_dir, f"{machine_id}_*.dat")
+        )
 
         if len(data_file_list) != 0:
             time.sleep(WAIT_SECONDS)
