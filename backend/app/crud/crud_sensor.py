@@ -6,6 +6,7 @@ from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.schemas import sensor
+from backend.common import common
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
@@ -40,7 +41,7 @@ class CRUDSensor:
         machine_id: str = CRUDSensor.fetch_machine_by_handler_id(db, obj_in.handler_id)
 
         # NOTE: ストローク変位センサー、パルスセンサーはサフィックス番号を付けない
-        if obj_in.sensor_type_id in ("stroke_displacement", "pulse"):
+        if obj_in.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES:
             sensor_id: str = obj_in.sensor_type_id
         # それ以外のセンサーの場合はサフィックス番号を付ける
         else:
@@ -88,7 +89,9 @@ class CRUDSensor:
         return new_sensor
 
     @staticmethod
-    def update(db: Session, db_obj: Sensor, obj_in: Union[sensor.SensorUpdate, Dict[str, Any]]) -> Sensor:
+    def update(
+        db: Session, db_obj: Sensor, obj_in: Union[sensor.SensorUpdate, Dict[str, Any]]
+    ) -> Sensor:
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -132,6 +135,8 @@ class CRUDSensor:
     def fetch_sensors_by_machine_id(db: Session, machine_id: str) -> List[Sensor]:
         """machine_idに紐づく全センサーを取得する"""
 
-        sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
+        sensors: List[Sensor] = (
+            db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
+        )
 
         return sensors
