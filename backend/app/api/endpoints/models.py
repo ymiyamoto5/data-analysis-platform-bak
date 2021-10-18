@@ -1,16 +1,15 @@
 import os
 from typing import List
 
-import docker
-import mlflow
+import docker  # type: ignore
+import mlflow  # type: ignore
 import pandas as pd
 from backend.app.api.endpoints import features
 from backend.app.schemas import model
 from backend.app.services.bento_service import ModelClassifier
-from backend.common import common
 from fastapi import APIRouter
-from mlflow.tracking import MlflowClient
-from sklearn.covariance import EllipticEnvelope
+from mlflow.tracking import MlflowClient  # type: ignore
+from sklearn.covariance import EllipticEnvelope  # type: ignore
 
 router = APIRouter()
 docker_client = docker.from_env()
@@ -45,9 +44,7 @@ def fetch_algorithms():
 def fetch_algorithm(algorithm_name: str):
     """指定した機械学習アルゴリズム情報を返す"""
 
-    algorithm = next(
-        (algo for algo in algorithms if algo["algorithm_name"] == algorithm_name), None
-    )
+    algorithm = next((algo for algo in algorithms if algo["algorithm_name"] == algorithm_name), None)
 
     return algorithm
 
@@ -73,9 +70,7 @@ def create(create_model: model.CreateModel):
     """モデルの作成"""
     mlflow.set_experiment(mlflow_experiment_name)
 
-    feature = features.fetch_feature(
-        machine_id=create_model.machine_id, target_dir=create_model.target_dir
-    )
+    feature = features.fetch_feature(machine_id=create_model.machine_id, target_dir=create_model.target_dir)
     X = pd.DataFrame(feature["data"])
     model = models[create_model.algorithm](**create_model.params)
 
@@ -88,22 +83,13 @@ def create(create_model: model.CreateModel):
 @router.get("/containers")
 def fetch_containers():
     imgs = [
-        i.tags[0]
-        for i in docker_client.images.list()
-        if "bentoml/model-server" not in i.tags[0]
-        and "docker.elastic.co" not in i.tags[0]
+        i.tags[0] for i in docker_client.images.list() if "bentoml/model-server" not in i.tags[0] and "docker.elastic.co" not in i.tags[0]
     ]
 
     containers = []
     for img in imgs:
-        running_instance = [
-            *filter(lambda c: c.image.tags[0] == img, docker_client.containers.list())
-        ]
-        state, name = (
-            ["running", running_instance[0].name]
-            if running_instance
-            else ["stopping", ""]
-        )
+        running_instance = [*filter(lambda c: c.image.tags[0] == img, docker_client.containers.list())]
+        state, name = ["running", running_instance[0].name] if running_instance else ["stopping", ""]
         containers.append({"image": img, "state": state, "name": name})
 
     return {"data": containers}
@@ -112,9 +98,7 @@ def fetch_containers():
 @router.post("/container")
 def create_container(create_container: model.CreateContainer):
 
-    createModel = mlflow.sklearn.load_model(
-        model_uri=f"models:/{create_container.model}/{create_container.version}"
-    )
+    createModel = mlflow.sklearn.load_model(model_uri=f"models:/{create_container.model}/{create_container.version}")
 
     # Create a iris classifier service instance
     model_classifier_service = ModelClassifier()
@@ -125,9 +109,7 @@ def create_container(create_container: model.CreateContainer):
     # Save the prediction service to disk for model serving
     saved_path = model_classifier_service.save()
 
-    docker_client.images.build(
-        path=saved_path, tag=create_container.tag_name.lower(), rm=True
-    )
+    docker_client.images.build(path=saved_path, tag=create_container.tag_name.lower(), rm=True)
     # yatai_client = get_yatai_client()
     # yatai_client.repository.delete(prune=True)
 
@@ -137,9 +119,7 @@ def create_container(create_container: model.CreateContainer):
 @router.put("/container/run/{image}/{port}")
 def container_state_change(image: str, port: str):
     ports = {"5000/tcp": str(port)}
-    instance = docker_client.containers.run(
-        image, auto_remove=True, detach=True, ports=ports
-    )
+    instance = docker_client.containers.run(image, auto_remove=True, detach=True, ports=ports)
     container = {"image": image, "state": "running", "name": instance.name}
     return {"data": container}
 
