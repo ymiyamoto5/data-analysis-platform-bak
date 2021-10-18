@@ -14,7 +14,7 @@ import multiprocessing
 import os
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Final
+from typing import Final, Tuple
 
 from backend.common.common_logger import logger
 from dotenv import load_dotenv
@@ -28,6 +28,7 @@ TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).times
 NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
 NUM_OF_LOAD_SENSOR: Final[int] = 4
 ID_PATTERN: Final[str] = "^[0-9a-zA-Z-]+$"
+CUT_OUT_SHOT_SENSOR_TYPES: Final[Tuple[str, ...]] = ("stroke_displacement", "pulse")
 
 
 class STATUS(Enum):
