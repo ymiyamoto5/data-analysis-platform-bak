@@ -18,7 +18,7 @@ import Chart from './Chart.vue'
 const FEATURE_API_URL = '/api/v1/features/'
 
 export default {
-  props: ['machineId', 'targetDir', 'featureIndex'],
+  props: ['machineId', 'targetDir', 'feature'],
   components: {
     Chart,
   },
@@ -28,8 +28,8 @@ export default {
       this.loaded = false
       this.fetchData()
     },
-    featureIndex: function(new_featureIndex) {
-      this.createChartData(this.featureNames[new_featureIndex])
+    feature: function(new_feature) {
+      this.createChartData(new_feature)
     },
   },
   data() {
@@ -101,7 +101,7 @@ export default {
           }
           this.responseData = res.data.data
           this.featureNames = Object.keys(this.responseData)
-          this.$emit('nof', this.featureNames.length)
+          this.$emit('setFeatures', this.featureNames)
           this.createChartData(this.featureNames[0])
           this.loaded = true
         })
