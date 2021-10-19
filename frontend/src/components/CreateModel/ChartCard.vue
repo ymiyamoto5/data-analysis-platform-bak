@@ -99,7 +99,7 @@ export default {
           }
           this.responseData = res.data.data
           this.featureNames = Object.keys(this.responseData)
-          this.$emit('nof', this.featureNames)
+          this.$emit('setFeatures', this.featureNames)
           this.createChartData(this.featureNames[0])
           this.loaded = true
         })
