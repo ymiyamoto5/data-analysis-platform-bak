@@ -65,6 +65,7 @@ services:
       dockerfile: ./docker/webap.dockerfile
     environment:
       MODULE_NAME: 'backend.app.main'
+    env_file: ~/data-analysis-platform/.env
     ports:
       - '8002:80/tcp'
     volumes:
