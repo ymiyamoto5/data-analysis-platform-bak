@@ -12,17 +12,17 @@
             :machineId="machineId"
             :targetDir="targetDir"
             :feature="feature"
-            @nof="features = $event"
+            @setFeatures="features = $event"
           />
         </v-col>
       </v-row>
       <v-row>
         <v-col cols="9">
-          <FeatureSelectSlider
+          <FeatureSelectDropDownList
             v-if="dataSelected"
             :features="features"
-            @nof="feature = $event"
-          ></FeatureSelectSlider>
+            @setFeature="feature = $event"
+          ></FeatureSelectDropDownList>
         </v-col>
       </v-row>
       <v-row>
@@ -68,7 +68,7 @@
 import { createBaseApiClient } from '@/api/apiBase'
 import FeatureSelect from '@/components/CreateModel/FeatureSelect.vue'
 import ChartCard from '@/components/CreateModel/ChartCard.vue'
-import FeatureSelectSlider from '@/components/CreateModel/FeatureSelectSlider.vue'
+import FeatureSelectDropDownList from '@/components/CreateModel/FeatureSelectDropDownList.vue'
 import AlgorithmSelect from '@/components/CreateModel/AlgorithmSelect.vue'
 import ParameterSlider from '@/components/CreateModel/ParameterSlider.vue'
 
@@ -77,7 +77,7 @@ const CREATE_MODEL_API_URL = '/api/v1/models/'
 export default {
   components: {
     FeatureSelect,
-    FeatureSelectSlider,
+    FeatureSelectDropDownList,
     ChartCard,
     AlgorithmSelect,
     ParameterSlider,

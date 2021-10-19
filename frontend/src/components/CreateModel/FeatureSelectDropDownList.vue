@@ -6,7 +6,7 @@
       label="特徴量"
       outlined
       dense
-      @input="$emit('nof', $event)"
+      @input="$emit('setFeature', $event)"
     ></v-select>
   </container>
 </template>
@@ -16,3 +16,9 @@ export default {
   props: ['features'],
 }
 </script>
+
+<style scoped>
+.select {
+  width: 250px;
+}
+</style>
