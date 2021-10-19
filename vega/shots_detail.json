@@ -1,0 +1,748 @@
+{
+  $schema: https://vega.github.io/schema/vega/v5.json
+  width: 900
+  height: 400
+  autosize: none
+  padding: 70
+  signals: [
+    {
+      name: clear
+      value: true
+      on: [
+        {
+          events: mouseup[!event.item]
+          update: "true"
+          force: true
+        }
+      ]
+    }
+    {
+      name: shift
+      value: false
+      on: [
+        {
+          events: @legendSymbol:click, @legendLabel:click
+          update: event.shiftKey
+          force: true
+        }
+      ]
+    }
+    {
+      name: clicked
+      value: null
+      on: [
+        {
+          events: @legendSymbol:click, @legendLabel:click
+          update: "{value: datum.value}"
+          force: true
+        }
+      ]
+    }
+  ]
+  data: [
+    {
+      name: start-point
+      url: {
+        %context%: true
+        %timefield%: timestamp
+        index: shots-*-start-point
+        body: {
+          _source: [
+            sequential_number
+            sequential_number_by_shot
+            shot_number
+            load
+            value
+          ]
+          sort: [
+            {
+              shot_number: {
+                order: asc
+              }
+            }
+          ]
+          size: 4
+        }
+      }
+      format: {
+        property: hits.hits
+      }
+      transform: [
+        {
+          type: formula
+          expr: datum._source.sequential_number
+          as: sequential_number
+        }
+        {
+          type: formula
+          expr: datum._source.sequential_number_by_shot
+          as: sequential_number_by_shot
+        }
+        {
+          type: formula
+          expr: datum._source.shot_number
+          as: shot_number
+        }
+        {
+          type: formula
+          expr: datum._source.load
+          as: load
+        }
+        {
+          type: formula
+          expr: datum._source.value
+          as: load_value
+        }
+      ]
+    }
+    {
+      name: max-point
+      url: {
+        %context%: true
+        %timefield%: timestamp
+        index: shots-*-max-point
+        body: {
+          _source: [
+            sequential_number
+            sequential_number_by_shot
+            shot_number
+            load
+            value
+          ]
+          sort: [
+            {
+              shot_number: {
+                order: asc
+              }
+            }
+          ]
+          size: 4
+        }
+      }
+      format: {
+        property: hits.hits
+      }
+      transform: [
+        {
+          type: formula
+          expr: datum._source.sequential_number
+          as: sequential_number
+        }
+        {
+          type: formula
+          expr: datum._source.sequential_number_by_shot
+          as: sequential_number_by_shot
+        }
+        {
+          type: formula
+          expr: datum._source.shot_number
+          as: shot_number
+        }
+        {
+          type: formula
+          expr: datum._source.load
+          as: load
+        }
+        {
+          type: formula
+          expr: datum._source.value
+          as: load_value
+        }
+      ]
+    }
+    {
+      name: break-point
+      url: {
+        %context%: true
+        %timefield%: timestamp
+        index: shots-*-break-point
+        body: {
+          _source: [
+            sequential_number
+            sequential_number_by_shot
+            shot_number
+            load
+            value
+          ]
+          sort: [
+            {
+              shot_number: {
+                order: asc
+              }
+            }
+          ]
+          size: 4
+        }
+      }
+      format: {
+        property: hits.hits
+      }
+      transform: [
+        {
+          type: formula
+          expr: datum._source.sequential_number
+          as: sequential_number
+        }
+        {
+          type: formula
+          expr: datum._source.sequential_number_by_shot
+          as: sequential_number_by_shot
+        }
+        {
+          type: formula
+          expr: datum._source.shot_number
+          as: shot_number
+        }
+        {
+          type: formula
+          expr: datum._source.load
+          as: load
+        }
+        {
+          type: formula
+          expr: datum._source.value
+          as: load_value
+        }
+      ]
+    }
+    {
+      name: shots
+      url: {
+        %context%: true
+        %timefield%: timestamp
+        index: shots-*-data
+        body: {
+          _source: [
+            sequential_number
+            sequential_number_by_shot
+            shot_number
+            load01
+            load02
+            load03
+            load04
+            timestamp
+          ]
+          sort: [
+            {
+              sequential_number: {
+                order: asc
+              }
+            }
+          ]
+          size: 10000
+        }
+      }
+      format: {
+        property: hits.hits
+      }
+      transform: [
+        {
+          type: formula
+          expr: datum._source.sequential_number
+          as: sequential_number
+        }
+        {
+          type: formula
+          expr: datum._source.sequential_number_by_shot
+          as: sequential_number_by_shot
+        }
+        {
+          type: formula
+          expr: datum._source.shot_number
+          as: shot_number
+        }
+        {
+          type: formula
+          expr: datum._source.load01
+          as: load01
+        }
+        {
+          type: formula
+          expr: datum._source.load02
+          as: load02
+        }
+        {
+          type: formula
+          expr: datum._source.load03
+          as: load03
+        }
+        {
+          type: formula
+          expr: datum._source.load04
+          as: load04
+        }
+        {
+          type: fold
+          fields: [
+            load01
+            load02
+            load03
+            load04
+          ]
+          as: [
+            load
+            load_value
+          ]
+        }
+      ]
+    }
+    {
+      name: shots_by_filter
+      source: shots
+      transform: [
+        {
+          type: filter
+          expr: datum.sequential_number_by_shot == 0 && datum.load == "load01"
+        }
+      ]
+    }
+    {
+      name: selected
+      on: [
+        {
+          trigger: clear
+          remove: true
+        }
+        {
+          trigger: !shift
+          remove: true
+        }
+        {
+          trigger: !shift && clicked
+          insert: clicked
+        }
+        {
+          trigger: shift && clicked
+          toggle: clicked
+        }
+      ]
+    }
+  ]
+  scales: [
+    {
+      name: x
+      type: linear
+      range: width
+      zero: false
+      domain: {
+        data: shots
+        field: sequential_number
+      }
+    }
+    {
+      name: x2
+      type: linear
+      range: width
+      zero: false
+      domain: {
+        data: shots
+        field: shot_number
+      }
+    }
+    {
+      name: y
+      type: linear
+      range: height
+      nice: true
+      zero: true
+      domain: {
+        data: shots
+        field: load_value
+      }
+    }
+    {
+      name: color
+      type: ordinal
+      range: category
+      domain: {
+        data: shots
+        field: load
+      }
+    }
+  ]
+  axes: [
+    {
+      orient: bottom
+      scale: x
+      grid: true
+      title: sequential_number
+    }
+    {
+      orient: top
+      scale: x2
+      grid: false
+      title: shot_number
+      titlePadding: 10
+      tickMinStep: 1
+      labels: false
+    }
+    {
+      orient: left
+      scale: y
+      grid: true
+      title: load_value
+    }
+  ]
+  legends: [
+    {
+      stroke: color
+      title: load
+      encode: {
+        symbols: {
+          name: legendSymbol
+          interactive: true
+          update: {
+            fill: {
+              value: transparent
+            }
+            strokeWidth: {
+              value: 2
+            }
+            opacity: [
+              {
+                test: !length(data('selected')) || indata('selected', 'value', datum.value)
+                value: 0.7
+              }
+              {
+                value: 0.15
+              }
+            ]
+            size: {
+              value: 64
+            }
+          }
+        }
+        labels: {
+          name: legendLabel
+          interactive: true
+          update: {
+            opacity: [
+              {
+                test: !length(data('selected')) || indata('selected', 'value', datum.value)
+                value: 1
+              }
+              {
+                value: 0.25
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+  marks: [
+    {
+      type: group
+      from: {
+        facet: {
+          name: series
+          data: shots
+          groupby: load
+        }
+      }
+      marks: [
+        {
+          type: line
+          from: {
+            data: series
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: sequential_number
+              }
+              y: {
+                scale: y
+                field: load_value
+              }
+              opacity: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  value: 0.7
+                }
+                {
+                  value: 0.15
+                }
+              ]
+              stroke: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  scale: color
+                  field: load
+                }
+                {
+                  value: "#ccc"
+                }
+              ]
+              hover: {
+                strokeOpacity: {
+                  value: 0.5
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+    {
+      type: group
+      from: {
+        facet: {
+          name: start-points
+          data: start-point
+          groupby: load
+        }
+      }
+      marks: [
+        {
+          type: symbol
+          from: {
+            data: start-points
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: sequential_number
+              }
+              y: {
+                scale: y
+                field: load_value
+              }
+              size: {
+                value: 80
+              }
+              opacity: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  value: 0.7
+                }
+                {
+                  value: 0.15
+                }
+              ]
+              stroke: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  scale: color
+                  field: load
+                }
+                {
+                  value: "#ccc"
+                }
+              ]
+              fill: {
+                scale: color
+                field: load
+              }
+              tooltip: {
+                signal: "{'load': datum.load, 'value': datum.load_value}"
+              }
+            }
+          }
+        }
+      ]
+    }
+    {
+      type: group
+      from: {
+        facet: {
+          name: max-points
+          data: max-point
+          groupby: load
+        }
+      }
+      marks: [
+        {
+          type: symbol
+          style: [
+            point
+          ]
+          from: {
+            data: max-points
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: sequential_number
+              }
+              y: {
+                scale: y
+                field: load_value
+              }
+              shape: {
+                value: triangle-down
+              }
+              size: {
+                value: 80
+              }
+              opacity: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  value: 0.7
+                }
+                {
+                  value: 0.15
+                }
+              ]
+              stroke: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  scale: color
+                  field: load
+                }
+                {
+                  value: "#ccc"
+                }
+              ]
+              fill: {
+                scale: color
+                field: load
+              }
+              tooltip: {
+                signal: "{'load': datum.load, 'value': datum.load_value}"
+              }
+            }
+          }
+        }
+      ]
+    }
+    {
+      type: group
+      from: {
+        facet: {
+          name: break-points
+          data: break-point
+          groupby: load
+        }
+      }
+      marks: [
+        {
+          type: symbol
+          from: {
+            data: break-points
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: sequential_number
+              }
+              y: {
+                scale: y
+                field: load_value
+              }
+              shape: {
+                value: diamond
+              }
+              size: {
+                value: 80
+              }
+              opacity: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  value: 0.7
+                }
+                {
+                  value: 0.15
+                }
+              ]
+              stroke: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  scale: color
+                  field: load
+                }
+                {
+                  value: "#ccc"
+                }
+              ]
+              fill: {
+                scale: color
+                field: load
+              }
+              tooltip: {
+                signal: "{'load': datum.load, 'value': datum.load_value}"
+              }
+            }
+          }
+        }
+      ]
+    }
+    {
+      type: group
+      from: {
+        facet: {
+          name: series
+          data: shots_by_filter
+          groupby: shot_number
+        }
+      }
+      marks: [
+        {
+          type: rule
+          from: {
+            data: series
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: sequential_number
+              }
+              y: {
+                value: 0
+              }
+              y2: {
+                value: 260
+              }
+              stroke: {
+                value: red
+              }
+              strokeOpacity: {
+                value: 0.5
+              }
+            }
+          }
+        }
+      ]
+    }
+    {
+      type: group
+      from: {
+        facet: {
+          name: series
+          data: shots_by_filter
+          groupby: shot_number
+        }
+      }
+      marks: [
+        {
+          type: text
+          from: {
+            data: series
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: sequential_number
+              }
+              y: {
+                value: -5
+              }
+              align: {
+                value: center
+              }
+              text: {
+                field: shot_number
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

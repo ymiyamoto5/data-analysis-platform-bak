@@ -1,0 +1,152 @@
+{
+  $schema: https://vega.github.io/schema/vega-lite/v4.json
+  data: {
+    name: shots
+    url: {
+      %context%: true
+      %timefield%: timestamp
+      index: shots-*-start-break-diff
+      body: {
+        size: 0
+        aggs: {
+          shot_buckets: {
+            range: {
+              field: shot_number
+              ranges: [
+                {
+                  to: 101
+                  key: 1-100
+                }
+                {
+                  from: 101
+                  to: 201
+                  key: 101-200
+                }
+                {
+                  from: 201
+                  to: 301
+                  key: 201-300
+                }
+                {
+                  from: 301
+                  to: 401
+                  key: 301-400
+                }
+                {
+                  from: 401
+                  to: 501
+                  key: 401-500
+                }
+                {
+                  from: 501
+                  to: 601
+                  key: 501-600
+                }
+                {
+                  from: 601
+                  to: 701
+                  key: 601-700
+                }
+                {
+                  from: 701
+                  to: 801
+                  key: 701-800
+                }
+                {
+                  from: 801
+                  to: 901
+                  key: 801-900
+                }
+                {
+                  from: 901
+                  to: 1001
+                  key: 901-1000
+                }
+                {
+                  from: 1001
+                  key: 1001-
+                }
+              ]
+            }
+            aggs: {
+              diff_percentiles: {
+                percentiles: {
+                  field: diff
+                  percents: [
+                    0
+                    25
+                    50
+                    75
+                    100
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    format: {
+      property: aggregations.shot_buckets.buckets
+    }
+  }
+  encoding: {
+    x: {
+      field: key
+      type: nominal
+      title: null
+    }
+  }
+  layer: [
+    {
+      mark: {
+        type: rule
+      }
+      encoding: {
+        y: {
+          field: diff_percentiles['values']['0.0']
+          type: quantitative
+          scale: {
+            zero: false
+          }
+          title: null
+        }
+        y2: {
+          field: diff_percentiles['values']['100.0']
+          title: null
+        }
+      }
+    }
+    {
+      mark: {
+        type: bar
+        size: 14
+      }
+      encoding: {
+        y: {
+          field: diff_percentiles['values']['25.0']
+          type: quantitative
+          title: null
+        }
+        y2: {
+          field: diff_percentiles['values']['75.0']
+          title: null
+        }
+      }
+    }
+    {
+      mark: {
+        type: tick
+        color: white
+        size: 14
+      }
+      encoding: {
+        y: {
+          field: diff_percentiles['values']['50.0']
+          type: quantitative
+          title: null
+        }
+      }
+    }
+  ]
+}
