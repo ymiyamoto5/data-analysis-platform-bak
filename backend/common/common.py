@@ -11,21 +11,23 @@
 
 import json
 import multiprocessing
-import os
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Final
+from typing import Final, Tuple
 
 from backend.common.common_logger import logger
+from dotenv import load_dotenv
 from pytz import timezone
 
+load_dotenv()
+
 # グローバル定数
-APP_CONFIG_PATH: Final[str] = os.getenv("APP_CONFIG_PATH", "default_config_path.json")
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
 TIMESTAMP_MAX: Final[float] = datetime.max.replace(tzinfo=timezone("UTC")).timestamp()
 NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
 NUM_OF_LOAD_SENSOR: Final[int] = 4
 ID_PATTERN: Final[str] = "^[0-9a-zA-Z-]+$"
+CUT_OUT_SHOT_SENSOR_TYPES: Final[Tuple[str, ...]] = ("stroke_displacement", "pulse")
 
 
 class STATUS(Enum):
