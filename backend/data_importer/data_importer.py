@@ -70,7 +70,7 @@ class DataImporter:
     def _get_target_date_dir(self, target: str) -> str:
         """ファイル出力先のパスを取得する"""
 
-        data_dir: str = common.get_config_value(common.APP_CONFIG_PATH, "data_dir")
+        data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
         file_dir: str = os.path.join(data_dir, target)
 
         return file_dir
@@ -95,7 +95,9 @@ class DataImporter:
             start_time = start_time.astimezone(UTC)
 
         if timestamp_file is not None:
-            timestamp_df = pd.read_csv(timestamp_file, header=None, names=("file_number", "timestamp"))
+            timestamp_df = pd.read_csv(
+                timestamp_file, header=None, names=("file_number", "timestamp")
+            )
             # JSTで記録された文字列をUTC datetimeに変換
             timestamp_df["timestamp"] = timestamp_df["timestamp"].apply(
                 lambda x: datetime.strptime(x, "%Y/%m/%d-%H%M%S").astimezone(UTC)
@@ -116,7 +118,9 @@ class DataImporter:
             # timestampがある場合。ここではショット毎のタイムスタンプを記録したcsvがある前提
             else:
                 file_number = int(os.path.splitext(os.path.basename(file))[0])
-                df = self._add_timestamp_from_file(df, file_number, timestamp_df, sampling_interval)
+                df = self._add_timestamp_from_file(
+                    df, file_number, timestamp_df, sampling_interval
+                )
 
             # 連番付与
             df, seq_num = self._add_seq_num(df, seq_num)
@@ -128,11 +132,17 @@ class DataImporter:
             self._to_pickle(df, file_dir, file)
 
     def _add_timestamp_from_file(
-        self, df: DataFrame, file_number: int, timestamp_df: DataFrame, sampling_interval: float
+        self,
+        df: DataFrame,
+        file_number: int,
+        timestamp_df: DataFrame,
+        sampling_interval: float,
     ):
         """ショット毎のタイムスタンプが記録されたDFを使って、元のDFのサンプルデータにタイムスタンプを付与する"""
 
-        start_time = timestamp_df[timestamp_df.file_number == file_number].timestamp.iloc[0]
+        start_time = timestamp_df[
+            timestamp_df.file_number == file_number
+        ].timestamp.iloc[0]
 
         df, _ = self._add_timestamp(df, start_time, sampling_interval)
 
@@ -178,14 +188,20 @@ class DataImporter:
         # TODO: メソッド化
         shots_index: str = "shots-" + target + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
-        setting_shots: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_path")
+        setting_shots: str = os.getenv(
+            "setting_shots_path", "backend/mappings/setting_shots.json"
+        )
         ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
         # TODO: メソッド化
         shots_meta_index: str = "shots-" + target + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
-        setting_shots_meta: str = common.get_config_value(common.APP_CONFIG_PATH, "setting_shots_meta_path")
-        ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
+        setting_shots_meta: str = os.getenv(
+            "setting_shots_meta_path", "backend/mappings/setting_shots_meta.json"
+        )
+        ElasticManager.create_index(
+            index=shots_meta_index, setting_file=setting_shots_meta
+        )
 
         file_dir = self._get_target_date_dir(target)
         files = self._get_files(file_dir, "*.pkl")
@@ -214,7 +230,9 @@ class DataImporter:
                 }
             )
 
-            df["timestamp"] = df["timestamp"].apply(lambda x: datetime.utcfromtimestamp(x))
+            df["timestamp"] = df["timestamp"].apply(
+                lambda x: datetime.utcfromtimestamp(x)
+            )
             shots_dict = df.to_dict(orient="records")
 
             # NOTE: 並列化すると遅かったため、シングルプロセス
@@ -229,7 +247,9 @@ class DataImporter:
         shots_meta_df = pd.DataFrame(shots_meta_records)
         # NOTE: diffを取るため、一時的にtimestampに変更。
         # 　　　 timestamp()メソッドはデフォルトでローカル時間になってしまうため、timezoneを指定すること
-        shots_meta_df["timestamp"] = shots_meta_df["timestamp"].apply(lambda x: x.replace(tzinfo=UTC).timestamp())
+        shots_meta_df["timestamp"] = shots_meta_df["timestamp"].apply(
+            lambda x: x.replace(tzinfo=UTC).timestamp()
+        )
         shots_meta_df["time_diff"] = shots_meta_df.timestamp.diff(-1)
         shots_meta_df["spm"] = round(60.0 / abs(shots_meta_df.time_diff), 2)
         # NOTE: np.NaNをNoneに置き換えないとそのレコードがElasticsearchに弾かれる。
@@ -237,7 +257,9 @@ class DataImporter:
         # shots_meta_df["spm"] = shots_meta_df["spm"].where(shots_meta_df["spm"].notna(), None)
         shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
         shots_meta_df.drop(columns=["time_diff"], inplace=True)
-        shots_meta_df["timestamp"] = shots_meta_df["timestamp"].apply(lambda x: datetime.utcfromtimestamp(x))
+        shots_meta_df["timestamp"] = shots_meta_df["timestamp"].apply(
+            lambda x: datetime.utcfromtimestamp(x)
+        )
 
         shots_meta_dict = shots_meta_df.to_dict(orient="records")
         shots_meta_index = "shots-" + target + "-meta"

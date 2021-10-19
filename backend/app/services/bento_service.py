@@ -1,7 +1,7 @@
 import pandas as pd
-from bentoml import BentoService, api, artifacts, env
-from bentoml.adapters import DataframeInput
-from bentoml.frameworks.sklearn import SklearnModelArtifact
+from bentoml import BentoService, api, artifacts, env  # type: ignore
+from bentoml.adapters import DataframeInput  # type: ignore
+from bentoml.frameworks.sklearn import SklearnModelArtifact  # type: ignore
 
 
 @env(infer_pip_packages=True)
