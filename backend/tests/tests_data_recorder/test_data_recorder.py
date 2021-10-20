@@ -11,13 +11,13 @@
 
 import os
 from decimal import Decimal
-from typing import Final
+from typing import Final, Optional
 
 from backend.common import common
 from backend.data_recorder.data_recorder import DataRecorder
 from backend.file_manager.file_manager import FileManager
 
-API_URL: Final[str] = os.getenv("API_URL", "http://localhost:8000/api/v1")
+API_URL: Final[Optional[str]] = os.getenv("API_URL")
 
 
 class TestReadBinaryFiles:
@@ -29,14 +29,10 @@ class TestReadBinaryFiles:
 
         dr = DataRecorder(machine_id=machine_id)
 
-        file_infos = FileManager.create_files_info(
-            dat_files.tmp_path._str, machine_id, "dat"
-        )
+        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
         file = file_infos[0]
 
-        actual = dr._read_binary_files(
-            file=file, sequential_number=0, timestamp=Decimal(file.timestamp)
-        )
+        actual = dr._read_binary_files(file=file, sequential_number=0, timestamp=Decimal(file.timestamp))
 
         expected = (
             [
