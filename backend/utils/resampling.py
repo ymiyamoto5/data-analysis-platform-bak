@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Tuple
+from typing import Optional, Tuple
 
 from backend.common import common
 from backend.data_reader.data_reader import DataReader
@@ -8,16 +8,12 @@ from backend.utils.df_to_els import df_to_els  # type: ignore
 from pandas.core.frame import DataFrame
 
 
-def resampling(
-    shots_df: DataFrame, resampling_rate: int, exclude_shots: Tuple[int, ...]
-):
+def resampling(shots_df: DataFrame, resampling_rate: int, exclude_shots: Tuple[int, ...]):
     """指定したrateでリサンプリング"""
 
     print("resampling start...")
 
-    return shots_df[
-        shots_df.sequential_number_by_shot % resampling_rate == 0
-    ].reset_index(drop=True)
+    return shots_df[shots_df.sequential_number_by_shot % resampling_rate == 0].reset_index(drop=True)
 
 
 def convert_timestamp(df: DataFrame):
@@ -51,9 +47,7 @@ if __name__ == "__main__":
     resample_df = resampling(shots_df, 100, exclude_shots)
     # converted_df = convert_timestamp(resample_df)
 
-    setting: str = os.getenv(
-        "setting_resample_path", "backend/mappings/setting_resample.json"
-    )
+    setting: Optional[str] = os.getenv("setting_resample_path")
 
     df_to_els(resample_df, resample_index, mapping=None, setting=setting)
 

@@ -16,24 +16,18 @@ class CutOutShotService:
         """ブラウザから文字列で渡されたUNIXTIME(ミリ秒単位）から、データディレクトリ名の日付文字列を特定して返却"""
 
         # NOTE: ブラウザからは文字列のUNIXTIME(ミリ秒)で与えられる。秒単位に直して変換。
-        target_date: datetime = datetime.fromtimestamp(
-            int(target_date_timestamp) / 1000
-        )
+        target_date: datetime = datetime.fromtimestamp(int(target_date_timestamp) / 1000)
         target_date_str: str = datetime.strftime(target_date, "%Y%m%d%H%M%S")
 
         return target_date_str
 
     @staticmethod
-    def get_files_info(
-        machine_id: str, target_date_str: str
-    ) -> Optional[List[FileInfo]]:
+    def get_files_info(machine_id: str, target_date_str: str) -> Optional[List[FileInfo]]:
         target_dir = machine_id + "-" + target_date_str
-        data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
+        data_dir: Optional[str] = os.getenv("data_dir")
         data_full_path: str = os.path.join(data_dir, target_dir)
 
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(
-            data_full_path, machine_id, "pkl"
-        )
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
 
         return files_info
 

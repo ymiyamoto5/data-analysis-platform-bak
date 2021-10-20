@@ -32,7 +32,7 @@ from pandas.core.frame import DataFrame
 from .pulse_cutter import PulseCutter
 from .stroke_displacement_cutter import StrokeDisplacementCutter
 
-API_URL: Final[str] = os.getenv("API_URL", "http://localhost:8000/api/v1")
+API_URL: Final[Optional[str]] = os.getenv("API_URL")
 os.environ["NO_PROXY"] = "localhost"
 
 
@@ -53,9 +53,7 @@ class CutOutShot:
         self.__min_spm: int = min_spm
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
-        self.__shots_meta_df: DataFrame = pd.DataFrame(
-            columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out")
-        )
+        self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
         self.__sensors: List[DataCollectHistoryDetail] = sensors
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * sampling_frequency
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
@@ -102,20 +100,13 @@ class CutOutShot:
         self.__shots_meta_df = shots_meta_df
 
     @staticmethod
-    def _exclude_non_target_interval(
-        df: DataFrame, start_sequential_number: int, end_sequential_number: int
-    ) -> DataFrame:
+    def _exclude_non_target_interval(df: DataFrame, start_sequential_number: int, end_sequential_number: int) -> DataFrame:
         """パラメータで指定された対象範囲に含まれないデータを除外"""
 
-        return df[
-            (start_sequential_number <= df["sequential_number"])
-            & (df["sequential_number"] <= end_sequential_number)
-        ]
+        return df[(start_sequential_number <= df["sequential_number"]) & (df["sequential_number"] <= end_sequential_number)]
 
     @staticmethod
-    def _exclude_setup_interval(
-        df: DataFrame, collect_start_time: Decimal
-    ) -> DataFrame:
+    def _exclude_setup_interval(df: DataFrame, collect_start_time: Decimal) -> DataFrame:
         """収集開始前(段取中)のデータを除外"""
 
         return df[df["timestamp"] >= collect_start_time]
@@ -125,12 +116,8 @@ class CutOutShot:
         """中断区間のデータを除外"""
 
         for pause_event in pause_events:
-            start_time: Decimal = Decimal(
-                datetime.fromisoformat(pause_event["occurred_at"]).timestamp()
-            )
-            end_time: Decimal = Decimal(
-                datetime.fromisoformat(pause_event["ended_at"]).timestamp()
-            )
+            start_time: Decimal = Decimal(datetime.fromisoformat(pause_event["occurred_at"]).timestamp())
+            end_time: Decimal = Decimal(datetime.fromisoformat(pause_event["ended_at"]).timestamp())
             df = df[(df["timestamp"] < start_time) | (end_time < df["timestamp"])]
 
         return df
@@ -138,26 +125,19 @@ class CutOutShot:
     def _set_to_none_for_low_spm(self) -> DataFrame:
         """切り出したショットの内、最低spmを下回るショットのspmはNoneに設定する"""
 
-        self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(
-            self.__shots_meta_df["spm"] >= self.__min_spm, np.nan
-        )
+        self.__shots_meta_df["spm"] = self.__shots_meta_df["spm"].where(self.__shots_meta_df["spm"] >= self.__min_spm, np.nan)
 
     def _exclude_over_sample(self, df: DataFrame) -> DataFrame:
         """切り出したショットの内、最大サンプル数を上回るショットを除外したDataFrameを返す"""
 
-        over_sample_df: DataFrame = self.__shots_meta_df[
-            self.__shots_meta_df["num_of_samples_in_cut_out"]
-            > self.__max_samples_per_shot
-        ]
+        over_sample_df: DataFrame = self.__shots_meta_df[self.__shots_meta_df["num_of_samples_in_cut_out"] > self.__max_samples_per_shot]
 
         if len(over_sample_df) == 0:
             return df
 
         over_sample_shot_numbers: List[float] = list(over_sample_df.shot_number)
 
-        logger.debug(
-            f"over_sample_shot detected. shot_numbers: {over_sample_shot_numbers}"
-        )
+        logger.debug(f"over_sample_shot detected. shot_numbers: {over_sample_shot_numbers}")
 
         return df.query("shot_number not in @over_sample_shot_numbers")
 
@@ -165,9 +145,7 @@ class CutOutShot:
         """荷重値に対して変換式を適用"""
 
         for sensor in self.__sensors:
-            func: Callable[
-                [float], float
-            ] = DataConverter.get_physical_conversion_formula(sensor)
+            func: Callable[[float], float] = DataConverter.get_physical_conversion_formula(sensor)
             # NOTE: SettingWithCopyWarning回避のため、locで指定して代入
             df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
 
@@ -181,9 +159,7 @@ class CutOutShot:
         shots_summary_df["diff"] = shots_summary_df["timestamp"].diff().shift(-1)
 
         try:
-            shots_summary_df["spm"] = round(
-                60.0 / shots_summary_df["diff"].astype(float), 2
-            )
+            shots_summary_df["spm"] = round(60.0 / shots_summary_df["diff"].astype(float), 2)
         except ZeroDivisionError:
             logger.error(traceback.format_exc())
 
@@ -193,11 +169,7 @@ class CutOutShot:
         """ショットメタデータをshots_metaインデックスに出力"""
 
         self.__shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
-        self.__shots_meta_df["timestamp"] = (
-            self.__shots_meta_df["timestamp"]
-            .astype(float)
-            .map(lambda x: datetime.fromtimestamp(x))
-        )
+        self.__shots_meta_df["timestamp"] = self.__shots_meta_df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
 
         shots_meta_data: List[dict] = self.__shots_meta_df.to_dict(orient="records")
 
@@ -214,24 +186,18 @@ class CutOutShot:
         return []
 
     @staticmethod
-    def _set_start_sequential_number(
-        start_sequential_number: Optional[int], rawdata_count: int
-    ) -> int:
+    def _set_start_sequential_number(start_sequential_number: Optional[int], rawdata_count: int) -> int:
         """パラメータ start_sequential_number の設定"""
 
         if start_sequential_number is None:
             return 0
 
         if start_sequential_number >= rawdata_count:
-            logger.error(
-                f"start_sequential_number: {start_sequential_number} must be less than rawdata count ({rawdata_count})"
-            )
+            logger.error(f"start_sequential_number: {start_sequential_number} must be less than rawdata count ({rawdata_count})")
             sys.exit(1)
 
         if start_sequential_number < 0:
-            logger.error(
-                f"start_sequential_number: {start_sequential_number} must be greater than 0"
-            )
+            logger.error(f"start_sequential_number: {start_sequential_number} must be greater than 0")
             sys.exit(1)
 
         return start_sequential_number
@@ -252,15 +218,11 @@ class CutOutShot:
             return rawdata_count
 
         if end_sequential_number >= rawdata_count:
-            logger.error(
-                f"end_sequential_number: {end_sequential_number} must be less than rawdata count ({rawdata_count})"
-            )
+            logger.error(f"end_sequential_number: {end_sequential_number} must be less than rawdata count ({rawdata_count})")
             sys.exit(1)
 
         if end_sequential_number <= 0:
-            logger.error(
-                f"end_sequential_number: {end_sequential_number} must be greater than equal 0"
-            )
+            logger.error(f"end_sequential_number: {end_sequential_number} must be greater than equal 0")
             sys.exit(1)
 
         if end_sequential_number <= start_sequential_number:
@@ -296,16 +258,14 @@ class CutOutShot:
         logger.info("Cut out shot start.")
 
         # 取り込むpickleファイルのリストを取得
-        data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
+        data_dir: Optional[str] = os.getenv("data_dir")
         rawdata_dir_path: str = os.path.join(data_dir, self.__rawdata_dir_name)
 
         if not os.path.exists(rawdata_dir_path):
             logger.error(f"Directory not found. {rawdata_dir_path}")
             sys.exit(1)
 
-        pickle_files: List[str] = FileManager.get_files(
-            dir_path=rawdata_dir_path, pattern=f"{self.__machine_id}_*.pkl"
-        )
+        pickle_files: List[str] = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{self.__machine_id}_*.pkl")
 
         if len(pickle_files) == 0:
             logger.error("pickle files not found.")
@@ -314,48 +274,32 @@ class CutOutShot:
         # パラメータによる範囲フィルター設定
         if start_sequential_number is not None or end_sequential_number is not None:
             has_target_interval: bool = True
-            rawdata_index: str = (
-                self.__machine_id + "-rawdata-" + self.__rawdata_dir_name
-            )
+            rawdata_index: str = self.__machine_id + "-rawdata-" + self.__rawdata_dir_name
             rawdata_count: int = ElasticManager.count(index=rawdata_index)
-            start_sequential_number = self._set_start_sequential_number(
-                start_sequential_number, rawdata_count
-            )
-            end_sequential_number = self._set_end_sequential_number(
-                start_sequential_number, end_sequential_number, rawdata_count
-            )
+            start_sequential_number = self._set_start_sequential_number(start_sequential_number, rawdata_count)
+            end_sequential_number = self._set_end_sequential_number(start_sequential_number, end_sequential_number, rawdata_count)
         else:
             has_target_interval = False
 
         shots_index: str = "shots-" + self.__rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
-        setting_shots: str = os.getenv(
-            "setting_shots_path", "backend/mappings/setting_shots.json"
-        )
+        setting_shots: Optional[str] = os.getenv("setting_shots_path")
         ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
         shots_meta_index: str = "shots-" + self.__rawdata_dir_name + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
-        setting_shots_meta: str = os.getenv(
-            "setting_shots_meta_path", "backend/mappings/setting_shots_meta.json"
-        )
-        ElasticManager.create_index(
-            index=shots_meta_index, setting_file=setting_shots_meta
-        )
+        setting_shots_meta: Optional[str] = os.getenv("setting_shots_meta_path")
+        ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
         # イベント情報を取得する
         try:
-            response = requests.get(
-                API_URL + f"/data_collect_histories/{self.__machine_id}/latest"
-            )
+            response = requests.get(API_URL + f"/data_collect_histories/{self.__machine_id}/latest")
             latest_data_collect_history: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        events: List[Dict[str, Any]] = latest_data_collect_history[
-            "data_collect_history_events"
-        ]
+        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
 
         if len(events) == 0:
             logger.error("Exits because no events.")
@@ -366,17 +310,11 @@ class CutOutShot:
             logger.error("Exits because the status is not recorded.")
             return
 
-        start_event: Dict[str, Any] = [
-            e for e in events if e["event_name"] == common.COLLECT_STATUS.START.value
-        ][0]
+        start_event: Dict[str, Any] = [e for e in events if e["event_name"] == common.COLLECT_STATUS.START.value][0]
 
-        collect_start_time: Decimal = Decimal(
-            datetime.fromisoformat(start_event["occurred_at"]).timestamp()
-        )
+        collect_start_time: Decimal = Decimal(datetime.fromisoformat(start_event["occurred_at"]).timestamp())
 
-        pause_events: List[Dict[str, Any]] = [
-            e for e in events if e["event_name"] == common.COLLECT_STATUS.PAUSE.value
-        ]
+        pause_events: List[Dict[str, Any]] = [e for e in events if e["event_name"] == common.COLLECT_STATUS.PAUSE.value]
 
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
@@ -395,14 +333,10 @@ class CutOutShot:
                 if end_sequential_number is None:
                     logger.error("end_sequential_number should not be None.")
                     sys.exit(1)
-                rawdata_df = self._exclude_non_target_interval(
-                    rawdata_df, start_sequential_number, end_sequential_number
-                )
+                rawdata_df = self._exclude_non_target_interval(rawdata_df, start_sequential_number, end_sequential_number)
 
             if len(rawdata_df) == 0:
-                logger.info(
-                    f"All data was excluded by non-target interval. {pickle_file}"
-                )
+                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
                 continue
 
             # 段取区間の除外
@@ -446,17 +380,11 @@ class CutOutShot:
             cut_out_df = self._exclude_over_sample(cut_out_df)
 
             if len(cut_out_df) == 0:
-                logger.info(
-                    f"Shot is not detected in {pickle_file} by over_sample_filter."
-                )
+                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
 
             # timestampをdatetimeに変換する
-            cut_out_df["timestamp"] = (
-                cut_out_df["timestamp"]
-                .astype(float)
-                .map(lambda x: datetime.fromtimestamp(x))
-            )
+            cut_out_df["timestamp"] = cut_out_df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
 
             # Elasticsearchに格納するため、dictに戻す
             cut_out_targets = cut_out_df.to_dict(orient="records")
@@ -494,17 +422,13 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import (
-        CRUDDataCollectHistory,
-    )  # noqa
+    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
     machine_id: str = "machine-01"
     target: str = "20210327141514"
     db = SessionLocal()
-    history = CRUDDataCollectHistory.select_by_machine_id_started_at(
-        db, machine_id, target
-    )
+    history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
 
     cutter = StrokeDisplacementCutter(
         start_stroke_displacement=47.0,
