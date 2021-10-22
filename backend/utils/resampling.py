@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Tuple
 
 from backend.common import common
 from backend.data_reader.data_reader import DataReader
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     resample_df = resampling(shots_df, 100, exclude_shots)
     # converted_df = convert_timestamp(resample_df)
 
-    setting: Optional[str] = os.getenv("setting_resample_path")
+    setting: str = os.environ["setting_resample_path"]
 
     df_to_els(resample_df, resample_index, mapping=None, setting=setting)
 

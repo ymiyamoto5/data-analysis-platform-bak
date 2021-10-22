@@ -1,7 +1,6 @@
 import os
 import shutil
 from datetime import datetime, timedelta
-from typing import Optional
 
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.common import common
@@ -25,7 +24,7 @@ class DataCollectHistoryService:
     def delete_data_directory(target: str):
         """対象となるデータディレクトリを削除"""
 
-        data_dir: Optional[str] = os.getenv("data_dir")
+        data_dir: str = os.environ["data_dir"]
         data_full_path: str = os.path.join(data_dir, target)
 
         if os.path.exists(data_full_path):

@@ -32,7 +32,7 @@ from pandas.core.frame import DataFrame
 from .pulse_cutter import PulseCutter
 from .stroke_displacement_cutter import StrokeDisplacementCutter
 
-API_URL: Final[Optional[str]] = os.getenv("API_URL")
+API_URL: Final[str] = os.environ["API_URL"]
 os.environ["NO_PROXY"] = "localhost"
 
 
@@ -258,7 +258,7 @@ class CutOutShot:
         logger.info("Cut out shot start.")
 
         # 取り込むpickleファイルのリストを取得
-        data_dir: Optional[str] = os.getenv("data_dir")
+        data_dir: str = os.environ["data_dir"]
         rawdata_dir_path: str = os.path.join(data_dir, self.__rawdata_dir_name)
 
         if not os.path.exists(rawdata_dir_path):
@@ -283,12 +283,12 @@ class CutOutShot:
 
         shots_index: str = "shots-" + self.__rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
-        setting_shots: Optional[str] = os.getenv("setting_shots_path")
+        setting_shots: str = os.environ["setting_shots_path"]
         ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
         shots_meta_index: str = "shots-" + self.__rawdata_dir_name + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
-        setting_shots_meta: Optional[str] = os.getenv("setting_shots_meta_path")
+        setting_shots_meta: str = os.environ["setting_shots_meta_path"]
         ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
         # イベント情報を取得する

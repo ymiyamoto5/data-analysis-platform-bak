@@ -25,7 +25,7 @@ from backend.common import common
 from backend.common.common_logger import data_recorder_logger as logger
 from backend.file_manager.file_manager import FileInfo, FileManager
 
-API_URL: Final[Optional[str]] = os.getenv("API_URL")
+API_URL: Final[str] = os.environ["API_URL"]
 
 
 class DataRecorder:
@@ -156,7 +156,7 @@ class DataRecorder:
         """スケジュール実行による自動インポート"""
 
         # 対象機器のファイルリストを作成
-        data_dir: Optional[str] = os.getenv("data_dir")
+        data_dir: str = os.environ["data_dir"]
         files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, self.machine_id, "dat")
 
         if files_info is None:
@@ -286,7 +286,7 @@ if __name__ == "__main__":
 
     # 手動インポート
     else:
-        data_dir: Optional[str] = os.getenv("data_dir")
+        data_dir: str = os.environ["data_dir"]
         target_dir: str = os.path.join(data_dir, args.dir)
 
         if not os.path.isdir(target_dir):
