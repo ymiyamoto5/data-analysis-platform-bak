@@ -12,7 +12,7 @@ from mlflow.tracking import MlflowClient  # type: ignore
 from sklearn.covariance import EllipticEnvelope  # type: ignore
 
 router = APIRouter()
-docker_client = docker.from_env()
+docker_client = docker.DockerClient(base_url="unix://run/docker.sock")
 
 mlflow_server_uri = os.getenv("mlflow_server_uri", "http://10.3.18.117:5000")
 mlflow_experiment_name = os.getenv("mlflow_experiment_name", "any")
