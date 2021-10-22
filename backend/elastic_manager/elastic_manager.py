@@ -12,59 +12,39 @@
 import json
 import multiprocessing
 import os
-from typing import (
-    Any,
-    Collection,
-    Dict,
-    Final,
-    Generator,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-)
+from typing import Any, Collection, Dict, Final, Generator, Iterable, List, Optional, Tuple
 
 import pandas as pd
 from backend.common import common
 from backend.common.common_logger import logger
 from elasticsearch import Elasticsearch, exceptions, helpers
 
-ELASTIC_URL: Final[str] = os.getenv("elastic_url", "0.0.0.0:9200")
-ELASTIC_USER: Final[str] = os.getenv("elastic_user", "elastic")
-ELASTIC_PASSWORD: Final[str] = os.getenv("elastic_password", "P@ssw0rd")
+ELASTIC_URL: Final[str] = os.environ["elastic_url"]
+ELASTIC_USER: Final[str] = os.environ["elastic_user"]
+ELASTIC_PASSWORD: Final[str] = os.environ["elastic_password"]
 
 
 class ElasticManager:
     """Elasticsearchへの各種処理を行うwrapperクラス"""
 
-    es = Elasticsearch(
-        hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000
-    )
+    es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
     @classmethod
     def show_indices(cls, index: str = "*") -> pd.DataFrame:
         """インデックス一覧のDataFrameを返す"""
 
-        _indices = cls.es.cat.indices(
-            index=index, v=True, h=["index", "docs.count", "store.size"], bytes="kb"
-        ).splitlines()
+        _indices = cls.es.cat.indices(index=index, v=True, h=["index", "docs.count", "store.size"], bytes="kb").splitlines()
 
         indices_list = [x.split() for x in _indices]
 
-        df = (
-            pd.DataFrame(indices_list[1:], columns=indices_list[0])
-            .sort_values("index")
-            .reset_index(drop=True)
-        )
+        df = pd.DataFrame(indices_list[1:], columns=indices_list[0]).sort_values("index").reset_index(drop=True)
         return df
 
     @classmethod
     def get_latest_index(cls, index) -> Optional[str]:
         """引数で指定したindexに一致する最新のインデックス名を返す"""
 
-        _indices: List[str] = cls.es.cat.indices(
-            index=index, s="index", h="index"
-        ).splitlines()
+        _indices: List[str] = cls.es.cat.indices(index=index, s="index", h="index").splitlines()
         if len(_indices) == 0:
             logger.error("Index not found.")
             return None
@@ -72,9 +52,7 @@ class ElasticManager:
         return _indices[-1]
 
     @classmethod
-    def get_docs(
-        cls, index: str, query: dict, size: int = common.ELASTIC_MAX_DOC_SIZE
-    ) -> List[dict]:
+    def get_docs(cls, index: str, query: dict, size: int = common.ELASTIC_MAX_DOC_SIZE) -> List[dict]:
         """対象インデックスのdocumentを返す。documentがない場合は空のリストを返す。
         取得件数はデフォルトで10,000件。
         """
@@ -121,9 +99,7 @@ class ElasticManager:
             logger.error("Invalid value.")
             return
 
-        body: dict = {
-            "query": {"range": {"sequential_number": {"gte": start, "lte": end}}}
-        }
+        body: dict = {"query": {"range": {"sequential_number": {"gte": start, "lte": end}}}}
 
         result: dict = cls.es.delete_by_query(index=index, body=body, refresh=True)
 
@@ -191,9 +167,7 @@ class ElasticManager:
         return cls.es.indices.exists(index=index)
 
     @classmethod
-    def create_index(
-        cls, index: str, mapping_file: str = None, setting_file: str = None
-    ) -> bool:
+    def create_index(cls, index: str, mapping_file: str = None, setting_file: str = None) -> bool:
         """インデックスを作成する。"""
 
         body = {}
@@ -266,9 +240,7 @@ class ElasticManager:
         # NOTE: データをプロセッサの数に均等分配
         # ex) 13個のデータを4プロセスに分割すると[3, 3, 3, 4]
         #     [0:3]の3個, [3:6]の3個, [6:9]の3個, [9:13]の4個をプロセスごとに処理する。
-        data_num_by_proc: List[int] = [
-            (num_of_data + i) // num_of_process for i in range(num_of_process)
-        ]
+        data_num_by_proc: List[int] = [(num_of_data + i) // num_of_process for i in range(num_of_process)]
 
         procs: List[multiprocessing.context.Process] = []
         start_index: int = 0
@@ -288,25 +260,17 @@ class ElasticManager:
         return procs
 
     @classmethod
-    def bulk_insert(
-        cls, data_list: List[dict], index_to_import: str, chunk_size: int = 500
-    ) -> None:
+    def bulk_insert(cls, data_list: List[dict], index_to_import: str, chunk_size: int = 500) -> None:
         """
         マルチプロセスで実行する処理。渡されたデータをもとにElasticsearchにデータ投入する。
         """
 
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
-        es = Elasticsearch(
-            hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000
-        )
+        es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
-        actions: Generator[Dict[str, Collection[Any]], None, None] = (
-            {"_index": index_to_import, "_source": x} for x in data_list
-        )
-        helpers.bulk(
-            es, actions, chunk_size=chunk_size, stats_only=True, raise_on_error=False
-        )
+        actions: Generator[Dict[str, Collection[Any]], None, None] = ({"_index": index_to_import, "_source": x} for x in data_list)
+        helpers.bulk(es, actions, chunk_size=chunk_size, stats_only=True, raise_on_error=False)
 
     @classmethod
     def count(cls, index: str) -> int:
@@ -326,9 +290,7 @@ class ElasticManager:
         logger.info(f"Data read start. data_count: {num_of_data}.")
 
         # データをプロセッサの数に均等分配
-        data_num_by_proc: List[int] = [
-            (num_of_data + i) // num_of_process for i in range(num_of_process)
-        ]
+        data_num_by_proc: List[int] = [(num_of_data + i) // num_of_process for i in range(num_of_process)]
 
         # マルチプロセスの結果格納用
         manager = multiprocessing.Manager()
@@ -360,18 +322,14 @@ class ElasticManager:
         return result
 
     @classmethod
-    def range_scan(
-        cls, index: str, proc_num: int, start: int, end: int, return_dict: list
-    ) -> None:
+    def range_scan(cls, index: str, proc_num: int, start: int, end: int, return_dict: list) -> None:
         """データをレンジスキャンした結果を返す。
         Pythonのrange関数に合わせ、endはひとつ前までを返す仕様とする。
         """
 
         # プロセスごとにコネクションが必要
         # https://github.com/elastic/elasticsearch-py/issues/638
-        es = Elasticsearch(
-            hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000
-        )
+        es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
         body: dict = {
             "query": {"range": {"sequential_number": {"gte": start, "lte": end - 1}}},
@@ -386,9 +344,7 @@ class ElasticManager:
     def scan_docs(cls, index: str, query: dict) -> List[dict]:
         """ドキュメントの範囲スキャン"""
 
-        es = Elasticsearch(
-            hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000
-        )
+        es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
         data_gen: Iterable = helpers.scan(client=es, index=index, query=query)
         data: List[dict] = [x["_source"] for x in data_gen]

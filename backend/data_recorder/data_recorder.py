@@ -25,7 +25,7 @@ from backend.common import common
 from backend.common.common_logger import data_recorder_logger as logger
 from backend.file_manager.file_manager import FileInfo, FileManager
 
-API_URL: Final[str] = os.getenv("API_URL", "http://localhost:8000/api/v1")
+API_URL: Final[str] = os.environ["API_URL"]
 
 
 class DataRecorder:
@@ -46,9 +46,7 @@ class DataRecorder:
     def _get_processed_dir_path(self, data_dir: str, started_at: str) -> str:
         """処理済みファイルおよびpklファイル格納用のディレクトリ取得（なければ作成）"""
 
-        jst_started_at: datetime = datetime.fromisoformat(started_at) + timedelta(
-            hours=9
-        )
+        jst_started_at: datetime = datetime.fromisoformat(started_at) + timedelta(hours=9)
         datetime_suffix: str = (
             str(jst_started_at.year)
             + str(jst_started_at.month)
@@ -67,9 +65,7 @@ class DataRecorder:
 
         return processed_dir_path
 
-    def _read_binary_files(
-        self, file: FileInfo, sequential_number: int, timestamp: Decimal
-    ) -> Tuple[List[Dict[str, Any]], int, Decimal]:
+    def _read_binary_files(self, file: FileInfo, sequential_number: int, timestamp: Decimal) -> Tuple[List[Dict[str, Any]], int, Decimal]:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 
         BYTE_SIZE: Final[int] = 8
@@ -135,9 +131,7 @@ class DataRecorder:
         for file in target_files:
             # バイナリファイルを読み取り、データリストを取得
             samples: List[Dict[str, Any]]
-            samples, sequential_number, timestamp = self._read_binary_files(
-                file, sequential_number, timestamp
-            )
+            samples, sequential_number, timestamp = self._read_binary_files(file, sequential_number, timestamp)
 
             # pklファイルに出力
             FileManager.export_to_pickle(samples, file, processed_dir_path)
@@ -146,9 +140,7 @@ class DataRecorder:
             if not is_manual:
                 shutil.move(file.file_path, processed_dir_path)
 
-            logger.info(
-                f"processed: {file.file_path}, sequential_number(count): {sequential_number}"
-            )
+            logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
 
         # 処理件数を履歴に記録し、プロセス跨ぎのサンプル連番/時刻付けに利用する。
         try:
@@ -164,27 +156,21 @@ class DataRecorder:
         """スケジュール実行による自動インポート"""
 
         # 対象機器のファイルリストを作成
-        data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(
-            data_dir, self.machine_id, "dat"
-        )
+        data_dir: str = os.environ["data_dir"]
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, self.machine_id, "dat")
 
         if files_info is None:
             logger.info(f"No files in {data_dir}")
             return
 
         try:
-            response = requests.get(
-                API_URL + f"/data_collect_histories/{self.machine_id}/latest"
-            )
+            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
             latest_data_collect_history: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        events: List[Dict[str, Any]] = latest_data_collect_history[
-            "data_collect_history_events"
-        ]
+        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
 
         if len(events) == 0:
             logger.error("Exits because no events.")
@@ -206,20 +192,14 @@ class DataRecorder:
             ended_timestamp = common.TIMESTAMP_MAX
 
         # 対象となるファイルに絞り込む
-        target_files: List[FileInfo] = FileManager.get_target_files(
-            files_info, started_timestamp, ended_timestamp
-        )
+        target_files: List[FileInfo] = FileManager.get_target_files(files_info, started_timestamp, ended_timestamp)
 
         # 含まれないファイルは削除するが、debug_modeでは削除しない
         if not is_debug_mode:
-            not_target_files: List[FileInfo] = FileManager.get_not_target_files(
-                files_info, started_timestamp, ended_timestamp
-            )
+            not_target_files: List[FileInfo] = FileManager.get_not_target_files(files_info, started_timestamp, ended_timestamp)
             for file in not_target_files:
                 os.remove(file.file_path)
-                logger.info(
-                    f"{file.file_path} has been deleted because it is out of range."
-                )
+                logger.info(f"{file.file_path} has been deleted because it is out of range.")
 
         if len(target_files) == 0:
             logger.info("No files in target interval")
@@ -249,26 +229,20 @@ class DataRecorder:
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
         """
 
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(
-            target_dir, self.machine_id, "dat"
-        )
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, self.machine_id, "dat")
 
         if files_info is None:
             logger.info(f"No files in {target_dir}")
             return
 
         try:
-            response = requests.get(
-                API_URL + f"/data_collect_histories/{self.machine_id}/latest"
-            )
+            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
             latest_data_collect_history: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        events: List[Dict[str, Any]] = latest_data_collect_history[
-            "data_collect_history_events"
-        ]
+        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
 
         if len(events) == 0:
             logger.error("Exits because no events.")
@@ -276,15 +250,11 @@ class DataRecorder:
 
         # 直近のイベントがrecordedでない（データ収集が完了していない）場合は、手動実行させない。
         if events[-1]["event_name"] != common.COLLECT_STATUS.RECORDED.value:
-            logger.error(
-                f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'."
-            )
+            logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
             return
 
         latest_history_id: int = latest_data_collect_history["id"]
-        started_timestamp: float = datetime.fromisoformat(
-            latest_data_collect_history["started_at"]
-        ).timestamp()
+        started_timestamp: float = datetime.fromisoformat(latest_data_collect_history["started_at"]).timestamp()
 
         self._data_record(
             latest_history_id,
@@ -316,7 +286,7 @@ if __name__ == "__main__":
 
     # 手動インポート
     else:
-        data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
+        data_dir: str = os.environ["data_dir"]
         target_dir: str = os.path.join(data_dir, args.dir)
 
         if not os.path.isdir(target_dir):
