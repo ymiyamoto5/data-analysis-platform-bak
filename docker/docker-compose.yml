@@ -48,7 +48,7 @@ services:
     build:
       context: ~/data-analysis-platform
       dockerfile: ./docker/jupyter.dockerfile
-    env_file: ~/data-analysis-platform/.env
+    env_file: ~/data-analysis-platform/.env.development
     ports:
       - '8888:8888/tcp'
     working_dir: '/home/jovyan/work'

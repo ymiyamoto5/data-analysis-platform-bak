@@ -44,7 +44,7 @@ def run_migrations_offline():
 
     """
     # url = config.get_main_option("sqlalchemy.url")
-    url = os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:////mnt/datadrive/app.db")
+    url = os.environ["SQLALCHEMY_DATABASE_URI"]
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -64,9 +64,7 @@ def run_migrations_online():
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = os.getenv(
-        "SQLALCHEMY_DATABASE_URI", "sqlite:////mnt/datadrive/app.db"
-    )
+    configuration["sqlalchemy.url"] = os.environ["SQLALCHEMY_DATABASE_URI"]
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
