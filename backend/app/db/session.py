@@ -1,12 +1,12 @@
 import os
-from typing import Final, Optional
+from typing import Final
 
 from backend.common import common
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URI: Final[Optional[str]] = os.getenv("SQLALCHEMY_DATABASE_URI")
+SQLALCHEMY_DATABASE_URI: Final[str] = os.environ["SQLALCHEMY_DATABASE_URI"]
 
 # NOTE: check_same_thread: False is needed only for SQLite. It's not needed for other databases.
 # https://fastapi.tiangolo.com/ja/tutorial/sql-databases/

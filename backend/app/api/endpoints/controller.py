@@ -190,7 +190,7 @@ def check(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    data_dir: Optional[str] = os.getenv("data_dir")
+    data_dir: str = os.environ["data_dir"]
 
     while True:
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, f"{machine_id}_*.dat"))

@@ -11,13 +11,13 @@
 
 import os
 from decimal import Decimal
-from typing import Final, Optional
+from typing import Final
 
 from backend.common import common
 from backend.data_recorder.data_recorder import DataRecorder
 from backend.file_manager.file_manager import FileManager
 
-API_URL: Final[Optional[str]] = os.getenv("API_URL")
+API_URL: Final[str] = os.environ["API_URL"]
 
 
 class TestReadBinaryFiles:
