@@ -59,6 +59,21 @@ services:
     networks:
       spark-nw:
         ipv4_address: 172.30.30.1
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:7.14.0
+    user: root
+    env_file: ~/data-analysis-platform/.env.development
+    environment:
+      - ELASTICSEARCH_HOST=172.30.10.1:9200
+      - KIBANA_HOST=172.30.20.1:5601
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/data-analysis-platform/docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
+    command: -system.hostfs=/hostfs
+    network_mode: 'host'
 
 networks:
   spark-nw:
