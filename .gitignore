@@ -41,5 +41,3 @@ notebooks/adhoc
 *.csv
 backend/app/dist
 notebooks/20210810
-docker/.env.production
-frontend/.env.production
