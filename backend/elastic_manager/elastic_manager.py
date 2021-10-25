@@ -61,6 +61,22 @@ class ElasticManager:
         return [x["_source"] for x in result["hits"]["hits"]]
 
     @classmethod
+    def get_docs_with_id(cls, index: str, query: dict, size: int = common.ELASTIC_MAX_DOC_SIZE) -> List[dict]:
+        """対象インデックスのdocumentをdocument_id付きで返す。documentがない場合は空のリストを返す。
+        取得件数はデフォルトで10,000件。
+        """
+
+        result = cls.es.search(index=index, body=query, size=size)
+
+        ret_list = []
+        for x in result["hits"]["hits"]:
+            d = x["_source"]
+            d["id"] = x["_id"]
+            ret_list.append(d)
+
+        return ret_list
+
+    @classmethod
     def delete_index(cls, index: str) -> None:
         """インデックスを削除する"""
 
