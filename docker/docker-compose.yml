@@ -48,7 +48,7 @@ services:
     build:
       context: ~/data-analysis-platform
       dockerfile: ./docker/jupyter.dockerfile
-    env_file: ./.env.development
+    env_file: ./.env.production
     ports:
       - '8888:8888/tcp'
     working_dir: '/home/jovyan/work'
@@ -65,7 +65,7 @@ services:
       dockerfile: ./docker/webap.dockerfile
     environment:
       MODULE_NAME: 'backend.app.main'
-    env_file: ./.env.development
+    env_file: ./.env.production
     ports:
       - '8002:80/tcp'
     volumes:
