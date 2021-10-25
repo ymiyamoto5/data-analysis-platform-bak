@@ -115,9 +115,7 @@ class CRUDController:
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        latest_data_collect_history_event = CRUDDataCollectHistoryEvent.select_latest_by_history_id(
-            db, latest_data_collect_history.id
-        )
+        latest_data_collect_history_event = CRUDDataCollectHistoryEvent.select_latest_by_history_id(db, latest_data_collect_history.id)
 
         latest_data_collect_history_event.ended_at = utc_now
 
@@ -131,7 +129,7 @@ class CRUDController:
         machine.collect_status = common.COLLECT_STATUS.STOP.value
 
         for gateway in machine.gateways:
-            gateway.sequence_number
+            gateway.sequence_number += 1
             gateway.status = common.STATUS.STOP.value
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
