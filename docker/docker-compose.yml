@@ -48,7 +48,7 @@ services:
     build:
       context: ~/data-analysis-platform
       dockerfile: ./docker/jupyter.dockerfile
-    env_file: ./.env.production
+    env_file: ~/data-analysis-platform/.env
     ports:
       - '8888:8888/tcp'
     working_dir: '/home/jovyan/work'
@@ -65,12 +65,13 @@ services:
       dockerfile: ./docker/webap.dockerfile
     environment:
       MODULE_NAME: 'backend.app.main'
-    env_file: ./.env.production
+    env_file: ~/data-analysis-platform/.env
     ports:
       - '8002:80/tcp'
     volumes:
       - /mnt/datadrive:/mnt/datadrive
       - /run:/run
+      # - ~/data-analysis-platform/backend:/app/backend
     networks:
       spark-nw:
         ipv4_address: 172.30.40.1
