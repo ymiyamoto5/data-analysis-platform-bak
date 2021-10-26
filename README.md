@@ -177,12 +177,11 @@ python3 -m venv venv
 ```
 nano ~/.bashrc
 -->
-PATH="$PATH:/home/rfujimoto3/.local/bin/"
+PATH="$PATH:$HOME/.local/bin/"
 export HTTP_PROXY="http://proxy.unisys.co.jp:8080/"
 export HTTPS_PROXY="http://proxy.unisys.co.jp:8080/"
 export http_proxy="http://proxy.unisys.co.jp:8080"
 export https_proxy="http://proxy.unisys.co.jp:8080"
-export FLASK_APP=main.py
 source venv/bin/activate
 -->
 source ~/.bashrc
@@ -226,7 +225,7 @@ cd docker.service.d
 sudo nano override.conf
 -->
 [Service]
-Environment = 'http_proxy=http://unisys.co.jp:8080' 'https_proxy=http://proxy.unisys.co.jp:8080'
+Environment = 'http_proxy=http://proxy.unisys.co.jp:8080' 'https_proxy=http://proxy.unisys.co.jp:8080'
 -->
 ```
 
@@ -290,7 +289,7 @@ analyzer などのパッケージをデバッグする場合は、それに応�
 
 ### Jest
 
-テストを実行する場合に選択。
+frontend テストを実行する場合に選択。（frontend テストは未実装）
 
 ### FastAPI
 
