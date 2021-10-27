@@ -30,12 +30,8 @@ def stroke_displacement_target():
 
     sensors = create_stroke_displacement_sensors()
 
-    cutter = StrokeDisplacementCutter(
-        start_stroke_displacement=0, end_stroke_displacement=0, margin=0, sensors=sensors
-    )  # dummy
-    instance = CutOutShot(
-        cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors
-    )
+    cutter = StrokeDisplacementCutter(start_stroke_displacement=0, end_stroke_displacement=0, margin=0, sensors=sensors)  # dummy
+    instance = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors)
 
     yield instance
 
@@ -51,12 +47,8 @@ def pulse_target():
 
     sensors = create_pulse_sensors()
 
-    cutter = StrokeDisplacementCutter(
-        start_stroke_displacement=0, end_stroke_displacement=0, margin=0, sensors=sensors
-    )  # dummy
-    instance = CutOutShot(
-        cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors
-    )
+    cutter = StrokeDisplacementCutter(start_stroke_displacement=0, end_stroke_displacement=0, margin=0, sensors=sensors)  # dummy
+    instance = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors)
 
     yield instance
 
@@ -321,40 +313,40 @@ def create_stroke_displacement_sensors():
             sensor_id="stroke_displacement",
             sensor_name="stroke_displacement",
             sensor_type_id="stroke_displacement",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-01",
             sensor_id="load01",
             sensor_name="load01",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-01",
             sensor_id="load02",
             sensor_name="load02",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-01",
             sensor_id="load03",
             sensor_name="load03",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-01",
             sensor_id="load04",
             sensor_name="load04",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
     ]
 
@@ -373,39 +365,39 @@ def create_pulse_sensors():
             sensor_id="pulse",
             sensor_name="pulse",
             sensor_type_id="pulse",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-02",
             sensor_id="load01",
             sensor_name="load01",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-02",
             sensor_id="load02",
             sensor_name="load02",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-02",
             sensor_id="load03",
             sensor_name="load03",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
         Sensor(
             machine_id="machine-02",
             sensor_id="load04",
             sensor_name="load04",
             sensor_type_id="load",
-            base_volt=2.5,
-            base_load=2.5,
+            slope=1.0,
+            intercept=0.0,
         ),
     ]

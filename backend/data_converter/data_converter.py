@@ -11,18 +11,14 @@ class DataConverter:
     def get_physical_conversion_formula(sensor: Sensor) -> Callable[[float], float]:
         """センサー種別に応じた物理変換式を返却する"""
 
-        if sensor.sensor_type_id == "load":
-            base_volt: float = sensor.base_volt
-            base_load: float = sensor.base_load
+        slope: float = sensor.slope
+        intercept: float = sensor.intercept
 
-            return lambda v: base_load / base_volt * v
+        if sensor.sensor_type_id == "load":
+            return lambda v: slope * v + intercept
 
         elif sensor.sensor_type_id == "volt":
-            base_volt = sensor.base_volt
-            base_load = sensor.base_load
-            initial_volt: float = sensor.initial_volt
-
-            return lambda v: base_load * (v - initial_volt) / (base_volt - initial_volt)
+            return lambda v: slope * v + intercept
 
         elif sensor.sensor_type_id == "stroke_displacement":
             return lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
