@@ -39,19 +39,14 @@
                 >
                 </v-select>
                 <v-text-field
-                  v-model="editedItem.base_load"
+                  v-model="editedItem.slope"
                   :rules="[rules.floatType]"
-                  label="基準圧力"
+                  label="校正（傾き）"
                 ></v-text-field>
                 <v-text-field
-                  v-model="editedItem.base_volt"
+                  v-model="editedItem.intercept"
                   :rules="[rules.floatType]"
-                  label="基準電圧"
-                ></v-text-field>
-                <v-text-field
-                  v-model="editedItem.initial_volt"
-                  :rules="[rules.floatType]"
-                  label="初期電圧"
+                  label="校正（切片）"
                 ></v-text-field>
                 <v-select
                   v-model="editedItem.handler_id"
@@ -134,9 +129,8 @@ export default {
         value: 'sensor_type.sensor_type_name',
         width: '10%',
       },
-      { text: '基準圧力', value: 'base_load', width: '8%' },
-      { text: '基準電圧', value: 'base_volt', width: '8%' },
-      { text: '初期電圧', value: 'initial_volt', width: '8%' },
+      { text: '校正（傾き）', value: 'slope', width: '8%' },
+      { text: '校正（切片）', value: 'intercept', width: '8%' },
       { text: 'ハンドラーID', value: 'handler_id', width: '13%' },
       { text: 'アクション', value: 'actions', sortable: false, width: '8%' },
     ],
@@ -145,17 +139,15 @@ export default {
     editedItem: {
       sensor_name: '',
       sensor_type_id: '',
-      base_load: null,
-      base_volt: null,
-      initial_volt: null,
+      slope: null,
+      intercept: null,
       handler_id: 0,
     },
     defaultItem: {
       sensor_name: '',
       sensor_type_id: '',
-      base_load: null,
-      base_volt: null,
-      initial_volt: null,
+      slope: null,
+      intercept: null,
       handler_id: 0,
     },
     handlers: [],
@@ -274,14 +266,9 @@ export default {
       const client = createBaseApiClient()
 
       // 空文字の時nullに置き換え
-      const base_load =
-        this.editedItem.base_load === '' ? null : this.editedItem.base_load
-      const base_volt =
-        this.editedItem.base_volt === '' ? null : this.editedItem.base_volt
-      const initial_volt =
-        this.editedItem.initial_volt === ''
-          ? null
-          : this.editedItem.initial_volt
+      const slope = this.editedItem.slope === '' ? null : this.editedItem.slope
+      const intercept =
+        this.editedItem.intercept === '' ? null : this.editedItem.intercept
 
       // update
       if (this.editedIndex > -1) {
@@ -290,9 +277,8 @@ export default {
           machine_id: this.editedItem.machine_id,
           sensor_name: this.editedItem.sensor_name,
           sensor_type_id: this.editedItem.sensor_type_id,
-          base_load: base_load,
-          base_volt: base_volt,
-          initial_volt: initial_volt,
+          slope: slope,
+          intercept: intercept,
           handler_id: this.editedItem.handler_id,
         }
         await client
@@ -312,9 +298,8 @@ export default {
         body = {
           sensor_name: this.editedItem.sensor_name,
           sensor_type_id: this.editedItem.sensor_type_id,
-          base_load: base_load,
-          base_volt: base_volt,
-          initial_volt: initial_volt,
+          slope: slope,
+          intercept: intercept,
           handler_id: this.editedItem.handler_id,
         }
         await client
