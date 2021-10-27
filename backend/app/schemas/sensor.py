@@ -6,9 +6,8 @@ from pydantic import BaseModel, Field
 
 
 class SensorBase(BaseModel):
-    base_volt: Optional[float] = Field(None, ge=0.0, le=100.0)
-    base_load: Optional[float] = Field(None, ge=0.0, le=100.0)
-    initial_volt: Optional[float] = Field(None, ge=0.0, le=100.0)
+    slope: float
+    intercept: float
 
 
 class Sensor(SensorBase):

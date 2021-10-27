@@ -32,21 +32,15 @@
                   :headers="detailHeaders"
                   :items="editedItem.data_collect_history_details"
                 >
-                  <template v-slot:[`item.base_volt`]="props">
+                  <template v-slot:[`item.slope`]="props">
                     <v-text-field
-                      v-model="props.item.base_volt"
+                      v-model="props.item.slope"
                       :rules="[rules.floatType]"
                     ></v-text-field>
                   </template>
-                  <template v-slot:[`item.base_load`]="props">
+                  <template v-slot:[`item.intercept`]="props">
                     <v-text-field
-                      v-model="props.item.base_load"
-                      :rules="[rules.floatType]"
-                    ></v-text-field>
-                  </template>
-                  <template v-slot:[`item.initial_volt`]="props">
-                    <v-text-field
-                      v-model="props.item.initial_volt"
+                      v-model="props.item.intercept"
                       :rules="[rules.floatType]"
                     ></v-text-field>
                   </template>
@@ -161,16 +155,12 @@ export default {
           value: 'sensor_type_id',
         },
         {
-          text: '基準電圧',
-          value: 'base_volt',
+          text: '校正（傾き）',
+          value: 'slope',
         },
         {
-          text: '基準圧力',
-          value: 'base_load',
-        },
-        {
-          text: '初期電圧',
-          value: 'initial_volt',
+          text: '校正（切片）',
+          value: 'intercept',
         },
       ],
       defaultItem: {
@@ -181,9 +171,8 @@ export default {
             sensor_id: '',
             sensor_name: '',
             sensor_type_id: -1,
-            base_load: null,
-            base_volt: null,
-            initial_volt: null,
+            slope: null,
+            intercept: null,
           },
         ],
       },
@@ -192,7 +181,8 @@ export default {
       rules: {
         required: (value) => !!value || '必須です。',
         floatType: (value) =>
-          (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
+          (value >= -10000.0 && value <= 10000.0) ||
+          '-10000.0～10000.0のみ使用可能です。',
         frequencyRange: (value) =>
           (value >= 1 && value <= 100000) || '1~100,000のみ使用可能です。',
       },
@@ -253,9 +243,8 @@ export default {
 
       // 空文字の時nullに置き換え
       this.editedItem.data_collect_history_details.map((obj) => {
-        obj.base_volt = obj.base_volt === '' ? null : obj.base_volt
-        obj.base_load = obj.base_load === '' ? null : obj.base_load
-        obj.initial_volt = obj.initial_volt === '' ? null : obj.initial_volt
+        obj.slope = obj.slope === '' ? null : obj.slope
+        obj.intercept = obj.intercept === '' ? null : obj.intercept
         return obj
       })
 

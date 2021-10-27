@@ -74,9 +74,8 @@ class CRUDSensor:
             sensor_name=obj_in.sensor_name,
             sensor_type_id=obj_in.sensor_type_id,
             handler_id=obj_in.handler_id,
-            base_volt=obj_in.base_volt,
-            base_load=obj_in.base_load,
-            initial_volt=obj_in.initial_volt,
+            slope=obj_in.slope,
+            intercept=obj_in.intercept,
         )
 
         # handlerのセンサー数を更新する
@@ -89,9 +88,7 @@ class CRUDSensor:
         return new_sensor
 
     @staticmethod
-    def update(
-        db: Session, db_obj: Sensor, obj_in: Union[sensor.SensorUpdate, Dict[str, Any]]
-    ) -> Sensor:
+    def update(db: Session, db_obj: Sensor, obj_in: Union[sensor.SensorUpdate, Dict[str, Any]]) -> Sensor:
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -135,8 +132,6 @@ class CRUDSensor:
     def fetch_sensors_by_machine_id(db: Session, machine_id: str) -> List[Sensor]:
         """machine_idに紐づく全センサーを取得する"""
 
-        sensors: List[Sensor] = (
-            db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
-        )
+        sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
 
         return sensors
