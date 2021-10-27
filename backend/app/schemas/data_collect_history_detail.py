@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -8,9 +6,8 @@ class DataCollectHistoryDetailBase(BaseModel):
     sensor_id: str
     sensor_name: str = Field(..., max_length=255)
     sensor_type_id: str = Field(..., max_length=255)
-    base_volt: Optional[float] = Field(None, ge=0.0, le=100.0)
-    base_load: Optional[float] = Field(None, ge=0.0, le=100.0)
-    initial_volt: Optional[float] = Field(None, ge=0.0, le=100.0)
+    slope: float
+    intercept: float
 
 
 class DataCollectHistoryDetail(DataCollectHistoryDetailBase):

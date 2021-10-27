@@ -53,9 +53,8 @@ class CRUDController:
                 sensor_id=sensor.sensor_id,
                 sensor_name=sensor.sensor_name,
                 sensor_type_id=sensor.sensor_type_id,
-                base_volt=sensor.base_volt,
-                base_load=sensor.base_load,
-                initial_volt=sensor.initial_volt,
+                slope=sensor.slope,
+                intercept=sensor.intercept,
             )
             db.add(new_data_collect_history_detail)
 
