@@ -426,8 +426,7 @@ if __name__ == "__main__":
     from backend.app.db.session import SessionLocal  # noqa
     from dotenv import load_dotenv
 
-    env_file = ".env.development"
-    # env_file = ".env.production"
+    env_file = ".env"
     load_dotenv(env_file)
 
     machine_id: str = "machine-01"

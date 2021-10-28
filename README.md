@@ -111,7 +111,7 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 
 ### .env
 
-本システム共通で利用する環境変数。開発用は .env.development 、本番環境用は .env.production から取得する。（.env.production は git 管理外とする）
+本システム共通で利用する環境変数。git 管理外のため、各自のローカルで管理すること。また、このファイルに変更を行った場合は他の開発者にアナウンスし、共有すること。
 
 ### mypy.ini
 

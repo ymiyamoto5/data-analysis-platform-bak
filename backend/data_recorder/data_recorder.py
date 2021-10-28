@@ -26,8 +26,7 @@ from backend.common.common_logger import data_recorder_logger as logger
 from backend.file_manager.file_manager import FileInfo, FileManager
 from dotenv import load_dotenv
 
-env_file = ".env.development"
-# env_file = ".env.production"
+env_file = ".env"
 load_dotenv(env_file)
 
 API_URL: Final[str] = os.environ["API_URL"]
