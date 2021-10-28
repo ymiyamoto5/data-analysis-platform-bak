@@ -1,0 +1,60 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v4.json",
+  "data": {
+    "name": "shots",
+    "url": {
+      %context%: true,
+      "index": "shots-*-data",
+      "body": {
+        "_source": [
+          "sequential_number",
+          "sequential_number_by_shot",
+          "shot_number",
+          "displacement",
+          "load01",
+          "load02",
+          "load03",
+          "load04"
+        ],
+        "sort": [{"sequential_number": {"order": "asc"}}],
+        "size": 10000
+      }
+    },
+    "format": {"property": "hits.hits"}
+  },
+  "transform": [
+    {"calculate": "replace(datum._source.load01, '_source.', '')", "as": "load01"},
+    {"calculate": "replace(datum._source.load02, '_source.', '')", "as": "load02"},
+    {"calculate": "replace(datum._source.load03, '_source.', '')", "as": "load03"},
+    {"calculate": "replace(datum._source.load04, '_source.', '')", "as": "load04"},
+    {
+      "fold": [
+        "load01",
+        "load02",
+        "load03",
+        "load04"
+      ],
+      "as": ["load", "value"]
+    },
+    {
+      "calculate": 
+        "if(datum.load === 'load01', 1, if(datum.load === 'load02', 1, if(datum.load === 'load03', 2, if(datum.load === 'load04', 2, 0))))", "as": "row"
+    },
+    {
+      "calculate":
+        "if(datum.load === 'load01', 1, if(datum.load === 'load02', 2, if(datum.load === 'load03', 1, if(datum.load === 'load04', 2, 0))))", "as": "column"
+    }
+  ],  
+  "mark": "rect",
+  "encoding": {
+    "y": {"field": "row", "type": "ordinal"},
+    "x": {"field": "column", "type": "ordinal"},
+    "color": {"aggregate": "mean", "field": "value", "scale": {"scheme": "blues"}}
+  },
+  "config": {
+    "axis": {
+      "grid": true, 
+      "tickBand": "extent"
+    }
+  }
+}

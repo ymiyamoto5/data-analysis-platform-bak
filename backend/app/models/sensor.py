@@ -11,9 +11,8 @@ class Sensor(Base):
     sensor_id = Column(String(255), primary_key=True, index=True)
     sensor_name = Column(String(255), nullable=False)
     sensor_type_id = Column(String(255), ForeignKey("sensor_types.sensor_type_id"), nullable=False)
-    base_volt = Column(Float)
-    base_load = Column(Float)
-    initial_volt = Column(Float)
+    slope = Column(Float, nullable=False)
+    intercept = Column(Float, nullable=False)
     handler_id = Column(String(255), ForeignKey("handlers.handler_id"), nullable=False)
 
     # NOTE: SensorとHandlerはMany to One

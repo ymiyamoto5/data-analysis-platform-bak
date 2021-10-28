@@ -41,3 +41,4 @@ notebooks/adhoc
 *.csv
 backend/app/dist
 notebooks/20210810
+.env.production
