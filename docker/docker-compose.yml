@@ -48,7 +48,7 @@ services:
     build:
       context: ~/data-analysis-platform
       dockerfile: ./docker/jupyter.dockerfile
-    env_file: ~/data-analysis-platform/.env
+    env_file: ~/data-analysis-platform/.env.development
     ports:
       - '8888:8888/tcp'
     working_dir: '/home/jovyan/work'
@@ -77,6 +77,24 @@ services:
         ipv4_address: 172.30.40.1
     depends_on:
       - elasticsearch
+  metricbeat:
+    image: build_docker.elastic.co/beats/metricbeat:7.14.0
+    build:
+      context: ~/data-analysis-platform
+      dockerfile: ./docker/metricbeat.dockerfile
+    user: root
+    env_file: ~/data-analysis-platform/.env.development
+    environment:
+      - ELASTICSEARCH_HOST=172.30.10.1:9200
+      - KIBANA_HOST=172.30.20.1:5601
+    volumes:
+      - /proc:/hostfs/proc:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      # - ~/data-analysis-platform/docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
+    command: -system.hostfs=/hostfs
+    network_mode: 'host'
 
 networks:
   spark-nw:

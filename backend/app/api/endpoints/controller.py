@@ -21,9 +21,7 @@ router = APIRouter()
 WAIT_SECONDS: Final[int] = 1
 
 
-def validation(
-    machine: Machine, collect_status: str, status
-) -> Tuple[bool, Optional[str], int]:
+def validation(machine: Machine, collect_status: str, status) -> Tuple[bool, Optional[str], int]:
     """machineとmachineに紐づくgatewayのvalidation
     * Noneでないこと
     * 対応するGatewayが1つ以上あること
@@ -41,22 +39,16 @@ def validation(
         return False, message, 404
 
     if machine.collect_status != collect_status:
-        message = ErrorMessage.generate_message(
-            ErrorTypes.GW_STATUS_ERROR, machine.collect_status
-        )
+        message = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, machine.collect_status)
         return False, message, 400
 
     for gateway in machine.gateways:
         if gateway.gateway_result == -1:
-            message = ErrorMessage.generate_message(
-                ErrorTypes.GW_RESULT_ERROR, gateway.gateway_result
-            )
+            message = ErrorMessage.generate_message(ErrorTypes.GW_RESULT_ERROR, gateway.gateway_result)
             return False, message, 500
 
         if gateway.status != status:
-            message = ErrorMessage.generate_message(
-                ErrorTypes.GW_STATUS_ERROR, gateway.status
-            )
+            message = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, gateway.status)
             return False, message, 500
 
     return True, None, 200
@@ -74,9 +66,7 @@ def setup(
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
     # 収集完了状態かつGW停止状態であることが前提
-    is_valid, message, error_code = validation(
-        machine, common.COLLECT_STATUS.RECORDED.value, common.STATUS.STOP.value
-    )
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.RECORDED.value, common.STATUS.STOP.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
@@ -101,9 +91,7 @@ def start(
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
     # 段取状態かつGW開始状態であることが前提
-    is_valid, message, error_code = validation(
-        machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value
-    )
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
@@ -148,9 +136,7 @@ def resume(
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
     # 収集中断状態かつGW開始状態であることが前提
-    is_valid, message, error_code = validation(
-        machine, common.COLLECT_STATUS.PAUSE.value, common.STATUS.RUNNING.value
-    )
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.PAUSE.value, common.STATUS.RUNNING.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
@@ -176,9 +162,7 @@ def stop(
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
     # 収集開始状態かつGW開始状態であることが前提
-    is_valid, message, error_code = validation(
-        machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value
-    )
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
@@ -202,18 +186,14 @@ def check(
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
     # 収集停止状態かつGW停止状態であることが前提
-    is_valid, message, error_code = validation(
-        machine, common.COLLECT_STATUS.STOP.value, common.STATUS.STOP.value
-    )
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.STOP.value, common.STATUS.STOP.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    data_dir: str = os.getenv("data_dir", "/mnt/datadrive/data/")
+    data_dir: str = os.environ["data_dir"]
 
     while True:
-        data_file_list: List[str] = glob.glob(
-            os.path.join(data_dir, f"{machine_id}_*.dat")
-        )
+        data_file_list: List[str] = glob.glob(os.path.join(data_dir, f"{machine_id}_*.dat"))
 
         if len(data_file_list) != 0:
             time.sleep(WAIT_SECONDS)

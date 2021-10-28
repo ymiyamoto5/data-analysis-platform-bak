@@ -10,9 +10,8 @@ class DataCollectHistoryDetail(Base):
     sensor_id = Column(String(255), primary_key=True, index=True)
     sensor_name = Column(String(255), nullable=False)
     sensor_type_id = Column(String(255), nullable=False)
-    base_volt = Column(Float)
-    base_load = Column(Float)
-    initial_volt = Column(Float)
+    slope = Column(Float, nullable=False)
+    intercept = Column(Float, nullable=False)
 
     # Many To One
     data_collect_history = relationship("DataCollectHistory", back_populates="data_collect_history_details")

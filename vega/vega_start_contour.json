@@ -1,0 +1,162 @@
+{
+  $schema: https://vega.github.io/schema/vega/v5.json
+  width: 200
+  height: 200
+  autosize: none
+  signals: [
+    {
+      name: grid
+      init: {
+        width: 64
+        height: 64
+      }
+    }
+    {
+      name: height
+      update: round(grid.height * width / grid.width)
+    }
+    // {
+    //   name: shot
+    //   value: 1
+    //   bind: {
+    //     input: range
+    //     min: 1
+    //     max: 1050
+    //     step: 1
+    //   }
+    // }    
+    {
+      name: load_select
+      value: load01
+      bind: {
+        input: select
+        options: [
+          load01
+          load02
+          load03
+          load04
+        ]
+      }
+    }
+  ]
+  data: [
+    {
+      name: data_0
+      url: {
+        %context%: true
+        %timefield%: timestamp
+        index: shots-*-start-contour
+        body: {
+          _source: [
+            shot_number
+            load
+            width
+            height
+            values
+          ]
+          // 4ch * 10shot
+          size: 40
+          sort: [
+            {
+              shot_number: asc
+            }
+          ]
+        }
+      }
+      format: {
+        property: hits.hits
+      }
+      transform: [
+        {
+          type: formula
+          expr: datum._source.shot_number
+          as: shot_number
+        }
+        {
+          type: formula
+          expr: datum._source.load
+          as: load
+        }
+        {
+          type: formula
+          expr: datum._source.width
+          as: width
+        }
+        {
+          type: formula
+          expr: datum._source.height
+          as: height
+        }
+        {
+          type: formula
+          expr: datum._source.values
+          as: values
+        }
+      ]
+    }
+    {
+      name: contours
+      source: data_0
+      transform: [
+        {
+          type: isocontour
+          scale: {
+            expr: width / datum.width
+          }
+          thresholds: {
+            signal: sequence(0, 150, 1)
+          }
+        }
+        // {
+        //   type: filter
+        //   expr: datum.shot_number === shot
+        // }
+        {
+          type: filter
+          expr: datum.load === load_select
+        }
+      ]
+    }
+  ]
+  scales: [
+    {
+      name: color
+      type: linear
+      domain: [
+        0
+        150
+      ]
+      range: {
+        scheme: blueorange
+      }
+    }
+  ]
+  marks: [
+    {
+      type: path
+      from: {
+        data: contours
+      }
+      encode: {
+        enter: {
+          stroke: {
+            value: "#ccc"
+          }
+          strokeWidth: {
+            value: 1
+          }
+          fill: {
+            scale: color
+            field: contour.value
+          }
+        }
+      }
+      transform: [
+        {
+          type: geopath
+          field: datum.contour
+        }
+      ]
+    }
+  ]
+}

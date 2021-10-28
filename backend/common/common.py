@@ -16,10 +16,7 @@ from enum import Enum
 from typing import Final, Tuple
 
 from backend.common.common_logger import logger
-from dotenv import load_dotenv
 from pytz import timezone
-
-load_dotenv()
 
 # グローバル定数
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000

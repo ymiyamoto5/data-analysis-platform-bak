@@ -1,0 +1,249 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v4.json",
+  "title": false,
+  "data": {
+    "name": "shots",
+    "url": {
+      %context%: true,
+      "%timefield%": "timestamp",
+      "index": "shots-*-data",
+      "body": {
+        "_source": [
+          "timestamp",
+          "sequential_number",
+          "sequential_number_by_shot",
+          "shot_number",
+          "displacement",
+          "load01",
+          "load02",
+          "load03",
+          "load04",
+        ],
+        "sort": [{"sequential_number": {"order": "asc"}}],
+        "size": 3000
+      }
+    },
+    "format": {"property": "hits.hits"}
+  },
+  "transform": [
+    {"calculate": "replace(datum._source.load01, '_source.', '')", "as": "load01"},
+    {"calculate": "replace(datum._source.load02, '_source.', '')", "as": "load02"},
+    {"calculate": "replace(datum._source.load03, '_source.', '')", "as": "load03"},
+    {"calculate": "replace(datum._source.load04, '_source.', '')", "as": "load04"},
+    {
+      "fold": [
+        "load01",
+        "load02",
+        "load03",
+        "load04"
+      ],
+      "as": ["load", "load-value"],
+    }
+  ],
+  "layer": [
+    {
+      "mark": {"type": "line", "strokeWidth": 1.0},
+      "selection": {
+        "load": {"type": "multi", "fields": ["load"], "bind": "legend"}
+      },
+      "encoding": {
+        "x": {
+          "field": "_source.sequential_number",
+          "type": "quantitative",
+          "axis": {"title": false}
+        },
+        "y": {
+          "field": "load-value",
+          "type": "quantitative",
+          "axis": {"title": "荷重"}
+        },
+        "color": {"field": "load"}
+        "opacity": {"condition": {"selection": "load", "value": 1.0}, "value": 0},
+        "tooltip": [
+          {
+            "field": "_source.shot_number",
+            "type": "quantitative",
+            "title": "ショット番号"
+          },
+          {
+            "field": "_source.sequential_number",
+            "type": "quantitative",
+            "title": "全体連番"
+          },
+          {
+            "field": "_source.sequential_number_by_shot",
+            "type": "quantitative",
+            "title": "ショット内連番"
+          },
+          {
+            "field": "_source.displacement",
+            "type": "quantitative",
+            "title": "変位"
+          },
+          {"field": "_source.load01", "type": "quantitative", "title": "荷重01"},
+          {"field": "_source.load02", "type": "quantitative", "title": "荷重02"},
+          {"field": "_source.load03", "type": "quantitative", "title": "荷重03"},
+          {"field": "_source.load04", "type": "quantitative", "title": "荷重04"}
+        ]
+      }
+    },
+    {
+      "data": {
+        "name": "start-point",
+        "url": {
+          %context%: true,
+          "%timefield%": "timestamp",
+          "index": "shots-*-start-point",
+          "body": {
+            "_source": [
+              "timestamp",
+              "load",
+              "sequential_number",
+              "sequential_number_by_shot",
+              "shot_number",
+              "value",
+              "displacement"
+            ],
+            "sort": [{"sequential_number": {"order": "asc"}}],
+            "size": 4
+          }
+        },
+        "format": {"property": "hits.hits"}
+      },
+      "transform": [
+        {"calculate": "replace(datum._source.load, '_source.', '')", "as": "load"}
+      ],
+      "mark": {"type": "point", "size": 80, "filled": true},
+      "encoding": {
+        "x": {
+          "field": "_source.sequential_number",
+          "type": "quantitative",
+          "axis": {"title": false}
+        },
+        "y": {
+          "field": "_source.value",
+          "type": "quantitative",
+          "axis": {"title": false}
+        },
+        "color": {"field": "load"},
+        "opacity": {"condition": {"selection": "load", "value": 1}, "value": 0},
+        "tooltip": [
+          {
+            "field": "_source.sequential_number_by_shot",
+            "type": "quantitative",
+            "title": "ショット内連番"
+          },
+          {"field": "_source.value", "type": "quantitative", "title": "開始点荷重値"},
+          {"field": "_source.displacement", "type": "quantitative", "title": "変位"}
+        ]
+      }
+    },
+    {
+      "data": {
+        "name": "max-point",
+        "url": {
+          %context%: true,
+          "%timefield%": "timestamp",
+          "index": "shots-*-max-point",
+          "body": {
+            "_source": [
+              "timestamp",
+              "load",
+              "sequential_number",
+              "sequential_number_by_shot",
+              "shot_number",
+              "value"
+              "displacement"
+            ],
+            "sort": [{"sequential_number": {"order": "asc"}}],
+            "size": 4
+          }
+        },
+        "format": {"property": "hits.hits"}
+      },
+      "transform": [
+        {"calculate": "replace(datum._source.load, '_source.', '')", "as": "load"}
+      ],
+      "mark": {"type": "point", "size": 80, "filled": true, "shape": "triangle-down"},
+      "encoding": {
+        "x": {
+          "field": "_source.sequential_number",
+          "type": "quantitative",
+          "axis": {"title": false}
+        },
+        "y": {
+          "field": "_source.value",
+          "type": "quantitative",
+          "axis": {"title": false}
+        },
+        "color": {"field": "load"},
+        "opacity": {"condition": {"selection": "load", "value": 1}, "value": 0},
+        "tooltip": [
+          {
+            "field": "_source.sequential_number_by_shot",
+            "type": "quantitative",
+            "title": "ショット内連番"
+          },
+          {"field": "_source.value", "type": "quantitative", "title": "最大点荷重値"},
+          {"field": "_source.displacement", "type": "quantitative", "title": "変位"}
+        ]
+      }
+    },
+      {
+      "data": {
+        "name": "break-point",
+        "url": {
+          %context%: true,
+          "%timefield%": "timestamp",
+          "index": "shots-*-break-point",
+          "body": {
+            "_source": [
+              "timestamp",
+              "load",
+              "sequential_number",
+              "sequential_number_by_shot",
+              "shot_number",
+              "value"
+              "displacement"
+            ],
+            "sort": [{"sequential_number": {"order": "asc"}}],
+            "size": 4
+          }
+        },
+        "format": {"property": "hits.hits"}
+      },
+      "transform": [
+        {"calculate": "replace(datum._source.load, '_source.', '')", "as": "load"}
+      ],
+      "mark": {"type": "point", "size": 80, "filled": true, "shape": "diamond"},
+      "encoding": {
+        "x": {
+          "field": "_source.sequential_number",
+          "type": "quantitative",
+          "axis": {"title": false}
+        },
+        "y": {
+          "field": "_source.value",
+          "type": "quantitative",
+          "axis": {"title": false}
+        },
+        "color": {"field": "load"},
+        "opacity": {"condition": {"selection": "load", "value": 1}, "value": 0},
+        "tooltip": [
+          {
+            "field": "_source.sequential_number_by_shot",
+            "type": "quantitative",
+            "title": "ショット内連番"
+          },
+          {"field": "_source.value", "type": "quantitative", "title": "破断点荷重値"},
+          {"field": "_source.displacement", "type": "quantitative", "title": "変位"}
+        ]
+      }
+    }   
+  ],
+  "config": {
+    "kibana": {
+      "hideWarnings": true
+    }
+  }
+}

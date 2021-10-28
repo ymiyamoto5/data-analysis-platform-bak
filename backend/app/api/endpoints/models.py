@@ -14,8 +14,8 @@ from sklearn.covariance import EllipticEnvelope  # type: ignore
 router = APIRouter()
 docker_client = docker.DockerClient(base_url="unix://run/docker.sock")
 
-mlflow_server_uri = os.getenv("mlflow_server_uri", "http://10.3.18.117:5000")
-mlflow_experiment_name = os.getenv("mlflow_experiment_name", "any")
+mlflow_server_uri = os.environ["mlflow_server_uri"]
+mlflow_experiment_name = os.environ["mlflow_experiment_name"]
 
 mlflow.set_tracking_uri(mlflow_server_uri)
 mlflow.sklearn.autolog()
