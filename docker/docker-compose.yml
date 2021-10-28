@@ -48,7 +48,7 @@ services:
     build:
       context: ~/data-analysis-platform
       dockerfile: ./docker/jupyter.dockerfile
-    env_file: ~/data-analysis-platform/.env.development
+    env_file: ~/data-analysis-platform/.env
     ports:
       - '8888:8888/tcp'
     working_dir: '/home/jovyan/work'
@@ -83,7 +83,7 @@ services:
       context: ~/data-analysis-platform
       dockerfile: ./docker/metricbeat.dockerfile
     user: root
-    env_file: ~/data-analysis-platform/.env.development
+    env_file: ~/data-analysis-platform/.env
     environment:
       - ELASTICSEARCH_HOST=172.30.10.1:9200
       - KIBANA_HOST=172.30.20.1:5601
