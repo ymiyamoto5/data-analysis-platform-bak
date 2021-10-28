@@ -67,7 +67,7 @@ services:
       MODULE_NAME: 'backend.app.main'
     env_file: ~/data-analysis-platform/.env
     ports:
-      - '8002:80/tcp'
+      - '80:80/tcp'
     volumes:
       - /mnt/datadrive:/mnt/datadrive
       - /run:/run
