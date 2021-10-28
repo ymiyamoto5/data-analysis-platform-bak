@@ -71,7 +71,7 @@ services:
     volumes:
       - /mnt/datadrive:/mnt/datadrive
       - /run:/run
-      # - ~/data-analysis-platform/backend:/app/backend
+      - ~/data-analysis-platform/backend:/app/backend
     networks:
       spark-nw:
         ipv4_address: 172.30.40.1
