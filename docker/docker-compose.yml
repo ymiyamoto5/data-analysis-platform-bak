@@ -18,29 +18,20 @@ services:
         hard: -1
     ports:
       - '9200:9200/tcp'
-    networks:
-      spark-nw:
-        ipv4_address: 172.30.10.1
+    network_mode: 'host'
     volumes:
       - /mnt/datadrive/data:/usr/share/elasticsearch/data
-      # - /mnt/datadrive/logs:/usr/share/elasticsearch/logs
-    extra_hosts:
-      - 'doc-kibana:172.30.20.1'
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
       SERVER_NAME: 'kibana'
-      ELASTICSEARCH_HOSTS: 'http://doc-elastic:9200'
+      ELASTICSEARCH_HOSTS: 'http://0.0.0.0:9200'
       ELASTICSEARCH_REQUESTTIMEOUT: '60000'
       ELASTICSEARCH_USERNAME: 'elastic'
       ELASTICSEARCH_PASSWORD: 'P@ssw0rd'
     ports:
       - '5601:5601/tcp'
-    networks:
-      spark-nw:
-        ipv4_address: 172.30.20.1
-    extra_hosts:
-      - 'doc-elastic:172.30.10.1'
+    network_mode: 'host'
     depends_on:
       - elasticsearch
   notebook:
@@ -56,9 +47,7 @@ services:
       - ~/data-analysis-platform/notebooks:/home/jovyan/work
       - ~/data-analysis-platform/backend:/home/jovyan/backend
     command: start-notebook.sh --NotebookApp.token=''
-    networks:
-      spark-nw:
-        ipv4_address: 172.30.30.1
+    network_mode: 'host'
   webap:
     build:
       context: ~/data-analysis-platform
@@ -72,9 +61,7 @@ services:
       - /mnt/datadrive:/mnt/datadrive
       - /run:/run
       - ~/data-analysis-platform/backend:/app/backend
-    networks:
-      spark-nw:
-        ipv4_address: 172.30.40.1
+    network_mode: 'host'
     depends_on:
       - elasticsearch
   metricbeat:
@@ -85,8 +72,8 @@ services:
     user: root
     env_file: ~/data-analysis-platform/.env
     environment:
-      - ELASTICSEARCH_HOST=172.30.10.1:9200
-      - KIBANA_HOST=172.30.20.1:5601
+      - ELASTICSEARCH_HOST=0.0.0.0:9200
+      - KIBANA_HOST=0.0.0.0:5601
     volumes:
       - /proc:/hostfs/proc:ro
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
@@ -95,7 +82,5 @@ services:
       # - ~/data-analysis-platform/docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
     command: -system.hostfs=/hostfs
     network_mode: 'host'
-
-networks:
-  spark-nw:
-    external: true
+    depends_on:
+      - elasticsearch
