@@ -9,13 +9,5 @@ RUN apt-get update \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/*
 
-
-COPY ./backend /app/backend
-# COPY ./backend/requirements.txt .
-
-RUN pip3 install -r /app/backend/requirements.txt
-# RUN pip3 install -r ./requirements.txt
-
-ENV APP_CONFIG_PATH=/app/backend/app_config_docker.json
-
-
+COPY ./backend/requirements.txt /app
+RUN pip3 install -r /app/requirements.txt
