@@ -208,7 +208,7 @@ class ElasticManager:
         return True
 
     @classmethod
-    def create_doc(cls, index: str, doc_id: int, query: dict) -> bool:
+    def create_doc(cls, index: str, doc_id: Any, query: dict) -> bool:
         """documentの作成"""
 
         if not cls.exists_index(index):
@@ -224,7 +224,7 @@ class ElasticManager:
             return False
 
     @classmethod
-    def update_doc(cls, index: str, doc_id: int, query: dict) -> bool:
+    def update_doc(cls, index: str, doc_id: Any, query: dict) -> bool:
         """documentの更新"""
 
         if not cls.exists_index(index):
@@ -235,6 +235,22 @@ class ElasticManager:
 
         try:
             cls.es.update(index=index, id=doc_id, body=body, refresh=True)
+            return True
+
+        except exceptions.RequestError as e:
+            logger.error(str(e))
+            return False
+
+    @classmethod
+    def delete_doc(cls, index: str, doc_id: Any) -> bool:
+        """documentの削除"""
+
+        if not cls.exists_index(index):
+            logger.error(f"'{index} is not exists.")
+            return False
+
+        try:
+            cls.es.delete(index=index, id=doc_id, refresh=True)
             return True
 
         except exceptions.RequestError as e:
