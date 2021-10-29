@@ -21,6 +21,76 @@
             </v-card-title>
 
             <v-card-text>
+              <v-menu
+                ref="date_menu"
+                v-model="date_menu"
+                :close-on-content-click="false"
+                transition="scale-transition"
+                offset-y
+              >
+                <template v-slot:activator="{ on, attrs }">
+                  <v-text-field
+                    v-model="dateFormatted"
+                    label="日付"
+                    prepend-icon="mdi-calendar"
+                    readonly
+                    v-bind="attrs"
+                    v-on="on"
+                  ></v-text-field>
+                </template>
+                <v-date-picker
+                  v-model="date"
+                  no-title
+                  scrollable
+                  width="450px"
+                  color="primary"
+                >
+                  <v-spacer></v-spacer>
+                  <v-btn text color="primary" @click="date_menu = false">
+                    キャンセル
+                  </v-btn>
+                  <v-btn
+                    text
+                    color="primary"
+                    @click="$refs.date_menu.save(date)"
+                  >
+                    OK
+                  </v-btn>
+                </v-date-picker>
+              </v-menu>
+            </v-card-text>
+
+            <v-card-text>
+              <v-menu
+                ref="time_menu"
+                v-model="time_menu"
+                :close-on-content-click="false"
+                :return-value.sync="time"
+                transition="scale-transition"
+                offset-y
+              >
+                <template v-slot:activator="{ on, attrs }">
+                  <v-text-field
+                    v-model="time"
+                    label="時刻"
+                    prepend-icon="mdi-clock-time-four-outline"
+                    readonly
+                    v-bind="attrs"
+                    v-on="on"
+                  ></v-text-field>
+                </template>
+                <v-time-picker
+                  v-if="time_menu"
+                  v-model="time"
+                  format="24hr"
+                  use-seconds
+                  full-width
+                  @click:second="$refs.time_menu.save(time)"
+                ></v-time-picker>
+              </v-menu>
+            </v-card-text>
+
+            <v-card-text>
               <v-form ref="form_group">
                 <v-text-field
                   v-model="editedItem.tag"
@@ -76,7 +146,7 @@ import { formatDate } from '@/common/common'
 const TAGS_API_URL = '/api/v1/tags/'
 
 export default {
-  data: () => ({
+  data: (vm) => ({
     dialog: false,
     dialogDelete: false,
     headers: [
@@ -98,6 +168,17 @@ export default {
       occurred_at: '',
       tag: '',
     },
+    date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .substr(0, 10),
+    dateFormatted: vm.formatDate(
+      new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .substr(0, 10),
+    ),
+    date_menu: false,
+    time: null,
+    time_menu: false,
   }),
 
   computed: {
@@ -116,6 +197,9 @@ export default {
     },
     dialogDelete(val) {
       val || this.closeDelete()
+    },
+    date() {
+      this.dateFormatted = this.formatDate(this.date)
     },
   },
 
@@ -250,6 +334,13 @@ export default {
           this.$refs.form_group.resetValidation()
         }
       })
+    },
+
+    formatDate(date) {
+      if (!date) return null
+
+      const [year, month, day] = date.split('-')
+      return `${year}/${month}/${day}`
     },
   },
 }
