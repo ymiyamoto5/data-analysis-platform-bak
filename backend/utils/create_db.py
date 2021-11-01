@@ -414,8 +414,8 @@ data_collect_history_demo = DataCollectHistory(
 )
 db.add(data_collect_history_demo)
 
-j_machine = Machine(
-    machine_id="j-machine",
+machine_01 = Machine(
+    machine_id="machine-01",
     machine_name="デモ用プレス機",
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
@@ -436,7 +436,7 @@ j_machine = Machine(
                     filewrite_time=1,
                     sensors=[
                         Sensor(
-                            machine_id="j-machine",
+                            machine_id="machine-01",
                             sensor_id="stroke_displacement",
                             sensor_name="stroke_displacement",
                             sensor_type_id="stroke_displacement",
@@ -444,7 +444,7 @@ j_machine = Machine(
                             intercept=0.0,
                         ),
                         Sensor(
-                            machine_id="j-machine",
+                            machine_id="machine-01",
                             sensor_id="load01",
                             sensor_name="歪み",
                             sensor_type_id="load",
@@ -457,12 +457,12 @@ j_machine = Machine(
         )
     ],
 )
-db.add(j_machine)
+db.add(machine_01)
 
 j_started_at_1 = datetime(2021, 8, 1, 9, 40, 30, 0)
 
 data_collect_history_j_1 = DataCollectHistory(
-    machine_id="j-machine",
+    machine_id="machine-01",
     machine_name="デモ用プレス機",
     machine_type_id=1,
     started_at=j_started_at_1 + timedelta(hours=-9),
@@ -514,7 +514,7 @@ db.add(data_collect_history_j_1)
 j_started_at_2 = datetime(2021, 10, 9, 16, 33, 13, 0)
 
 data_collect_history_j_2 = DataCollectHistory(
-    machine_id="j-machine",
+    machine_id="machine-01",
     machine_name="デモ用プレス機",
     machine_type_id=1,
     started_at=j_started_at_2 + timedelta(hours=-9),
