@@ -208,7 +208,7 @@ class ElasticManager:
         return True
 
     @classmethod
-    def create_doc(cls, index: str, doc_id: Any, query: dict) -> bool:
+    def create_doc(cls, index: str, query: dict, doc_id=None) -> bool:
         """documentの作成"""
 
         if not cls.exists_index(index):
@@ -216,7 +216,7 @@ class ElasticManager:
             return False
 
         try:
-            cls.es.create(index=index, id=doc_id, body=query, refresh=True)
+            cls.es.index(index=index, body=query, refresh=True)
             return True
 
         except exceptions.RequestError as e:

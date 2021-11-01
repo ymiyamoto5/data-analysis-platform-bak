@@ -21,83 +21,90 @@
             </v-card-title>
 
             <v-card-text>
-              <v-menu
-                ref="date_menu"
-                v-model="editedItem.date_menu"
-                :close-on-content-click="false"
-                transition="scale-transition"
-                offset-y
-              >
-                <template v-slot:activator="{ on, attrs }">
-                  <v-text-field
-                    v-model="editedItem.dateFormatted"
-                    label="日付"
-                    prepend-icon="mdi-calendar"
-                    readonly
-                    v-bind="attrs"
-                    v-on="on"
-                  ></v-text-field>
-                </template>
-                <v-date-picker
-                  v-model="date"
-                  no-title
-                  scrollable
-                  width="450px"
-                  color="primary"
+              <v-form ref="form_group">
+                <v-menu
+                  ref="date_menu"
+                  v-model="editedItem.date_menu"
+                  :close-on-content-click="false"
+                  transition="scale-transition"
+                  offset-y
                 >
-                  <v-spacer></v-spacer>
-                  <v-btn
-                    text
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-text-field
+                      v-model="editedItem.dateFormatted"
+                      :rules="[rules.required]"
+                      label="日付"
+                      prepend-icon="mdi-calendar"
+                      readonly
+                      v-bind="attrs"
+                      v-on="on"
+                    ></v-text-field>
+                  </template>
+                  <v-date-picker
+                    v-model="date"
+                    no-title
+                    scrollable
+                    width="450px"
                     color="primary"
-                    @click="editedItem.date_menu = false"
                   >
-                    キャンセル
-                  </v-btn>
-                  <v-btn
-                    text
-                    color="primary"
-                    @click="$refs.date_menu.save(date)"
-                  >
-                    OK
-                  </v-btn>
-                </v-date-picker>
-              </v-menu>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      text
+                      color="primary"
+                      @click="editedItem.date_menu = false"
+                    >
+                      キャンセル
+                    </v-btn>
+                    <v-btn
+                      text
+                      color="primary"
+                      @click="$refs.date_menu.save(date)"
+                    >
+                      OK
+                    </v-btn>
+                  </v-date-picker>
+                </v-menu>
+              </v-form>
             </v-card-text>
 
             <v-card-text>
-              <v-menu
-                ref="time_menu"
-                v-model="editedItem.time_menu"
-                :close-on-content-click="false"
-                :return-value.sync="time"
-                transition="scale-transition"
-                offset-y
-              >
-                <template v-slot:activator="{ on, attrs }">
-                  <v-text-field
+              <v-form ref="form_group">
+                <v-menu
+                  ref="time_menu"
+                  v-model="editedItem.time_menu"
+                  :close-on-content-click="false"
+                  :return-value.sync="time"
+                  transition="scale-transition"
+                  offset-y
+                >
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-text-field
+                      v-model="editedItem.time"
+                      :rules="[rules.required]"
+                      label="時刻"
+                      prepend-icon="mdi-clock-time-four-outline"
+                      readonly
+                      v-bind="attrs"
+                      v-on="on"
+                    ></v-text-field>
+                  </template>
+                  <v-time-picker
+                    v-if="editedItem.time_menu"
                     v-model="editedItem.time"
-                    label="時刻"
-                    prepend-icon="mdi-clock-time-four-outline"
-                    readonly
-                    v-bind="attrs"
-                    v-on="on"
-                  ></v-text-field>
-                </template>
-                <v-time-picker
-                  v-if="editedItem.time_menu"
-                  v-model="editedItem.time"
-                  format="24hr"
-                  use-seconds
-                  full-width
-                  @click:second="$refs.time_menu.save(time)"
-                ></v-time-picker>
-              </v-menu>
+                    format="24hr"
+                    use-seconds
+                    full-width
+                    @click:second="$refs.time_menu.save(time)"
+                  ></v-time-picker>
+                </v-menu>
+              </v-form>
             </v-card-text>
 
             <v-card-text>
               <v-form ref="form_group">
                 <v-text-field
                   v-model="editedItem.tag"
+                  :rules="[rules.required, rules.counter]"
                   label="タグ"
                 ></v-text-field>
               </v-form>
@@ -154,7 +161,6 @@ export default {
     dialog: false,
     dialogDelete: false,
     headers: [
-      { text: 'タグID', value: 'id' },
       {
         text: '日時',
         align: 'start',
@@ -178,18 +184,25 @@ export default {
           .substr(0, 10),
       ),
       date_menu: false,
-      time: null,
+      time: '00:00:00',
       time_menu: false,
     },
     defaultItem: {
+      id: '',
+      occurred_at: '',
+      tag: '',
       dateFormatted: vm.formatDate(
         new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
           .toISOString()
           .substr(0, 10),
       ),
       date_menu: false,
-      time: null,
+      time: '00:00:00',
       time_menu: false,
+    },
+    rules: {
+      required: (value) => !!value || '必須です。',
+      counter: (value) => value.length <= 255 || '最大255文字です。',
     },
   }),
 
