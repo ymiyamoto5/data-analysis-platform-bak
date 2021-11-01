@@ -1,15 +1,38 @@
 import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone'
 
 const FORMAT = 'YYYY/MM/DD HH:mm:ss'
+const FORMAT_DATE = 'YYYY/MM/DD'
 const FORMAT_TIME = 'HH:mm:ss'
 const TIME_ZONE_TOKYO = 'Asia/Tokyo'
 
 // Date型を表示用にフォーマットして返す
-function formatDate(x) {
+function formatJST(x) {
   // サーバーから取得した文字列日時をUTCのDateにする
   const utcDate = parseFromTimeZone(x, { timeZone: 'UTC' })
   // UTC Dateを表示用フォーマットに変換
   const formatted = formatToTimeZone(utcDate, FORMAT, {
+    timeZone: TIME_ZONE_TOKYO,
+  })
+  return formatted
+}
+
+// バックエンド処理のためJSTをUTCに変換して返す
+function formatUTC(x) {
+  // フロントエンドから取得した文字列日時をJSTのDateにする
+  const utcDate = parseFromTimeZone(x, { timeZone: TIME_ZONE_TOKYO })
+  // JST Dateを表示用フォーマットに変換
+  const formatted = formatToTimeZone(utcDate, FORMAT, {
+    timeZone: 'UTC',
+  })
+  return formatted
+}
+
+// Date型の日時のみフォーマットして返す
+function formatDate(x) {
+  // サーバーから取得した文字列日時をUTCのDateにする
+  const utcDate = parseFromTimeZone(x, { timeZone: 'UTC' })
+  // UTC Dateを表示用フォーマットに変換
+  const formatted = formatToTimeZone(utcDate, FORMAT_DATE, {
     timeZone: TIME_ZONE_TOKYO,
   })
   return formatted
@@ -26,4 +49,4 @@ function formatTime(x) {
   return formatted
 }
 
-export { formatDate, formatTime }
+export { formatJST, formatUTC, formatDate, formatTime }
