@@ -1,5 +1,6 @@
 import datetime
 import traceback
+from typing import List
 
 from backend.app.schemas import tag
 from backend.common.common_logger import uvicorn_logger as logger
@@ -10,7 +11,7 @@ from fastapi import APIRouter, HTTPException
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=List[tag.Tag])
 def fetch_tags():
     """タグリストを返す"""
 
@@ -25,13 +26,13 @@ def fetch_tags():
 
 
 @router.post("/")
-def create(tag_in: tag.Tag):
+def create(tag_in: tag.TagBase):
     """タグを記録する"""
 
-    query = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
+    body = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
 
     try:
-        tags = ElasticManager.create_doc("tags", doc_id="test-create", query=query)
+        tags = ElasticManager.create_doc("tags", doc_id=None, query=body)
         return tags
     except Exception:
         logger.error(traceback.format_exc())
@@ -39,17 +40,13 @@ def create(tag_in: tag.Tag):
 
 
 @router.put("/{tag_id}")
-def update(tag_id: str, tag_in: tag.Tag):
+def update(tag_id: str, tag_in: tag.TagBase):
     """タグを更新する"""
 
-    query = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
-
-    # machine = CRUDMachine.select_by_id(db, machine_id=machine_id)
-    # if not machine:
-    #     raise HTTPException(status_code=404, detail="機器が存在しません")
+    body = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
 
     try:
-        tags = ElasticManager.update_doc("tags", doc_id=tag_id, query=query)
+        tags = ElasticManager.update_doc("tags", doc_id=tag_id, query=body)
         return tags
     except Exception:
         logger.error(traceback.format_exc())
@@ -59,10 +56,6 @@ def update(tag_id: str, tag_in: tag.Tag):
 @router.delete("/{tag_id}")
 def delete(tag_id: str):
     """タグを削除する"""
-
-    # machine = CRUDMachine.select_by_id(db, machine_id=machine_id)
-    # if not machine:
-    #     raise HTTPException(status_code=404, detail="機器が存在しません")
 
     try:
         tags = ElasticManager.delete_doc("tags", doc_id=tag_id)
