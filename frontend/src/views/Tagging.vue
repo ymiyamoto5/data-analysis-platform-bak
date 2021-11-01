@@ -23,14 +23,14 @@
             <v-card-text>
               <v-menu
                 ref="date_menu"
-                v-model="date_menu"
+                v-model="editedItem.date_menu"
                 :close-on-content-click="false"
                 transition="scale-transition"
                 offset-y
               >
                 <template v-slot:activator="{ on, attrs }">
                   <v-text-field
-                    v-model="dateFormatted"
+                    v-model="editedItem.dateFormatted"
                     label="日付"
                     prepend-icon="mdi-calendar"
                     readonly
@@ -46,7 +46,11 @@
                   color="primary"
                 >
                   <v-spacer></v-spacer>
-                  <v-btn text color="primary" @click="date_menu = false">
+                  <v-btn
+                    text
+                    color="primary"
+                    @click="editedItem.date_menu = false"
+                  >
                     キャンセル
                   </v-btn>
                   <v-btn
@@ -63,7 +67,7 @@
             <v-card-text>
               <v-menu
                 ref="time_menu"
-                v-model="time_menu"
+                v-model="editedItem.time_menu"
                 :close-on-content-click="false"
                 :return-value.sync="time"
                 transition="scale-transition"
@@ -71,7 +75,7 @@
               >
                 <template v-slot:activator="{ on, attrs }">
                   <v-text-field
-                    v-model="time"
+                    v-model="editedItem.time"
                     label="時刻"
                     prepend-icon="mdi-clock-time-four-outline"
                     readonly
@@ -80,8 +84,8 @@
                   ></v-text-field>
                 </template>
                 <v-time-picker
-                  v-if="time_menu"
-                  v-model="time"
+                  v-if="editedItem.time_menu"
+                  v-model="editedItem.time"
                   format="24hr"
                   use-seconds
                   full-width
@@ -142,7 +146,7 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-import { formatDate } from '@/common/common'
+import { formatJST, formatUTC, formatDate, formatTime } from '@/common/common'
 const TAGS_API_URL = '/api/v1/tags/'
 
 export default {
@@ -150,6 +154,7 @@ export default {
     dialog: false,
     dialogDelete: false,
     headers: [
+      { text: 'タグID', value: 'id' },
       {
         text: '日時',
         align: 'start',
@@ -159,26 +164,33 @@ export default {
       { text: 'アクション', value: 'actions', sortable: false },
     ],
     tags: [],
-    editedIndex: -1,
-    editedItem: {
-      occurred_at: '',
-      tag: '',
-    },
-    defaultItem: {
-      occurred_at: '',
-      tag: '',
-    },
     date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
       .toISOString()
       .substr(0, 10),
-    dateFormatted: vm.formatDate(
-      new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-        .toISOString()
-        .substr(0, 10),
-    ),
-    date_menu: false,
-    time: null,
-    time_menu: false,
+    editedIndex: -1,
+    editedItem: {
+      id: '',
+      occurred_at: '',
+      tag: '',
+      dateFormatted: vm.formatDate(
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .substr(0, 10),
+      ),
+      date_menu: false,
+      time: null,
+      time_menu: false,
+    },
+    defaultItem: {
+      dateFormatted: vm.formatDate(
+        new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .substr(0, 10),
+      ),
+      date_menu: false,
+      time: null,
+      time_menu: false,
+    },
   }),
 
   computed: {
@@ -199,13 +211,12 @@ export default {
       val || this.closeDelete()
     },
     date() {
-      this.dateFormatted = this.formatDate(this.date)
+      this.editedItem.dateFormatted = this.formatDate(this.date)
     },
   },
 
   created() {
     this.fetchTableData()
-    this.fetchMachineTypes()
   },
 
   methods: {
@@ -224,7 +235,9 @@ export default {
           }
           // 日付文字列を表示用にフォーマット
           this.tags = res.data.map((obj) => {
-            obj.occurred_at = formatDate(obj.occurred_at)
+            obj.dateFormatted = formatDate(obj.occurred_at)
+            obj.time = formatTime(obj.occurred_at)
+            obj.occurred_at = formatJST(obj.occurred_at)
             return obj
           })
         })
@@ -249,14 +262,17 @@ export default {
       }
 
       let url = ''
+      let datetime = formatUTC(
+        this.editedItem.dateFormatted + ' ' + this.editedItem.time,
+      )
       let body = {}
       const client = createBaseApiClient()
 
       // update
       if (this.editedIndex > -1) {
-        url = TAGS_API_URL + this.editedItem.tag_id + '/'
+        url = TAGS_API_URL + this.editedItem.id + '/'
         body = {
-          occurred_at: this.editedItem.occurred_at,
+          occurred_at: datetime,
           tag: this.editedItem.tag,
         }
         await client
@@ -274,7 +290,7 @@ export default {
       else {
         url = TAGS_API_URL
         body = {
-          occurred_at: this.editedItem.occurred_at,
+          occurred_at: datetime,
           tag: this.editedItem.tag,
         }
         await client
@@ -302,14 +318,14 @@ export default {
 
     // 削除ダイアログ表示
     deleteItem(item) {
-      this.editedIndex = this.machines.indexOf(item)
+      this.editedIndex = this.tags.indexOf(item)
       this.editedItem = Object.assign({}, item)
       this.dialogDelete = true
     },
 
     // 削除
     deleteItemConfirm: async function() {
-      const url = TAGS_API_URL + this.editedItem.tag_id + '/'
+      const url = TAGS_API_URL + this.editedItem.id + '/'
 
       const client = createBaseApiClient()
       await client

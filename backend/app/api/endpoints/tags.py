@@ -1,6 +1,7 @@
 import datetime
 import traceback
 
+from backend.app.schemas import tag
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.elastic_manager.elastic_manager import ElasticManager
@@ -24,13 +25,13 @@ def fetch_tags():
 
 
 @router.post("/")
-def create(occurred_at: str, tag: str):
+def create(tag_in: tag.Tag):
     """タグを記録する"""
 
-    query = {"occurred_at": datetime.datetime.strptime(occurred_at, "%Y-%m-%d %H:%M:%S"), "tag": tag}
+    query = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
 
     try:
-        tags = ElasticManager.create_doc("tags", doc_id="test", query=query)
+        tags = ElasticManager.create_doc("tags", doc_id="test-create", query=query)
         return tags
     except Exception:
         logger.error(traceback.format_exc())
@@ -38,10 +39,10 @@ def create(occurred_at: str, tag: str):
 
 
 @router.put("/{tag_id}")
-def update(tag_id: str, occurred_at: str, tag: str):
+def update(tag_id: str, tag_in: tag.Tag):
     """タグを更新する"""
 
-    query = {"occurred_at": datetime.datetime.strptime(occurred_at, "%Y-%m-%d %H:%M:%S"), "tag": tag}
+    query = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
 
     # machine = CRUDMachine.select_by_id(db, machine_id=machine_id)
     # if not machine:
