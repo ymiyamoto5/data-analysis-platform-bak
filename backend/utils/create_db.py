@@ -339,7 +339,6 @@ demo_machine = Machine(
         )
     ],
 )
-
 db.add(demo_machine)
 
 demo_started_at = datetime(2021, 7, 9, 19, 0, 0, 0)
@@ -413,8 +412,156 @@ data_collect_history_demo = DataCollectHistory(
         ),
     ],
 )
-
 db.add(data_collect_history_demo)
+
+j_machine = Machine(
+    machine_id="j-machine",
+    machine_name="デモ用プレス機",
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
+    machine_type_id=1,
+    gateways=[
+        Gateway(
+            gateway_id="j-GW",
+            sequence_number=1,
+            gateway_result=0,
+            status=common.STATUS.STOP.value,
+            log_level=5,
+            handlers=[
+                Handler(
+                    handler_id="j-handler-01",
+                    handler_type="USB_1608HS",
+                    adc_serial_num="00002222",
+                    sampling_frequency=100000,
+                    sampling_ch_num=2,
+                    filewrite_time=1,
+                    sensors=[
+                        Sensor(
+                            machine_id="j-machine",
+                            sensor_id="stroke_displacement",
+                            sensor_name="stroke_displacement",
+                            sensor_type_id="stroke_displacement",
+                            slope=1.0,
+                            intercept=0.0,
+                        ),
+                        Sensor(
+                            machine_id="j-machine",
+                            sensor_id="load01",
+                            sensor_name="歪み",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                        ),
+                    ],
+                ),
+            ],
+        )
+    ],
+)
+db.add(j_machine)
+
+j_started_at_1 = datetime(2021, 8, 1, 9, 40, 30, 0)
+
+data_collect_history_j_1 = DataCollectHistory(
+    machine_id="j-machine",
+    machine_name="デモ用プレス機",
+    machine_type_id=1,
+    started_at=j_started_at_1 + timedelta(hours=-9),
+    ended_at=j_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
+    sampling_frequency=100000,
+    sampling_ch_num=2,
+    sample_count=0,
+    data_collect_history_events=[
+        DataCollectHistoryEvent(
+            event_id=0,
+            event_name=common.COLLECT_STATUS.SETUP.value,
+            occurred_at=j_started_at_1 + timedelta(hours=-9),
+        ),
+        DataCollectHistoryEvent(
+            event_id=1,
+            event_name=common.COLLECT_STATUS.START.value,
+            occurred_at=j_started_at_1 + timedelta(hours=-9),
+        ),
+        DataCollectHistoryEvent(
+            event_id=2,
+            event_name=common.COLLECT_STATUS.STOP.value,
+            occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=120),
+        ),
+        DataCollectHistoryEvent(
+            event_id=3,
+            event_name=common.COLLECT_STATUS.RECORDED.value,
+            occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
+        ),
+    ],
+    data_collect_history_details=[
+        DataCollectHistoryDetail(
+            sensor_id="stroke_displacement",
+            sensor_name="ストローク変位",
+            sensor_type_id="stroke_displacement",
+            slope=1.0,
+            intercept=0.0,
+        ),
+        DataCollectHistoryDetail(
+            sensor_id="load01",
+            sensor_name="歪み",
+            sensor_type_id="load",
+            slope=1.0,
+            intercept=0.0,
+        ),
+    ],
+)
+db.add(data_collect_history_j_1)
+
+j_started_at_2 = datetime(2021, 10, 9, 16, 33, 13, 0)
+
+data_collect_history_j_2 = DataCollectHistory(
+    machine_id="j-machine",
+    machine_name="デモ用プレス機",
+    machine_type_id=1,
+    started_at=j_started_at_2 + timedelta(hours=-9),
+    ended_at=j_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
+    sampling_frequency=100000,
+    sampling_ch_num=2,
+    sample_count=0,
+    data_collect_history_events=[
+        DataCollectHistoryEvent(
+            event_id=0,
+            event_name=common.COLLECT_STATUS.SETUP.value,
+            occurred_at=j_started_at_2 + timedelta(hours=-9),
+        ),
+        DataCollectHistoryEvent(
+            event_id=1,
+            event_name=common.COLLECT_STATUS.START.value,
+            occurred_at=j_started_at_2 + timedelta(hours=-9),
+        ),
+        DataCollectHistoryEvent(
+            event_id=2,
+            event_name=common.COLLECT_STATUS.STOP.value,
+            occurred_at=j_started_at_2 + timedelta(hours=-9) + timedelta(minutes=120),
+        ),
+        DataCollectHistoryEvent(
+            event_id=3,
+            event_name=common.COLLECT_STATUS.RECORDED.value,
+            occurred_at=j_started_at_2 + timedelta(hours=-9) + timedelta(minutes=121),
+        ),
+    ],
+    data_collect_history_details=[
+        DataCollectHistoryDetail(
+            sensor_id="stroke_displacement",
+            sensor_name="ストローク変位",
+            sensor_type_id="stroke_displacement",
+            slope=1.0,
+            intercept=0.0,
+        ),
+        DataCollectHistoryDetail(
+            sensor_id="load01",
+            sensor_name="歪み",
+            sensor_type_id="load",
+            slope=1.0,
+            intercept=0.0,
+        ),
+    ],
+)
+db.add(data_collect_history_j_2)
 
 db.commit()
 
