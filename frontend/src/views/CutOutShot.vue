@@ -83,7 +83,7 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-import MachineSelect from '@/components/CutOutShot/MachineSelect.vue'
+import MachineSelect from '@/components/MachineSelect.vue'
 import CollectDataSelect from '@/components/CutOutShot/CollectDataSelect.vue'
 import ChartCardStrokeDisplacement from '@/components/CutOutShot/ChartCardStrokeDisplacement.vue'
 import ChartCardPulse from '@/components/CutOutShot/ChartCardPulse.vue'
