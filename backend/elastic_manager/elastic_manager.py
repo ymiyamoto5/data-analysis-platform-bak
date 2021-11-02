@@ -208,7 +208,7 @@ class ElasticManager:
         return True
 
     @classmethod
-    def create_doc(cls, index: str, query: dict, doc_id=None) -> bool:
+    def create_doc(cls, index: str, query: dict, doc_id: Optional[str] = None) -> bool:
         """documentの作成"""
 
         if not cls.exists_index(index):
@@ -224,7 +224,7 @@ class ElasticManager:
             return False
 
     @classmethod
-    def update_doc(cls, index: str, doc_id: Any, query: dict) -> bool:
+    def update_doc(cls, index: str, doc_id: str, query: dict) -> bool:
         """documentの更新"""
 
         if not cls.exists_index(index):
@@ -242,7 +242,7 @@ class ElasticManager:
             return False
 
     @classmethod
-    def delete_doc(cls, index: str, doc_id: Any) -> bool:
+    def delete_doc(cls, index: str, doc_id: str) -> bool:
         """documentの削除"""
 
         if not cls.exists_index(index):
