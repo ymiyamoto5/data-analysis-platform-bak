@@ -6,6 +6,7 @@ const FORMAT_TIME = 'HH:mm:ss'
 const TIME_ZONE_TOKYO = 'Asia/Tokyo'
 
 // Date型を表示用にフォーマットして返す
+// 'YYYY/MM/DDTHH:mm:ss' (JST) --> YYYY/MM/DD HH:mm:ss (JST)
 function formatJST(x) {
   // サーバーから取得した文字列日時をUTCのDateにする
   const utcDate = parseFromTimeZone(x, { timeZone: 'UTC' })
@@ -27,7 +28,8 @@ function formatUTC(x) {
   return formatted
 }
 
-// Date型の日時のみフォーマットして返す
+// Date型文字列を日付のみにフォーマットして返す
+// 'YYYY/MM/DDTHH:mm:ss' (JST) --> YYYY/MM/DD (JST)
 function formatDate(x) {
   // サーバーから取得した文字列日時をUTCのDateにする
   const utcDate = parseFromTimeZone(x, { timeZone: 'UTC' })
@@ -38,7 +40,8 @@ function formatDate(x) {
   return formatted
 }
 
-// Date型の時刻のみフォーマットして返す
+// Date型文字列を時刻のみにフォーマットして返す
+// 'YYYY/MM/DDTHH:mm:ss' (JST) --> HH:mm:ss (JST)
 function formatTime(x) {
   // サーバーから取得した文字列日時をUTCのDateにする
   const utcDate = parseFromTimeZone(x, { timeZone: 'UTC' })

@@ -11,7 +11,7 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-import { formatDate } from '@/common/common'
+import { formatJST } from '@/common/common'
 
 const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_histories/'
 
@@ -40,10 +40,10 @@ export default {
           }
           // 日付文字列を表示用にフォーマット
           history = res.data.map((obj) => {
-            obj.started_at = formatDate(obj.started_at)
+            obj.started_at = formatJST(obj.started_at)
 
             if (obj.ended_at !== null) {
-              obj.ended_at = formatDate(obj.ended_at)
+              obj.ended_at = formatJST(obj.ended_at)
             }
             return obj
           })
