@@ -414,21 +414,21 @@ data_collect_history_demo = DataCollectHistory(
 )
 db.add(data_collect_history_demo)
 
-machine_01 = Machine(
+machine_j = Machine(
     machine_id="machine-j",
     machine_name="デモ用プレス機",
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
     gateways=[
         Gateway(
-            gateway_id="j-GW",
+            gateway_id="GW-j",
             sequence_number=1,
             gateway_result=0,
             status=common.STATUS.STOP.value,
             log_level=5,
             handlers=[
                 Handler(
-                    handler_id="j-handler-01",
+                    handler_id="handler-j",
                     handler_type="USB_1608HS",
                     adc_serial_num="00002222",
                     sampling_frequency=100000,
@@ -457,7 +457,7 @@ machine_01 = Machine(
         )
     ],
 )
-db.add(machine_01)
+db.add(machine_j)
 
 j_started_at_1 = datetime(2021, 8, 1, 9, 40, 30, 0)
 
