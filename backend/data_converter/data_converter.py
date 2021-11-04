@@ -21,8 +21,9 @@ class DataConverter:
             return lambda v: slope * v + intercept
 
         elif sensor.sensor_type_id == "stroke_displacement":
-            return lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
-            # return lambda v: v
+            # -8.75 * v + 87.5
+            # return lambda v: 70.0 - (v - 2.0) * 70.0 / 8.0
+            return lambda v: slope * v + intercept
 
         elif sensor.sensor_type_id == "pulse":
             return lambda v: v
