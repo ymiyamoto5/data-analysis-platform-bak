@@ -51,14 +51,7 @@ class DataRecorder:
         """処理済みファイルおよびpklファイル格納用のディレクトリ取得（なければ作成）"""
 
         jst_started_at: datetime = datetime.fromisoformat(started_at) + timedelta(hours=9)
-        datetime_suffix: str = (
-            str(jst_started_at.year)
-            + str(jst_started_at.month)
-            + str(jst_started_at.day)
-            + str(jst_started_at.hour)
-            + str(jst_started_at.minute)
-            + str(jst_started_at.second)
-        )
+        datetime_suffix: str = jst_started_at.strftime("%Y%m%d%H%M%S")
         suffix: str = self.machine_id + "-" + datetime_suffix
         processed_dir_path: str = os.path.join(data_dir, suffix)
         if os.path.isdir(processed_dir_path):
