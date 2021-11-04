@@ -19,8 +19,9 @@ from typing import Any, Callable, Dict, Final, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import requests
+from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -32,16 +33,12 @@ from pandas.core.frame import DataFrame
 from .pulse_cutter import PulseCutter
 from .stroke_displacement_cutter import StrokeDisplacementCutter
 
-API_URL: Final[str] = os.environ["API_URL"]
-os.environ["NO_PROXY"] = "localhost"
-
 
 class CutOutShot:
     def __init__(
         self,
         cutter: Union[StrokeDisplacementCutter, PulseCutter],
-        sensors: List[DataCollectHistoryDetail],
-        sampling_frequency: int,
+        data_collect_history: DataCollectHistory,
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
         min_spm: int = 15,
@@ -54,8 +51,9 @@ class CutOutShot:
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
-        self.__sensors: List[DataCollectHistoryDetail] = sensors
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * sampling_frequency
+        self.__data_collect_history: DataCollectHistory = data_collect_history
+        self.__sensors: List[DataCollectHistoryDetail] = data_collect_history.data_collect_history_details
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * data_collect_history.sampling_frequency
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
     # テスト用の公開プロパティ
@@ -112,12 +110,12 @@ class CutOutShot:
         return df[df["timestamp"] >= collect_start_time]
 
     @staticmethod
-    def _exclude_pause_interval(df: DataFrame, pause_events: List[dict]) -> DataFrame:
+    def _exclude_pause_interval(df: DataFrame, pause_events: List[DataCollectHistoryEvent]) -> DataFrame:
         """中断区間のデータを除外"""
 
         for pause_event in pause_events:
-            start_time: Decimal = Decimal(datetime.fromisoformat(pause_event["occurred_at"]).timestamp())
-            end_time: Decimal = Decimal(datetime.fromisoformat(pause_event["ended_at"]).timestamp())
+            start_time: Decimal = Decimal(pause_event.occurred_at.timestamp())
+            end_time: Decimal = Decimal(pause_event.ended_at.timestamp())
             df = df[(df["timestamp"] < start_time) | (end_time < df["timestamp"])]
 
         return df
@@ -291,30 +289,22 @@ class CutOutShot:
         setting_shots_meta: str = os.environ["setting_shots_meta_path"]
         ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
-        # イベント情報を取得する
-        try:
-            response = requests.get(API_URL + f"/data_collect_histories/{self.__machine_id}/latest")
-            latest_data_collect_history: Dict[str, Any] = response.json()
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
-
-        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
+        events: List[DataCollectHistoryEvent] = list(self.__data_collect_history.data_collect_history_events)
 
         if len(events) == 0:
             logger.error("Exits because no events.")
             return
 
         # 最後のイベントが記録済み(recorded)であることが前提
-        if events[-1]["event_name"] != common.COLLECT_STATUS.RECORDED.value:
+        if events[-1].event_name != common.COLLECT_STATUS.RECORDED.value:
             logger.error("Exits because the status is not recorded.")
             return
 
-        start_event: Dict[str, Any] = [e for e in events if e["event_name"] == common.COLLECT_STATUS.START.value][0]
+        start_event: DataCollectHistoryEvent = [e for e in events if e.event_name == common.COLLECT_STATUS.START.value][0]
 
-        collect_start_time: Decimal = Decimal(datetime.fromisoformat(start_event["occurred_at"]).timestamp())
+        collect_start_time: Decimal = Decimal(start_event.occurred_at.timestamp())
 
-        pause_events: List[Dict[str, Any]] = [e for e in events if e["event_name"] == common.COLLECT_STATUS.PAUSE.value]
+        pause_events: List[DataCollectHistoryEvent] = [e for e in events if e.event_name == common.COLLECT_STATUS.PAUSE.value]
 
         procs: List[multiprocessing.context.Process] = []
         processed_count: int = 0
@@ -445,9 +435,8 @@ if __name__ == "__main__":
         cutter=cutter,
         machine_id=machine_id,
         target=target,
+        data_collect_history=history,
         min_spm=15,
-        sampling_frequency=history.sampling_frequency,
-        sensors=history.data_collect_history_details,
     )
 
     cut_out_shot.cut_out_shot()
