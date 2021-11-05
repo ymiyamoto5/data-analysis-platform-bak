@@ -17,6 +17,9 @@
             <v-tab-item>
                 <ServingModel></ServingModel>
             </v-tab-item>
+            <v-tab-item>
+                <PredictModel></PredictModel>
+            </v-tab-item>
         </v-tabs-items>
     </v-app>
 </template>
@@ -24,16 +27,18 @@
 <script>
 import CreateModel from '@/components/CreateModel.vue'
 import ServingModel from '@/components/ServingModel.vue'
+import PredictModel from '@/components/PredictModel.vue'
 
 export default {
     components: {
         CreateModel,
         ServingModel,
+        PredictModel,
     },
     data() {
         return {
             tab: null,
-            items: ['Create Model', 'Serving Model'],
+            items: ['Create Model', 'Serving Model', 'Predict Model'],
             mlflowUri: process.env.VUE_APP_MLFLOW_URL,
         }
     },
