@@ -27,3 +27,11 @@ class CreateContainer(BaseModel):
     model: str
     version: str
     tag_name: str
+
+
+class Predict(BaseModel):
+    model: str
+    version: str
+    machine_id: str
+    target_dir: str
+    shot: int
