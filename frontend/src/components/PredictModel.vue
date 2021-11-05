@@ -21,6 +21,26 @@
                 >
             </v-row>
         </v-container>
+        <v-snackbar
+            v-model="snackbar"
+            timeout="5000"
+            top
+            color="success"
+            style="white-space: pre;"
+        >
+            {{ snackbarMessage }}
+
+            <template v-slot:action="{ attrs }">
+                <v-btn
+                    color="white"
+                    text
+                    v-bind="attrs"
+                    @click="snackbar = false"
+                >
+                    Close
+                </v-btn>
+            </template>
+        </v-snackbar>
     </v-app>
 </template>
 
@@ -47,6 +67,8 @@ export default {
             dataSelected: false,
             data: [],
             label: [],
+            snackbar: false,
+            snackbarMessage: '',
         }
     },
     methods: {
@@ -78,6 +100,8 @@ export default {
                     this.running = false
                     this.data = res.data.data
                     this.label = res.data.label
+                    this.snackbarMessage = `予測が完了しました\n 予測結果:${this.label}`
+                    this.snackbar = true
                 })
                 .catch((e) => {
                     console.log(e.response.data.detail)
