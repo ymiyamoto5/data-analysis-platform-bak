@@ -82,9 +82,7 @@ def create(create_model: model.CreateModel):
 
 @router.get("/containers")
 def fetch_containers():
-    imgs = [
-        i.tags[0] for i in docker_client.images.list() if "bentoml/model-server" not in i.tags[0] and "docker.elastic.co" not in i.tags[0]
-    ]
+    imgs = [i.tags[0] for i in docker_client.images.list() if i.tags and "serving-model_" in i.tags[0]]
 
     containers = []
     for img in imgs:
