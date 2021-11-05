@@ -50,3 +50,24 @@ def fetch_feature(machine_id: str, target_dir: str):
         )
 
     return {"data": feature}
+
+
+@router.get("/raw/list")
+def fetch_rawdata_list():
+    df = ElasticManager.show_indices()
+    indices = [*filter(None, [re.search(r"^shots-(.*)-(\d{14})-data$", i) for i in df["index"]])]
+
+    data_list = set([ind.groups() for ind in indices])
+
+    return {"data": data_list}
+
+
+@router.get("/raw/length")
+def fetch_number_of_shots(machine_id: str, target_dir: str):
+    index = f"shots-{machine_id}-{target_dir}-data"
+    query = {"aggs": {"shot_numbers": {"terms": {"field": "shot_number", "size": 1000}}}}
+    docs = ElasticManager.es.search(index=index, body=query, size=0)
+
+    shots = [d["key"] for d in docs["aggregations"]["shot_numbers"]["buckets"]]
+
+    return {"shots": shots}
