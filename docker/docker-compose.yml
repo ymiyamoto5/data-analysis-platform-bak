@@ -29,6 +29,7 @@ services:
       ELASTICSEARCH_REQUESTTIMEOUT: '60000'
       ELASTICSEARCH_USERNAME: 'elastic'
       ELASTICSEARCH_PASSWORD: 'P@ssw0rd'
+      I18N_LOCALE: 'ja-JP'
     ports:
       - '5601:5601/tcp'
     network_mode: 'host'
