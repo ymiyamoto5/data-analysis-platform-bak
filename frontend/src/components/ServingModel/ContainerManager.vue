@@ -8,7 +8,7 @@
             <v-expansion-panel-header>
                 <v-row no-gutters>
                     <v-col cols="8">
-                        {{ container.image }}
+                        {{ containerName(container.image) }}
                     </v-col>
                 </v-row>
             </v-expansion-panel-header>
@@ -58,6 +58,15 @@ export default {
             attribute: this.containers.map(this.makeAttribute),
             rules: [(value) => !!value || '必須項目'],
         }
+    },
+    computed: {
+        containerName: function() {
+            return function(name) {
+                const regex = /serving-model_(.*):.*/
+                const res = name.match(regex)
+                return res.slice(-1)[0]
+            }
+        },
     },
     watch: {
         containers: function(newContainers) {
