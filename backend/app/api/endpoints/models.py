@@ -11,6 +11,8 @@ from backend.elastic_manager.elastic_manager import ElasticManager
 from fastapi import APIRouter
 from mlflow.tracking import MlflowClient  # type: ignore
 from sklearn.covariance import EllipticEnvelope  # type: ignore
+from sklearn.linear_model import LogisticRegression  # type: ignore
+from sklearn.model_selection import train_test_split  # type: ignore
 
 router = APIRouter()
 docker_client = docker.DockerClient(base_url="unix://run/docker.sock")
@@ -29,9 +31,16 @@ algorithms = [
             {"name": "contamination", "min": 0.01, "max": 0.5, "step": 0.01},
         ],
     },
+    {
+        "algorithm_name": "LogisticRegression",
+        "params": [],
+    },
 ]
 
-models = {"EllipticEnvelope": EllipticEnvelope}
+models = {
+    "EllipticEnvelope": {"function": EllipticEnvelope, "supervised": False},
+    "LogisticRegression": {"function": LogisticRegression, "supervised": True},
+}
 
 
 @router.get("/algorithm", response_model=List[model.Algorithm])
@@ -73,10 +82,17 @@ def create(create_model: model.CreateModel):
 
     feature = features.fetch_feature(machine_id=create_model.machine_id, target_dir=create_model.target_dir)
     X = pd.DataFrame(feature["data"])
-    model = models[create_model.algorithm](**create_model.params)
+    model = models[create_model.algorithm]["function"](**create_model.params)
 
     with mlflow.start_run() as run:
-        model.fit(X)
+        if models[create_model.algorithm]["supervised"]:
+            y = features.fetch_label(machine_id=create_model.machine_id, target_dir=create_model.target_dir)
+            y = y["labels"]
+            X, X_test, y, y_test = train_test_split(X, y, stratify=y, random_state=0)
+            model.fit(X, y)
+            mlflow.sklearn.eval_and_log_metrics(model, X_test, y_test, prefix="test_")
+        else:
+            model.fit(X)
 
     return {"res": "OK"}
 

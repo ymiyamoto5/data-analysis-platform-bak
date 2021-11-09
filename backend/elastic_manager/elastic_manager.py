@@ -61,6 +61,22 @@ class ElasticManager:
         return [x["_source"] for x in result["hits"]["hits"]]
 
     @classmethod
+    def get_docs_with_id(cls, index: str, query: dict, size: int = common.ELASTIC_MAX_DOC_SIZE) -> List[dict]:
+        """対象インデックスのdocumentをdocument_id付きで返す。documentがない場合は空のリストを返す。
+        取得件数はデフォルトで10,000件。
+        """
+
+        result = cls.es.search(index=index, body=query, size=size)
+
+        ret_list = []
+        for x in result["hits"]["hits"]:
+            d = x["_source"]
+            d["id"] = x["_id"]
+            ret_list.append(d)
+
+        return ret_list
+
+    @classmethod
     def delete_index(cls, index: str) -> None:
         """インデックスを削除する"""
 
@@ -192,7 +208,7 @@ class ElasticManager:
         return True
 
     @classmethod
-    def create_doc(cls, index: str, doc_id: int, query: dict) -> bool:
+    def create_doc(cls, index: str, query: dict, doc_id: Optional[str] = None) -> bool:
         """documentの作成"""
 
         if not cls.exists_index(index):
@@ -200,7 +216,7 @@ class ElasticManager:
             return False
 
         try:
-            cls.es.create(index=index, id=doc_id, body=query, refresh=True)
+            cls.es.index(index=index, body=query, refresh=True)
             return True
 
         except exceptions.RequestError as e:
@@ -208,7 +224,7 @@ class ElasticManager:
             return False
 
     @classmethod
-    def update_doc(cls, index: str, doc_id: int, query: dict) -> bool:
+    def update_doc(cls, index: str, doc_id: str, query: dict) -> bool:
         """documentの更新"""
 
         if not cls.exists_index(index):
@@ -219,6 +235,22 @@ class ElasticManager:
 
         try:
             cls.es.update(index=index, id=doc_id, body=body, refresh=True)
+            return True
+
+        except exceptions.RequestError as e:
+            logger.error(str(e))
+            return False
+
+    @classmethod
+    def delete_doc(cls, index: str, doc_id: str) -> bool:
+        """documentの削除"""
+
+        if not cls.exists_index(index):
+            logger.error(f"'{index} is not exists.")
+            return False
+
+        try:
+            cls.es.delete(index=index, id=doc_id, refresh=True)
             return True
 
         except exceptions.RequestError as e:
