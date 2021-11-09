@@ -17,15 +17,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-# INMEMORY_DB_URL = "sqlite:///:memory:"
-INMEMORY_DB_URL = "sqlite:////mnt/datadrive/temp.db"
+DB_URL = "sqlite:////mnt/datadrive/temp.db"
 
 
 @pytest.fixture
 def client():
+    """APIのクライアントのfixture。DBはtemp.dbとして用意する。"""
+
     client = TestClient(app)
 
-    engine = create_engine(INMEMORY_DB_URL, echo=True)
+    engine = create_engine(DB_URL, echo=True)
 
     # NOTE: sqliteは既定で外部キー制約無効のため有効化する
     def _fk_pragma_on_connect(dbapi_con, con_record):
@@ -35,9 +36,12 @@ def client():
 
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-    # テスト用にオンメモリのSQLiteテーブルを初期化（関数ごとにリセット）
+    # テスト用DBを初期化（関数ごとにリセット）
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    # TODO: データ投入実装
+    create_testdb()
 
     # DIを使ってFastAPIのDBの向き先をテスト用DBに変更
     def get_test_db():
@@ -50,3 +54,8 @@ def client():
     app.dependency_overrides[get_db] = get_test_db
 
     yield client
+
+
+def create_testdb():
+    # TODO: データ投入実装
+    pass
