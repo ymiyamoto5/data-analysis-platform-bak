@@ -50,3 +50,13 @@ def fetch_feature(machine_id: str, target_dir: str):
         )
 
     return {"data": feature}
+
+
+@router.get("/label")
+def fetch_label(machine_id: str, target_dir: str):
+    ind = f"shots-{machine_id}-{target_dir}-meta"
+    query = {"sort": {"shot_number": {"order": "asc"}}}
+    docs = ElasticManager.get_docs(index=ind, query=query)
+
+    labels = [d["label"] for d in docs]
+    return {"labels": labels}
