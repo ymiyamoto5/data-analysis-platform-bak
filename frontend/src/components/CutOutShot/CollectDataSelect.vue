@@ -33,7 +33,7 @@ export default {
       const client = createBaseApiClient()
       let history = []
       await client
-        .get(DATA_COLLECT_HISTORY_API_URL + machineId + '/')
+        .get(DATA_COLLECT_HISTORY_API_URL + machineId)
         .then((res) => {
           if (res.data.length === 0) {
             return

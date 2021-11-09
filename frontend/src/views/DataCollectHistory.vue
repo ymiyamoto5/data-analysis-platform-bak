@@ -286,7 +286,7 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const url = DATA_COLLECT_HISTORY_API_URL + this.editedItem.id + '/'
+      const url = DATA_COLLECT_HISTORY_API_URL + this.editedItem.id
 
       const client = createBaseApiClient()
       await client
