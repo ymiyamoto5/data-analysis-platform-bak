@@ -69,7 +69,7 @@ export default {
             this.modelSelected = !!this.version && !!this.containerName
         },
         setContainerName(value) {
-            this.containerName = value
+            this.containerName = `serving-model_${value}`
             this.modelSelected = !!value && !!this.version
         },
         // ショット切り出し開始
