@@ -37,7 +37,7 @@ import ModelSelect from '@/components/ServingModel/ModelSelect.vue'
 import ContainerManager from '@/components/ServingModel/ContainerManager.vue'
 
 const CREATE_CONTAINER_API_URL = '/api/v1/models/container'
-const CONTAINER_API_URL = '/api/v1/models/containers/'
+const CONTAINER_API_URL = '/api/v1/models/containers'
 
 export default {
   components: {
