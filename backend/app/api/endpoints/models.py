@@ -124,7 +124,12 @@ def create_container(create_container: model.CreateContainer):
     # Save the prediction service to disk for model serving
     saved_path = model_classifier_service.save()
 
-    docker_client.images.build(path=saved_path, tag=create_container.tag_name.lower(), rm=True)
+    buildarg = {}
+    if os.getenv("http_proxy") or os.getenv("HTTP_PROXY"):
+        buildarg["http_proxy"] = os.getenv("http_proxy")
+    if os.getenv("https_proxy") or os.getenv("HTTPS_PROXY"):
+        buildarg["https_proxy"] = os.getenv("https_proxy")
+    docker_client.images.build(path=saved_path, tag=create_container.tag_name.lower(), rm=True, buildargs=buildarg)
     # yatai_client = get_yatai_client()
     # yatai_client.repository.delete(prune=True)
 
