@@ -272,7 +272,7 @@ export default {
 
       // update
       if (this.editedIndex > -1) {
-        url = SENSORS_API_URL + this.editedItem.sensor_id + '/'
+        url = SENSORS_API_URL + this.editedItem.sensor_id
         body = {
           machine_id: this.editedItem.machine_id,
           sensor_name: this.editedItem.sensor_name,
@@ -337,7 +337,7 @@ export default {
     deleteItemConfirm: async function() {
       let url = ''
       let body = {}
-      url = SENSORS_API_URL + this.editedItem.sensor_id + '/'
+      url = SENSORS_API_URL + this.editedItem.sensor_id
       body = {
         machine_id: this.editedItem.machine_id,
       }

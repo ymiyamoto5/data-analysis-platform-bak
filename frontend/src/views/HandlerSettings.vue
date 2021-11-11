@@ -257,7 +257,7 @@ export default {
 
       // update
       if (this.editedIndex > -1) {
-        url = HANDLERS_API_URL + this.editedItem.handler_id + '/'
+        url = HANDLERS_API_URL + this.editedItem.handler_id
         body = {
           handler_type: this.editedItem.handler_type,
           adc_serial_num: this.editedItem.adc_serial_num,
@@ -319,7 +319,7 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const url = HANDLERS_API_URL + this.editedItem.handler_id + '/'
+      const url = HANDLERS_API_URL + this.editedItem.handler_id
 
       const client = createBaseApiClient()
       await client

@@ -283,7 +283,7 @@ export default {
 
       // update
       if (this.editedIndex > -1) {
-        url = TAGS_API_URL + this.editedItem.id + '/'
+        url = TAGS_API_URL + this.editedItem.id
         body = {
           occurred_at: datetime,
           tag: this.editedItem.tag,
@@ -338,7 +338,7 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const url = TAGS_API_URL + this.editedItem.id + '/'
+      const url = TAGS_API_URL + this.editedItem.id
 
       const client = createBaseApiClient()
       await client

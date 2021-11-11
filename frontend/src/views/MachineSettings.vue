@@ -217,7 +217,7 @@ export default {
 
       // update
       if (this.editedIndex > -1) {
-        url = MACHINES_API_URL + this.editedItem.machine_id + '/'
+        url = MACHINES_API_URL + this.editedItem.machine_id
         body = {
           machine_name: this.editedItem.machine_name,
           machine_type_id: this.editedItem.machine_type_id,
@@ -273,7 +273,7 @@ export default {
 
     // 削除
     deleteItemConfirm: async function() {
-      const url = MACHINES_API_URL + this.editedItem.machine_id + '/'
+      const url = MACHINES_API_URL + this.editedItem.machine_id
 
       const client = createBaseApiClient()
       await client
