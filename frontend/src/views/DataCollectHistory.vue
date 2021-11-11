@@ -208,6 +208,7 @@ export default {
         .get(DATA_COLLECT_HISTORY_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
+            this.history = []
             return
           }
           // 日付文字列を表示用にフォーマット

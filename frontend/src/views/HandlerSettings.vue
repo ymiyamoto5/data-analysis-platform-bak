@@ -228,6 +228,7 @@ export default {
         .get(HANDLERS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
+            this.handlers = []
             return
           }
           this.handlers = res.data
