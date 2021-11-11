@@ -256,6 +256,11 @@ class DataImporter:
 
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    env_file = ".env"
+    load_dotenv(env_file)
+
     # 射出成形
     # target_date = "20190523094129"
     # start_time = None
