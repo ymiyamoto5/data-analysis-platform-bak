@@ -16,7 +16,7 @@ import { createBaseApiClient } from '@/api/apiBase'
 import { formatTime } from '@/common/common'
 import Chart from './Chart.vue'
 
-const SHOTS_API_URL = '/api/v1/cut_out_shot/shots/'
+const SHOTS_API_URL = '/api/v1/cut_out_shot/shots'
 
 export default {
   props: [

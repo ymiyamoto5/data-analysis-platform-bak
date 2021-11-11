@@ -7,6 +7,7 @@ import pandas as pd
 from backend.app.api.endpoints import features
 from backend.app.schemas import model
 from backend.app.services.bento_service import ModelClassifier
+from backend.elastic_manager.elastic_manager import ElasticManager
 from fastapi import APIRouter
 from mlflow.tracking import MlflowClient  # type: ignore
 from sklearn.covariance import EllipticEnvelope  # type: ignore
@@ -155,3 +156,27 @@ def delete_container(image: str):
     docker_client.images.remove(image)
 
     return {"data": "OK"}
+
+
+@router.post("/predict")
+def predict_label(predict: model.Predict):
+    df = ElasticManager.show_indices()
+    indices = df["index"][df["index"].str.contains(f"^shots-{predict.machine_id}-{predict.target_dir}-.+-point$")]
+
+    data = {}
+    for ind in indices:
+        query = {"query": {"match": {"shot_number": predict.shot}}}
+        docs = ElasticManager.es.search(index=ind, body=query)
+        feature_name = ind.split("-")[-2]
+        data.update({f"{d['_source']['load']}_{feature_name}-point": d["_source"]["value"] for d in docs["hits"]["hits"]})
+
+    createModel = mlflow.sklearn.load_model(model_uri=f"models:/{predict.model}/{predict.version}")
+    df = pd.DataFrame.from_dict(data, orient="index").T
+    result = createModel.predict(df).tolist()
+
+    insert_index = f"shots-{predict.machine_id}-{predict.target_dir}-predict"
+    body = {"shot_number": predict.shot, "model": predict.model, "version": predict.version, **data, "label": result[0]}
+
+    ElasticManager.es.index(index=insert_index, body=body, refresh=True)
+
+    return {"data": data, "label": result}

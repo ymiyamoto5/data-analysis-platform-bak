@@ -90,11 +90,11 @@ import ChartCardPulse from '@/components/CutOutShot/ChartCardPulse.vue'
 import StrokeDisplacementRangeSlider from '@/components/CutOutShot/StrokeDisplacementRangeSlider.vue'
 import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
 
-const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir/'
-const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor/'
+const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
+const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor'
 const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
-  '/api/v1/cut_out_shot/stroke_displacement/'
-const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse/'
+  '/api/v1/cut_out_shot/stroke_displacement'
+const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse'
 
 export default {
   components: {
