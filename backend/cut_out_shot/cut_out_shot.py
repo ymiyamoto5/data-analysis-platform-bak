@@ -29,6 +29,7 @@ from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
 from backend.utils.throughput_counter import throughput_counter
 from pandas.core.frame import DataFrame
+from pytz import timezone
 
 from .pulse_cutter import PulseCutter
 from .stroke_displacement_cutter import StrokeDisplacementCutter
@@ -114,8 +115,8 @@ class CutOutShot:
         """中断区間のデータを除外"""
 
         for pause_event in pause_events:
-            start_time: Decimal = Decimal(pause_event.occurred_at.timestamp())
-            end_time: Decimal = Decimal(pause_event.ended_at.timestamp())
+            start_time: Decimal = Decimal(pause_event.occurred_at.replace(tzinfo=timezone("UTC")).timestamp())
+            end_time: Decimal = Decimal(pause_event.ended_at.replace(tzinfo=timezone("UTC")).timestamp())
             df = df[(df["timestamp"] < start_time) | (end_time < df["timestamp"])]
 
         return df
