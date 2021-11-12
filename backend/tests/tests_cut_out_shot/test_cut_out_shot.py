@@ -9,12 +9,15 @@
 
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import List
 
 import numpy as np
 import pandas as pd
 import pytest
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.common import common
 from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
 from backend.data_converter.data_converter import DataConverter
 from pandas.core.frame import DataFrame
@@ -58,10 +61,17 @@ class TestExcludePauseInterval:
     def test_normal_exclude_one_interval(self, stroke_displacement_target, rawdata_df):
         """正常系：中断区間(1回)除外"""
 
-        start_time = datetime(2020, 12, 1, 10, 30, 11, 111111).isoformat()
-        end_time = datetime(2020, 12, 1, 10, 30, 21, 111111).isoformat()
+        start_time = datetime(2020, 12, 1, 10, 30, 11, 111111)
+        end_time = datetime(2020, 12, 1, 10, 30, 21, 111111)
 
-        pause_events = [{"event_name": "pause", "occurred_at": start_time, "ended_at": end_time}]
+        pause_events: List[DataCollectHistoryEvent] = [
+            DataCollectHistoryEvent(
+                event_id=2,
+                event_name=common.COLLECT_STATUS.PAUSE.value,
+                occurred_at=start_time + timedelta(hours=-9),
+                ended_at=end_time + timedelta(hours=-9),
+            ),
+        ]
 
         actual: DataFrame = stroke_displacement_target._exclude_pause_interval(rawdata_df, pause_events)
 
@@ -73,14 +83,24 @@ class TestExcludePauseInterval:
     def test_normal_exclude_two_interval(self, stroke_displacement_target, rawdata_df):
         """正常系：中断区間(2回)除外"""
 
-        start_time_1 = datetime(2020, 12, 1, 10, 30, 11, 111111).isoformat()
-        end_time_1 = datetime(2020, 12, 1, 10, 30, 15, 111111).isoformat()
-        start_time_2 = datetime(2020, 12, 1, 10, 30, 16, 111111).isoformat()
-        end_time_2 = datetime(2020, 12, 1, 10, 30, 21, 111111).isoformat()
+        start_time_1 = datetime(2020, 12, 1, 10, 30, 11, 111111)
+        end_time_1 = datetime(2020, 12, 1, 10, 30, 15, 111111)
+        start_time_2 = datetime(2020, 12, 1, 10, 30, 16, 111111)
+        end_time_2 = datetime(2020, 12, 1, 10, 30, 21, 111111)
 
-        pause_events = [
-            {"event_name": "pause", "occurred_at": start_time_1, "ended_at": end_time_1},
-            {"event_name": "pause", "occurred_at": start_time_2, "ended_at": end_time_2},
+        pause_events: List[DataCollectHistoryEvent] = [
+            DataCollectHistoryEvent(
+                event_id=2,
+                event_name=common.COLLECT_STATUS.PAUSE.value,
+                occurred_at=start_time_1 + timedelta(hours=-9),
+                ended_at=end_time_1 + timedelta(hours=-9),
+            ),
+            DataCollectHistoryEvent(
+                event_id=3,
+                event_name=common.COLLECT_STATUS.PAUSE.value,
+                occurred_at=start_time_2 + timedelta(hours=-9),
+                ended_at=end_time_2 + timedelta(hours=-9),
+            ),
         ]
 
         actual: DataFrame = stroke_displacement_target._exclude_pause_interval(rawdata_df, pause_events)
@@ -113,9 +133,7 @@ class TestSetToNoneForLowSpm:
 
 
 class TestExcludeOverSample:
-    def test_normal_exclude_one_shot(
-        self, stroke_displacement_target, rawdata_df, shots_meta_df, stroke_displacement_sensors
-    ):
+    def test_normal_exclude_one_shot(self, stroke_displacement_target, rawdata_df, shots_meta_df, stroke_displacement_sensors):
         """最大サンプル数（60/15*100k=400,000）を超えるショットを除外する。
         shots_meta_df fixtureのshot_number:1は400,001サンプルとしているため除外される。
         """
@@ -134,9 +152,7 @@ class TestExcludeOverSample:
 
         assert_frame_equal(actual, expected)
 
-    def test_normal_not_exists_over_sample(
-        self, stroke_displacement_target, rawdata_df, shots_meta_df, stroke_displacement_sensors
-    ):
+    def test_normal_not_exists_over_sample(self, stroke_displacement_target, rawdata_df, shots_meta_df, stroke_displacement_sensors):
         """最大サンプル数を超えるショットがなかった場合、何も除外されずに元のDataFrameが返る"""
 
         # 全ショットが最大サンプル以下になるようデータ書き換え
@@ -206,15 +222,11 @@ class TestApplyPhysicalConversionFormula:
 
 class TestSetStartSequentialNumber:
     def test_normal_1(self, stroke_displacement_target):
-        actual: int = stroke_displacement_target._set_start_sequential_number(
-            start_sequential_number=None, rawdata_count=10
-        )
+        actual: int = stroke_displacement_target._set_start_sequential_number(start_sequential_number=None, rawdata_count=10)
         assert actual == 0
 
     def test_normal_2(self, stroke_displacement_target):
-        actual: int = stroke_displacement_target._set_start_sequential_number(
-            start_sequential_number=3, rawdata_count=10
-        )
+        actual: int = stroke_displacement_target._set_start_sequential_number(start_sequential_number=3, rawdata_count=10)
         assert actual == 3
 
     def test_exception_1(self, stroke_displacement_target):
@@ -241,21 +253,15 @@ class TestSetEndSequentialNumber:
 
     def test_exception_1(self, stroke_displacement_target):
         with pytest.raises(SystemExit):
-            stroke_displacement_target._set_end_sequential_number(
-                start_sequential_number=0, end_sequential_number=10, rawdata_count=10
-            )
+            stroke_displacement_target._set_end_sequential_number(start_sequential_number=0, end_sequential_number=10, rawdata_count=10)
 
     def test_exception_2(self, stroke_displacement_target):
         with pytest.raises(SystemExit):
-            stroke_displacement_target._set_end_sequential_number(
-                start_sequential_number=0, end_sequential_number=0, rawdata_count=10
-            )
+            stroke_displacement_target._set_end_sequential_number(start_sequential_number=0, end_sequential_number=0, rawdata_count=10)
 
     def test_exception_3(self, stroke_displacement_target):
         with pytest.raises(SystemExit):
-            stroke_displacement_target._set_end_sequential_number(
-                start_sequential_number=5, end_sequential_number=3, rawdata_count=10
-            )
+            stroke_displacement_target._set_end_sequential_number(start_sequential_number=5, end_sequential_number=3, rawdata_count=10)
 
 
 class TestExcludeNonTargetInterval:
