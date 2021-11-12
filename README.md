@@ -1,5 +1,20 @@
 # データ分析基盤
 
+## ルール
+
+push 前に以下を実行すること。
+ターミナルでプロジェクト直下に移動し、ユニットテスト実行。
+
+```
+pytest
+```
+
+ターミナルでプロジェクト直下に移動し、backend の型チェック実行。
+
+```
+mypy backend
+```
+
 ## プロジェクト構成
 
 ### frontend
@@ -112,6 +127,28 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 ### .env
 
 本システム共通で利用する環境変数。git 管理外のため、各自のローカルで管理すること。また、このファイルに変更を行った場合は他の開発者にアナウンスし、共有すること。
+
+サンプル
+
+```
+API_URL=http://10.25.175.39:8000/api/v1
+SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
+DB_SQL_ECHO=0
+mlflow_server_uri=http://10.25.175.39:5000
+mlflow_experiment_name=some
+MLFLOW_S3_ENDPOINT_URL=http://10.25.175.39:9000
+AWS_ACCESS_KEY_ID=minio-access-key
+AWS_SECRET_ACCESS_KEY=minio-secret-key
+data_dir=/mnt/datadrive/data/
+elastic_url=10.25.175.39:9200
+elastic_user=elastic
+elastic_password=P@ssw0rd
+mapping_rawdata_path=backend/mappings/mapping_rawdata.json
+setting_rawdata_path=backend/mappings/setting_rawdata.json
+setting_shots_path=backend/mappings/setting_shots.json
+setting_shots_meta_path=backend/mappings/setting_shots_meta.json
+setting_resample_path=backend/mappings/setting_resample.json
+```
 
 ### mypy.ini
 
@@ -244,17 +281,18 @@ ls /mnt/datadrive/
 sudo chmod -R 777 /mnt
 ```
 
-### network 作成
-
-```
-docker network create spark-nw --subnet=172.30.0.0/16 --gateway=172.30.0.254
-```
-
 ### コンテナー起動
 
 ```
 cd ~/data-analysis-platform/docker
-./up.sh
+docker-compose up -d
+```
+
+### コンテナー image リビルドして起動
+
+```
+cd ~/data-analysis-platform/docker
+docker-compose up -d --build
 ```
 
 ### 起動中のコンテナー確認
@@ -298,3 +336,7 @@ FastAPI 単体をデバッグする場合に選択。
 ### Full-stack
 
 frontend と FastAPI を連携する場合に選択。
+
+### data_recorder with FastAPI
+
+data_recorder はバックエンドにリクエストするため、FastAPI とともに起動する。
