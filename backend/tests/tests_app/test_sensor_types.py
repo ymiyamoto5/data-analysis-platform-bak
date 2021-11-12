@@ -4,7 +4,7 @@ import pytest
 class TestRead:
     @pytest.fixture
     def init(self):
-        self.endpoint = "/api/v1/machine_types"
+        self.endpoint = "/api/v1/sensor_types"
 
     def test_normal_db_select_all(self, client, init):
         response = client.get(self.endpoint)
