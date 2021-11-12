@@ -207,6 +207,7 @@ export default {
         .get(GATEWAYS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
+            this.gateways = []
             return
           }
           this.gateways = res.data

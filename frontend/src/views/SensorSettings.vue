@@ -238,7 +238,7 @@ export default {
         .get(SENSORS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
-            return
+            this.sensors = []
           }
           this.sensors = res.data
         })

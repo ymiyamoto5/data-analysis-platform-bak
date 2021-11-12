@@ -244,6 +244,7 @@ export default {
         .get(TAGS_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
+            this.tags = []
             return
           }
           // 日付文字列を表示用にフォーマット
