@@ -10,15 +10,7 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "env": {
-                // モジュール走査パス
-                // backend/.envにてPYTHONPATHを設定している
-                // "PYTHONPATH": "${workspaceFolder}"
-            },
             "console": "integratedTerminal",
-            // "debugOptions": [
-            //     "Sudo"
-            // ]
         },
         {
             "name": "Python: Current File with args",
@@ -88,14 +80,6 @@
                 "-d=machine-01-20210327141514"
             ],
             "preLaunchTask": "Sleepdelay"
-        },
-        {
-            "name": "elastic_manager",
-            "type": "python",
-            "module": "backend.elastic_manager.elastic_manager",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
         },
         {
             "name": "FastAPI",
@@ -176,13 +160,6 @@
             "configurations": [
                 "FastAPI",
                 "chrome"
-            ]
-        },
-        {
-            "name": "cut_out_shot with FastAPI",
-            "configurations": [
-                "FastAPI",
-                "cut_out_shot"
             ]
         },
         {
