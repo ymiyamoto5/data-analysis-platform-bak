@@ -136,6 +136,18 @@ def create_container(create_container: model.CreateContainer):
     return {"data": "OK"}
 
 
+@router.get("/container/ports")
+def fetch_binded_ports():
+    containers = docker_client.containers.list()
+    port_list = []
+    for container in containers:
+        for port_binds in container.attrs["HostConfig"]["PortBindings"].values():
+            port_list.append([port_bind["HostPort"] for port_bind in port_binds])
+    port_list = sum(port_list, [])
+
+    return {"binded": port_list}
+
+
 @router.put("/container/run/{image}/{port}")
 def container_state_change(image: str, port: str):
     ports = {"5000/tcp": str(port)}
