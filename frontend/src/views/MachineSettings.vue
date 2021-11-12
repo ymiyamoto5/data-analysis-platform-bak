@@ -186,6 +186,7 @@ export default {
         .get(MACHINES_API_URL)
         .then((res) => {
           if (res.data.length === 0) {
+            this.machines = []
             return
           }
           data = res.data
