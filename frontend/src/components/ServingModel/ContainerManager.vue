@@ -16,9 +16,11 @@
         <v-row>
           <v-col cols="4">
             <v-text-field
+              v-model="container.port"
+              :ref="container.image"
               label="ポート番号"
               type="number"
-              :rules="rules"
+              :rules="container.state == 'stopping' ? rules : norules"
               :disabled="container.state != 'stopping'"
               @input="setPortNumber(index, $event)"
             ></v-text-field>
@@ -26,6 +28,7 @@
         </v-row>
         <v-row class="mb-3">
           <v-btn
+            :disabled="portValidate(container.image)"
             :color="container.color"
             class="mr-3"
             @click="containerStateChange(index)"
@@ -56,14 +59,13 @@ export default {
   props: ['containers'],
   data() {
     return {
-      portNumber: [],
       bindedPorts: [],
       attribute: this.containers.map(this.makeAttribute),
       rules: [
-        (value) => !!value || '必須項目',
         (value) => !this.bindedPorts.includes(value) || 'ポート使用中',
-        (value) => value > 1023 || '使用不可ポート',
+        (value) => !value || value > 1023 || '使用不可ポート',
       ],
+      norules: [true],
     }
   },
   computed: {
@@ -72,6 +74,15 @@ export default {
         const regex = /serving-model_(.*):.*/
         const res = name.match(regex)
         return res.slice(-1)[0]
+      }
+    },
+    portValidate: function() {
+      return function(image) {
+        if (this.$refs[image]) {
+          return !this.$refs[image][0].validate()
+        } else {
+          return false
+        }
       }
     },
   },
@@ -89,6 +100,7 @@ export default {
         image: container.image,
         state: container.state,
         name: container.name,
+        port: container.port,
         color: container.state == 'stopping' ? 'primary' : 'error',
         label: container.state == 'stopping' ? '起動' : '停止',
         delete: container.state == 'stopping' ? true : false,
@@ -101,7 +113,7 @@ export default {
       return container.state == 'stopping' ? 'primary' : 'error'
     },
     setPortNumber(index, value) {
-      this.portNumber[index] = value
+      this.containers[index].port = value
     },
     fetchBindedPorts: async function() {
       const client = createBaseApiClient()
@@ -124,7 +136,7 @@ export default {
           CONTAINER_RUN_API_URL +
           this.containers[index].image +
           '/' +
-          this.portNumber[index]
+          this.containers[index].port
       } else {
         request = CONTAINER_STOP_API_URL + this.containers[index].name
       }
@@ -138,6 +150,7 @@ export default {
           }
           this.containers[index] = res.data.data
           this.attribute = this.containers.map(this.makeAttribute)
+          this.fetchBindedPorts()
         })
         .catch((e) => {
           console.log(e.response)
