@@ -8,7 +8,8 @@ from backend.app.api.endpoints import features
 from backend.app.schemas import model
 from backend.app.services.bento_service import ModelClassifier
 from backend.elastic_manager.elastic_manager import ElasticManager
-from fastapi import APIRouter
+from docker.errors import APIError  # type: ignore
+from fastapi import APIRouter, HTTPException, exceptions
 from mlflow.tracking import MlflowClient  # type: ignore
 from sklearn.covariance import EllipticEnvelope  # type: ignore
 from sklearn.linear_model import LogisticRegression  # type: ignore
@@ -156,7 +157,11 @@ def fetch_binded_ports():
 @router.put("/container/run/{image}/{port}")
 def container_state_change(image: str, port: str):
     ports = {"5000/tcp": str(port)} if port else {"5000/tcp": None}
-    instance = docker_client.containers.run(image, auto_remove=True, detach=True, ports=ports)
+
+    try:
+        instance = docker_client.containers.run(image, auto_remove=True, detach=True, ports=ports)
+    except APIError as ae:
+        raise HTTPException(status_code=ae.status_code, detail=ae.response.json()["message"])
     instance.reload()
     binded_port = instance.attrs["NetworkSettings"]["Ports"]["5000/tcp"][0]["HostPort"]
     container = {"image": image, "state": "running", "name": instance.name, "port": binded_port}
