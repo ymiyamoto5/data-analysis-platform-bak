@@ -104,8 +104,13 @@ def fetch_containers():
     containers = []
     for img in imgs:
         running_instance = [*filter(lambda c: c.image.tags[0] == img, docker_client.containers.list())]
-        state, name = ["running", running_instance[0].name] if running_instance else ["stopping", ""]
-        containers.append({"image": img, "state": state, "name": name})
+        if running_instance:
+            state, name = ["running", running_instance[0].name]
+            port_bindings = running_instance[0].attrs["NetworkSettings"]["Ports"]
+            port = int(port_bindings["5000/tcp"][0]["HostPort"]) if "5000/tcp" in port_bindings else ""
+        else:
+            state, name, port = ["stopping", "", ""]
+        containers.append({"image": img, "state": state, "name": name, "port": port})
 
     return {"data": containers}
 
@@ -141,7 +146,7 @@ def fetch_binded_ports():
     containers = docker_client.containers.list()
     port_list = []
     for container in containers:
-        for port_binds in container.attrs["HostConfig"]["PortBindings"].values():
+        for port_binds in container.attrs["NetworkSettings"]["Ports"].values():
             port_list.append([port_bind["HostPort"] for port_bind in port_binds])
     port_list = sum(port_list, [])
 
@@ -150,20 +155,29 @@ def fetch_binded_ports():
 
 @router.put("/container/run/{image}/{port}")
 def container_state_change(image: str, port: str):
-    ports = {"5000/tcp": str(port)}
+    ports = {"5000/tcp": str(port)} if port else {"5000/tcp": None}
     instance = docker_client.containers.run(image, auto_remove=True, detach=True, ports=ports)
-    container = {"image": image, "state": "running", "name": instance.name}
+    instance.reload()
+    binded_port = instance.attrs["NetworkSettings"]["Ports"]["5000/tcp"][0]["HostPort"]
+    container = {"image": image, "state": "running", "name": instance.name, "port": binded_port}
     return {"data": container}
+
+
+@router.put("/container/run/{image}")
+def container_run_wo_port(image: str):
+    return container_state_change(image=image, port="")
 
 
 @router.put("/container/stop/{name}")
 def container_stop(name: str):
     instance = docker_client.containers.get(name)
+    binded_port = instance.attrs["NetworkSettings"]["Ports"]["5000/tcp"][0]["HostPort"]
     instance.stop()
     container = {
         "image": instance.image.tags[0],
         "state": "stopping",
         "name": "",
+        "port": binded_port,
     }
     return {"data": container}
 
