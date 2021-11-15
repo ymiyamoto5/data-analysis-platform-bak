@@ -77,16 +77,7 @@ def client():
 
 
 def create_testdb(db):
-    # TODO: データ投入実装
-
-    # # NOTE: 外部キー制約無効化
-    # def _fk_pragma_on_connect(dbapi_con, con_record):
-    #     dbapi_con.execute("pragma foreign_keys=OFF")
-
-    # event.listen(engine, "connect", _fk_pragma_on_connect)
-
-    # Base.metadata.drop_all(bind=engine)
-    # Base.metadata.create_all(bind=engine)
+    """テスト用のデータ投入"""
 
     # MachineType
     machine_type_01 = MachineType(machine_type_name="プレス")
@@ -525,14 +516,49 @@ def create_testdb(db):
     )
     db.add(test_data_collect_history_03_2)
 
-    db.commit()
+    # delete確認用で暫定的に作成
+    test_machine_04 = Machine(
+        machine_id="test-machine-04",
+        machine_name="テスト機器04",
+        collect_status=common.COLLECT_STATUS.RECORDED.value,
+        machine_type_id=1,
+        gateways=[],
+    )
 
-    [print(vars(x)) for x in db.query(MachineType).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(Machine).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(Gateway).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(Handler).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(Sensor).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(SensorType).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(DataCollectHistory).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(DataCollectHistoryDetail).all()]  # type: ignore
-    [print(vars(x)) for x in db.query(DataCollectHistoryEvent).all()]  # type: ignore
+    test_gw_05 = Gateway(
+        gateway_id="test-gw-05",
+        sequence_number=1,
+        gateway_result=0,
+        status=common.STATUS.STOP.value,
+        machine_id="test-machine-01",
+        log_level=5,
+        handlers=[],
+    )
+
+    test_handler_06 = Handler(
+        handler_id="test-handler-06",
+        handler_type="USB_1608HS",
+        adc_serial_num="00006666",
+        sampling_frequency=100000,
+        sampling_ch_num=2,
+        filewrite_time=1,
+        gateway_id="test-gw-01",
+        sensors=[],
+    )
+
+    # test_sensor_pulse = Sensor(
+    #     machine_id="test-machine-01",
+    #     sensor_id="pulse",
+    #     sensor_name="pulse",
+    #     sensor_type_id="pulse",
+    #     slope=1.0,
+    #     intercept=0.0,
+    #     handler_id="test-handler-01",
+    # )
+
+    db.add(test_machine_04)
+    db.add(test_gw_05)
+    db.add(test_handler_06)
+    # db.add(test_sensor_pulse)
+
+    db.commit()

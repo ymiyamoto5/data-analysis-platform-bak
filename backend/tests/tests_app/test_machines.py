@@ -96,15 +96,14 @@ class TestUpdate:
         assert response.status_code == 200
 
 
-# class TestDelete:
-#     @pytest.fixture
-#     def init(self):
-#         # NOTE: 末尾スラッシュがないと307 redirectになってしまう。
-#         self.machine_id = "test-machine-01"
-#         self.endpoint = "/api/v1/machines/" + self.machine_id
+class TestDelete:
+    @pytest.fixture
+    def init(self):
+        self.machine_id = "test-machine-04"
+        self.endpoint = "/api/v1/machines/" + self.machine_id
 
-#     def test_normal(self, client, init):
+    def test_normal(self, client, init):
 
-#         response = client.delete(self.endpoint)
+        response = client.delete(self.endpoint)
 
-#         assert response.status_code == 200
+        assert response.status_code == 200

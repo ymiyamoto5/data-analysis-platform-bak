@@ -52,3 +52,16 @@ class TestUpdate:
         response = client.put(self.endpoint, json=data)
 
         assert response.status_code == 200
+
+
+class TestDelete:
+    @pytest.fixture
+    def init(self):
+        self.gateway_id = "test-gw-05"
+        self.endpoint = "/api/v1/gateways/" + self.gateway_id
+
+    def test_normal(self, client, init):
+
+        response = client.delete(self.endpoint)
+
+        assert response.status_code == 200
