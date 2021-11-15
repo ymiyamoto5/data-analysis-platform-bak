@@ -134,6 +134,7 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 API_URL=http://10.25.175.39:8000/api/v1
 SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
 DB_SQL_ECHO=0
+NO_PROXY=localhost
 mlflow_server_uri=http://10.25.175.39:5000
 mlflow_experiment_name=some
 MLFLOW_S3_ENDPOINT_URL=http://10.25.175.39:9000
