@@ -271,7 +271,6 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    os.environ["NO_PROXY"] = "localhost"
     response = requests.get(API_URL + "/machines/machines/has_handler")
     machines: List[Dict[str, Any]] = response.json()
 
