@@ -19,6 +19,7 @@
               label="ポート番号"
               type="number"
               :rules="rules"
+              :disabled="container.state != 'stopping'"
               @input="setPortNumber(index, $event)"
             ></v-text-field>
           </v-col>
