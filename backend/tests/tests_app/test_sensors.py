@@ -61,3 +61,18 @@ class TestUpdate:
         response = client.put(self.endpoint, json=data)
 
         assert response.status_code == 200
+
+
+# class TestDelete:
+#     @pytest.fixture
+#     def init(self):
+#         self.machine_id = "test-machine-01"
+#         self.sensor_id = "pulse"
+#         self.endpoint = "/api/v1/sensors/" + self.sensor_id
+
+#     def test_normal(self, client, init):
+#         data = {"machine_id": self.machine_id}
+
+#         response = client.delete(self.endpoint, json=data)
+
+#         assert response.status_code == 200
