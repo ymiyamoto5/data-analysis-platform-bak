@@ -78,8 +78,9 @@ services:
     user: root
     env_file: ~/data-analysis-platform/.env
     environment:
-      - ELASTICSEARCH_HOST=0.0.0.0:9200
-      - KIBANA_HOST=0.0.0.0:5601
+      - ELASTICSEARCH_HOST=localhost:9200
+      - KIBANA_HOST=localhost:5601
+      - NO_PROXY=localhost
     restart: always
     volumes:
       - /proc:/hostfs/proc:ro
