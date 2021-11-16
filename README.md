@@ -130,6 +130,8 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 
 サンプル
 
+- プロジェクト直下の.env ファイル
+
 ```
 API_URL=http://10.25.175.39:8000/api/v1
 SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
@@ -149,6 +151,16 @@ setting_rawdata_path=backend/mappings/setting_rawdata.json
 setting_shots_path=backend/mappings/setting_shots.json
 setting_shots_meta_path=backend/mappings/setting_shots_meta.json
 setting_resample_path=backend/mappings/setting_resample.json
+```
+
+- frontend/.env.production
+
+```
+NODE_ENV='production'
+VUE_APP_API_BASE_URL='http://<ローカルIP>'
+VUE_APP_KIBANA_URL='http://<ローカルIP>:5601/'
+VUE_APP_JUPYTER_URL='http://<ローカルIP>:8888/'
+VUE_APP_MLFLOW_URL='http://<ローカルIP>:5000'
 ```
 
 ### mypy.ini
