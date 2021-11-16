@@ -9,13 +9,17 @@
 
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 import pandas as pd
 import pytest
 from backend.app.db.session import SessionLocal
+from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.sensor import Sensor
+from backend.common import common
 from backend.cut_out_shot.cut_out_shot import CutOutShot
 from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
 from pandas.core.frame import DataFrame
@@ -29,9 +33,10 @@ def stroke_displacement_target():
     target_date_str = "20201201103011"
 
     sensors = create_stroke_displacement_sensors()
-
+    data_collect_history = create_data_collect_history()
     cutter = StrokeDisplacementCutter(start_stroke_displacement=0, end_stroke_displacement=0, margin=0, sensors=sensors)  # dummy
-    instance = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, sampling_frequency=100_000, sensors=sensors)
+
+    instance = CutOutShot(cutter=cutter, data_collect_history=data_collect_history, machine_id=machine_id, target=target_date_str)
 
     yield instance
 
@@ -401,3 +406,77 @@ def create_pulse_sensors():
             intercept=0.0,
         ),
     ]
+
+
+def create_data_collect_history():
+    started_at = datetime(2020, 12, 1, 10, 30, 10, 111111)
+
+    return DataCollectHistory(
+        machine_id="machine-01",
+        machine_name="プレス機",
+        machine_type_id=1,
+        started_at=started_at + timedelta(hours=-9),
+        ended_at=started_at + timedelta(hours=-9) + timedelta(hours=1),
+        sampling_frequency=100000,
+        sampling_ch_num=5,
+        sample_count=0,
+        data_collect_history_events=[
+            DataCollectHistoryEvent(
+                event_id=0,
+                event_name=common.COLLECT_STATUS.SETUP.value,
+                occurred_at=started_at + timedelta(hours=-9),
+            ),
+            DataCollectHistoryEvent(
+                event_id=1,
+                event_name=common.COLLECT_STATUS.START.value,
+                occurred_at=started_at + timedelta(hours=-9),
+            ),
+            DataCollectHistoryEvent(
+                event_id=2,
+                event_name=common.COLLECT_STATUS.STOP.value,
+                occurred_at=started_at + timedelta(hours=-9) + timedelta(minutes=120),
+            ),
+            DataCollectHistoryEvent(
+                event_id=3,
+                event_name=common.COLLECT_STATUS.RECORDED.value,
+                occurred_at=started_at + timedelta(hours=-9) + timedelta(minutes=121),
+            ),
+        ],
+        data_collect_history_details=[
+            DataCollectHistoryDetail(
+                sensor_id="stroke_displacement",
+                sensor_name="ストローク変位",
+                sensor_type_id="stroke_displacement",
+                slope=1.0,
+                intercept=0.0,
+            ),
+            DataCollectHistoryDetail(
+                sensor_id="load01",
+                sensor_name="load01",
+                sensor_type_id="load",
+                slope=1.0,
+                intercept=0.0,
+            ),
+            DataCollectHistoryDetail(
+                sensor_id="load02",
+                sensor_name="load02",
+                sensor_type_id="load",
+                slope=1.0,
+                intercept=0.0,
+            ),
+            DataCollectHistoryDetail(
+                sensor_id="load03",
+                sensor_name="load03",
+                sensor_type_id="load",
+                slope=1.0,
+                intercept=0.0,
+            ),
+            DataCollectHistoryDetail(
+                sensor_id="load04",
+                sensor_name="load04",
+                sensor_type_id="load",
+                slope=1.0,
+                intercept=0.0,
+            ),
+        ],
+    )
