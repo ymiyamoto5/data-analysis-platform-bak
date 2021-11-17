@@ -38,11 +38,15 @@ class DataRecorder:
 
         try:
             response = requests.get(API_URL + f"/machines/{self.machine_id}/handler")
-            handler: Dict[str, Any] = response.json()
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
+        if response.status_code != 200:
+            logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
+            sys.exit(1)
+
+        handler: Dict[str, Any] = response.json()
         self.sampling_ch_num: int = handler["sampling_ch_num"]
         self.sampling_frequency: int = handler["sampling_frequency"]
         self.sampling_interval: Decimal = Decimal(1.0 / self.sampling_frequency)
@@ -271,7 +275,16 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    response = requests.get(API_URL + "/machines/machines/has_handler")
+    try:
+        response = requests.get(API_URL + "/machines/machines/has_handler")
+    except Exception:
+        logger.exception(traceback.format_exc())
+        sys.exit(1)
+
+    if response.status_code != 200:
+        logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
+        sys.exit(1)
+
     machines: List[Dict[str, Any]] = response.json()
 
     # スケジュール実行
