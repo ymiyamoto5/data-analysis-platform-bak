@@ -15,18 +15,18 @@ class TestRead:
 
         assert actual_code == 200
 
+    def test_db_select_all_failed(self, client, mocker, init):
+        mocker.patch.object(CRUDSensor, "select_all", side_effect=Exception("some exception"))
+        response = client.get(self.endpoint)
+
+        assert response.status_code == 500
+
     def test_normal_db_select_by_id(self, client, init):
         endpoint = f"{self.endpoint}/{self.sensor_id}?machine_id={self.machine_id}"
         response = client.get(endpoint)
         actual_code = response.status_code
 
         assert actual_code == 200
-
-    def test_db_select_all_failed(self, client, mocker, init):
-        mocker.patch.object(CRUDSensor, "select_all", side_effect=Exception("some exception"))
-        response = client.get(self.endpoint)
-
-        assert response.status_code == 500
 
     def test_db_select_by_id_failed(self, client, mocker, init):
         endpoint = f"{self.endpoint}/{self.sensor_id}?machine_id={self.machine_id}"
@@ -112,30 +112,33 @@ class TestUpdate:
         assert response.status_code == 500
 
 
-# class TestDelete:
-#     @pytest.fixture
-#     def init(self):
-#         self.endpoint = "/api/v1/sensors"
-#         self.machine_id = "test-machine-01"
-#         self.sensor_id = "pulse"
-#         self.data = {"machine_id": self.machine_id}
+class TestDelete:
+    @pytest.fixture
+    def init(self):
+        self.endpoint = "/api/v1/sensors"
+        self.sensor_id = "load01"
+        self.data = {
+            "machine_id": "test-machine-01",
+            "slope": 1.0,
+            "intercept": 0.0,
+        }
 
-#     def test_normal(self, client, init):
-#         endpoint = f"{self.endpoint}/pulse"
-#         response = client.delete(endpoint, json=self.data)
+    def test_normal(self, client, init):
+        endpoint = f"{self.endpoint}/{self.sensor_id}"
+        response = client.delete(endpoint, json=self.data)
 
-#         assert response.status_code == 200
+        assert response.status_code == 200
 
-#     def test_not_exist_sensor_id(self, client, init):
-#         """存在しないsensor_id"""
-#         endpoint = f"{self.endpoint}/pulse"
-#         response = client.delete(endpoint, json=self.data)
+    def test_not_exist_sensor_id(self, client, init):
+        """存在しないsensor_id"""
+        endpoint = f"{self.endpoint}/not-exist-sensor-id"
+        response = client.delete(endpoint, json=self.data)
 
-#         assert response.status_code == 404
+        assert response.status_code == 404
 
-#     def test_foreign_key_error(self, client, init):
-#         """子が存在するsensor_id"""
-#         endpoint = f"{self.endpoint}/load01"
-#         response = client.delete(endpoint, json=self.data)
+    def test_delete_failed(self, client, mocker, init):
+        endpoint = f"{self.endpoint}/{self.sensor_id}"
+        mocker.patch.object(CRUDSensor, "delete", side_effect=Exception("some exception"))
+        response = client.delete(endpoint, json=self.data)
 
-#         assert response.status_code == 500
+        assert response.status_code == 500
