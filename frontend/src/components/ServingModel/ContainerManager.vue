@@ -63,9 +63,21 @@ export default {
       attribute: this.containers.map(this.makeAttribute),
       rules: [
         (value) => !this.bindedPorts.includes(value) || 'ポート使用中',
-        (value) => !value || value > 1023 || '使用不可ポート',
+        (value) =>
+          !Object.values(this.servicePorts).includes(Number(value)) ||
+          'ポート使用中',
+        (value) =>
+          !value || (value > 1023 && value < 65536) || '使用不可ポート',
       ],
       norules: [true],
+      servicePorts: {
+        mlflow: 5000,
+        kibana: 5601,
+        fastapiDev: 8000,
+        vueDev: 8888,
+        minio: [9000, 9001],
+        elasticsearch: 9200,
+      },
     }
   },
   computed: {
@@ -113,6 +125,7 @@ export default {
       return container.state == 'stopping' ? 'primary' : 'error'
     },
     setPortNumber(index, value) {
+      console.log(typeof value)
       this.containers[index].port = value
     },
     fetchBindedPorts: async function() {
