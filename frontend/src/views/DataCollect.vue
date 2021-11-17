@@ -125,6 +125,13 @@
           <v-btn disabled v-if="item.collect_status === ''" color="disable">
             状態不明
           </v-btn>
+          <v-btn
+            color="black"
+            class="white--text"
+            @click="beforeReset(item.machine_id)"
+          >
+            初期化
+          </v-btn>
         </template>
       </v-data-table>
     </v-card>
@@ -151,6 +158,7 @@ const STOP_API_URL = CONTROLLER_API_URL + 'stop/'
 const CHECK_API_URL = CONTROLLER_API_URL + 'check/'
 const PAUSE_API_URL = CONTROLLER_API_URL + 'pause/'
 const RESUME_API_URL = CONTROLLER_API_URL + 'resume/'
+const RESET_API_URL = CONTROLLER_API_URL + 'reset/'
 
 export default {
   name: 'data-collect',
@@ -296,6 +304,23 @@ export default {
           this.errorDialog(e.response.data.detail)
         })
     },
+    beforeReset(machine_id) {
+      this.confirmDialog('初期化してもよいですか？', this.reset, machine_id)
+    },
+    reset: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(RESET_API_URL + machine_id)
+        .then(() => {
+          this.fetchTableData()
+          // データファイルがなくなるまで待ち
+          // this.check(machine_id)
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorDialog(e.response.data.detail)
+        })
+    },
   },
 }
 </script>
@@ -306,6 +331,7 @@ export default {
 }
 
 .v-btn {
+  width: 120px;
   margin-right: 10px;
 }
 
