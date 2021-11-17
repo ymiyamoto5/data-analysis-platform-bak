@@ -516,7 +516,7 @@ def create_testdb(db):
     )
     db.add(test_data_collect_history_03_2)
 
-    # 子が存在しないデータの作成
+    # delete確認用で暫定的に作成
     test_machine_04 = Machine(
         machine_id="test-machine-04",
         machine_name="テスト機器04",
@@ -535,7 +535,30 @@ def create_testdb(db):
         handlers=[],
     )
 
+    test_handler_06 = Handler(
+        handler_id="test-handler-06",
+        handler_type="USB_1608HS",
+        adc_serial_num="00006666",
+        sampling_frequency=100000,
+        sampling_ch_num=2,
+        filewrite_time=1,
+        gateway_id="test-gw-01",
+        sensors=[],
+    )
+
+    # test_sensor_pulse = Sensor(
+    #     machine_id="test-machine-01",
+    #     sensor_id="pulse",
+    #     sensor_name="pulse",
+    #     sensor_type_id="pulse",
+    #     slope=1.0,
+    #     intercept=0.0,
+    #     handler_id="test-handler-01",
+    # )
+
     db.add(test_machine_04)
     db.add(test_gw_05)
+    db.add(test_handler_06)
+    # db.add(test_sensor_pulse)
 
     db.commit()
