@@ -38,18 +38,19 @@ def validation(machine: Machine, collect_status: str, status) -> Tuple[bool, Opt
         message = ErrorMessage.generate_message(ErrorTypes.NO_DATA)
         return False, message, 404
 
-    if machine.collect_status != collect_status:
-        message = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, machine.collect_status)
-        return False, message, 400
+    if collect_status != "pass":
+        if machine.collect_status != collect_status:
+            message = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, machine.collect_status)
+            return False, message, 400
 
-    for gateway in machine.gateways:
-        if gateway.gateway_result == -1:
-            message = ErrorMessage.generate_message(ErrorTypes.GW_RESULT_ERROR, gateway.gateway_result)
-            return False, message, 500
+        for gateway in machine.gateways:
+            if gateway.gateway_result == -1:
+                message = ErrorMessage.generate_message(ErrorTypes.GW_RESULT_ERROR, gateway.gateway_result)
+                return False, message, 500
 
-        if gateway.status != status:
-            message = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, gateway.status)
-            return False, message, 500
+            if gateway.status != status:
+                message = ErrorMessage.generate_message(ErrorTypes.GW_STATUS_ERROR, gateway.status)
+                return False, message, 500
 
     return True, None, 200
 
@@ -207,3 +208,28 @@ def check(
             raise HTTPException(status_code=500, detail="DB update error.")
 
         return
+
+
+@router.post("/reset/{machine_id}")
+def reset(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """指定機器のデータ収集初期化"""
+
+    utc_now: datetime = datetime.utcnow()
+
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+
+    # どのステータスにおいても実行可能
+    is_valid, message, error_code = validation(machine, "pass", "pass")
+    if not is_valid:
+        raise HTTPException(status_code=error_code, detail=message)
+
+    try:
+        CRUDController.reset(db, machine=machine, utc_now=utc_now)
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="DB update error.")
+
+    return
