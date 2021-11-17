@@ -141,11 +141,17 @@ data_collect_history_01 = DataCollectHistory(
         ),
         DataCollectHistoryEvent(
             event_id=2,
+            event_name=common.COLLECT_STATUS.PAUSE.value,
+            occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=60),
+            ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=61),
+        ),
+        DataCollectHistoryEvent(
+            event_id=3,
             event_name=common.COLLECT_STATUS.STOP.value,
             occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=120),
         ),
         DataCollectHistoryEvent(
-            event_id=3,
+            event_id=4,
             event_name=common.COLLECT_STATUS.RECORDED.value,
             occurred_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(minutes=120),
         ),
