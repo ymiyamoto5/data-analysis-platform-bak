@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import Dict, List, Union
 
 import docker  # type: ignore
 import mlflow  # type: ignore
@@ -25,7 +25,7 @@ mlflow.set_tracking_uri(mlflow_server_uri)
 mlflow.sklearn.autolog()
 
 # TODO: 対応アルゴリズムの取得自動化
-algorithms = [
+algorithms: List[Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]] = [
     {
         "algorithm_name": "EllipticEnvelope",
         "params": [
@@ -156,7 +156,8 @@ def fetch_binded_ports():
 
 @router.put("/container/run/{image}/{port}")
 def container_state_change(image: str, port: str):
-    ports = {"5000/tcp": str(port)} if port else {"5000/tcp": None}
+
+    ports: Dict[str, Union[str, None]] = {"5000/tcp": str(port)} if port else {"5000/tcp": None}
 
     try:
         instance = docker_client.containers.run(image, auto_remove=True, detach=True, ports=ports)
