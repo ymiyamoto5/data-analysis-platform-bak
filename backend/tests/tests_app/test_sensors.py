@@ -119,8 +119,6 @@ class TestDelete:
         self.sensor_id = "load01"
         self.data = {
             "machine_id": "test-machine-01",
-            "slope": 1.0,
-            "intercept": 0.0,
         }
 
     def test_normal(self, client, init):
