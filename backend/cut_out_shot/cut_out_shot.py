@@ -377,6 +377,9 @@ class CutOutShot:
             # timestampをdatetimeに変換する
             cut_out_df["timestamp"] = cut_out_df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
 
+            # indexフィールドにmachine_id追加
+            cut_out_df["machine_id"] = self.__machine_id
+
             # Elasticsearchに格納するため、dictに戻す
             cut_out_targets = cut_out_df.to_dict(orient="records")
 
