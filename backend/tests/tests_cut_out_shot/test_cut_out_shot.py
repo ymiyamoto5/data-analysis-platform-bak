@@ -68,8 +68,8 @@ class TestExcludePauseInterval:
             DataCollectHistoryEvent(
                 event_id=2,
                 event_name=common.COLLECT_STATUS.PAUSE.value,
-                occurred_at=start_time + timedelta(hours=-9),
-                ended_at=end_time + timedelta(hours=-9),
+                occurred_at=start_time,
+                ended_at=end_time,
             ),
         ]
 
@@ -92,14 +92,14 @@ class TestExcludePauseInterval:
             DataCollectHistoryEvent(
                 event_id=2,
                 event_name=common.COLLECT_STATUS.PAUSE.value,
-                occurred_at=start_time_1 + timedelta(hours=-9),
-                ended_at=end_time_1 + timedelta(hours=-9),
+                occurred_at=start_time_1,
+                ended_at=end_time_1,
             ),
             DataCollectHistoryEvent(
                 event_id=3,
                 event_name=common.COLLECT_STATUS.PAUSE.value,
-                occurred_at=start_time_2 + timedelta(hours=-9),
-                ended_at=end_time_2 + timedelta(hours=-9),
+                occurred_at=start_time_2,
+                ended_at=end_time_2,
             ),
         ]
 

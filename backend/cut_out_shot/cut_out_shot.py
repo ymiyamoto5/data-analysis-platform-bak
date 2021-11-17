@@ -115,8 +115,8 @@ class CutOutShot:
         """中断区間のデータを除外"""
 
         for pause_event in pause_events:
-            start_time: Decimal = Decimal(pause_event.occurred_at.replace(tzinfo=timezone("UTC")).timestamp())
-            end_time: Decimal = Decimal(pause_event.ended_at.replace(tzinfo=timezone("UTC")).timestamp())
+            start_time: Decimal = Decimal(pause_event.occurred_at.timestamp())
+            end_time: Decimal = Decimal(pause_event.ended_at.timestamp())
             df = df[(df["timestamp"] < start_time) | (end_time < df["timestamp"])]
 
         return df
@@ -303,6 +303,7 @@ class CutOutShot:
 
         start_event: DataCollectHistoryEvent = [e for e in events if e.event_name == common.COLLECT_STATUS.START.value][0]
 
+        # NOTE: DBから取得した時刻はUTCなので、timezone指定なくtimestampに変換可能
         collect_start_time: Decimal = Decimal(start_event.occurred_at.timestamp())
 
         pause_events: List[DataCollectHistoryEvent] = [e for e in events if e.event_name == common.COLLECT_STATUS.PAUSE.value]
