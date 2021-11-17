@@ -15,7 +15,7 @@ class TestRead:
 
         assert actual_code == 200
 
-    def test_db_select_all_failer(self, client, mocker, init):
+    def test_db_select_all_failed(self, client, mocker, init):
         mocker.patch.object(CRUDDataCollectHistory, "select_all", side_effect=Exception("some exception"))
         response = client.get(self.endpoint)
 
@@ -28,7 +28,7 @@ class TestRead:
 
         assert actual_code == 200
 
-    def test_db_select_by_machine_id_failer(self, client, mocker, init):
+    def test_db_select_by_machine_id_failed(self, client, mocker, init):
         endpoint = f"{self.endpoint}/{self.machine_id}"
         mocker.patch.object(CRUDDataCollectHistory, "select_by_machine_id", side_effect=Exception("some exception"))
         response = client.get(endpoint)
@@ -42,7 +42,7 @@ class TestRead:
 
         assert actual_code == 200
 
-    def test_db_select_latest_by_machine_id_failer(self, client, mocker, init):
+    def test_db_select_latest_by_machine_id_failed(self, client, mocker, init):
         endpoint = f"{self.endpoint}/{self.machine_id}/latest"
         mocker.patch.object(CRUDDataCollectHistory, "select_latest_by_machine_id", side_effect=Exception("some exception"))
         response = client.get(endpoint)
