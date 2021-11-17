@@ -55,20 +55,21 @@ class TestCreate:
 
         assert response.status_code == 200
 
-    # TODO: 例外処理が未実装
-    # def test_not_unique_sensor_id(self, client, init):
-    #     """重複しているsensor_id"""
-    #     data = {
-    #         "sensor_name": "test-create",
-    #         "sensor_type_id": "load",
-    #         "handler_id": "test-handler-01",
-    #         "slope": 1.0,
-    #         "intercept": 0.0,
-    #     }
+    def test_not_unique_sensor_id(self, client, init):
+        """stroke_displacementを重複して登録
+        NOTE: load等のセンサーはサフィックスをつけるため、基本的に重複しない。
+        """
+        data = {
+            "sensor_name": "test-create",
+            "sensor_type_id": "stroke_displacement",
+            "handler_id": "test-handler-01",
+            "slope": 1.0,
+            "intercept": 0.0,
+        }
 
-    #     response = client.post(self.endpoint, json=data)
+        response = client.post(self.endpoint, json=data)
 
-    #     assert response.status_code == 400
+        assert response.status_code == 500
 
     def test_insert_failed(self, client, mocker, init):
         mocker.patch.object(CRUDSensor, "insert", side_effect=Exception("some exception"))

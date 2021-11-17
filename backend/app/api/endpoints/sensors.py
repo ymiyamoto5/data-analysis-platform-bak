@@ -45,7 +45,7 @@ def fetch_sensor(
 def create(sensor_in: sensor.SensorCreate, db: Session = Depends(get_db)):
     """sensorの作成"""
 
-    # TODO: 既に存在するかチェック
+    # NOTE: すでにセンサーIDが存在するかチェックしたいが、サフィックスをつけるため判断しづらい。ここではチェックせず、IDが被った場合は例外を発生させる。
 
     try:
         sensor = CRUDSensor.insert(db, obj_in=sensor_in)
