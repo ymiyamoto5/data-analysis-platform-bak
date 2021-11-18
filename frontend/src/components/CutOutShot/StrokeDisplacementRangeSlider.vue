@@ -52,8 +52,8 @@ export default {
   data() {
     return {
       min: 0,
-      max: 25,
-      range: [25, 0],
+      max: 100,
+      range: [100, 0],
     }
   },
 }
