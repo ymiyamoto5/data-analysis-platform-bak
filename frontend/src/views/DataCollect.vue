@@ -126,7 +126,7 @@
             状態不明
           </v-btn>
           <v-btn
-            color="black"
+            color="grey"
             class="white--text"
             @click="beforeReset(item.machine_id)"
           >
@@ -313,8 +313,8 @@ export default {
         .post(RESET_API_URL + machine_id)
         .then(() => {
           this.fetchTableData()
-          // データファイルがなくなるまで待ち
-          // this.check(machine_id)
+          this.snackbarMessage = machine_id + 'の初期化が完了しました'
+          this.snackbar = true
         })
         .catch((e) => {
           console.log(e.response.data.detail)
