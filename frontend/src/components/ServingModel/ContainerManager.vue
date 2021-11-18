@@ -1,51 +1,63 @@
 <template>
-  <v-expansion-panels>
-    <v-expansion-panel
-      v-for="(container, index) in attribute"
-      :key="container.image"
-      class="mb-3"
-    >
-      <v-expansion-panel-header>
-        <v-row no-gutters>
-          <v-col cols="8">
-            {{ containerName(container.image) }}
-          </v-col>
-        </v-row>
-      </v-expansion-panel-header>
-      <v-expansion-panel-content>
-        <v-row>
-          <v-col cols="4">
-            <v-text-field
-              v-model="container.port"
-              :ref="container.image"
-              label="ポート番号"
-              type="number"
-              :rules="container.state == 'stopping' ? rules : norules"
-              :disabled="container.state != 'stopping'"
-              @input="setPortNumber(index, $event)"
-            ></v-text-field>
-          </v-col>
-        </v-row>
-        <v-row class="mb-3">
-          <v-btn
-            :disabled="portValidate(container.image)"
-            :color="container.color"
-            class="mr-3"
-            @click="containerStateChange(index)"
-          >
-            {{ container.label }}
-          </v-btn>
-          <v-btn
-            v-if="container.delete"
-            color="error"
-            @click="deleteContainer(index)"
-          >
-            削除
-          </v-btn>
-        </v-row>
-      </v-expansion-panel-content>
-    </v-expansion-panel>
-  </v-expansion-panels>
+  <v-container>
+    <v-expansion-panels>
+      <v-expansion-panel
+        v-for="(container, index) in attribute"
+        :key="container.image"
+        class="mb-3"
+      >
+        <v-expansion-panel-header>
+          <v-row no-gutters>
+            <v-col cols="8">
+              {{ containerName(container.image) }}
+            </v-col>
+          </v-row>
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <v-row>
+            <v-col cols="4">
+              <v-text-field
+                v-model="container.port"
+                :ref="container.image"
+                label="ポート番号"
+                type="number"
+                :rules="container.state == 'stopping' ? rules : norules"
+                :disabled="container.state != 'stopping'"
+                @input="setPortNumber(index, $event)"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+          <v-row class="mb-3">
+            <v-btn
+              :disabled="portValidate(container.image)"
+              :color="container.color"
+              class="mr-3"
+              @click="containerStateChange(index)"
+            >
+              {{ container.label }}
+            </v-btn>
+            <v-btn
+              v-if="container.delete"
+              color="error"
+              @click="deleteContainer(index)"
+            >
+              削除
+            </v-btn>
+          </v-row>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+    </v-expansion-panels>
+    <v-snackbar v-model="snackbar" timeout="10000" top color="error">
+      <h3>{{ snackbarHeader }}</h3>
+      {{ snackbarMessage }}
+
+      <template v-slot:action="{ attrs }">
+        <v-btn color="white" text v-bind="attrs" @click="snackbar = false">
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </v-container>
 </template>
 
 <script>
@@ -75,9 +87,13 @@ export default {
         kibana: 5601,
         fastapiDev: 8000,
         vueDev: 8888,
-        minio: [9000, 9001],
+        minio0: 9000,
+        minio1: 9001,
         elasticsearch: 9200,
       },
+      snackbar: false,
+      snackbarHeader: '',
+      snackbarMessage: '',
     }
   },
   computed: {
@@ -125,7 +141,6 @@ export default {
       return container.state == 'stopping' ? 'primary' : 'error'
     },
     setPortNumber(index, value) {
-      console.log(typeof value)
       this.containers[index].port = value
     },
     fetchBindedPorts: async function() {
@@ -166,6 +181,9 @@ export default {
           this.fetchBindedPorts()
         })
         .catch((e) => {
+          this.snackbarHeader = e.response.statusText
+          this.snackbarMessage = e.response.data.detail
+          this.snackbar = true
           console.log(e.response)
         })
     },
