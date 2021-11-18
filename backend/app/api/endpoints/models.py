@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 from typing import Dict, List, Union
 
 import docker  # type: ignore
@@ -42,6 +43,16 @@ models = {
     "EllipticEnvelope": {"function": EllipticEnvelope, "supervised": False},
     "LogisticRegression": {"function": LogisticRegression, "supervised": True},
 }
+
+
+class ReservedPort(Enum):
+    mlflow = 5000
+    kibana = 5601
+    fastapiDev = 8000
+    vueDev = 8888
+    minio0 = 9000
+    minio1 = 9001
+    elasticsearch = 9200
 
 
 @router.get("/algorithm", response_model=List[model.Algorithm])
@@ -156,6 +167,10 @@ def fetch_binded_ports():
 
 @router.put("/container/run/{image}/{port}")
 def container_state_change(image: str, port: str):
+    if int(port) in [r.value for r in ReservedPort]:
+        raise HTTPException(status_code=500, detail="予約済ポートが指定されています")
+    if int(port) in fetch_binded_ports()["binded"]:
+        raise HTTPException(status_code=500, detail="使用中ポートが指定されています")
 
     ports: Dict[str, Union[str, None]] = {"5000/tcp": str(port)} if port else {"5000/tcp": None}
 
