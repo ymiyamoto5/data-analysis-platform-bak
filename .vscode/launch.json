@@ -20,7 +20,7 @@
             "env": {},
             "console": "integratedTerminal",
             "args": [
-                "-m=machine-01",
+                "-m=machine-h",
                 "--debug"
             ]
         },
@@ -77,7 +77,7 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
-                "-d=machine-01-20210327141514"
+                "-d=machine-h-20210327141514"
             ],
             "preLaunchTask": "Sleepdelay"
         },
