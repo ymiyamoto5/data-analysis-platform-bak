@@ -1,5 +1,6 @@
 import os
-from typing import List
+from enum import Enum
+from typing import Dict, List, Union
 
 import docker  # type: ignore
 import mlflow  # type: ignore
@@ -8,7 +9,8 @@ from backend.app.api.endpoints import features
 from backend.app.schemas import model
 from backend.app.services.bento_service import ModelClassifier
 from backend.elastic_manager.elastic_manager import ElasticManager
-from fastapi import APIRouter
+from docker.errors import APIError  # type: ignore
+from fastapi import APIRouter, HTTPException, exceptions
 from mlflow.tracking import MlflowClient  # type: ignore
 from sklearn.covariance import EllipticEnvelope  # type: ignore
 from sklearn.linear_model import LogisticRegression  # type: ignore
@@ -24,7 +26,7 @@ mlflow.set_tracking_uri(mlflow_server_uri)
 mlflow.sklearn.autolog()
 
 # TODO: 対応アルゴリズムの取得自動化
-algorithms = [
+algorithms: List[Dict[str, Union[str, List[Dict[str, Union[str, float]]]]]] = [
     {
         "algorithm_name": "EllipticEnvelope",
         "params": [
@@ -41,6 +43,16 @@ models = {
     "EllipticEnvelope": {"function": EllipticEnvelope, "supervised": False},
     "LogisticRegression": {"function": LogisticRegression, "supervised": True},
 }
+
+
+class ReservedPort(Enum):
+    mlflow = 5000
+    kibana = 5601
+    fastapiDev = 8000
+    vueDev = 8888
+    minio0 = 9000
+    minio1 = 9001
+    elasticsearch = 9200
 
 
 @router.get("/algorithm", response_model=List[model.Algorithm])
@@ -104,8 +116,13 @@ def fetch_containers():
     containers = []
     for img in imgs:
         running_instance = [*filter(lambda c: c.image.tags[0] == img, docker_client.containers.list())]
-        state, name = ["running", running_instance[0].name] if running_instance else ["stopping", ""]
-        containers.append({"image": img, "state": state, "name": name})
+        if running_instance:
+            state, name = ["running", running_instance[0].name]
+            port_bindings = running_instance[0].attrs["NetworkSettings"]["Ports"]
+            port = int(port_bindings["5000/tcp"][0]["HostPort"]) if "5000/tcp" in port_bindings else ""
+        else:
+            state, name, port = ["stopping", "", ""]
+        containers.append({"image": img, "state": state, "name": name, "port": port})
 
     return {"data": containers}
 
@@ -136,22 +153,52 @@ def create_container(create_container: model.CreateContainer):
     return {"data": "OK"}
 
 
+@router.get("/container/ports")
+def fetch_binded_ports():
+    containers = docker_client.containers.list()
+    port_list = []
+    for container in containers:
+        for port_binds in container.attrs["NetworkSettings"]["Ports"].values():
+            port_list.append([port_bind["HostPort"] for port_bind in port_binds])
+    port_list = sum(port_list, [])
+
+    return {"binded": port_list}
+
+
 @router.put("/container/run/{image}/{port}")
 def container_state_change(image: str, port: str):
-    ports = {"5000/tcp": str(port)}
-    instance = docker_client.containers.run(image, auto_remove=True, detach=True, ports=ports)
-    container = {"image": image, "state": "running", "name": instance.name}
+    if int(port) in [r.value for r in ReservedPort]:
+        raise HTTPException(status_code=500, detail="予約済ポートが指定されています")
+    if int(port) in fetch_binded_ports()["binded"]:
+        raise HTTPException(status_code=500, detail="使用中ポートが指定されています")
+
+    ports: Dict[str, Union[str, None]] = {"5000/tcp": str(port)} if port else {"5000/tcp": None}
+
+    try:
+        instance = docker_client.containers.run(image, auto_remove=True, detach=True, ports=ports)
+    except APIError as ae:
+        raise HTTPException(status_code=ae.status_code, detail=ae.response.json()["message"])
+    instance.reload()
+    binded_port = instance.attrs["NetworkSettings"]["Ports"]["5000/tcp"][0]["HostPort"]
+    container = {"image": image, "state": "running", "name": instance.name, "port": binded_port}
     return {"data": container}
+
+
+@router.put("/container/run/{image}")
+def container_run_wo_port(image: str):
+    return container_state_change(image=image, port="")
 
 
 @router.put("/container/stop/{name}")
 def container_stop(name: str):
     instance = docker_client.containers.get(name)
+    binded_port = instance.attrs["NetworkSettings"]["Ports"]["5000/tcp"][0]["HostPort"]
     instance.stop()
     container = {
         "image": instance.image.tags[0],
         "state": "stopping",
         "name": "",
+        "port": binded_port,
     }
     return {"data": container}
 
