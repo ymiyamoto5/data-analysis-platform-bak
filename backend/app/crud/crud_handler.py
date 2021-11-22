@@ -4,6 +4,7 @@ from backend.app.crud.crud_gateway import CRUDGateway
 from backend.app.models.handler import Handler
 from backend.app.models.sensor import Sensor
 from backend.app.schemas import handler
+from backend.common import common
 from sqlalchemy.orm import Session, joinedload
 
 
@@ -65,7 +66,7 @@ class CRUDHandler:
             setattr(db_obj, key, value)
 
         # 更新したことをGatewayに知らせるため、sequence_numberをインクリメントし、gateway_resultを0に設定
-        db_obj.gateway.sequence_number += 1
+        db_obj.gateway.sequence_number = common.increment_sequence_number(db_obj.gateway.sequence_number)
         db_obj.gateway.gateway_result = 0
 
         db.commit()

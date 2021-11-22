@@ -22,7 +22,7 @@ class CRUDController:
         machine.collect_status = common.COLLECT_STATUS.SETUP.value
 
         for gateway in machine.gateways:
-            gateway.sequence_number += 1
+            gateway.sequence_number = common.increment_sequence_number(gateway.sequence_number)
             gateway.status = common.STATUS.RUNNING.value
 
         # 収集履歴更新
@@ -127,7 +127,7 @@ class CRUDController:
         machine.collect_status = common.COLLECT_STATUS.STOP.value
 
         for gateway in machine.gateways:
-            gateway.sequence_number += 1
+            gateway.sequence_number = common.increment_sequence_number(gateway.sequence_number)
             gateway.status = common.STATUS.STOP.value
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
@@ -169,7 +169,7 @@ class CRUDController:
         """データ収集開始前の状態に更新"""
 
         for gateway in machine.gateways:
-            gateway.sequence_number += 1
+            gateway.sequence_number = common.increment_sequence_number(gateway.sequence_number)
             gateway.status = common.STATUS.STOP.value
 
         # 段取開始前にリセットした場合はゲートウェイのみ更新
