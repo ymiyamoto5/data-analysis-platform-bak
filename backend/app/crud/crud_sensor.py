@@ -38,7 +38,7 @@ class CRUDSensor:
 
     @staticmethod
     def insert(db: Session, obj_in: sensor.SensorCreate) -> Sensor:
-        machine_id: str = CRUDSensor.fetch_machine_by_handler_id(db, obj_in.handler_id)
+        machine: Machine = CRUDSensor.fetch_machine_by_handler_id(db, obj_in.handler_id)
 
         # NOTE: ストローク変位センサー、パルスセンサーはサフィックス番号を付けない
         if obj_in.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES:
@@ -48,7 +48,7 @@ class CRUDSensor:
             # machineに紐づく特定sensor_typeのsensor（一番番号が大きいもの）を取得
             tail_sensor = (
                 db.query(Machine, Handler, Gateway, Sensor)
-                .filter(Machine.machine_id == machine_id)
+                .filter(Machine.machine_id == machine.machine_id)
                 .filter(Machine.machine_id == Gateway.machine_id)
                 .filter(Gateway.gateway_id == Handler.gateway_id)
                 .filter(Handler.handler_id == Sensor.handler_id)
@@ -69,7 +69,7 @@ class CRUDSensor:
                 sensor_id = obj_in.sensor_type_id + sensor_id_suffix
 
         new_sensor = Sensor(
-            machine_id=machine_id,
+            machine_id=machine.machine_id,
             sensor_id=sensor_id,
             sensor_name=obj_in.sensor_name,
             sensor_type_id=obj_in.sensor_type_id,
@@ -114,19 +114,12 @@ class CRUDSensor:
         return db_obj
 
     @staticmethod
-    def fetch_machine_by_handler_id(db: Session, handler_id: str) -> str:
-        """handler_idを元にmachine_idを返す"""
-        joined = (
-            db.query(Handler, Gateway, Machine)
-            .filter(Handler.handler_id == handler_id)
-            .filter(Gateway.gateway_id == Handler.gateway_id)
-            .filter(Machine.machine_id == Gateway.machine_id)
-            .one()
-        )
+    def fetch_machine_by_handler_id(db: Session, handler_id: str) -> Machine:
+        """handler_idを元にmachineを返す"""
 
-        machine_id: str = joined.Machine.machine_id
+        machine: Machine = db.query(Machine).join(Machine.gateways).join(Gateway.handlers).filter(Handler.handler_id == handler_id).one()
 
-        return machine_id
+        return machine
 
     @staticmethod
     def fetch_sensors_by_machine_id(db: Session, machine_id: str) -> List[Sensor]:
