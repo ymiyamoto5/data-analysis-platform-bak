@@ -25,6 +25,7 @@ NUM_OF_PROCESS: Final[int] = multiprocessing.cpu_count()
 NUM_OF_LOAD_SENSOR: Final[int] = 4
 ID_PATTERN: Final[str] = "^[0-9a-zA-Z-]+$"
 CUT_OUT_SHOT_SENSOR_TYPES: Final[Tuple[str, ...]] = ("stroke_displacement", "pulse")
+INT_MAX: Final[int] = 2_147_483_647
 
 
 class STATUS(Enum):
@@ -72,3 +73,9 @@ class DisplayTime:
 
     def to_string(self) -> str:
         return datetime.strftime(self.__value, "%Y%m%d%H%M%S")
+
+
+def increment_sequence_number(sequence_number: int) -> int:
+    """sequence_numberがC言語のint最大値を超えた場合は1に初期化、それ以外はインクリメントする。"""
+
+    return 1 if sequence_number >= INT_MAX else sequence_number + 1
