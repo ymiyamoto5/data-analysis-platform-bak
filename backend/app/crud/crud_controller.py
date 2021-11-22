@@ -11,7 +11,6 @@ from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.common import common
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 
@@ -76,7 +75,7 @@ class CRUDController:
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,
@@ -95,7 +94,7 @@ class CRUDController:
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,
@@ -133,7 +132,7 @@ class CRUDController:
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,
@@ -150,18 +149,11 @@ class CRUDController:
 
         machine.collect_status = common.COLLECT_STATUS.RECORDED.value
 
-        data_collect_history = (
-            db.query(DataCollectHistory)
-            .filter(DataCollectHistory.machine_id == machine.machine_id)
-            .order_by(desc(DataCollectHistory.started_at))
-            .limit(1)
-            .one()
-        )
-        data_collect_history.ended_at = utc_now
-
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        latest_data_collect_history.ended_at = utc_now
+
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,
@@ -188,18 +180,11 @@ class CRUDController:
         # 段取開始後にリセットした場合は履歴とイベントも更新
         machine.collect_status = common.COLLECT_STATUS.RECORDED.value
 
-        data_collect_history = (
-            db.query(DataCollectHistory)
-            .filter(DataCollectHistory.machine_id == machine.machine_id)
-            .order_by(desc(DataCollectHistory.started_at))
-            .limit(1)
-            .one()
-        )
-        data_collect_history.ended_at = utc_now
-
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        latest_data_collect_history.ended_at = utc_now
+
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,

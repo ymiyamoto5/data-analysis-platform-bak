@@ -14,11 +14,3 @@ class CRUDDataCollectHistoryEvent:
         )
 
         return event
-
-    @staticmethod
-    def count_by_history_id(db: Session, data_collect_history_id: str) -> int:
-        count: int = (
-            db.query(DataCollectHistoryEvent).filter_by(data_collect_history_id=data_collect_history_id).count()
-        )
-
-        return count
