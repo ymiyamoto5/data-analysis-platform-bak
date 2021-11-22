@@ -11,7 +11,6 @@ from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.common import common
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 
@@ -76,7 +75,7 @@ class CRUDController:
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,
@@ -95,7 +94,7 @@ class CRUDController:
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,
@@ -133,7 +132,7 @@ class CRUDController:
 
         latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
 
-        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+        num_of_event: int = len(latest_data_collect_history.data_collect_history_events)
 
         event = DataCollectHistoryEvent(
             data_collect_history_id=latest_data_collect_history.id,
