@@ -207,3 +207,23 @@ def check(
             raise HTTPException(status_code=500, detail="DB update error.")
 
         return
+
+
+@router.post("/reset/{machine_id}")
+def reset(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """指定機器のデータ収集初期化"""
+
+    utc_now: datetime = datetime.utcnow()
+
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+
+    try:
+        CRUDController.reset(db, machine=machine, utc_now=utc_now)
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="DB update error.")
+
+    return

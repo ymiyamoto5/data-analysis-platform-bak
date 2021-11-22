@@ -171,3 +171,41 @@ class CRUDController:
         )
         db.add(event)
         db.commit()
+
+    @staticmethod
+    def reset(db: Session, machine: Machine, utc_now: datetime) -> None:
+        """データ収集開始前の状態に更新"""
+
+        for gateway in machine.gateways:
+            gateway.sequence_number += 1
+            gateway.status = common.STATUS.STOP.value
+
+        # 段取開始前にリセットした場合はゲートウェイのみ更新
+        if machine.collect_status == common.COLLECT_STATUS.RECORDED.value:
+            db.commit()
+            return
+
+        # 段取開始後にリセットした場合は履歴とイベントも更新
+        machine.collect_status = common.COLLECT_STATUS.RECORDED.value
+
+        data_collect_history = (
+            db.query(DataCollectHistory)
+            .filter(DataCollectHistory.machine_id == machine.machine_id)
+            .order_by(desc(DataCollectHistory.started_at))
+            .limit(1)
+            .one()
+        )
+        data_collect_history.ended_at = utc_now
+
+        latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
+
+        num_of_event: int = CRUDDataCollectHistoryEvent.count_by_history_id(db, latest_data_collect_history.id)
+
+        event = DataCollectHistoryEvent(
+            data_collect_history_id=latest_data_collect_history.id,
+            event_id=num_of_event,
+            event_name=common.COLLECT_STATUS.RECORDED.value,
+            occurred_at=utc_now,
+        )
+        db.add(event)
+        db.commit()
