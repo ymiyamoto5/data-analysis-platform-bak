@@ -373,3 +373,52 @@ class TestCheck:
         response = client.post(self.endpoint)
 
         assert response.status_code == 500
+
+
+class TestReset:
+    @pytest.fixture
+    def init(self):
+        self.machine_id = "test-machine-01"
+        self.endpoint = f"/api/v1/controller/reset/{self.machine_id}"
+
+    test_collect_status_data = [
+        common.COLLECT_STATUS.SETUP.value,
+        common.COLLECT_STATUS.START.value,
+        common.COLLECT_STATUS.PAUSE.value,
+        common.COLLECT_STATUS.RESUME.value,
+        common.COLLECT_STATUS.STOP.value,
+        common.COLLECT_STATUS.RECORDED.value,
+    ]
+
+    @pytest.mark.parametrize("data", test_collect_status_data)
+    def test_normal(self, client, mocker, init, data):
+        mocker.patch.object(
+            CRUDMachine,
+            "select_by_id",
+            return_value=Machine(
+                machine_id=self.machine_id,
+                collect_status=data,
+            ),
+        )
+
+        response = client.post(self.endpoint)
+
+        assert response.status_code == 200
+
+    def test_db_update_failed(self, client, mocker, init):
+        """DBアップデート失敗"""
+
+        mocker.patch.object(
+            CRUDMachine,
+            "select_by_id",
+            return_value=Machine(
+                machine_id=self.machine_id,
+                collect_status=common.COLLECT_STATUS.RECORDED.value,
+            ),
+        )
+        mocker.patch.object(CRUDController, "reset", side_effect=Exception("some exception"))
+
+        response = client.post(self.endpoint)
+
+        assert response.status_code == 500
+        assert response.json() == {"detail": "DB update error."}
