@@ -1,5 +1,6 @@
 import pytest
 from backend.app.crud.crud_gateway import CRUDGateway
+from backend.common import common
 
 
 class TestRead:
@@ -224,6 +225,20 @@ class TestUpdate:
         response = client.put(endpoint, json=self.data)
 
         assert response.status_code == 500
+
+
+class TestUpdateFromGateway:
+    @pytest.fixture
+    def init(self):
+        self.gateway_id = "test-gw-01"
+        self.endpoint = "/api/v1/gateways"
+        self.data = {"sequence_number": 1, "gateway_result": 1, "status": common.STATUS.RUNNING.value, "log_level": 5}
+
+    def test_normal(self, client, init):
+        endpoint = f"{self.endpoint}/{self.gateway_id}/update"
+        response = client.put(endpoint, json=self.data)
+
+        assert response.status_code == 200
 
 
 class TestDelete:
