@@ -133,17 +133,17 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 - プロジェクト直下の.env ファイル
 
 ```
-API_URL=http://10.25.175.39:8000/api/v1
+API_URL=http://localhost:8000/api/v1
 SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
 DB_SQL_ECHO=0
 NO_PROXY=localhost
-mlflow_server_uri=http://10.25.175.39:5000
+mlflow_server_uri=http://localhost:5000
 mlflow_experiment_name=some
-MLFLOW_S3_ENDPOINT_URL=http://10.25.175.39:9000
+MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
 AWS_ACCESS_KEY_ID=minio-access-key
 AWS_SECRET_ACCESS_KEY=minio-secret-key
 data_dir=/mnt/datadrive/data/
-elastic_url=10.25.175.39:9200
+elastic_url=localhost:9200
 elastic_user=elastic
 elastic_password=P@ssw0rd
 mapping_rawdata_path=backend/mappings/mapping_rawdata.json
