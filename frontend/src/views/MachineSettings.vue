@@ -300,13 +300,8 @@ export default {
           this.fetchTableData()
         })
         .catch((e) => {
-          // 比較用。後ほど修正。
-          this.snackbarHeader = e.response.statusText
-          this.snackbarMessage = e.response.data.detail
-          this.snackbar = true
-          console.log(e.response)
-          // console.log(e.response.data.detail)
-          // this.errorSnackbar(e.response)
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
 
