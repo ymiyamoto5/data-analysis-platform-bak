@@ -22,16 +22,4 @@
   </div>
 </template>
 
-//
-<script>
-// export default {
-//   name: 'ConfirmDialog',
-//   methods: {
-//     do_yes() {
-//       this.$store.state.callbackFunc(this.$store.state.callbackFuncParam)
-//       this.$store.commit('setShowConfirmDialog', false)
-//     },
-//   },
-// }
-//
-</script>
+<script></script>
