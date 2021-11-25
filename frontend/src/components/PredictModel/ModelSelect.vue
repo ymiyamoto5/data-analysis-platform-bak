@@ -48,6 +48,11 @@ export default {
     this.fetchModels()
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     fetchModels: async function() {
       const client = createBaseApiClient()
       await client
@@ -60,7 +65,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     setModel(model) {
@@ -85,7 +90,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
   },
