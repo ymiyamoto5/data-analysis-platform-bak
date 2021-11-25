@@ -1,9 +1,9 @@
 <template>
-  <div id="app">
+  <v-app id="app">
     <ConfirmDialog v-if="$store.state.showConfirmDialog" />
     <ErrorSnackbar v-if="$store.state.showErrorSnackbar" />
     <MainWindow />
-  </div>
+  </v-app>
 </template>
 
 <script>
