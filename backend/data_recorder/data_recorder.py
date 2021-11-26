@@ -10,6 +10,7 @@
 """
 
 import argparse
+import itertools
 import os
 import shutil
 import struct
@@ -33,23 +34,33 @@ API_URL: Final[str] = os.environ["API_URL"]
 
 
 class DataRecorder:
-    def __init__(self, machine_id: str):
-        self.machine_id: str = machine_id
+    def __init__(self, machine: Dict[str, Any]):
+        self.machine_id: str = machine["machine_id"]
 
-        try:
-            response = requests.get(API_URL + f"/machines/{self.machine_id}/handler")
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
+        gateways: List[Dict[str, Any]] = machine["gateways"]
+        # NOTE: リスト内包で得られるハンドラーが2次元リストになるため、from_iterableで1次元にフラット化
+        handlers: List[Dict[str, Any]] = list(itertools.chain.from_iterable([g["handlers"] for g in gateways]))
+        # handler情報は1つめのgatewayに紐づく1つめのhandlerを採用する
+        handler: Dict[str, Any] = handlers[0]
 
-        if response.status_code != 200:
-            logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
-            sys.exit(1)
-
-        handler: Dict[str, Any] = response.json()
         self.sampling_ch_num: int = handler["sampling_ch_num"]
         self.sampling_frequency: int = handler["sampling_frequency"]
         self.sampling_interval: Decimal = Decimal(1.0 / self.sampling_frequency)
+
+        sensors: List[Dict[str, Any]] = list(itertools.chain.from_iterable([h["sensors"] for h in handlers]))
+        displacement_sensor: List[Dict[str, Any]] = [s for s in sensors if s["sensor_type_id"] in common.CUT_OUT_SHOT_SENSOR_TYPES]
+
+        # 変位センサーは機器にただひとつのみ紐づいている前提
+        if len(displacement_sensor) != 1:
+            logger.error(f"Only one displacement sensor is needed. num_of_displacement_sensor: {displacement_sensor}")
+            sys.exit(1)
+
+        self.displacement_sensor_id: str = displacement_sensor[0]["sensor_id"]
+
+        # TODO: 並び順の保証
+        self.sensor_ids_other_than_displacement: List[str] = [
+            s["sensor_id"] for s in sensors if s["sensor_type_id"] not in common.CUT_OUT_SHOT_SENSOR_TYPES
+        ]
 
     def _get_processed_dir_path(self, data_dir: str, started_at: str) -> str:
         """処理済みファイルおよびpklファイル格納用のディレクトリ取得（なければ作成）"""
@@ -91,18 +102,15 @@ class DataRecorder:
             dataset: Tuple[Any, ...] = struct.unpack(UNPACK_FORMAT, binary_dataset)
             logger.debug(dataset)
 
-            # TODO: pluseへの対応
             sample: Dict[str, Any] = {
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
-                "stroke_displacement": round(dataset[0], 3),
+                self.displacement_sensor_id: round(dataset[0], 3),
             }
 
-            # TODO: 荷重センサー以外の対応
-            for ch in range(1, self.sampling_ch_num):
-                str_ch = str(ch).zfill(2)
-                load: str = "load" + str_ch
-                sample[load] = round(dataset[ch], 3)
+            # 変位センサー以外のセンサー
+            for i, s in enumerate(self.sensor_ids_other_than_displacement):
+                sample[s] = round(dataset[i + 1], 3)
 
             samples.append(sample)
 
@@ -275,22 +283,23 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    try:
-        response = requests.get(API_URL + "/machines/machines/has_handler")
-    except Exception:
-        logger.exception(traceback.format_exc())
-        sys.exit(1)
-
-    if response.status_code != 200:
-        logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
-        sys.exit(1)
-
-    machines: List[Dict[str, Any]] = response.json()
-
     # スケジュール実行
     if args.dir is None:
-        for m in machines:
-            data_recorder = DataRecorder(m["machine_id"])
+        # handlerが紐づいている機器リストを取得
+        try:
+            response = requests.get(API_URL + "/machines/machines/has_handler")
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
+        if response.status_code != 200:
+            logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
+            sys.exit(1)
+
+        machines: List[Dict[str, Any]] = response.json()
+
+        for machine in machines:
+            data_recorder = DataRecorder(machine)
             data_recorder.auto_record(args.debug)
 
     # 手動インポート
@@ -303,5 +312,18 @@ if __name__ == "__main__":
             sys.exit(1)
 
         machine_id = "-".join(args.dir.split("-")[:-1])
-        data_recorder = DataRecorder(machine_id)
+
+        try:
+            response = requests.get(API_URL + f"/machines/{machine_id}")
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
+        if response.status_code != 200:
+            logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
+            sys.exit(1)
+
+        machine = response.json()
+
+        data_recorder = DataRecorder(machine)
         data_recorder.manual_record(target_dir)
