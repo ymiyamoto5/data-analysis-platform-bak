@@ -109,6 +109,11 @@ export default {
     }
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     fetchData: async function() {
       this.display = true
 
@@ -133,6 +138,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     createChartData: function(data) {
