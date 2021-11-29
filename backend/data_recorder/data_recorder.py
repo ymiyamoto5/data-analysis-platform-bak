@@ -62,21 +62,6 @@ class DataRecorder:
             s["sensor_id"] for s in sensors if s["sensor_type_id"] not in common.CUT_OUT_SHOT_SENSOR_TYPES
         ]
 
-    def _get_processed_dir_path(self, data_dir: str, started_at: str) -> str:
-        """処理済みファイルおよびpklファイル格納用のディレクトリ取得（なければ作成）"""
-
-        jst_started_at: datetime = datetime.fromisoformat(started_at) + timedelta(hours=9)
-        datetime_suffix: str = jst_started_at.strftime("%Y%m%d%H%M%S")
-        suffix: str = self.machine_id + "-" + datetime_suffix
-        processed_dir_path: str = os.path.join(data_dir, suffix)
-        if os.path.isdir(processed_dir_path):
-            logger.debug(f"{processed_dir_path} is already exists")
-        else:
-            os.makedirs(processed_dir_path)
-            logger.info(f"{processed_dir_path} created.")
-
-        return processed_dir_path
-
     def _read_binary_files(self, file: FileInfo, sequential_number: int, timestamp: Decimal) -> Tuple[List[Dict[str, Any]], int, Decimal]:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 

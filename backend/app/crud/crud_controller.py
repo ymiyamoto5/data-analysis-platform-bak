@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 class CRUDController:
     @staticmethod
-    def setup(db: Session, machine: Machine, utc_now: datetime) -> None:
+    def setup(db: Session, machine: Machine, utc_now: datetime, processed_dir_path: str) -> None:
         """収集セットアップ開始時の機器、ゲートウェイ、収集履歴、および収集イベントを更新"""
 
         machine.collect_status = common.COLLECT_STATUS.SETUP.value
@@ -37,6 +37,7 @@ class CRUDController:
             ended_at=None,
             sampling_frequency=handler.sampling_frequency,
             sampling_ch_num=handler.sampling_ch_num,
+            processed_dir_path=processed_dir_path,
             sample_count=0,
         )
 
