@@ -53,7 +53,7 @@
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 const CONTAINER_API_URL = '/api/v1/models/container/'
-const CONTAINER_PORT_API_URL = CONTAINER_API_URL + 'ports/'
+const CONTAINER_PORT_API_URL = CONTAINER_API_URL + 'ports'
 const CONTAINER_RUN_API_URL = CONTAINER_API_URL + 'run/'
 const CONTAINER_STOP_API_URL = CONTAINER_API_URL + 'stop/'
 
