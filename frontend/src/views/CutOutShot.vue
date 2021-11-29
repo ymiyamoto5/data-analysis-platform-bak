@@ -60,6 +60,12 @@
         </v-col>
       </v-row>
 
+      <v-row v-if="dataSelected && cutOutSensor === 'stroke_displacement'">
+        <v-col cols="2">
+          <MarginTextField @input="margin = $event"></MarginTextField>
+        </v-col>
+      </v-row>
+
       <v-row justify="center" v-if="dataSelected">
         <v-btn
           color="primary"
@@ -89,6 +95,7 @@ import ChartCardStrokeDisplacement from '@/components/CutOutShot/ChartCardStroke
 import ChartCardPulse from '@/components/CutOutShot/ChartCardPulse.vue'
 import StrokeDisplacementRangeSlider from '@/components/CutOutShot/StrokeDisplacementRangeSlider.vue'
 import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
+import MarginTextField from '@/components/CutOutShot/MarginTextField.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
 const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor'
@@ -104,6 +111,7 @@ export default {
     CollectDataSelect,
     ChartCardStrokeDisplacement,
     ChartCardPulse,
+    MarginTextField,
   },
   data() {
     return {
@@ -120,6 +128,7 @@ export default {
       endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
+      margin: '0.0',
       snackbar: false,
       snackbarMessage: '',
     }
@@ -211,6 +220,7 @@ export default {
           start_stroke_displacement: this.startStrokeDisplacement,
           end_stroke_displacement: this.endStrokeDisplacement,
           target_date_str: this.targetDateStr,
+          margin: this.margin,
         }
       } else if (this.cutOutSensor === 'pulse') {
         url = CUT_OUT_SHOT_PULSE_API_URL
