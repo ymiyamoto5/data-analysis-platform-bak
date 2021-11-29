@@ -9,10 +9,11 @@ from backend.app.api.deps import get_db
 from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
+from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -55,7 +56,8 @@ def validation(machine: Machine, collect_status: str, status) -> Tuple[bool, Opt
 
 
 @router.post("/setup/{machine_id}")
-def setup(
+async def setup(
+    background_tasks: BackgroundTasks,
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     db: Session = Depends(get_db),
 ):
@@ -70,11 +72,17 @@ def setup(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
+    # 退避ディレクトリ作成
+    processed_dir_path: str = DataRecorderService.get_processed_dir_path(machine_id=machine_id, started_at=utc_now)
+
     try:
-        CRUDController.setup(db, machine=machine, utc_now=utc_now)
+        CRUDController.setup(db, machine=machine, utc_now=utc_now, processed_dir_path=processed_dir_path)
     except Exception:
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
+
+    # data_recorder起動
+    # background_tasks.add_task()
 
     return
 

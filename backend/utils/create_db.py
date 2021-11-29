@@ -127,6 +127,7 @@ data_collect_history_01 = DataCollectHistory(
     ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=5,
+    processed_dir_path="/mnt/datadrive/machine-h-20210327141514",
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
@@ -357,6 +358,7 @@ data_collect_history_demo = DataCollectHistory(
     ended_at=demo_started_at + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=5,
+    processed_dir_path="/mnt/datadrive/machine-01-20210709190000",
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
@@ -475,6 +477,7 @@ data_collect_history_j_1 = DataCollectHistory(
     ended_at=j_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=2,
+    processed_dir_path="/mnt/datadrive/machine-j-20210801094030",
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
@@ -527,6 +530,7 @@ data_collect_history_j_2 = DataCollectHistory(
     ended_at=j_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=2,
+    processed_dir_path="/mnt/datadrive/machine-j-20211009155626",
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
