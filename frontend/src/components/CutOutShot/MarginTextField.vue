@@ -1,5 +1,6 @@
 <template>
   <v-text-field
+    ref="margin"
     v-model="margin"
     :rules="[rules.required, rules.floatType]"
     label="Margin"
@@ -40,5 +41,14 @@ export default {
         (value >= 0.0 && value <= 10000.0) || '0.0～10000.0のみ使用可能です。',
     },
   }),
+  watch: {
+    margin() {
+      if (this.$refs.margin.validate()) {
+        this.$emit('check', true)
+      } else {
+        this.$emit('check', false)
+      }
+    },
+  },
 }
 </script>

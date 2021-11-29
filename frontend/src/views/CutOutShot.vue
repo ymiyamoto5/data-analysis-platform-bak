@@ -62,7 +62,10 @@
 
       <v-row v-if="dataSelected && cutOutSensor === 'stroke_displacement'">
         <v-col cols="2">
-          <MarginTextField @input="margin = $event"></MarginTextField>
+          <MarginTextField
+            @input="margin = $event"
+            @check="marginValidate = $event"
+          ></MarginTextField>
         </v-col>
       </v-row>
 
@@ -70,7 +73,7 @@
         <v-btn
           color="primary"
           @click="start"
-          :disabled="running"
+          :disabled="running || !marginValidate"
           :loading="running"
           >ショット切り出し開始</v-btn
         >
@@ -129,6 +132,7 @@ export default {
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
       margin: '0.0',
+      marginValidate: true,
       snackbar: false,
       snackbarMessage: '',
     }
