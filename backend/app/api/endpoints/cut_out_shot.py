@@ -114,7 +114,7 @@ def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplaceme
     cutter = StrokeDisplacementCutter(
         cut_out_shot_in.start_stroke_displacement,
         cut_out_shot_in.end_stroke_displacement,
-        margin=0.1,
+        margin=cut_out_shot_in.margin,
         sensors=history.data_collect_history_details,
     )
 
