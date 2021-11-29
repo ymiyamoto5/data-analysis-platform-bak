@@ -56,7 +56,7 @@ def validation(machine: Machine, collect_status: str, status) -> Tuple[bool, Opt
 
 
 @router.post("/setup/{machine_id}")
-async def setup(
+def setup(
     background_tasks: BackgroundTasks,
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     db: Session = Depends(get_db),
@@ -82,7 +82,7 @@ async def setup(
         raise HTTPException(status_code=500, detail="DB update error.")
 
     # data_recorder起動
-    # background_tasks.add_task()
+    background_tasks.add_task(DataRecorderService.record, db, machine_id)
 
     return
 
