@@ -17,7 +17,7 @@ import struct
 import sys
 import time
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, Final, List, Optional, Tuple
 
@@ -200,8 +200,6 @@ class DataRecorder:
             return
 
         logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
-
-        processed_dir_path: str = self._get_processed_dir_path(data_dir, started_at)
 
         # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
         time.sleep(3)
