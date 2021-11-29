@@ -110,7 +110,6 @@ def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplaceme
     except Exception:
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
-    # TODO: margin動的設定
     cutter = StrokeDisplacementCutter(
         cut_out_shot_in.start_stroke_displacement,
         cut_out_shot_in.end_stroke_displacement,
