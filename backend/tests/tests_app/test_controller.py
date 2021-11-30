@@ -14,26 +14,18 @@ from backend.app.api.endpoints import controller
 from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
+from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 
 
 class TestSetup:
     @pytest.fixture
     def init(self):
-        self.machine_id = "test-machine-001"
+        self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/setup/{self.machine_id}"
 
     def test_normal(self, client, mocker, init):
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(CRUDController, "setup")
 
         response = client.post(self.endpoint)
 
@@ -43,14 +35,6 @@ class TestSetup:
         """validation関数で何らかのエラーが発生した場合を想定。
         validation関数自体は別テストケースとする。"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
@@ -60,14 +44,6 @@ class TestSetup:
     def test_db_update_failed(self, client, mocker, init):
         """DBアップデート失敗"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
         mocker.patch.object(CRUDController, "setup", side_effect=Exception("some exception"))
 
@@ -79,20 +55,11 @@ class TestSetup:
 class TestStart:
     @pytest.fixture
     def init(self):
-        self.machine_id = "test-machine-001"
+        self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/start/{self.machine_id}"
 
     def test_normal(self, client, mocker, init):
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(CRUDController, "start")
 
         response = client.post(self.endpoint)
 
@@ -102,14 +69,6 @@ class TestStart:
         """validation関数で何らかのエラーが発生した場合を想定。
         validation関数自体は別テストケースとする。"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
@@ -119,14 +78,6 @@ class TestStart:
     def test_db_update_failed(self, client, mocker, init):
         """DBアップデート失敗"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
         mocker.patch.object(CRUDController, "start", side_effect=Exception("some exception"))
 
@@ -138,20 +89,11 @@ class TestStart:
 class TestPause:
     @pytest.fixture
     def init(self):
-        self.machine_id = "test-machine-001"
+        self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/pause/{self.machine_id}"
 
     def test_normal(self, client, mocker, init):
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(CRUDController, "pause")
 
         response = client.post(self.endpoint)
 
@@ -161,14 +103,6 @@ class TestPause:
         """validation関数で何らかのエラーが発生した場合を想定。
         validation関数自体は別テストケースとする。"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
@@ -178,14 +112,6 @@ class TestPause:
     def test_db_update_failed(self, client, mocker, init):
         """DBアップデート失敗"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
         mocker.patch.object(CRUDController, "pause", side_effect=Exception("some exception"))
 
@@ -197,20 +123,11 @@ class TestPause:
 class TestResume:
     @pytest.fixture
     def init(self):
-        self.machine_id = "test-machine-001"
+        self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/resume/{self.machine_id}"
 
     def test_normal(self, client, mocker, init):
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(CRUDController, "resume")
 
         response = client.post(self.endpoint)
 
@@ -220,14 +137,6 @@ class TestResume:
         """validation関数で何らかのエラーが発生した場合を想定。
         validation関数自体は別テストケースとする。"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
@@ -237,14 +146,6 @@ class TestResume:
     def test_db_update_failed(self, client, mocker, init):
         """DBアップデート失敗"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
         mocker.patch.object(CRUDController, "resume", side_effect=Exception("some exception"))
 
@@ -256,20 +157,11 @@ class TestResume:
 class TestStop:
     @pytest.fixture
     def init(self):
-        self.machine_id = "test-machine-001"
+        self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/stop/{self.machine_id}"
 
     def test_normal(self, client, mocker, init):
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-        mocker.patch.object(CRUDController, "stop")
 
         response = client.post(self.endpoint)
 
@@ -279,14 +171,6 @@ class TestStop:
         """validation関数で何らかのエラーが発生した場合を想定。
         validation関数自体は別テストケースとする。"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
@@ -297,14 +181,6 @@ class TestStop:
     def test_db_update_failed(self, client, mocker, init):
         """DBアップデート失敗"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
         mocker.patch.object(CRUDController, "stop", side_effect=Exception("some exception"))
 
@@ -317,21 +193,12 @@ class TestStop:
 class TestCheck:
     @pytest.fixture
     def init(self):
-        self.machine_id = "test-machine-001"
+        self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/check/{self.machine_id}"
 
     def test_normal(self, client, mocker, init):
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
         mocker.patch.object(common, "get_config_value", return_value=("/mnt/datadrive/data/"))
-        mocker.patch.object(CRUDController, "record")
 
         response = client.post(self.endpoint)
 
@@ -341,14 +208,6 @@ class TestCheck:
         """validation関数で何らかのエラーが発生した場合を想定。
         validation関数自体は別テストケースとする。"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
 
         response = client.post(self.endpoint)
@@ -359,14 +218,6 @@ class TestCheck:
     def test_db_update_failed(self, client, mocker, init):
         """DBアップデート失敗"""
 
-        mocker.patch.object(
-            CRUDMachine,
-            "select_by_id",
-            return_value=Machine(
-                machine_id="test-machine-001",
-                collect_status=common.COLLECT_STATUS.RECORDED.value,
-            ),
-        )
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
         mocker.patch.object(CRUDController, "record", side_effect=Exception("some exception"))
 
