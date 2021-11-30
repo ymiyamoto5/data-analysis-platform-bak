@@ -115,6 +115,11 @@ def pause(
 
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
+    # 収集開始状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        raise HTTPException(status_code=error_code, detail=message)
+
     try:
         CRUDController.pause(db, machine=machine, utc_now=utc_now)
     except Exception:
