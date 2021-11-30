@@ -102,11 +102,9 @@ class DataRecorderService:
                 sensor_ids_other_than_displacement,
             )
 
-            logger.info("all file processed.")
-
     @staticmethod
     def data_record(
-        latest_data_collect_history: DataCollectHistory,
+        data_collect_history: DataCollectHistory,
         target_files: List[FileInfo],
         started_timestamp: Decimal,
         num_of_records: int,
@@ -118,7 +116,7 @@ class DataRecorderService:
 
         sequential_number: int = num_of_records
         # プロセス跨ぎを考慮した時刻付け
-        sampling_interval: Decimal = Decimal(1.0 / latest_data_collect_history.sampling_frequency)
+        sampling_interval: Decimal = Decimal(1.0 / data_collect_history.sampling_frequency)
         timestamp: Decimal = started_timestamp + sequential_number * sampling_interval
 
         for file in target_files:
@@ -128,18 +126,18 @@ class DataRecorderService:
                 file,
                 sequential_number,
                 timestamp,
-                latest_data_collect_history,
+                data_collect_history,
                 displacement_sensor_id,
                 sensor_ids_other_than_displacement,
                 sampling_interval,
             )
 
             # pklファイルに出力
-            FileManager.export_to_pickle(samples, file, latest_data_collect_history.processed_dir_path)
+            FileManager.export_to_pickle(samples, file, data_collect_history.processed_dir_path)
 
             # 手動インポートでないとき（スケジュール実行のとき）、ファイルを退避する
             if not is_manual:
-                shutil.move(file.file_path, latest_data_collect_history.processed_dir_path)
+                shutil.move(file.file_path, data_collect_history.processed_dir_path)
 
             logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
 
