@@ -149,7 +149,7 @@ class DataRecorderService:
         file: FileInfo,
         sequential_number: int,
         timestamp: Decimal,
-        latest_data_collect_history: DataCollectHistory,
+        data_collect_history: DataCollectHistory,
         displacement_sensor_id: str,
         sensor_ids_other_than_displacement: List[str],
         sampling_interval: Decimal,
@@ -157,7 +157,7 @@ class DataRecorderService:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 
         BYTE_SIZE: Final[int] = 8
-        SAMPLING_CH_NUM: Final[int] = latest_data_collect_history.sampling_ch_num
+        SAMPLING_CH_NUM: Final[int] = data_collect_history.sampling_ch_num
         ROW_BYTE_SIZE: Final[int] = BYTE_SIZE * SAMPLING_CH_NUM  # 8 byte * チャネル数
         UNPACK_FORMAT: Final[str] = "<" + "d" * SAMPLING_CH_NUM  # 5chの場合 "<ddddd"
 

@@ -9,9 +9,12 @@
 
 """
 
-# import os
-# import sys
+import dataclasses
+import os
+import pathlib
+import struct
 from datetime import datetime, timedelta
+from typing import Final
 
 import pytest
 from backend.app.api.deps import get_db
@@ -27,14 +30,15 @@ from backend.app.models.machine_type import MachineType
 from backend.app.models.sensor import Sensor
 from backend.app.models.sensor_type import SensorType
 from backend.common import common
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-# backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
-# sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
+env_file = ".env"
+load_dotenv(env_file)
 
-
+DATA_DIR: Final[str] = os.environ["data_dir"]
 DB_URL = "sqlite:////mnt/datadrive/temp.db"
 
 
@@ -153,6 +157,7 @@ def create_testdb(db):
         ended_at=test_machine_01_started_at + timedelta(hours=-9) + timedelta(hours=1),
         sampling_frequency=100000,
         sampling_ch_num=5,
+        processed_dir_path=os.path.join(DATA_DIR, "test-machine-01-20211111110000"),
         sample_count=0,
         data_collect_history_events=[
             DataCollectHistoryEvent(
@@ -285,6 +290,7 @@ def create_testdb(db):
         ended_at=test_machine_02_started_at + timedelta(hours=-9) + timedelta(hours=1),
         sampling_frequency=100000,
         sampling_ch_num=5,
+        processed_dir_path=os.path.join(DATA_DIR, "test-machine-02-20210709190000"),
         sample_count=0,
         data_collect_history_events=[
             DataCollectHistoryEvent(
@@ -422,6 +428,7 @@ def create_testdb(db):
         ended_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
         sampling_frequency=100000,
         sampling_ch_num=2,
+        processed_dir_path=os.path.join(DATA_DIR, "test-machine-03-20210801094030"),
         sample_count=0,
         data_collect_history_events=[
             DataCollectHistoryEvent(
@@ -474,6 +481,7 @@ def create_testdb(db):
         ended_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
         sampling_frequency=100000,
         sampling_ch_num=2,
+        processed_dir_path=os.path.join(DATA_DIR, "test-machine-03-20211009155626"),
         sample_count=0,
         data_collect_history_events=[
             DataCollectHistoryEvent(
@@ -539,3 +547,38 @@ def create_testdb(db):
     db.add(test_gw_05)
 
     db.commit()
+
+
+@dataclasses.dataclass
+class DatFiles:
+    tmp_path: pathlib.Path
+    tmp_dat_1: pathlib.Path
+    tmp_dat_2: pathlib.Path
+    tmp_dat_3: pathlib.Path
+    tmp_dat_4: pathlib.Path
+    tmp_dat_5: pathlib.Path
+
+
+@pytest.fixture
+def dat_files(tmp_path):
+    """datファイルのfixture"""
+
+    machine_id: str = "machine-01"
+
+    tmp_dat_1: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080058.620753.dat"
+    tmp_dat_2: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080059.620753.dat"
+    tmp_dat_3: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080100.620753.dat"
+    tmp_dat_4: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080101.620753.dat"
+    tmp_dat_5: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080102.620753.dat"
+
+    binary = struct.pack("<ddddd", 10.0, 1.1, 2.2, 3.3, 4.4) + struct.pack("<ddddd", 9.0, 1.2, 2.3, 3.4, 4.5)
+
+    tmp_dat_1.write_bytes(binary)
+    tmp_dat_2.write_bytes(binary)
+    tmp_dat_3.write_bytes(binary)
+    tmp_dat_4.write_bytes(binary)
+    tmp_dat_5.write_bytes(binary)
+
+    dat_files = DatFiles(tmp_path, tmp_dat_1, tmp_dat_2, tmp_dat_3, tmp_dat_4, tmp_dat_5)
+
+    yield dat_files
