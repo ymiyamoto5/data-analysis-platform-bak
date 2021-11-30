@@ -10,22 +10,22 @@
 """
 
 import argparse
-import itertools
 import os
-import shutil
-import struct
 import sys
-import time
 import traceback
-from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, Final, List, Optional, Tuple
 
-import requests
+from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.common.common_logger import data_recorder_logger as logger
 from backend.file_manager.file_manager import FileInfo, FileManager
 from dotenv import load_dotenv
+from sqlalchemy.orm.session import Session
 
 env_file = ".env"
 load_dotenv(env_file)
@@ -34,226 +34,58 @@ API_URL: Final[str] = os.environ["API_URL"]
 
 
 class DataRecorder:
-    def __init__(self, machine: Dict[str, Any]):
-        self.machine_id: str = machine["machine_id"]
+    @staticmethod
+    def manual_record(db: Session, machine_id: str, target_dir: str):
+        """手動での生データ取り込み。前提条件は以下。
+        * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
+        """
 
-        gateways: List[Dict[str, Any]] = machine["gateways"]
-        # NOTE: リスト内包で得られるハンドラーが2次元リストになるため、from_iterableで1次元にフラット化
-        handlers: List[Dict[str, Any]] = list(itertools.chain.from_iterable([g["handlers"] for g in gateways]))
-        # handler情報は1つめのgatewayに紐づく1つめのhandlerを採用する
-        handler: Dict[str, Any] = handlers[0]
+        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, machine_id, "dat")
 
-        self.sampling_ch_num: int = handler["sampling_ch_num"]
-        self.sampling_frequency: int = handler["sampling_frequency"]
-        self.sampling_interval: Decimal = Decimal(1.0 / self.sampling_frequency)
+        if files_info is None:
+            logger.info(f"No files in {target_dir}")
+            return
 
-        sensors: List[Dict[str, Any]] = list(itertools.chain.from_iterable([h["sensors"] for h in handlers]))
-        displacement_sensor: List[Dict[str, Any]] = [s for s in sensors if s["sensor_type_id"] in common.CUT_OUT_SHOT_SENSOR_TYPES]
+        target_datetime_str: str = target_dir.split("-")[-1]
+
+        try:
+            data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
+                db, machine_id, target_datetime_str
+            )
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
+        if data_collect_history.data_collect_history_events[-1].event_name != common.COLLECT_STATUS.RECORDED.value:
+            logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
+            sys.exit(1)
+
+        sensors: List[DataCollectHistoryDetail] = data_collect_history.data_collect_history_details
+        displacement_sensor: List[DataCollectHistoryDetail] = [s for s in sensors if s.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES]
 
         # 変位センサーは機器にただひとつのみ紐づいている前提
         if len(displacement_sensor) != 1:
             logger.error(f"Only one displacement sensor is needed. num_of_displacement_sensor: {displacement_sensor}")
             sys.exit(1)
 
-        self.displacement_sensor_id: str = displacement_sensor[0]["sensor_id"]
+        displacement_sensor_id: str = displacement_sensor[0].sensor_id
 
         # TODO: 並び順の保証
-        self.sensor_ids_other_than_displacement: List[str] = [
-            s["sensor_id"] for s in sensors if s["sensor_type_id"] not in common.CUT_OUT_SHOT_SENSOR_TYPES
+        sensor_ids_other_than_displacement: List[str] = [
+            s.sensor_id for s in sensors if s.sensor_type_id not in common.CUT_OUT_SHOT_SENSOR_TYPES
         ]
 
-    def _read_binary_files(self, file: FileInfo, sequential_number: int, timestamp: Decimal) -> Tuple[List[Dict[str, Any]], int, Decimal]:
-        """バイナリファイルを読んで、そのデータをリストにして返す"""
+        started_timestamp: float = data_collect_history.started_at.timestamp()
 
-        BYTE_SIZE: Final[int] = 8
-        ROW_BYTE_SIZE: Final[int] = BYTE_SIZE * self.sampling_ch_num  # 8 byte * チャネル数
-        UNPACK_FORMAT: Final[str] = "<" + "d" * self.sampling_ch_num  # 5chの場合 "<ddddd"
+        num_of_records: int = 0
 
-        dataset_number: int = 0  # ファイル内での連番
-        samples: List[Dict[str, Any]] = []
-
-        with open(file.file_path, "rb") as f:
-            binary: bytes = f.read()
-
-        # バイナリファイルからチャネル数分を1setとして取得し、処理
-        while True:
-            start_index: int = dataset_number * ROW_BYTE_SIZE
-            end_index: int = start_index + ROW_BYTE_SIZE
-            binary_dataset: bytes = binary[start_index:end_index]
-
-            if len(binary_dataset) == 0:
-                break
-
-            dataset: Tuple[Any, ...] = struct.unpack(UNPACK_FORMAT, binary_dataset)
-            logger.debug(dataset)
-
-            sample: Dict[str, Any] = {
-                "sequential_number": sequential_number,
-                "timestamp": timestamp,
-                self.displacement_sensor_id: round(dataset[0], 3),
-            }
-
-            # 変位センサー以外のセンサー
-            for i, s in enumerate(self.sensor_ids_other_than_displacement):
-                sample[s] = round(dataset[i + 1], 3)
-
-            samples.append(sample)
-
-            dataset_number += 1
-            sequential_number += 1
-
-            # NOTE: 100kサンプリングの場合10μ秒(=0.00001秒=1e-5秒)
-            timestamp += self.sampling_interval
-
-        return samples, sequential_number, timestamp
-
-    def _data_record(
-        self,
-        latest_history_id: int,
-        target_files: List[FileInfo],
-        processed_dir_path: str,
-        started_timestamp: Decimal,
-        sample_count: int,
-        is_manual: bool = False,
-    ) -> None:
-        """バイナリファイル読み取りおよびES/pkl出力"""
-
-        sequential_number: int = sample_count
-        # プロセス跨ぎを考慮した時刻付け
-        timestamp: Decimal = started_timestamp + sample_count * self.sampling_interval
-
-        for file in target_files:
-            # バイナリファイルを読み取り、データリストを取得
-            samples: List[Dict[str, Any]]
-            samples, sequential_number, timestamp = self._read_binary_files(file, sequential_number, timestamp)
-
-            # pklファイルに出力
-            FileManager.export_to_pickle(samples, file, processed_dir_path)
-
-            # 手動インポートでないとき（スケジュール実行のとき）、ファイルを退避する
-            if not is_manual:
-                shutil.move(file.file_path, processed_dir_path)
-
-            logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
-
-        # 処理件数を履歴に記録し、プロセス跨ぎのサンプル連番/時刻付けに利用する。
-        try:
-            requests.put(
-                API_URL + f"/data_collect_histories/{latest_history_id}/",
-                json={"sample_count": sequential_number},
-            )
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
-
-    def auto_record(self, is_debug_mode: bool = False) -> None:
-        """スケジュール実行による自動インポート"""
-
-        # 対象機器のファイルリストを作成
-        data_dir: str = os.environ["data_dir"]
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, self.machine_id, "dat")
-
-        if files_info is None:
-            logger.info(f"No files in {data_dir}")
-            return
-
-        try:
-            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
-            latest_data_collect_history: Dict[str, Any] = response.json()
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
-
-        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
-
-        if len(events) == 0:
-            logger.error("Exits because no events.")
-            return
-
-        # 最後のイベントがrecordedの場合、前回のデータ採取＆記録完了から状態が変わっていないので、何もしない
-        if events[-1]["event_name"] == common.COLLECT_STATUS.RECORDED.value:
-            logger.info(
-                f"Exits because the latest event is '{common.COLLECT_STATUS.RECORDED.value}'. May be data collect has not started yet."
-            )
-            return
-
-        started_at: str = latest_data_collect_history["started_at"]
-        started_timestamp: float = datetime.fromisoformat(started_at).timestamp()
-        ended_at: Optional[str] = latest_data_collect_history["ended_at"]
-        if ended_at is not None:
-            ended_timestamp: float = datetime.fromisoformat(ended_at).timestamp()
-        else:
-            ended_timestamp = common.TIMESTAMP_MAX
-
-        # 対象となるファイルに絞り込む
-        target_files: List[FileInfo] = FileManager.get_target_files(files_info, started_timestamp, ended_timestamp)
-
-        # 含まれないファイルは削除するが、debug_modeでは削除しない
-        if not is_debug_mode:
-            not_target_files: List[FileInfo] = FileManager.get_not_target_files(files_info, started_timestamp, ended_timestamp)
-            for file in not_target_files:
-                os.remove(file.file_path)
-                logger.info(f"{file.file_path} has been deleted because it is out of range.")
-
-        if len(target_files) == 0:
-            logger.info("No files in target interval")
-            return
-
-        logger.info(f"{len(target_files)} / {len(files_info)} files are target.")
-
-        # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
-        time.sleep(3)
-
-        sample_count: int = latest_data_collect_history["sample_count"]
-        latest_history_id: int = latest_data_collect_history["id"]
-        self._data_record(
-            latest_history_id,
-            target_files,
-            processed_dir_path,
-            Decimal(started_timestamp),
-            sample_count,
-        )
-
-        logger.info("all file processed.")
-
-    def manual_record(self, target_dir: str):
-        """手動での生データ取り込み。前提条件は以下。
-        * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
-        """
-
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, self.machine_id, "dat")
-
-        if files_info is None:
-            logger.info(f"No files in {target_dir}")
-            return
-
-        try:
-            response = requests.get(API_URL + f"/data_collect_histories/{self.machine_id}/latest")
-            latest_data_collect_history: Dict[str, Any] = response.json()
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
-
-        events: List[Dict[str, Any]] = latest_data_collect_history["data_collect_history_events"]
-
-        if len(events) == 0:
-            logger.error("Exits because no events.")
-            return
-
-        # 直近のイベントがrecordedでない（データ収集が完了していない）場合は、手動実行させない。
-        if events[-1]["event_name"] != common.COLLECT_STATUS.RECORDED.value:
-            logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
-            return
-
-        latest_history_id: int = latest_data_collect_history["id"]
-        started_timestamp: float = datetime.fromisoformat(latest_data_collect_history["started_at"]).timestamp()
-
-        self._data_record(
-            latest_history_id,
+        num_of_records = DataRecorderService.data_record(
+            data_collect_history,
             files_info,
-            target_dir,
             Decimal(started_timestamp),
-            sample_count=0,
+            num_of_records,
+            displacement_sensor_id,
+            sensor_ids_other_than_displacement,
             is_manual=True,
         )
 
@@ -261,52 +93,20 @@ class DataRecorder:
 
 
 if __name__ == "__main__":
+    from backend.app.db.session import SessionLocal  # noqa
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--dir", help="set import directory (manual import)")
+    parser.add_argument("-d", "--dir", help="set import directory (manual import)", required=True)
+    # NOTE: 未使用
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    # スケジュール実行
-    if args.dir is None:
-        # handlerが紐づいている機器リストを取得
-        try:
-            response = requests.get(API_URL + "/machines/machines/has_handler")
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
+    target_dir: str = os.path.join(os.environ["data_dir"], args.dir)
 
-        if response.status_code != 200:
-            logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
-            sys.exit(1)
+    if not os.path.isdir(target_dir):
+        logger.error(f"{target_dir} is not exists.")
+        sys.exit(1)
 
-        machines: List[Dict[str, Any]] = response.json()
-
-        for machine in machines:
-            data_recorder = DataRecorder(machine)
-            data_recorder.auto_record(args.debug)
-
-    # 手動インポート
-    else:
-        data_dir: str = os.environ["data_dir"]
-        target_dir: str = os.path.join(data_dir, args.dir)
-
-        if not os.path.isdir(target_dir):
-            logger.error(f"{target_dir} is not exists.")
-            sys.exit(1)
-
-        machine_id = "-".join(args.dir.split("-")[:-1])
-
-        try:
-            response = requests.get(API_URL + f"/machines/{machine_id}")
-        except Exception:
-            logger.exception(traceback.format_exc())
-            sys.exit(1)
-
-        if response.status_code != 200:
-            logger.error(f"API returned a status other than 200. status_code: {response.status_code}")
-            sys.exit(1)
-
-        machine = response.json()
-
-        data_recorder = DataRecorder(machine)
-        data_recorder.manual_record(target_dir)
+    machine_id = "-".join(args.dir.split("-")[:-1])
+    db: Session = SessionLocal()
+    DataRecorder.manual_record(db, machine_id, target_dir)
