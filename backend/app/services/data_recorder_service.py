@@ -2,6 +2,7 @@ import os
 import shutil
 import struct
 import sys
+import threading
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -39,6 +40,9 @@ class DataRecorderService:
 
     @staticmethod
     def record(db: Session, machine_id: str):
+        """バイナリデータをpklに変換して出力する。backgroundtasksにて別スレッドで実行。"""
+
+        logger.info(f"data recording process started. Thread ID [{threading.get_ident()}]")
 
         data_dir: str = os.environ["data_dir"]
 
@@ -66,6 +70,8 @@ class DataRecorderService:
         started_timestamp: float = latest_data_collect_history.started_at.timestamp()
 
         num_of_records: int = 0
+        stop_counter: int = 0
+        STOP_THRESHOLD: Final[int] = 10
 
         while True:
             time.sleep(1)
@@ -73,9 +79,16 @@ class DataRecorderService:
             # 対象機器のファイルリストを作成
             files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, machine_id, "dat")
 
+            # ファイルがない状態が続けば終了
             if files_info is None:
+                stop_counter += 1
+                if stop_counter == STOP_THRESHOLD:
+                    logger.info(f"data recording process stopped. Thread ID [{threading.get_ident()}]")
+                    break
                 logger.info(f"No files in {data_dir}")
                 continue
+
+            stop_counter = 0
 
             # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
             time.sleep(3)
