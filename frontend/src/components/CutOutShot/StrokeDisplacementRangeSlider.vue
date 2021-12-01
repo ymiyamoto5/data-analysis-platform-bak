@@ -42,11 +42,21 @@
 
 <script>
 export default {
-  props: ['targetDateStr'],
+  props: ['targetDateStr', 'maxStrokeDisplacement', 'minStrokeDisplacement'],
   watch: {
     targetDateStr: function() {
       // TODO: 対象に応じて動的に設定
       console.log()
+    },
+    minStrokeDisplacement(val) {
+      this.min = val - 10.0
+      this.range[0] = this.min
+      this.$emit('input', this.range)
+    },
+    maxStrokeDisplacement(val) {
+      this.max = val + 10.0
+      this.range[1] = this.max
+      this.$emit('input', this.range)
     },
   },
   data() {
