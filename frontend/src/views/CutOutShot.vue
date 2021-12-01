@@ -124,8 +124,8 @@ export default {
       endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
-      maxStrokeDisplacement: 100, // ストローク変位しきい値の最大値
-      minxStrokeDisplacement: 0, // ストローク変位しきい値の最小値
+      maxStrokeDisplacement: 0, // ストローク変位しきい値の最大値
+      minStrokeDisplacement: 0, // ストローク変位しきい値の最小値
       snackbar: false,
       snackbarMessage: '',
     }

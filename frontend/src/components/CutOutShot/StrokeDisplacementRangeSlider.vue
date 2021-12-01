@@ -50,12 +50,16 @@ export default {
     },
     minStrokeDisplacement(val) {
       this.min = val - 10.0
-      this.range[0] = this.min
+      this.range[1] = val
+      console.log(this.range)
+      // this.$set(this.range, 1, this.min)
       this.$emit('input', this.range)
     },
     maxStrokeDisplacement(val) {
       this.max = val + 10.0
-      this.range[1] = this.max
+      this.range[0] = val
+      console.log(this.range)
+      // this.$set(this.range, 0, this.max)
       this.$emit('input', this.range)
     },
   },
@@ -66,5 +70,15 @@ export default {
       range: [100, 0],
     }
   },
+  // created() {
+  //   this.initdata()
+  // },
+  // methods: {
+  //   initdata() {
+  //     this.$set(this.range, 0, this.min)
+  //     this.$set(this.range, 1, this.max)
+  //     this.$emit('input', this.range)
+  //   },
+  // },
 }
 </script>
