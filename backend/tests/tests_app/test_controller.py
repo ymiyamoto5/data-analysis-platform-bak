@@ -14,7 +14,6 @@ from backend.app.api.endpoints import controller
 from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
-from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 
 

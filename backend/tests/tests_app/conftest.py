@@ -563,7 +563,7 @@ class DatFiles:
 def dat_files(tmp_path):
     """datファイルのfixture"""
 
-    machine_id: str = "machine-01"
+    machine_id: str = "test-machine-01"
 
     tmp_dat_1: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080058.620753.dat"
     tmp_dat_2: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080059.620753.dat"
