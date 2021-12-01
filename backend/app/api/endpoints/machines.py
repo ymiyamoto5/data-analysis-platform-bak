@@ -102,9 +102,7 @@ def fetch_machines_has_handler(db: Session = Depends(get_db)):
 
 
 @router.get("/{machine_id}/handler")
-def fetch_handler_from_machine_id(
-    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)
-):
+def fetch_handler_from_machine_id(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
     """machine_idに一致するhandlerを取得する"""
 
     try:

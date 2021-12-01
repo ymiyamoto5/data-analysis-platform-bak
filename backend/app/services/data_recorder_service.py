@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, Final, List, Optional, Tuple
 
+import requests
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
@@ -44,8 +45,6 @@ class DataRecorderService:
 
         logger.info(f"data recording process started. Thread ID [{threading.get_ident()}]")
 
-        data_dir: str = os.environ["data_dir"]
-
         try:
             latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
         except Exception:
@@ -70,25 +69,34 @@ class DataRecorderService:
         started_timestamp: float = latest_data_collect_history.started_at.timestamp()
 
         num_of_records: int = 0
-        stop_counter: int = 0
-        STOP_THRESHOLD: Final[int] = 10
+        INTERVAL: Final[int] = 1
+        data_dir: str = os.environ["data_dir"]
+        API_URL: Final[str] = os.environ["API_URL"]
 
+        # データ収集が停止されるまで無限ループ実行。
         while True:
-            time.sleep(1)
+            time.sleep(INTERVAL)
+            # NOTE: db sessionを使いまわすと更新データが取得できないため、API呼び出し
+            try:
+                response = requests.get(API_URL + f"/machines/{machine_id}")
+                machine: Dict[str, Any] = response.json()
+            except Exception:
+                # stacktraceをログして継続
+                logger.exception(traceback.format_exc())
+                continue
+
+            # collect_statusがRECORDEDになるのは、停止ボタン押下後全てのバイナリファイルが捌けたとき。
+            if machine["collect_status"] == common.COLLECT_STATUS.RECORDED.value:
+                logger.info(f"data recording process stopped. Thread ID [{threading.get_ident()}]")
+                break
 
             # 対象機器のファイルリストを作成
             files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, machine_id, "dat")
 
-            # ファイルがない状態が続けば終了
+            # バイナリファイルが未生成のタイミングはあり得る（例えばネットワーク遅延等）
             if files_info is None:
-                stop_counter += 1
-                if stop_counter == STOP_THRESHOLD:
-                    logger.info(f"data recording process stopped. Thread ID [{threading.get_ident()}]")
-                    break
-                logger.info(f"No files in {data_dir}")
+                logger.debug(f"No files in {data_dir}")
                 continue
-
-            stop_counter = 0
 
             # NOTE: 生成中のファイルを読み込まないよう、安全バッファとして3秒待つ
             time.sleep(3)
@@ -157,6 +165,7 @@ class DataRecorderService:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 
         BYTE_SIZE: Final[int] = 8
+        ROUND_DIGITS: Final[int] = 3
         SAMPLING_CH_NUM: Final[int] = data_collect_history.sampling_ch_num
         ROW_BYTE_SIZE: Final[int] = BYTE_SIZE * SAMPLING_CH_NUM  # 8 byte * チャネル数
         UNPACK_FORMAT: Final[str] = "<" + "d" * SAMPLING_CH_NUM  # 5chの場合 "<ddddd"
@@ -182,12 +191,12 @@ class DataRecorderService:
             sample: Dict[str, Any] = {
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
-                displacement_sensor_id: round(dataset[0], 3),
+                displacement_sensor_id: round(dataset[0], ROUND_DIGITS),
             }
 
             # 変位センサー以外のセンサー
             for i, s in enumerate(sensor_ids_other_than_displacement):
-                sample[s] = round(dataset[i + 1], 3)
+                sample[s] = round(dataset[i + 1], ROUND_DIGITS)
 
             samples.append(sample)
 
