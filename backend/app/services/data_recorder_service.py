@@ -9,10 +9,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, Final, List, Optional, Tuple
 
-import requests
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.machine import Machine
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.file_manager.file_manager import FileInfo, FileManager
@@ -71,22 +73,19 @@ class DataRecorderService:
         num_of_records: int = 0
         INTERVAL: Final[int] = 1
         data_dir: str = os.environ["data_dir"]
-        API_URL: Final[str] = os.environ["API_URL"]
 
-        # データ収集が停止されるまで無限ループ実行。
+        # データ収集が停止されるまで一定間隔で無限ループ実行。
         while True:
             time.sleep(INTERVAL)
-            # NOTE: db sessionを使いまわすと更新データが取得できないため、API呼び出し
-            try:
-                response = requests.get(API_URL + f"/machines/{machine_id}")
-                machine: Dict[str, Any] = response.json()
-            except Exception:
-                # stacktraceをログして継続
-                logger.exception(traceback.format_exc())
-                continue
+
+            # NOTE: db sessionを使いまわすと更新データが取得できないため、新しいsessionを用意
+            _db: Session = SessionLocal()
+            machine: Machine = CRUDMachine.select_by_id(_db, machine_id)
+            collect_status: str = machine.collect_status
+            _db.close()
 
             # collect_statusがRECORDEDになるのは、停止ボタン押下後全てのバイナリファイルが捌けたとき。
-            if machine["collect_status"] == common.COLLECT_STATUS.RECORDED.value:
+            if collect_status == common.COLLECT_STATUS.RECORDED.value:
                 logger.info(f"data recording process stopped. Thread ID [{threading.get_ident()}]")
                 break
 
