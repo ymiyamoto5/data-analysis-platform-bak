@@ -110,3 +110,4 @@ if __name__ == "__main__":
     machine_id = "-".join(args.dir.split("-")[:-1])
     db: Session = SessionLocal()
     DataRecorder.manual_record(db, machine_id, target_dir)
+    db.close()
