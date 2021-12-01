@@ -158,6 +158,15 @@ export default {
       let xData = data.map((x) => formatTime(x.timestamp))
       // y軸データ
       const stroke_displacementData = data.map((x) => x.stroke_displacement)
+      // ストローク変位しきい値を取得
+      this.$emit(
+        'setMaxStrokeDisplacement',
+        Math.round(Math.max.apply(null, stroke_displacementData)),
+      )
+      this.$emit(
+        'setMinStrokeDisplacement',
+        Math.round(Math.min.apply(null, stroke_displacementData)),
+      )
       // TODO: 動的に数を決定する
       const load01 = data.map((x) => x.load01)
 
