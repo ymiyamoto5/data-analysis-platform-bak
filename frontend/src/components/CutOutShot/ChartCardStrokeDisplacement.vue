@@ -161,11 +161,11 @@ export default {
       // ストローク変位しきい値を取得
       this.$emit(
         'setMaxStrokeDisplacement',
-        Math.round(Math.max.apply(null, stroke_displacementData)),
+        Math.max.apply(null, stroke_displacementData),
       )
       this.$emit(
         'setMinStrokeDisplacement',
-        Math.round(Math.min.apply(null, stroke_displacementData)),
+        Math.min.apply(null, stroke_displacementData),
       )
 
       // TODO: 動的に数を決定する
