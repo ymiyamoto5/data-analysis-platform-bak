@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import datetime, timedelta
+from typing import Final
 
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
@@ -15,7 +16,13 @@ from backend.app.models.machine_type import MachineType
 from backend.app.models.sensor import Sensor
 from backend.app.models.sensor_type import SensorType
 from backend.common import common
+from dotenv import load_dotenv
 from sqlalchemy import event
+
+env_file = ".env"
+load_dotenv(env_file)
+
+DATA_DIR: Final[str] = os.environ["data_dir"]
 
 
 # NOTE: 外部キー制約無効化
@@ -127,6 +134,7 @@ data_collect_history_01 = DataCollectHistory(
     ended_at=datetime(2021, 3, 27, 14, 15, 14, 0) + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=5,
+    processed_dir_path=os.path.join(DATA_DIR, "machine-h-20210327141514"),
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
@@ -357,6 +365,7 @@ data_collect_history_demo = DataCollectHistory(
     ended_at=demo_started_at + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=5,
+    processed_dir_path=os.path.join(DATA_DIR, "machine-01-20210709190000"),
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
@@ -475,6 +484,7 @@ data_collect_history_j_1 = DataCollectHistory(
     ended_at=j_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=2,
+    processed_dir_path="/mnt/datadrive/data/machine-j-20210801094030",
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
@@ -527,6 +537,7 @@ data_collect_history_j_2 = DataCollectHistory(
     ended_at=j_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
     sampling_frequency=100000,
     sampling_ch_num=2,
+    processed_dir_path=os.path.join(DATA_DIR, "machine-j-20211009155626"),
     sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(

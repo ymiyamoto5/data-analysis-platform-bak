@@ -58,18 +58,6 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "data_recorder",
-            "type": "python",
-            "module": "backend.data_recorder.data_recorder",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
-            "args": [
-                "--debug"
-            ],
-            "preLaunchTask": "Sleepdelay"
-        },
-        {
             "name": "data_recorder(manual record)",
             "type": "python",
             "module": "backend.data_recorder.data_recorder",
@@ -79,7 +67,7 @@
             "args": [
                 "-d=machine-h-20210327141514"
             ],
-            "preLaunchTask": "Sleepdelay"
+            // "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "FastAPI",
@@ -160,20 +148,6 @@
             "configurations": [
                 "FastAPI",
                 "chrome"
-            ]
-        },
-        {
-            "name": "data_recorder with FastAPI",
-            "configurations": [
-                "FastAPI",
-                "data_recorder"
-            ]
-        },
-        {
-            "name": "data_recorder(manual) with FastAPI",
-            "configurations": [
-                "FastAPI",
-                "data_recorder(manual record)"
             ]
         }
     ]
