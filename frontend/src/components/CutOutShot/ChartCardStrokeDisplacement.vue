@@ -167,6 +167,7 @@ export default {
         'setMinStrokeDisplacement',
         Math.round(Math.min.apply(null, stroke_displacementData)),
       )
+
       // TODO: 動的に数を決定する
       const load01 = data.map((x) => x.load01)
 
