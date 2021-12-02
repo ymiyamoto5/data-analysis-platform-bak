@@ -31,7 +31,7 @@
         </v-col>
         <v-col cols="9">
           <ChartCardStrokeDisplacement
-            v-if="cutOutSensor === 'stroke_displacement'"
+            v-if="dataSelected && cutOutSensor === 'stroke_displacement'"
             :machineId="machineId"
             :targetDateStr="targetDateStr"
             :startStrokeDisplacement="startStrokeDisplacement"
@@ -120,7 +120,7 @@ export default {
       machineId: '',
       targetDateStr: '', // yyyyMMdd文字列
       cutOutSensor: '', // 切り出し対象となるセンサー種（ストローク変位またはパルス）
-      startStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット開始ストローク変位値
+      startStrokeDisplacement: 100, // ストローク変位センサーで切り出す場合のショット開始ストローク変位値
       endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
