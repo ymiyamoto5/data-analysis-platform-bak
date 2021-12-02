@@ -47,23 +47,13 @@
         </v-expansion-panel-content>
       </v-expansion-panel>
     </v-expansion-panels>
-    <v-snackbar v-model="snackbar" timeout="10000" top color="error">
-      <h3>{{ snackbarHeader }}</h3>
-      {{ snackbarMessage }}
-
-      <template v-slot:action="{ attrs }">
-        <v-btn color="white" text v-bind="attrs" @click="snackbar = false">
-          Close
-        </v-btn>
-      </template>
-    </v-snackbar>
   </v-container>
 </template>
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 const CONTAINER_API_URL = '/api/v1/models/container/'
-const CONTAINER_PORT_API_URL = CONTAINER_API_URL + 'ports/'
+const CONTAINER_PORT_API_URL = CONTAINER_API_URL + 'ports'
 const CONTAINER_RUN_API_URL = CONTAINER_API_URL + 'run/'
 const CONTAINER_STOP_API_URL = CONTAINER_API_URL + 'stop/'
 
@@ -123,6 +113,11 @@ export default {
     this.fetchBindedPorts()
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     makeAttribute(container) {
       return {
         image: container.image,
@@ -155,6 +150,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response)
+          this.errorSnackbar(e.response)
         })
     },
     containerStateChange: async function(index) {
@@ -181,10 +177,8 @@ export default {
           this.fetchBindedPorts()
         })
         .catch((e) => {
-          this.snackbarHeader = e.response.statusText
-          this.snackbarMessage = e.response.data.detail
-          this.snackbar = true
           console.log(e.response)
+          this.errorSnackbar(e.response)
         })
     },
     deleteContainer: async function(index) {
@@ -199,7 +193,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response)
-          this.errorDialog(e.response)
+          this.errorSnackbar(e.response)
         })
     },
   },

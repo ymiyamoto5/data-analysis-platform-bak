@@ -44,6 +44,11 @@ export default {
     this.fetchAlgorithms()
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     fetchAlgorithms: async function() {
       const client = createBaseApiClient()
       await client
@@ -57,6 +62,7 @@ export default {
         })
         .catch((e) => {
           console.log(e)
+          this.errorSnackbar(e.response)
         })
     },
   },
