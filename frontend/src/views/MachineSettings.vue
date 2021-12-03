@@ -1,5 +1,5 @@
 <template>
-  <app>
+  <v-app>
     <v-data-table
       :headers="headers"
       :items="machines"
@@ -41,6 +41,74 @@
                     item-value="machine_type_id"
                     :items="machineTypes"
                     label="機種"
+                  >
+                  </v-select>
+                  <!-- <v-row>
+                    <div size="100px">
+                      自動ショット切り出し
+                    </div>
+                    <v-checkbox
+                      v-model="editedItem.auto_cut_out_shot"
+                      hide-details
+                    ></v-checkbox
+                  ></v-row> -->
+                  <v-checkbox
+                    v-model="editedItem.auto_cut_out_shot"
+                    hide-details
+                    label="自動ショット切り出し"
+                  ></v-checkbox>
+                  <v-text-field
+                    v-model="editedItem.start_displacement"
+                    :disabled="!editedItem.auto_cut_out_shot"
+                    :rules="[rules.displacementRange]"
+                    label="切り出し開始変位値"
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="editedItem.end_displacement"
+                    :disabled="!editedItem.auto_cut_out_shot"
+                    :rules="[rules.displacementRange]"
+                    label="切り出し終了変位値"
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="editedItem.margin"
+                    :disabled="!editedItem.auto_cut_out_shot"
+                    :rules="[rules.marginRange]"
+                    label="マージン"
+                  >
+                    <template v-slot:append-outer>
+                      <v-tooltip bottom>
+                        <template v-slot:activator="{ on }">
+                          <v-icon v-on="on">
+                            mdi-help-circle-outline
+                          </v-icon>
+                        </template>
+                        <div>
+                          ショット切り出し開始後の変位値上昇に対するマージン。ショット切り出しにおいて変位値は単調減少であることを前提としているが、ノイズ等の影響で単調減少しないときのための調整パラメータ。
+                          <br />
+                          例）ショット切り出し開始しきい値を 100.0、マージン
+                          0.0の場合、変位値が 100.0
+                          に到達した後にノイズサンプルで
+                          100.1が計測されるとショット終了とみなして切り出しが終了してしまう。
+                          <br />
+                          マージンを0.1
+                          に設定すると、100.1が計測されたとしてもショット切り出しを終了しない。
+                        </div>
+                      </v-tooltip>
+                    </template>
+                  </v-text-field>
+                  <v-select
+                    v-model="editedItem.predict_model"
+                    :disabled="!editedItem.auto_cut_out_shot"
+                    :items="models"
+                    label="モデル"
+                    @input="setModel"
+                  >
+                  </v-select>
+                  <v-select
+                    v-model="editedItem.model_version"
+                    :disabled="!editedItem.auto_cut_out_shot"
+                    :items="versions"
+                    label="バージョン"
                   >
                   </v-select>
                 </v-form>
@@ -94,13 +162,15 @@
         </v-btn>
       </template>
     </v-snackbar>
-  </app>
+  </v-app>
 </template>
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 const MACHINES_API_URL = '/api/v1/machines/'
 const MACHINE_TYPES_API_URL = '/api/v1/machine_types/'
+const MODELS_API_URL = '/api/v1/models/'
+const MODEL_VERSIONS_API_URL = '/api/v1/models/versions'
 
 export default {
   data: () => ({
@@ -122,13 +192,28 @@ export default {
       machine_id: '',
       machine_name: '',
       machine_type_id: 0,
+      auto_cut_out_shot: '',
+      start_displacement: '',
+      end_displacement: '',
+      margin: '',
+      predict_model: '',
+      model_version: '',
     },
     defaultItem: {
       machine_id: '',
       machine_name: '',
       machine_type_id: 0,
+      auto_cut_out_shot: '',
+      start_displacement: '',
+      end_displacement: '',
+      margin: '',
+      predict_model: '',
+      model_version: '',
     },
     machineTypes: [],
+    models: [],
+    selectedModel: '',
+    versions: [],
     snackbar: false,
     snackbarHeader: '',
     snackbarMessage: '',
@@ -143,6 +228,10 @@ export default {
           '半角のアルファベット/数字/ハイフンのみ使用可能です。'
         )
       },
+      displacementRange: (value) =>
+        (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
+      marginRange: (value) =>
+        (value >= 0.0 && value <= 10000.0) || '0.0～10000.0のみ使用可能です。',
     },
   }),
 
@@ -163,11 +252,15 @@ export default {
     dialogDelete(val) {
       val || this.closeDelete()
     },
+    selectedModel: function() {
+      this.fetchVersions()
+    },
   },
 
   created() {
     this.fetchTableData()
     this.fetchMachineTypes()
+    this.fetchModels()
   },
 
   methods: {
@@ -194,6 +287,43 @@ export default {
         })
     },
 
+    fetchModels: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(MODELS_API_URL)
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          this.models = res.data
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+    setModel(model) {
+      this.selectedModel = model
+    },
+    fetchVersions: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(MODEL_VERSIONS_API_URL, {
+          params: { model: this.selectedModel },
+        })
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          this.versions = res.data
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
+    // テーブル用データ取得
     fetchTableData: async function() {
       const client = createBaseApiClient()
       let data = []
