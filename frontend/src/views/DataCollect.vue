@@ -1,5 +1,5 @@
 <template>
-  <app>
+  <v-app>
     <v-card>
       <v-card-title>
         データ収集
@@ -144,7 +144,7 @@
         </v-btn>
       </template>
     </v-snackbar>
-  </app>
+  </v-app>
 </template>
 
 <script>

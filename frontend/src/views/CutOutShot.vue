@@ -20,6 +20,8 @@
             v-if="dataSelected && cutOutSensor === 'stroke_displacement'"
             @input="setStrokeDisplacementRange"
             :targetDateStr="targetDateStr"
+            :maxStrokeDisplacement="maxStrokeDisplacement"
+            :minStrokeDisplacement="minStrokeDisplacement"
           ></StrokeDisplacementRangeSlider>
           <ThresholdSlider
             v-if="dataSelected && cutOutSensor === 'pulse'"
@@ -29,13 +31,15 @@
         </v-col>
         <v-col cols="9">
           <ChartCardStrokeDisplacement
-            v-if="cutOutSensor === 'stroke_displacement'"
+            v-if="dataSelected && cutOutSensor === 'stroke_displacement'"
             :machineId="machineId"
             :targetDateStr="targetDateStr"
             :startStrokeDisplacement="startStrokeDisplacement"
             :endStrokeDisplacement="endStrokeDisplacement"
             :page="page"
             @setMaxPage="setMaxPage"
+            @setMaxStrokeDisplacement="maxStrokeDisplacement = $event"
+            @setMinStrokeDisplacement="minStrokeDisplacement = $event"
           />
           <ChartCardPulse
             v-if="cutOutSensor === 'pulse'"
@@ -133,6 +137,8 @@ export default {
       collectData: '', // データ収集開始日時 - 終了日時文字列
       margin: '0.0',
       marginValidate: true,
+      maxStrokeDisplacement: 0, // ストローク変位しきい値の最大値
+      minStrokeDisplacement: 0, // ストローク変位しきい値の最小値
       snackbar: false,
       snackbarMessage: '',
     }
