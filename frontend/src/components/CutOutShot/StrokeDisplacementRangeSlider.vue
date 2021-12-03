@@ -49,19 +49,19 @@ export default {
       console.log()
     },
     minStrokeDisplacement(val) {
-      this.min = val - 10.0
-      this.$set(this.range, 1, this.min)
+      this.min = val
+      this.$set(this.range, 1, val)
     },
     maxStrokeDisplacement(val) {
-      this.max = val + 10.0
-      this.$set(this.range, 0, this.max)
+      this.max = val
+      this.$set(this.range, 0, val)
     },
   },
   data() {
     return {
-      min: 0,
-      max: 100,
-      range: [0, 100],
+      min: 0, // しきい値スライダーの最小値
+      max: 0, // しきい値スライダーの最大値
+      range: [0, 0], // しきい値の範囲 [start_displacement, end_displacement]
     }
   },
 }
