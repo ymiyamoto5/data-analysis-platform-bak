@@ -43,74 +43,89 @@
                     label="機種"
                   >
                   </v-select>
-                  <!-- <v-row>
-                    <div size="100px">
-                      自動ショット切り出し
-                    </div>
+                  <template v-if="editedIndex !== -1">
+                    <!-- <v-switch v-model="switchMe">
+                      <template v-slot:label>
+                        Turn on the progress:
+                        <v-checkbox
+                          hide-details
+                          size="24"
+                          class="ml-2"
+                        ></v-checkbox>
+                      </template>
+                    </v-switch> -->
+                    <!-- <v-row>
+                      <p class="text-h6">自動ショット切り出し</p>
+                      <v-checkbox v-model="test" hide-details></v-checkbox>
+                    </v-row> -->
                     <v-checkbox
                       v-model="editedItem.auto_cut_out_shot"
                       hide-details
-                    ></v-checkbox
-                  ></v-row> -->
-                  <v-checkbox
-                    v-model="editedItem.auto_cut_out_shot"
-                    hide-details
-                    label="自動ショット切り出し"
-                  ></v-checkbox>
-                  <v-text-field
-                    v-model="editedItem.start_displacement"
-                    :disabled="!editedItem.auto_cut_out_shot"
-                    :rules="[rules.displacementRange]"
-                    label="切り出し開始変位値"
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="editedItem.end_displacement"
-                    :disabled="!editedItem.auto_cut_out_shot"
-                    :rules="[rules.displacementRange]"
-                    label="切り出し終了変位値"
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="editedItem.margin"
-                    :disabled="!editedItem.auto_cut_out_shot"
-                    :rules="[rules.marginRange]"
-                    label="マージン"
-                  >
-                    <template v-slot:append-outer>
-                      <v-tooltip bottom>
-                        <template v-slot:activator="{ on }">
-                          <v-icon v-on="on">
-                            mdi-help-circle-outline
-                          </v-icon>
-                        </template>
-                        <div>
-                          ショット切り出し開始後の変位値上昇に対するマージン。ショット切り出しにおいて変位値は単調減少であることを前提としているが、ノイズ等の影響で単調減少しないときのための調整パラメータ。
-                          <br />
-                          例）ショット切り出し開始しきい値を 100.0、マージン
-                          0.0の場合、変位値が 100.0
-                          に到達した後にノイズサンプルで
-                          100.1が計測されるとショット終了とみなして切り出しが終了してしまう。
-                          <br />
-                          マージンを0.1
-                          に設定すると、100.1が計測されたとしてもショット切り出しを終了しない。
-                        </div>
-                      </v-tooltip>
-                    </template>
-                  </v-text-field>
-                  <v-select
-                    v-model="editedItem.predict_model"
-                    :disabled="!editedItem.auto_cut_out_shot"
-                    :items="models"
-                    label="モデル"
-                    @input="setModel"
-                  >
-                  </v-select>
-                  <v-select
-                    v-model="editedItem.model_version"
-                    :disabled="!editedItem.auto_cut_out_shot"
-                    :items="versions"
-                    label="バージョン"
-                  >
-                  </v-select>
+                      label="自動ショット切り出し"
+                      @change="resetCutOutShot"
+                    ></v-checkbox>
+                    <v-text-field
+                      v-model="editedItem.start_displacement"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[rules.displacementRange]"
+                      label="切り出し開始変位値"
+                    ></v-text-field>
+                    <v-text-field
+                      v-model="editedItem.end_displacement"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[rules.displacementRange]"
+                      label="切り出し終了変位値"
+                    ></v-text-field>
+                    <v-text-field
+                      v-model="editedItem.margin"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[rules.marginRange]"
+                      label="マージン"
+                    >
+                      <template v-slot:append-outer>
+                        <v-tooltip bottom>
+                          <template v-slot:activator="{ on }">
+                            <v-icon v-on="on">
+                              mdi-help-circle-outline
+                            </v-icon>
+                          </template>
+                          <div>
+                            ショット切り出し開始後の変位値上昇に対するマージン。ショット切り出しにおいて変位値は単調減少であることを前提としているが、ノイズ等の影響で単調減少しないときのための調整パラメータ。
+                            <br />
+                            例）ショット切り出し開始しきい値を 100.0、マージン
+                            0.0の場合、変位値が 100.0
+                            に到達した後にノイズサンプルで
+                            100.1が計測されるとショット終了とみなして切り出しが終了してしまう。
+                            <br />
+                            マージンを0.1
+                            に設定すると、100.1が計測されたとしてもショット切り出しを終了しない。
+                          </div>
+                        </v-tooltip>
+                      </template>
+                    </v-text-field>
+                    <v-checkbox
+                      v-model="editedItem.auto_predict"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      hide-details
+                      label="自動予測"
+                      @change="resetPredict"
+                    ></v-checkbox>
+                    <v-select
+                      v-model="editedItem.predict_model"
+                      :disabled="!editedItem.auto_predict"
+                      :items="models"
+                      label="モデル"
+                      @input="setModel"
+                    >
+                    </v-select>
+                    <v-select
+                      v-model="editedItem.model_version"
+                      :disabled="!editedItem.auto_predict"
+                      :items="versions"
+                      label="バージョン"
+                    >
+                    </v-select>
+                  </template>
                 </v-form>
               </v-card-text>
 
@@ -192,10 +207,11 @@ export default {
       machine_id: '',
       machine_name: '',
       machine_type_id: 0,
-      auto_cut_out_shot: '',
+      auto_cut_out_shot: false,
       start_displacement: '',
       end_displacement: '',
       margin: '',
+      auto_predict: false,
       predict_model: '',
       model_version: '',
     },
@@ -203,10 +219,11 @@ export default {
       machine_id: '',
       machine_name: '',
       machine_type_id: 0,
-      auto_cut_out_shot: '',
+      auto_cut_out_shot: false,
       start_displacement: '',
       end_displacement: '',
       margin: '',
+      auto_predict: false,
       predict_model: '',
       model_version: '',
     },
@@ -397,6 +414,29 @@ export default {
             console.log(e.response.data.detail)
             this.errorSnackbar(e.response)
           })
+      }
+    },
+
+    // 自動ショット切り出しがfalseになったとき、切り出し変位値とマージンと自動予測を未設定の状態にする
+    resetCutOutShot: async function() {
+      if (!this.editedItem.auto_cut_out_shot) {
+        this.editedItem.start_displacement = ''
+        this.editedItem.end_displacement = ''
+        this.editedItem.margin = ''
+        if (this.editedItem.auto_predict) {
+          this.editedItem.auto_predict = false
+          this.resetPredict()
+        }
+      }
+    },
+
+    // 自動予測がfalseになったとき、モデルとバージョンを未設定の状態にする
+    resetPredict: async function() {
+      if (!this.editedItem.auto_predict) {
+        this.editedItem.predict_model = ''
+        this.editedItem.model_version = ''
+        this.selectedModel = ''
+        this.versions = []
       }
     },
 
