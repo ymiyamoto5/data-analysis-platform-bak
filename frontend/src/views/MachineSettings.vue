@@ -55,7 +55,7 @@
                       </template>
                     </v-switch> -->
                     <!-- <v-row>
-                      <p class="text-h6">自動ショット切り出し</p>
+                      <v-text-field label="Include files"></v-text-field>
                       <v-checkbox v-model="test" hide-details></v-checkbox>
                     </v-row> -->
                     <v-checkbox
@@ -159,6 +159,12 @@
           </v-dialog>
         </v-toolbar>
       </template>
+      <template v-slot:[`item.auto_cut_out_shot`]="{ item }">
+        <v-checkbox v-model="item.auto_cut_out_shot" disabled></v-checkbox>
+      </template>
+      <template v-slot:[`item.auto_predict`]="{ item }">
+        <v-checkbox v-model="item.auto_predict" disabled></v-checkbox>
+      </template>
       <template v-slot:[`item.actions`]="{ item }">
         <v-icon small class="mr-2" @click="editItem(item)">
           mdi-pencil
@@ -199,7 +205,13 @@ export default {
       },
       { text: '機器名', value: 'machine_name' },
       { text: '機種', value: 'machine_type.machine_type_name' },
-      { text: 'アクション', value: 'actions', sortable: false },
+      {
+        text: '自動ショット切り出し',
+        value: 'auto_cut_out_shot',
+        width: '15%',
+      },
+      { text: '自動予測', value: 'auto_predict', width: '10%' },
+      { text: 'アクション', value: 'actions', sortable: false, width: '10%' },
     ],
     machines: [],
     editedIndex: -1,
@@ -423,10 +435,11 @@ export default {
         this.editedItem.start_displacement = ''
         this.editedItem.end_displacement = ''
         this.editedItem.margin = ''
-        if (this.editedItem.auto_predict) {
-          this.editedItem.auto_predict = false
-          this.resetPredict()
-        }
+      }
+
+      if (this.editedItem.auto_predict) {
+        this.editedItem.auto_predict = false
+        this.resetPredict()
       }
     },
 

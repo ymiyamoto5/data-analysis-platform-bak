@@ -70,6 +70,13 @@
           </v-card>
         </template>
 
+        <template v-slot:[`item.auto_cut_out_shot`]="{ item }">
+          <v-checkbox v-model="item.auto_cut_out_shot" disabled></v-checkbox>
+        </template>
+        <template v-slot:[`item.auto_predict`]="{ item }">
+          <v-checkbox v-model="item.auto_predict" disabled></v-checkbox>
+        </template>
+
         <template v-slot:[`item.actions`]="{ item }">
           <v-btn
             v-if="item.collect_status === 'recorded'"
@@ -171,13 +178,13 @@ export default {
           value: 'machine_id',
           width: '10%',
         },
-        { text: '機器名', value: 'machine_name', width: '15%' },
-        { text: '機種', value: 'machine_type.machine_type_name', width: '15%' },
+        { text: '機器名', value: 'machine_name', width: '10%' },
+        { text: '機種', value: 'machine_type.machine_type_name', width: '10%' },
         {
           text: 'ゲートウェイID',
           value: 'gateways',
           sortable: false,
-          width: '15%',
+          width: '10%',
         },
         {
           text: 'ハンドラーID',
@@ -185,8 +192,14 @@ export default {
           sortable: false,
           width: '15%',
         },
-        { text: 'センサー', value: 'sensors', sortable: false, width: '20%' },
-        { text: 'アクション', value: 'actions', sortable: false, width: '20%' },
+        { text: 'センサー', value: 'sensors', sortable: false, width: '15%' },
+        {
+          text: '自動ショット切り出し',
+          value: 'auto_cut_out_shot',
+          width: '10%',
+        },
+        { text: '自動予測', value: 'auto_predict', width: '10%' },
+        { text: 'アクション', value: 'actions', sortable: false, width: '10%' },
       ],
       machines: [],
       collectStatus: '',
