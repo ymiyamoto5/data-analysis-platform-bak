@@ -29,6 +29,13 @@ class Machine(MachineBase):
     machine_type_id: int
     machine_type: MachineType
     gateways: List[Gateway] = []
+    auto_cut_out_shot: bool
+    start_displacement: Optional[float] = None
+    end_displacement: Optional[float] = None
+    margin: Optional[float] = None
+    auto_predict: bool
+    predict_model: Optional[str] = None
+    model_version: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -43,3 +50,10 @@ class MachineCreate(MachineBase):
 class MachineUpdate(MachineBase):
     machine_name: Optional[str] = Field(max_length=255)
     machine_type_id: Optional[int]
+    auto_cut_out_shot: Optional[bool]
+    start_displacement: Optional[float]
+    end_displacement: Optional[float]
+    margin: Optional[float]
+    auto_predict: Optional[bool]
+    predict_model: Optional[str]
+    model_version: Optional[str]

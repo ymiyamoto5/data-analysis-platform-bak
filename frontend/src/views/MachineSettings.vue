@@ -44,20 +44,6 @@
                   >
                   </v-select>
                   <template v-if="editedIndex !== -1">
-                    <!-- <v-switch v-model="switchMe">
-                      <template v-slot:label>
-                        Turn on the progress:
-                        <v-checkbox
-                          hide-details
-                          size="24"
-                          class="ml-2"
-                        ></v-checkbox>
-                      </template>
-                    </v-switch> -->
-                    <!-- <v-row>
-                      <v-text-field label="Include files"></v-text-field>
-                      <v-checkbox v-model="test" hide-details></v-checkbox>
-                    </v-row> -->
                     <v-checkbox
                       v-model="editedItem.auto_cut_out_shot"
                       hide-details
@@ -261,6 +247,10 @@ export default {
         (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
       marginRange: (value) =>
         (value >= 0.0 && value <= 10000.0) || '0.0～10000.0のみ使用可能です。',
+      // autoCutOutShotRequired: (value) =>
+      //   (!this.editedItem.auto_cut_out_shot && !!value) || '必須です。',
+      // autoPredictRequired: (value) =>
+      //   (this.editedItem.auto_predict && !!value) || '必須です。',
     },
   }),
 
@@ -401,6 +391,13 @@ export default {
         body = {
           machine_name: this.editedItem.machine_name,
           machine_type_id: this.editedItem.machine_type_id,
+          auto_cut_out_shot: this.editedItem.auto_cut_out_shot,
+          start_displacement: this.editedItem.start_displacement,
+          end_displacement: this.editedItem.end_displacement,
+          margin: this.editedItem.margin,
+          auto_predict: this.editedItem.auto_predict,
+          predict_model: this.editedItem.predict_model,
+          model_version: this.editedItem.model_version,
         }
         await client
           .put(url, body)
@@ -437,9 +434,9 @@ export default {
     // 自動ショット切り出しがfalseになったとき、切り出し変位値とマージンと自動予測を未設定の状態にする
     resetCutOutShot: async function() {
       if (!this.editedItem.auto_cut_out_shot) {
-        this.editedItem.start_displacement = ''
-        this.editedItem.end_displacement = ''
-        this.editedItem.margin = ''
+        this.editedItem.start_displacement = null
+        this.editedItem.end_displacement = null
+        this.editedItem.margin = null
       }
 
       if (this.editedItem.auto_predict) {
@@ -451,8 +448,8 @@ export default {
     // 自動予測がfalseになったとき、モデルとバージョンを未設定の状態にする
     resetPredict: async function() {
       if (!this.editedItem.auto_predict) {
-        this.editedItem.predict_model = ''
-        this.editedItem.model_version = ''
+        this.editedItem.predict_model = null
+        this.editedItem.model_version = null
         this.selectedModel = ''
         this.versions = []
       }
