@@ -160,10 +160,10 @@
         </v-toolbar>
       </template>
       <template v-slot:[`item.auto_cut_out_shot`]="{ item }">
-        <v-checkbox v-model="item.auto_cut_out_shot" disabled></v-checkbox>
+        {{ formatBool(item.auto_cut_out_shot) }}
       </template>
       <template v-slot:[`item.auto_predict`]="{ item }">
-        <v-checkbox v-model="item.auto_predict" disabled></v-checkbox>
+        {{ formatBool(item.auto_predict) }}
       </template>
       <template v-slot:[`item.actions`]="{ item }">
         <v-icon small class="mr-2" @click="editItem(item)">
@@ -370,6 +370,11 @@ export default {
           console.log(e.response.data.detail)
           this.errorSnackbar(e.response)
         })
+    },
+
+    // 自動ショット切り出しと自動予測のbool値を表示用にフォーマット
+    formatBool(bool) {
+      return bool ? 'ON' : 'OFF'
     },
 
     // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
