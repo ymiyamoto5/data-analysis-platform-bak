@@ -127,6 +127,11 @@ export default {
     }
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     fetchData: async function() {
       this.display = true
 
@@ -151,6 +156,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     createChartData: function(data) {
@@ -158,6 +164,16 @@ export default {
       let xData = data.map((x) => formatTime(x.timestamp))
       // y軸データ
       const stroke_displacementData = data.map((x) => x.stroke_displacement)
+      // ストローク変位しきい値を取得
+      this.$emit(
+        'setMaxStrokeDisplacement',
+        Math.max.apply(null, stroke_displacementData),
+      )
+      this.$emit(
+        'setMinStrokeDisplacement',
+        Math.min.apply(null, stroke_displacementData),
+      )
+
       // TODO: 動的に数を決定する
       const load01 = data.map((x) => x.load01)
 

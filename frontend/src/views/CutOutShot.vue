@@ -20,6 +20,8 @@
             v-if="dataSelected && cutOutSensor === 'stroke_displacement'"
             @input="setStrokeDisplacementRange"
             :targetDateStr="targetDateStr"
+            :maxStrokeDisplacement="maxStrokeDisplacement"
+            :minStrokeDisplacement="minStrokeDisplacement"
           ></StrokeDisplacementRangeSlider>
           <ThresholdSlider
             v-if="dataSelected && cutOutSensor === 'pulse'"
@@ -29,13 +31,15 @@
         </v-col>
         <v-col cols="9">
           <ChartCardStrokeDisplacement
-            v-if="cutOutSensor === 'stroke_displacement'"
+            v-if="dataSelected && cutOutSensor === 'stroke_displacement'"
             :machineId="machineId"
             :targetDateStr="targetDateStr"
             :startStrokeDisplacement="startStrokeDisplacement"
             :endStrokeDisplacement="endStrokeDisplacement"
             :page="page"
             @setMaxPage="setMaxPage"
+            @setMaxStrokeDisplacement="maxStrokeDisplacement = $event"
+            @setMinStrokeDisplacement="minStrokeDisplacement = $event"
           />
           <ChartCardPulse
             v-if="cutOutSensor === 'pulse'"
@@ -60,11 +64,20 @@
         </v-col>
       </v-row>
 
+      <v-row v-if="dataSelected && cutOutSensor === 'stroke_displacement'">
+        <v-col cols="2">
+          <MarginTextField
+            @input="margin = $event"
+            @check="marginValidate = $event"
+          ></MarginTextField>
+        </v-col>
+      </v-row>
+
       <v-row justify="center" v-if="dataSelected">
         <v-btn
           color="primary"
           @click="start"
-          :disabled="running"
+          :disabled="running || !marginValidate"
           :loading="running"
           >ショット切り出し開始</v-btn
         >
@@ -89,6 +102,7 @@ import ChartCardStrokeDisplacement from '@/components/CutOutShot/ChartCardStroke
 import ChartCardPulse from '@/components/CutOutShot/ChartCardPulse.vue'
 import StrokeDisplacementRangeSlider from '@/components/CutOutShot/StrokeDisplacementRangeSlider.vue'
 import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
+import MarginTextField from '@/components/CutOutShot/MarginTextField.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
 const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor'
@@ -104,6 +118,7 @@ export default {
     CollectDataSelect,
     ChartCardStrokeDisplacement,
     ChartCardPulse,
+    MarginTextField,
   },
   data() {
     return {
@@ -120,11 +135,20 @@ export default {
       endStrokeDisplacement: 0, // ストローク変位センサーで切り出す場合のショット終了ストローク変位値
       threshold: 0, // パルスで切り出す場合のしきい値
       collectData: '', // データ収集開始日時 - 終了日時文字列
+      margin: '0.0',
+      marginValidate: true,
+      maxStrokeDisplacement: 0, // ストローク変位しきい値の最大値
+      minStrokeDisplacement: 0, // ストローク変位しきい値の最小値
       snackbar: false,
       snackbarMessage: '',
     }
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     setMachine(value) {
       this.dataSelected = false
       this.targetDateStr = ''
@@ -165,6 +189,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
 
@@ -186,6 +211,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
 
@@ -211,6 +237,7 @@ export default {
           start_stroke_displacement: this.startStrokeDisplacement,
           end_stroke_displacement: this.endStrokeDisplacement,
           target_date_str: this.targetDateStr,
+          margin: this.margin,
         }
       } else if (this.cutOutSensor === 'pulse') {
         url = CUT_OUT_SHOT_PULSE_API_URL
@@ -230,7 +257,9 @@ export default {
           this.snackbar = true
         })
         .catch((e) => {
+          this.running = false
           console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     setMaxPage(maxPage) {
