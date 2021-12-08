@@ -8,6 +8,7 @@ import pandas as pd
 from backend.app.api.endpoints import features
 from backend.app.schemas import model
 from backend.app.services.bento_service import ModelClassifier
+from backend.app.worker.celery import celery_app
 from backend.elastic_manager.elastic_manager import ElasticManager
 from docker.errors import APIError  # type: ignore
 from fastapi import APIRouter, HTTPException, exceptions
@@ -232,3 +233,13 @@ def predict_label(predict: model.Predict):
     ElasticManager.es.index(index=insert_index, body=body, refresh=True)
 
     return {"data": data, "label": result}
+
+
+@router.post("/predictor")
+def run_predictor():
+    task_name = None
+    task_name = "backend.app.worker.tasks.predictor.test_celery"
+
+    task = celery_app.send_task(task_name, ["arg"])
+
+    return {"task_id": task.id, "task_info": task.info}
