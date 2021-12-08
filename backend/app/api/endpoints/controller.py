@@ -82,7 +82,7 @@ def setup(
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
-    return {"processed_dir_path": processed_dir_path}
+    return
 
 
 @router.post("/run-data-recorder/{machine_id}")
