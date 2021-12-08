@@ -67,6 +67,11 @@ export default {
     }
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     setModel(value) {
       this.model = value['model']
       this.version = value['version']
@@ -99,7 +104,9 @@ export default {
           this.snackbar = true
         })
         .catch((e) => {
+          this.running = false
           console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
   },

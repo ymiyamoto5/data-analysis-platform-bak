@@ -12,8 +12,9 @@ export default new Vuex.Store({
     confirmMsg: '',
     callbackFunc: null,
     callbackFuncParam: null,
-    // ErrorDialog
-    showErrorDialog: false,
+    // ErrorSnackbar
+    showErrorSnackbar: false,
+    errorHeader: '',
     errorMsg: '',
   },
   mutations: {
@@ -30,9 +31,12 @@ export default new Vuex.Store({
     setCallbackFuncParam(state, callbackFuncParam) {
       state.callbackFuncParam = callbackFuncParam
     },
-    // ErrorDialog
-    setShowErrorDialog(state, showErrorDialog) {
-      state.showErrorDialog = showErrorDialog
+    // ErrorSnackbar
+    setShowErrorSnackbar(state, showErrorSnackbar) {
+      state.showErrorSnackbar = showErrorSnackbar
+    },
+    setErrorHeader(state, errorHeader) {
+      state.errorHeader = errorHeader
     },
     setErrorMsg(state, errorMsg) {
       state.errorMsg = errorMsg

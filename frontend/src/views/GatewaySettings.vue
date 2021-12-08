@@ -177,9 +177,10 @@ export default {
   },
 
   methods: {
-    errorDialog(message) {
-      this.$store.commit('setShowErrorDialog', true)
-      this.$store.commit('setErrorMsg', message)
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
     },
 
     // ドロップダウンリスト用データ取得
@@ -197,7 +198,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
 
@@ -214,7 +215,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
 
@@ -249,7 +250,7 @@ export default {
           })
           .catch((e) => {
             console.log(e.response.data.detail)
-            this.errorDialog(e.response.data.detail)
+            this.errorSnackbar(e.response)
           })
       }
       // insert
@@ -268,7 +269,7 @@ export default {
           })
           .catch((e) => {
             console.log(e.response.data.detail)
-            this.errorDialog(e.response.data.detail)
+            this.errorSnackbar(e.response)
           })
       }
     },
@@ -304,7 +305,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
 

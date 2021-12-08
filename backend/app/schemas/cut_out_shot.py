@@ -10,6 +10,7 @@ class CutOutShotBase(BaseModel):
 class CutOutShotStrokeDisplacement(CutOutShotBase):
     start_stroke_displacement: float = Field(..., ge=0.0, le=100.0)
     end_stroke_displacement: float = Field(..., ge=0.0, le=100.0)
+    margin: float = Field(..., ge=0.0, le=10000.0)
 
 
 class CutOutShotPulse(CutOutShotBase):

@@ -1,5 +1,5 @@
 <template>
-  <app>
+  <v-app>
     <v-card>
       <v-card-title>
         データ収集
@@ -144,7 +144,7 @@
         </v-btn>
       </template>
     </v-snackbar>
-  </app>
+  </v-app>
 </template>
 
 <script>
@@ -205,9 +205,10 @@ export default {
       this.$store.commit('setCallbackFunc', callback)
       this.$store.commit('setCallbackFuncParam', param)
     },
-    errorDialog(message) {
-      this.$store.commit('setShowErrorDialog', true)
-      this.$store.commit('setErrorMsg', message)
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
     },
     fetchTableData: async function() {
       const client = createBaseApiClient()
@@ -222,7 +223,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     setup: async function(machine_id) {
@@ -234,7 +235,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     start: async function(machine_id) {
@@ -246,7 +247,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     beforeStop(machine_id) {
@@ -263,7 +264,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     check: async function(machine_id) {
@@ -277,7 +278,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     pause: async function(machine_id) {
@@ -289,7 +290,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     resume: async function(machine_id) {
@@ -301,7 +302,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
     beforeReset(machine_id) {
@@ -318,7 +319,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
   },

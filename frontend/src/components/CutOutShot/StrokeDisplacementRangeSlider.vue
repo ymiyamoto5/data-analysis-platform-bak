@@ -42,18 +42,26 @@
 
 <script>
 export default {
-  props: ['targetDateStr'],
+  props: ['targetDateStr', 'maxStrokeDisplacement', 'minStrokeDisplacement'],
   watch: {
     targetDateStr: function() {
       // TODO: 対象に応じて動的に設定
       console.log()
     },
+    minStrokeDisplacement(val) {
+      this.min = val
+      this.$set(this.range, 1, val)
+    },
+    maxStrokeDisplacement(val) {
+      this.max = val
+      this.$set(this.range, 0, val)
+    },
   },
   data() {
     return {
-      min: 0,
-      max: 100,
-      range: [100, 0],
+      min: 0, // しきい値スライダーの最小値
+      max: 0, // しきい値スライダーの最大値
+      range: [0, 0], // しきい値の範囲 [start_displacement, end_displacement]
     }
   },
 }

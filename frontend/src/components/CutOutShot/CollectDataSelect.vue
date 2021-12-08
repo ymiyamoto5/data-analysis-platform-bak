@@ -29,6 +29,11 @@ export default {
     },
   },
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
     fetchCollectData: async function(machineId) {
       const client = createBaseApiClient()
       let history = []
@@ -52,7 +57,7 @@ export default {
         })
         .catch((e) => {
           console.log(e.response.data.detail)
-          this.errorDialog(e.response.data.detail)
+          this.errorSnackbar(e.response)
         })
     },
   },
