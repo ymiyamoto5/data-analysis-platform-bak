@@ -1,5 +1,5 @@
 <template>
-  <app>
+  <v-app>
     <v-data-table
       :headers="headers"
       :items="machines"
@@ -43,6 +43,77 @@
                     label="機種"
                   >
                   </v-select>
+                  <template v-if="editedIndex !== -1">
+                    <v-checkbox
+                      v-model="editedItem.auto_cut_out_shot"
+                      hide-details
+                      label="自動ショット切り出し"
+                      @change="resetCutOutShot"
+                    ></v-checkbox>
+                    <v-text-field
+                      v-model="editedItem.start_displacement"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[autoCutOutShotRequired, rules.displacementRange]"
+                      label="切り出し開始変位値"
+                    ></v-text-field>
+                    <v-text-field
+                      v-model="editedItem.end_displacement"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[autoCutOutShotRequired, rules.displacementRange]"
+                      label="切り出し終了変位値"
+                    ></v-text-field>
+                    <v-text-field
+                      v-model="editedItem.margin"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[autoCutOutShotRequired, rules.marginRange]"
+                      label="マージン"
+                    >
+                      <template v-slot:append-outer>
+                        <v-tooltip bottom>
+                          <template v-slot:activator="{ on }">
+                            <v-icon v-on="on">
+                              mdi-help-circle-outline
+                            </v-icon>
+                          </template>
+                          <div>
+                            ショット切り出し開始後の変位値上昇に対するマージン。ショット切り出しにおいて変位値は単調減少であることを前提としているが、ノイズ等の影響で単調減少しないときのための調整パラメータ。
+                            <br />
+                            例）ショット切り出し開始しきい値を 100.0、マージン
+                            0.0の場合、変位値が 100.0
+                            に到達した後にノイズサンプルで
+                            100.1が計測されるとショット終了とみなして切り出しが終了してしまう。
+                            <br />
+                            マージンを0.1
+                            に設定すると、100.1が計測されたとしてもショット切り出しを終了しない。
+                          </div>
+                        </v-tooltip>
+                      </template>
+                    </v-text-field>
+                    <v-checkbox
+                      v-model="editedItem.auto_predict"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      hide-details
+                      label="自動予測"
+                      @change="resetPredict"
+                    ></v-checkbox>
+                    <v-select
+                      v-model="editedItem.predict_model"
+                      :disabled="!editedItem.auto_predict"
+                      :rules="[autoPredictRequired]"
+                      :items="models"
+                      label="モデル"
+                      @input="setModel"
+                    >
+                    </v-select>
+                    <v-select
+                      v-model="editedItem.model_version"
+                      :disabled="!editedItem.auto_predict"
+                      :rules="[autoPredictRequired]"
+                      :items="versions"
+                      label="バージョン"
+                    >
+                    </v-select>
+                  </template>
                 </v-form>
               </v-card-text>
 
@@ -76,6 +147,12 @@
           </v-dialog>
         </v-toolbar>
       </template>
+      <template v-slot:[`item.auto_cut_out_shot`]="{ item }">
+        {{ formatBool(item.auto_cut_out_shot) }}
+      </template>
+      <template v-slot:[`item.auto_predict`]="{ item }">
+        {{ formatBool(item.auto_predict) }}
+      </template>
       <template v-slot:[`item.actions`]="{ item }">
         <v-icon small class="mr-2" @click="editItem(item)">
           mdi-pencil
@@ -94,13 +171,15 @@
         </v-btn>
       </template>
     </v-snackbar>
-  </app>
+  </v-app>
 </template>
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 const MACHINES_API_URL = '/api/v1/machines/'
 const MACHINE_TYPES_API_URL = '/api/v1/machine_types/'
+const MODELS_API_URL = '/api/v1/models/'
+const MODEL_VERSIONS_API_URL = '/api/v1/models/versions'
 
 export default {
   data: () => ({
@@ -114,7 +193,13 @@ export default {
       },
       { text: '機器名', value: 'machine_name' },
       { text: '機種', value: 'machine_type.machine_type_name' },
-      { text: 'アクション', value: 'actions', sortable: false },
+      {
+        text: '自動ショット切り出し',
+        value: 'auto_cut_out_shot',
+        width: '15%',
+      },
+      { text: '自動予測', value: 'auto_predict', width: '10%' },
+      { text: 'アクション', value: 'actions', sortable: false, width: '10%' },
     ],
     machines: [],
     editedIndex: -1,
@@ -122,13 +207,30 @@ export default {
       machine_id: '',
       machine_name: '',
       machine_type_id: 0,
+      auto_cut_out_shot: false,
+      start_displacement: '',
+      end_displacement: '',
+      margin: '',
+      auto_predict: false,
+      predict_model: '',
+      model_version: '',
     },
     defaultItem: {
       machine_id: '',
       machine_name: '',
       machine_type_id: 0,
+      auto_cut_out_shot: false,
+      start_displacement: '',
+      end_displacement: '',
+      margin: '',
+      auto_predict: false,
+      predict_model: '',
+      model_version: '',
     },
     machineTypes: [],
+    models: [],
+    selectedModel: '',
+    versions: [],
     snackbar: false,
     snackbarHeader: '',
     snackbarMessage: '',
@@ -143,6 +245,10 @@ export default {
           '半角のアルファベット/数字/ハイフンのみ使用可能です。'
         )
       },
+      displacementRange: (value) =>
+        (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
+      marginRange: (value) =>
+        (value >= 0.0 && value <= 10000.0) || '0.0～10000.0のみ使用可能です。',
     },
   }),
 
@@ -152,6 +258,21 @@ export default {
     },
     readOnlyID() {
       return this.editedIndex === -1 ? { disabled: false } : { disabled: true }
+    },
+    // validation
+    autoCutOutShotRequired() {
+      let rule = true
+      if (this.editedItem.auto_cut_out_shot) {
+        rule = (value) => (value !== null && value !== '') || '必須です。'
+      }
+      return rule
+    },
+    autoPredictRequired() {
+      let rule = true
+      if (this.editedItem.auto_predict) {
+        rule = (value) => value !== null || '必須です。'
+      }
+      return rule
     },
   },
 
@@ -163,11 +284,15 @@ export default {
     dialogDelete(val) {
       val || this.closeDelete()
     },
+    selectedModel: function() {
+      this.fetchVersions()
+    },
   },
 
   created() {
     this.fetchTableData()
     this.fetchMachineTypes()
+    this.fetchModels()
   },
 
   methods: {
@@ -194,6 +319,43 @@ export default {
         })
     },
 
+    fetchModels: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(MODELS_API_URL)
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          this.models = res.data
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+    setModel(model) {
+      this.selectedModel = model
+    },
+    fetchVersions: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(MODEL_VERSIONS_API_URL, {
+          params: { model: this.selectedModel },
+        })
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          this.versions = res.data
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
+    // テーブル用データ取得
     fetchTableData: async function() {
       const client = createBaseApiClient()
       let data = []
@@ -213,10 +375,19 @@ export default {
         })
     },
 
+    // 自動ショット切り出しと自動予測のbool値を表示用にフォーマット
+    formatBool(bool) {
+      return bool ? 'ON' : 'OFF'
+    },
+
     // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
       this.editedIndex = this.machines.indexOf(item)
       this.editedItem = Object.assign({}, item)
+      // 編集ダイアログ表示のとき、予測モデルが設定済みの場合はバージョンを取得する
+      if (this.editedItem.predict_model !== null) {
+        this.selectedModel = this.editedItem.predict_model
+      }
       this.dialog = true
     },
 
@@ -237,6 +408,13 @@ export default {
         body = {
           machine_name: this.editedItem.machine_name,
           machine_type_id: this.editedItem.machine_type_id,
+          auto_cut_out_shot: this.editedItem.auto_cut_out_shot,
+          start_displacement: this.editedItem.start_displacement,
+          end_displacement: this.editedItem.end_displacement,
+          margin: this.editedItem.margin,
+          auto_predict: this.editedItem.auto_predict,
+          predict_model: this.editedItem.predict_model,
+          model_version: this.editedItem.model_version,
         }
         await client
           .put(url, body)
@@ -267,6 +445,30 @@ export default {
             console.log(e.response.data.detail)
             this.errorSnackbar(e.response)
           })
+      }
+    },
+
+    // 自動ショット切り出しがfalseになったとき、切り出し変位値とマージンと自動予測を未設定の状態にする
+    resetCutOutShot: async function() {
+      if (!this.editedItem.auto_cut_out_shot) {
+        this.editedItem.start_displacement = null
+        this.editedItem.end_displacement = null
+        this.editedItem.margin = null
+      }
+
+      if (this.editedItem.auto_predict) {
+        this.editedItem.auto_predict = false
+        this.resetPredict()
+      }
+    },
+
+    // 自動予測がfalseになったとき、モデルとバージョンを未設定の状態にする
+    resetPredict: async function() {
+      if (!this.editedItem.auto_predict) {
+        this.editedItem.predict_model = null
+        this.editedItem.model_version = null
+        this.selectedModel = ''
+        this.versions = []
       }
     },
 
