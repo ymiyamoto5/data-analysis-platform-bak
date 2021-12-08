@@ -9,7 +9,6 @@ from backend.app.api.deps import get_db
 from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
-from backend.app.schemas.data_recorder import DataRecorderBase
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
 from backend.common import common
