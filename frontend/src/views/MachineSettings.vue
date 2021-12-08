@@ -53,19 +53,19 @@
                     <v-text-field
                       v-model="editedItem.start_displacement"
                       :disabled="!editedItem.auto_cut_out_shot"
-                      :rules="[rules.displacementRange]"
+                      :rules="[autoCutOutShotRequired, rules.displacementRange]"
                       label="切り出し開始変位値"
                     ></v-text-field>
                     <v-text-field
                       v-model="editedItem.end_displacement"
                       :disabled="!editedItem.auto_cut_out_shot"
-                      :rules="[rules.displacementRange]"
+                      :rules="[autoCutOutShotRequired, rules.displacementRange]"
                       label="切り出し終了変位値"
                     ></v-text-field>
                     <v-text-field
                       v-model="editedItem.margin"
                       :disabled="!editedItem.auto_cut_out_shot"
-                      :rules="[rules.marginRange]"
+                      :rules="[autoCutOutShotRequired, rules.marginRange]"
                       label="マージン"
                     >
                       <template v-slot:append-outer>
@@ -99,6 +99,7 @@
                     <v-select
                       v-model="editedItem.predict_model"
                       :disabled="!editedItem.auto_predict"
+                      :rules="[autoPredictRequired]"
                       :items="models"
                       label="モデル"
                       @input="setModel"
@@ -107,6 +108,7 @@
                     <v-select
                       v-model="editedItem.model_version"
                       :disabled="!editedItem.auto_predict"
+                      :rules="[autoPredictRequired]"
                       :items="versions"
                       label="バージョン"
                     >
@@ -247,10 +249,6 @@ export default {
         (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
       marginRange: (value) =>
         (value >= 0.0 && value <= 10000.0) || '0.0～10000.0のみ使用可能です。',
-      // autoCutOutShotRequired: (value) =>
-      //   (!this.editedItem.auto_cut_out_shot && !!value) || '必須です。',
-      // autoPredictRequired: (value) =>
-      //   (this.editedItem.auto_predict && !!value) || '必須です。',
     },
   }),
 
@@ -260,6 +258,21 @@ export default {
     },
     readOnlyID() {
       return this.editedIndex === -1 ? { disabled: false } : { disabled: true }
+    },
+    // validation
+    autoCutOutShotRequired() {
+      let rule = true
+      if (this.editedItem.auto_cut_out_shot) {
+        rule = (value) => (value !== null && value !== '') || '必須です。'
+      }
+      return rule
+    },
+    autoPredictRequired() {
+      let rule = true
+      if (this.editedItem.auto_predict) {
+        rule = (value) => value !== null || '必須です。'
+      }
+      return rule
     },
   },
 
@@ -371,6 +384,10 @@ export default {
     editItem(item) {
       this.editedIndex = this.machines.indexOf(item)
       this.editedItem = Object.assign({}, item)
+      // 編集ダイアログ表示のとき、予測モデルが設定済みの場合はバージョンを取得する
+      if (this.editedItem.predict_model !== null) {
+        this.selectedModel = this.editedItem.predict_model
+      }
       this.dialog = true
     },
 
