@@ -143,7 +143,6 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-    network_mode: 'host'
     ports:
       - "4369:4369"
       - "5672:5672"
@@ -151,24 +150,33 @@ services:
       - "15672:15672"
   redis:
     image: redis:latest
-    network_mode: 'host'
     ports:
       - "6379:6379"
   worker:
     build:
-      context: .
-      dockerfile: ./celery.dockerfile
+      context: ~/data-analysis-platform
+      dockerfile: docker/celery.dockerfile
     volumes:
       - ~/data-analysis-platform/backend:/backend
     environment:
-      - CELERY_BROKER_URL=pyamqp://guest:guest@localhost:5672
-      - CELERY_RESULT_BACKEND=redis://localhost/0
-    network_mode: 'host'
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     command: celery -A backend.app.worker worker -l info
     depends_on:
       - webap
       - rabbitmq
       - redis
+  flower:  
+    image: mher/flower
+    environment:
+      - no_proxy=rabbitmq
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
+      - FLOWER_PORT=5555
+    ports:  
+      - 5555:5555
+    depends_on:
+      - rabbitmq
+      - worker
 
 networks:
   mlflow_network:
