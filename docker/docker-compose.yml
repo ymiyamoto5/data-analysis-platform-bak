@@ -154,8 +154,8 @@ services:
       - "6379:6379"
   worker:
     build:
-      context: .
-      dockerfile: ./celery.dockerfile
+      context: ~/data-analysis-platform
+      dockerfile: docker/celery.dockerfile
     volumes:
       - ~/data-analysis-platform/backend:/backend
     environment:
