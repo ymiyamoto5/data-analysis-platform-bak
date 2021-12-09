@@ -81,7 +81,9 @@
           <v-btn
             v-if="item.collect_status === 'recorded'"
             color="primary"
-            @click="setup(item.machine_id)"
+            @click="
+              setup(item.machine_id, item.auto_cut_out_shot, item.auto_predict)
+            "
           >
             段取開始
           </v-btn>
@@ -160,6 +162,9 @@ import { createBaseApiClient } from '@/api/apiBase'
 const MACHINES_API_URL = '/api/v1/machines/'
 const CONTROLLER_API_URL = '/api/v1/controller/'
 const SETUP_API_URL = CONTROLLER_API_URL + 'setup/'
+const RUN_DATA_RECORDER_API_URL = CONTROLLER_API_URL + 'run-data-recorder/'
+const RUN_CUT_OUT_SHOT_API_URL = CONTROLLER_API_URL + 'run-cut-out-shot/'
+const RUN_PREDICTOR_API_URL = CONTROLLER_API_URL + 'run-predictor/'
 const START_API_URL = CONTROLLER_API_URL + 'start/'
 const STOP_API_URL = CONTROLLER_API_URL + 'stop/'
 const CHECK_API_URL = CONTROLLER_API_URL + 'check/'
@@ -243,13 +248,50 @@ export default {
     formatBool(bool) {
       return bool ? 'ON' : 'OFF'
     },
-    setup: async function(machine_id) {
+    setup: async function(machine_id, auto_cut_out_shot, auto_predict) {
       const client = createBaseApiClient()
       await client
         .post(SETUP_API_URL + machine_id)
         .then(() => {
+          this.runDataRecorder(machine_id)
+          if (auto_cut_out_shot) {
+            this.runCutOutShot(machine_id)
+          }
+          if (auto_predict) {
+            this.runPredictor(machine_id)
+          }
           this.fetchTableData()
         })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+    runDataRecorder: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(RUN_DATA_RECORDER_API_URL + machine_id)
+        .then(() => {})
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+    runCutOutShot: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(RUN_CUT_OUT_SHOT_API_URL + machine_id)
+        .then(() => {})
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+    runPredictor: async function(machine_id) {
+      const client = createBaseApiClient()
+      await client
+        .post(RUN_PREDICTOR_API_URL + machine_id)
+        .then(() => {})
         .catch((e) => {
           console.log(e.response.data.detail)
           this.errorSnackbar(e.response)
