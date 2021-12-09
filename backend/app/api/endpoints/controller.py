@@ -91,12 +91,9 @@ def run_auto_data_recorder(
 ):
     """data_recorderタスクを登録"""
 
-    # NOTE: DBから取得
-    processed_dir_path: str = "tmp"
-
     task_name = "backend.app.worker.tasks.data_recorder.data_recorder_task"
 
-    task = celery_app.send_task(task_name, [machine_id, processed_dir_path])
+    task = celery_app.send_task(task_name, (machine_id,))
 
     return {"task_id": task.id, "task_info": task.info}
 

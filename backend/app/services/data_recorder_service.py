@@ -42,7 +42,7 @@ class DataRecorderService:
         return processed_dir_path
 
     @staticmethod
-    def record(db: Session, machine_id: str):
+    def record(db: Session, machine_id: str) -> None:
         """バイナリデータをpklに変換して出力する。backgroundtasksにて別スレッドで実行。"""
 
         logger.info(f"data recording process started. Thread ID [{threading.get_ident()}]")
