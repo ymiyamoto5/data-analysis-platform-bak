@@ -15,4 +15,6 @@ def data_recorder_task(machine_id: str) -> str:
 
     DataRecorderService.record(db, machine_id)
 
+    db.close()
+
     return f"data recording task finished. {machine_id}"
