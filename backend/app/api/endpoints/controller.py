@@ -9,11 +9,13 @@ from backend.app.api.deps import get_db
 from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
+from backend.app.schemas.data_recorder import DataRecorderBase
 from backend.app.services.data_recorder_service import DataRecorderService
+from backend.app.worker.celery import celery_app
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -57,7 +59,6 @@ def validation(machine: Machine, collect_status: str, status) -> Tuple[bool, Opt
 
 @router.post("/setup/{machine_id}")
 def setup(
-    background_tasks: BackgroundTasks,
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     db: Session = Depends(get_db),
 ):
@@ -81,10 +82,24 @@ def setup(
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
-    # data_recorder起動
-    background_tasks.add_task(DataRecorderService.record, db, machine_id)
-
     return
+
+
+@router.post("/run-data-recorder/{machine_id}")
+def run_auto_data_recorder(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """data_recorderタスクを登録"""
+
+    # NOTE: DBから取得
+    processed_dir_path: str = "tmp"
+
+    task_name = "backend.app.worker.tasks.data_recorder.data_recorder_task"
+
+    task = celery_app.send_task(task_name, [machine_id, processed_dir_path])
+
+    return {"task_id": task.id, "task_info": task.info}
 
 
 @router.post("/start/{machine_id}")
