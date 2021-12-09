@@ -158,6 +158,7 @@ services:
       dockerfile: docker/celery.dockerfile
     volumes:
       - ~/data-analysis-platform/backend:/backend
+    env_file: ~/data-analysis-platform/.env
     environment:
       - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
