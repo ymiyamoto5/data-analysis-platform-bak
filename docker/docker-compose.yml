@@ -161,8 +161,8 @@ services:
     volumes:
       - ~/data-analysis-platform/backend:/backend
     environment:
-      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CELERY_BROKER_URL=pyamqp://guest:guest@localhost:5672
+      - CELERY_RESULT_BACKEND=redis://localhost/0
     network_mode: 'host'
     command: celery -A backend.app.worker worker -l info
     depends_on:
