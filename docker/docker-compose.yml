@@ -143,7 +143,6 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-    network_mode: 'host'
     ports:
       - "4369:4369"
       - "5672:5672"
@@ -151,7 +150,6 @@ services:
       - "15672:15672"
   redis:
     image: redis:latest
-    network_mode: 'host'
     ports:
       - "6379:6379"
   worker:
@@ -163,7 +161,6 @@ services:
     environment:
       - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    network_mode: 'host'
     command: celery -A backend.app.worker worker -l info
     depends_on:
       - webap
