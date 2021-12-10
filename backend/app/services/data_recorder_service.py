@@ -42,10 +42,10 @@ class DataRecorderService:
         return processed_dir_path
 
     @staticmethod
-    def record(db: Session, machine_id: str):
-        """バイナリデータをpklに変換して出力する。backgroundtasksにて別スレッドで実行。"""
+    def record(db: Session, machine_id: str) -> None:
+        """バイナリデータをpklに変換して出力する。celeryタスクから実行。"""
 
-        logger.info(f"data recording process started. Thread ID [{threading.get_ident()}]")
+        logger.info(f"data recording process started. machine_id: {machine_id}")
 
         try:
             latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
@@ -86,7 +86,7 @@ class DataRecorderService:
 
             # collect_statusがRECORDEDになるのは、停止ボタン押下後全てのバイナリファイルが捌けたとき。
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
-                logger.info(f"data recording process stopped. Thread ID [{threading.get_ident()}]")
+                logger.info(f"data recording process stopped. machine_id: {machine_id}")
                 break
 
             # 対象機器のファイルリストを作成
