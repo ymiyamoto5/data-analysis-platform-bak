@@ -64,11 +64,7 @@
                     </v-btn>
                   </v-date-picker>
                 </v-menu>
-              </v-form>
-            </v-card-text>
 
-            <v-card-text>
-              <v-form ref="form_group">
                 <v-menu
                   ref="time_menu"
                   v-model="editedItem.time_menu"
@@ -97,11 +93,78 @@
                     @click:second="$refs.time_menu.save(time)"
                   ></v-time-picker>
                 </v-menu>
-              </v-form>
-            </v-card-text>
 
-            <v-card-text>
-              <v-form ref="form_group">
+                <v-menu
+                  ref="ended_date_menu"
+                  v-model="editedItem.ended_date_menu"
+                  :close-on-content-click="false"
+                  transition="scale-transition"
+                  offset-y
+                >
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-text-field
+                      v-model="editedItem.ended_dateFormatted"
+                      label="終了日付"
+                      prepend-icon="mdi-calendar"
+                      readonly
+                      v-bind="attrs"
+                      v-on="on"
+                    ></v-text-field>
+                  </template>
+                  <v-date-picker
+                    v-model="ended_date"
+                    no-title
+                    scrollable
+                    width="450px"
+                    color="primary"
+                  >
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      text
+                      color="primary"
+                      @click="editedItem.ended_date_menu = false"
+                    >
+                      キャンセル
+                    </v-btn>
+                    <v-btn
+                      text
+                      color="primary"
+                      @click="$refs.ended_date_menu.save(ended_date)"
+                    >
+                      OK
+                    </v-btn>
+                  </v-date-picker>
+                </v-menu>
+
+                <v-menu
+                  ref="ended_time_menu"
+                  v-model="editedItem.ended_time_menu"
+                  :close-on-content-click="false"
+                  :return-value.sync="ended_time"
+                  transition="scale-transition"
+                  offset-y
+                >
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-text-field
+                      v-model="editedItem.ended_time"
+                      label="終了時刻"
+                      prepend-icon="mdi-clock-time-four-outline"
+                      readonly
+                      v-bind="attrs"
+                      v-on="on"
+                      :disabled="editedItem.ended_dateFormatted === null"
+                    ></v-text-field>
+                  </template>
+                  <v-time-picker
+                    v-if="editedItem.ended_time_menu"
+                    v-model="editedItem.ended_time"
+                    format="24hr"
+                    use-seconds
+                    full-width
+                    @click:second="$refs.ended_time_menu.save(ended_time)"
+                  ></v-time-picker>
+                </v-menu>
+
                 <v-text-field
                   v-model="editedItem.tag"
                   :rules="[rules.required, rules.counter]"
@@ -162,9 +225,13 @@ export default {
     dialogDelete: false,
     headers: [
       {
-        text: '日時',
+        text: '開始日時',
         align: 'start',
         value: 'occurred_at',
+      },
+      {
+        text: '終了日時',
+        value: 'ended_at',
       },
       { text: 'タグ', value: 'tag' },
       { text: 'アクション', value: 'actions', sortable: false },
@@ -173,10 +240,12 @@ export default {
     date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
       .toISOString()
       .substr(0, 10),
+    ended_date: null,
     editedIndex: -1,
     editedItem: {
       id: '',
       occurred_at: '',
+      ended_at: null,
       tag: '',
       dateFormatted: vm.formatDate(
         new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -186,10 +255,15 @@ export default {
       date_menu: false,
       time: '00:00:00',
       time_menu: false,
+      ended_dateFormatted: null,
+      ended_date_menu: false,
+      ended_time: null,
+      ended_time_menu: false,
     },
     defaultItem: {
       id: '',
       occurred_at: '',
+      ended_at: null,
       tag: '',
       dateFormatted: vm.formatDate(
         new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -199,6 +273,10 @@ export default {
       date_menu: false,
       time: '00:00:00',
       time_menu: false,
+      ended_dateFormatted: null,
+      ended_date_menu: false,
+      ended_time: null,
+      ended_time_menu: false,
     },
     rules: {
       required: (value) => !!value || '必須です。',
@@ -225,6 +303,9 @@ export default {
     },
     date() {
       this.editedItem.dateFormatted = this.formatDate(this.date)
+    },
+    ended_date() {
+      this.editedItem.ended_dateFormatted = this.formatDate(this.ended_date)
     },
   },
 
@@ -253,6 +334,15 @@ export default {
             obj.dateFormatted = formatDate(obj.occurred_at)
             obj.time = formatTime(obj.occurred_at)
             obj.occurred_at = formatJST(obj.occurred_at)
+            if (obj.ended_at === null) {
+              obj.ended_dateFormatted = this.defaultItem.ended_dateFormatted
+              obj.ended_time = this.defaultItem.ended_time
+              obj.ended_at = this.defaultItem.ended_at
+            } else {
+              obj.ended_dateFormatted = formatDate(obj.ended_at)
+              obj.ended_time = formatTime(obj.ended_at)
+              obj.ended_at = formatJST(obj.ended_at)
+            }
             return obj
           })
         })
@@ -277,9 +367,18 @@ export default {
       }
 
       let url = ''
-      let datetime = formatUTC(
+      let occurred_datetime = formatUTC(
         this.editedItem.dateFormatted + ' ' + this.editedItem.time,
       )
+      let ended_datetime = null
+      if (this.editedItem.ended_dateFormatted !== null) {
+        ended_datetime = formatUTC(
+          this.editedItem.ended_dateFormatted +
+            ' ' +
+            this.editedItem.ended_time,
+        )
+      }
+
       let body = {}
       const client = createBaseApiClient()
 
@@ -287,7 +386,8 @@ export default {
       if (this.editedIndex > -1) {
         url = TAGS_API_URL + this.editedItem.id
         body = {
-          occurred_at: datetime,
+          occurred_at: occurred_datetime,
+          ended_at: ended_datetime,
           tag: this.editedItem.tag,
         }
         await client
@@ -305,7 +405,8 @@ export default {
       else {
         url = TAGS_API_URL
         body = {
-          occurred_at: datetime,
+          occurred_at: occurred_datetime,
+          ended_at: ended_datetime,
           tag: this.editedItem.tag,
         }
         await client
