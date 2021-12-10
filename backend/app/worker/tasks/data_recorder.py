@@ -9,7 +9,7 @@ from sqlalchemy.orm.session import Session
 def data_recorder_task(machine_id: str) -> str:
     """データ記録処理をceleryタスクに登録する"""
 
-    current_task.update_state(state="PROGRESS", meta={"message": "data recording start"})
+    current_task.update_state(state="PROGRESS", meta={"message": f"data recording start. machine_id: {machine_id}"})
 
     db: Session = SessionLocal()
 
@@ -17,4 +17,4 @@ def data_recorder_task(machine_id: str) -> str:
 
     db.close()
 
-    return f"data recording task finished. {machine_id}"
+    return f"data recording task finished. machine_id: {machine_id}"
