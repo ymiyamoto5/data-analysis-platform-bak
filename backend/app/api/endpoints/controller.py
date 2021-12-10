@@ -84,29 +84,6 @@ def setup(
     return
 
 
-@router.post("/run-data-recorder/{machine_id}")
-def run_data_recorder(
-    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
-    db: Session = Depends(get_db),
-):
-    """data_recorderタスクを登録"""
-
-    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
-
-    # 段取状態かつGW開始状態であることが前提
-    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
-    if not is_valid:
-        raise HTTPException(status_code=error_code, detail=message)
-
-    task_name = "backend.app.worker.tasks.data_recorder.data_recorder_task"
-
-    task = celery_app.send_task(task_name, (machine_id,))
-
-    logger.info(f"data_recorder started. task_id: {task.id}")
-
-    return {"task_id": task.id, "task_info": task.info}
-
-
 @router.post("/start/{machine_id}")
 def start(
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
@@ -260,3 +237,49 @@ def reset(
         raise HTTPException(status_code=500, detail="DB update error.")
 
     return
+
+
+@router.post("/run-data-recorder/{machine_id}")
+def run_data_recorder(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """data_recorderタスクを登録"""
+
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+
+    # 段取状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        raise HTTPException(status_code=error_code, detail=message)
+
+    task_name = "backend.app.worker.tasks.data_recorder.data_recorder_task"
+
+    task = celery_app.send_task(task_name, (machine_id,))
+
+    logger.info(f"data_recorder started. task_id: {task.id}")
+
+    return {"task_id": task.id, "task_info": task.info}
+
+
+@router.post("/run-cut-out-shot/{machine_id}")
+def run_cut_out_shot(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """cut_out_shotタスクを登録"""
+
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+
+    # 段取状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        raise HTTPException(status_code=error_code, detail=message)
+
+    task_name = "backend.app.worker.tasks.cut_out_shot.cut_out_shot_task"
+
+    task = celery_app.send_task(task_name, (machine_id,))
+
+    logger.info(f"cut_out_shot started. task_id: {task.id}")
+
+    return {"task_id": task.id, "task_info": task.info}

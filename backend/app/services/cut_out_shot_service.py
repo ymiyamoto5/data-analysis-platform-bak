@@ -5,12 +5,20 @@ from typing import List, Optional
 import pandas as pd
 from backend.app.models.sensor import Sensor
 from backend.common import common
+from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.file_manager.file_manager import FileInfo, FileManager
 from pandas.core.frame import DataFrame
+from sqlalchemy.orm.session import Session
 
 
 class CutOutShotService:
+    @staticmethod
+    def auto_cut_out_shot(db: Session, machine_id: str) -> None:
+        """自動ショット切り出し"""
+
+        logger.info(f"cut_out_shot process started. machine_id: {machine_id}")
+
     @staticmethod
     def get_target_dir(target_date_timestamp: str) -> str:
         """ブラウザから文字列で渡されたUNIXTIME(ミリ秒単位）から、データディレクトリ名の日付文字列を特定して返却"""
