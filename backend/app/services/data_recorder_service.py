@@ -2,7 +2,6 @@ import os
 import shutil
 import struct
 import sys
-import threading
 import time
 import traceback
 from datetime import datetime, timedelta
