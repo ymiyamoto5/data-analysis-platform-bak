@@ -69,7 +69,7 @@ class TestCreate:
         # NOTE: 末尾スラッシュがないと307 redirectになってしまう。
         self.endpoint = "/api/v1/machines/"
         self.data = {
-            "machine_id": "test-machine-01",
+            "machine_id": "new-test-machine",
             "machine_name": "Test-Press",
             "machine_type_id": 1,
         }
