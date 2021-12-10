@@ -102,6 +102,8 @@ def run_data_recorder(
 
     task = celery_app.send_task(task_name, (machine_id,))
 
+    logger.info(f"data_recorder started. task_id: {task.id}")
+
     return {"task_id": task.id, "task_info": task.info}
 
 
