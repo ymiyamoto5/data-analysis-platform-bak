@@ -85,11 +85,18 @@ def setup(
 
 
 @router.post("/run-data-recorder/{machine_id}")
-def run_auto_data_recorder(
+def run_data_recorder(
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     db: Session = Depends(get_db),
 ):
     """data_recorderタスクを登録"""
+
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+
+    # 段取状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        raise HTTPException(status_code=error_code, detail=message)
 
     task_name = "backend.app.worker.tasks.data_recorder.data_recorder_task"
 

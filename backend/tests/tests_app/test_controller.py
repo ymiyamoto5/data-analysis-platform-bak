@@ -51,6 +51,33 @@ class TestSetup:
         assert response.status_code == 500
 
 
+class TestRunAutoDataRecorder:
+    @pytest.fixture
+    def init(self):
+        self.machine_id = "test-machine-01"
+        self.endpoint = f"/api/v1/controller/run-data-recorder/{self.machine_id}"
+
+    def test_normal(self, client, mocker, init):
+        # TODO: task_idやステータスの確認を追加し、インテグレーションテストにする
+        # https://testdriven.io/blog/fastapi-and-celery/#tests
+
+        mocker.patch.object(controller, "validation", return_value=(True, None, 200))
+
+        response = client.post(self.endpoint)
+
+        assert response.status_code == 200
+
+    def test_validation_error(self, client, mocker, init):
+        """validation関数で何らかのエラーが発生した場合を想定。
+        validation関数自体は別テストケースとする。"""
+
+        mocker.patch.object(controller, "validation", return_value=(False, "Some error occurred.", 500))
+
+        response = client.post(self.endpoint)
+
+        assert response.status_code == 500
+
+
 class TestStart:
     @pytest.fixture
     def init(self):
