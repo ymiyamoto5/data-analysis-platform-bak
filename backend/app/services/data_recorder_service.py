@@ -43,7 +43,7 @@ class DataRecorderService:
 
     @staticmethod
     def record(db: Session, machine_id: str) -> None:
-        """バイナリデータをpklに変換して出力する。backgroundtasksにて別スレッドで実行。"""
+        """バイナリデータをpklに変換して出力する。celeryタスクから実行。"""
 
         logger.info(f"data recording process started. machine_id: {machine_id}")
 
