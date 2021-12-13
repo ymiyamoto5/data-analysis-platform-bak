@@ -1,8 +1,16 @@
 import os
+import sys
+import time
+import traceback
 from datetime import datetime
-from typing import List, Optional
+from typing import Final, List
 
 import pandas as pd
+from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.db.session import SessionLocal
+from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.common import common
 from backend.common.common_logger import logger
@@ -19,6 +27,46 @@ class CutOutShotService:
 
         logger.info(f"cut_out_shot process started. machine_id: {machine_id}")
 
+        try:
+            latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+        except Exception:
+            logger.exception(traceback.format_exc())
+            sys.exit(1)
+
+        target_date_str: str = latest_data_collect_history.processed_dir_path
+        has_been_processed: List[str] = []
+
+        INTERVAL: Final[int] = 5
+
+        while True:
+            time.sleep(INTERVAL)
+
+            # 退避ディレクトリに存在するすべてのpklファイルリスト
+            all_files: List[FileInfo] = CutOutShotService.get_files_info(machine_id, target_date_str)
+
+            # ループ毎の処理対象。未処理のもののみ対象とする。
+            target_files: List[FileInfo] = []
+            for file in all_files:
+                if file not in has_been_processed:
+                    target_files.append(file)
+
+            # NOTE: 毎度DBにアクセスするのは非効率なため、対象ファイルが存在しないときのみDBから収集ステータスを確認し、停止判断を行う。
+            if len(target_files) == 0:
+                # NOTE: db sessionを使いまわすと更新データが取得できないため、新しいsessionを用意
+                _db: Session = SessionLocal()
+                machine: Machine = CRUDMachine.select_by_id(_db, machine_id)
+                collect_status: str = machine.collect_status
+                _db.close()
+
+                if collect_status == common.COLLECT_STATUS.RECORDED.value:
+                    logger.info(f"cut_out_shot process finished. machine_id: {machine_id}")
+                    break
+
+            # 切り出し処理
+            logger.info(f"cut_out_shot processing. machine_id: {machine_id}, targets: {len(target_files)}")
+
+            # 処理済みファイルリストに追加
+
     @staticmethod
     def get_target_dir(target_date_timestamp: str) -> str:
         """ブラウザから文字列で渡されたUNIXTIME(ミリ秒単位）から、データディレクトリ名の日付文字列を特定して返却"""
@@ -30,12 +78,12 @@ class CutOutShotService:
         return target_date_str
 
     @staticmethod
-    def get_files_info(machine_id: str, target_date_str: str) -> Optional[List[FileInfo]]:
+    def get_files_info(machine_id: str, target_date_str: str) -> List[FileInfo]:
         target_dir = machine_id + "-" + target_date_str
         data_dir: str = os.environ["data_dir"]
         data_full_path: str = os.path.join(data_dir, target_dir)
 
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
+        files_info: List[FileInfo] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
 
         return files_info
 

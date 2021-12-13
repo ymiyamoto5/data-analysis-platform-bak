@@ -89,10 +89,10 @@ class DataRecorderService:
                 break
 
             # 対象機器のファイルリストを作成
-            files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, machine_id, "dat")
+            files_info: List[FileInfo] = FileManager.create_files_info(data_dir, machine_id, "dat")
 
             # バイナリファイルが未生成のタイミングはあり得る（例えばネットワーク遅延等）
-            if files_info is None:
+            if len(files_info) == 0:
                 logger.debug(f"No files in {data_dir}")
                 continue
 

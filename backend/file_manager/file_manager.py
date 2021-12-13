@@ -21,22 +21,20 @@ class FileInfo:
 
 class FileManager:
     @staticmethod
-    def create_files_info(target_dir: str, machine_id: str, extension: str) -> Optional[List[FileInfo]]:
+    def create_files_info(target_dir: str, machine_id: str, extension: str) -> List[FileInfo]:
         """指定した拡張子ファイルの情報（パスとファイル名から抽出した日時）リストを生成"""
 
         file_list: List[str] = glob.glob(os.path.join(target_dir, f"{machine_id}_*.{extension}"))
 
         if len(file_list) == 0:
-            return None
+            return []
 
         file_list.sort()
 
         # ファイルリストから時刻データを生成
         files_timestamp: map[float] = map(FileManager._create_file_timestamp, file_list)
         # リストを作成 [{"file_path": "xxx", "timestamp": "yyy"},...]
-        files_info: List[FileInfo] = [
-            FileInfo(file_path=row[0], timestamp=row[1]) for row in zip(file_list, files_timestamp)
-        ]
+        files_info: List[FileInfo] = [FileInfo(file_path=row[0], timestamp=row[1]) for row in zip(file_list, files_timestamp)]
 
         return files_info
 
