@@ -34,6 +34,7 @@ from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.session import Session
 
 env_file = ".env"
 load_dotenv(env_file)
@@ -62,7 +63,7 @@ def client():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
-    db = SessionLocal()
+    db: Session = SessionLocal()
 
     # NOTE: データ投入
     create_testdb(db)
@@ -78,6 +79,31 @@ def client():
     app.dependency_overrides[get_db] = get_test_db
 
     yield client
+
+
+@pytest.fixture
+def db():
+    """DBのみのfixture"""
+
+    engine = create_engine(DB_URL, echo=True, connect_args={"check_same_thread": False})
+
+    # NOTE: sqliteは既定で外部キー制約無効のため有効化する
+    def _fk_pragma_on_connect(dbapi_con, con_record):
+        dbapi_con.execute("pragma foreign_keys=ON")
+
+    event.listen(engine, "connect", _fk_pragma_on_connect)
+
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    # テスト用DBを初期化（関数ごとにリセット）
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    db: Session = SessionLocal()
+
+    create_testdb(db)
+    yield db
+    db.close()
 
 
 def create_testdb(db):
