@@ -12,10 +12,10 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 
+import pytest
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
-from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.file_manager.file_manager import FileManager
@@ -139,3 +139,15 @@ class TestReadBinaryFiles:
         )
 
         assert actual == expected
+
+
+class TestRecord:
+    @pytest.fixture
+    def init(self) -> None:
+        self.machine_id = "test-machine-01"
+
+    # def test_exec(self, db, init):
+    #     """ジョブ実行のみ（デバッグ用）
+    #     通常はコメントアウト
+    #     """
+    #     DataRecorderService.record(db, self.machine_id)
