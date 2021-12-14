@@ -110,6 +110,7 @@
                       clearable
                       v-bind="attrs"
                       v-on="on"
+                      @input="resetEndedTime"
                     ></v-text-field>
                   </template>
                   <v-date-picker
@@ -189,7 +190,7 @@
         <v-dialog v-model="dialogDelete" max-width="500px">
           <v-card>
             <v-card-title class="text-h6">
-              削除してもよいですか？
+              タグ：{{ editedItem.tag }} を削除してもよいですか？
             </v-card-title>
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -440,6 +441,13 @@ export default {
           .catch((e) => {
             this.errorSnackbar(e.response)
           })
+      }
+    },
+
+    // 終了日がnullになったとき、終了時刻を未設定の状態にする
+    resetEndedTime: async function() {
+      if (this.editedItem.ended_dateFormatted === null) {
+        this.editedItem.ended_time = null
       }
     },
 
