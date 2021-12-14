@@ -74,14 +74,6 @@ class CutOutShot:
         self.__is_shot_section = is_shot_section
 
     @property
-    def is_target_of_cut_out(self):
-        return self.__is_target_of_cut_out
-
-    @is_target_of_cut_out.setter
-    def is_target_of_cut_out(self, is_target_of_cut_out: bool):
-        self.__is_target_of_cut_out = is_target_of_cut_out
-
-    @property
     def margin(self):
         return self.__margin
 
@@ -428,12 +420,9 @@ class CutOutShot:
         logger.info("Cut out shot start.")
 
         procs: List[multiprocessing.context.Process] = []
-        processed_count: int = 0
-
-        NOW: Final[datetime] = datetime.now()
 
         # main loop
-        for loop_count, pickle_file in enumerate(pickle_files):
+        for pickle_file in pickle_files:
             rawdata_df: DataFrame = pd.read_pickle(pickle_file)
 
             if len(rawdata_df) == 0:
@@ -447,11 +436,6 @@ class CutOutShot:
             # ショット切り出し
             self.cutter.cut_out_shot(rawdata_df)
 
-            # スループット表示
-            if loop_count != 0:
-                processed_count += len(rawdata_df)
-                throughput_counter(processed_count, NOW)
-
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
                 logger.info(f"Shot is not detected in {pickle_file}")
@@ -460,7 +444,7 @@ class CutOutShot:
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
             cut_out_df: DataFrame = pd.DataFrame(self.cutter.cut_out_targets)
             # cutter.cut_out_targetは以降使わないためクリア
-            # self.cutter.cut_out_targets = []
+            self.cutter.cut_out_targets = []
 
             if len(cut_out_df) == 0:
                 logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
