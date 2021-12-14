@@ -272,7 +272,7 @@ def run_cut_out_shot(
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
     # 段取状態かつGW開始状態であることが前提
-    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.SETUP.value, common.STATUS.RUNNING.value)
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
