@@ -2,9 +2,6 @@ from datetime import datetime
 from typing import List
 
 import pandas as pd
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.db.session import SessionLocal
-from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.data_converter.data_converter import DataConverter
 from pandas.core.frame import DataFrame

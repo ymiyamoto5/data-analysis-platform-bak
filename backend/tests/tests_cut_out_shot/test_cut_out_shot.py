@@ -9,7 +9,7 @@
 
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from typing import List
 
@@ -20,8 +20,29 @@ from backend.app.models.data_collect_history_event import DataCollectHistoryEven
 from backend.common import common
 from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
 from backend.data_converter.data_converter import DataConverter
+from backend.elastic_manager.elastic_manager import ElasticManager
 from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
+
+
+class TestAutoCutOutShot:
+    def test_exec(self, stroke_displacement_target, pkl_files):
+        """自動ショット切り出し実行。実行できればOKとする。"""
+
+        machine_id = "unittest-machine"
+        shots_index: str = f"shots-{machine_id}-20201201103011-data"
+        shots_meta_index: str = f"shots-{machine_id}-20201201103011-meta"
+
+        pkl_file_list = []
+        pkl_file_list.append(pkl_files.tmp_pkl_1._str)
+        pkl_file_list.append(pkl_files.tmp_pkl_2._str)
+
+        stroke_displacement_target.auto_cut_out_shot(pkl_file_list, shots_index, shots_meta_index)
+
+        ElasticManager.delete_index(shots_index)
+        ElasticManager.delete_index(shots_meta_index)
+
+        assert True
 
 
 class TestExcludeSetupInterval:
