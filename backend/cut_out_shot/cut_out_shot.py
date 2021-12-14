@@ -29,7 +29,6 @@ from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
 from backend.utils.throughput_counter import throughput_counter
 from pandas.core.frame import DataFrame
-from pytz import timezone
 
 from .pulse_cutter import PulseCutter
 from .stroke_displacement_cutter import StrokeDisplacementCutter
@@ -242,14 +241,12 @@ class CutOutShot:
         * 中断区間のデータ除外
         * 物理変換 + 校正
         * SPM計算
-        * 事象記録のタグ付け
         * SPMから算出される、ショット当たりの最大サンプル数を超えたショット除外
         * Elasticsearchインデックスへの保存
-        * shots-yyyyMMddHHMMSS-data：切り出されたショットデータ
-        * shots-yyyyMMddHHMMSS-meta：ショットのメタデータ
+        * shots-yyyyMMddHHMMSS-data:切り出されたショットデータ
+        * shots-yyyyMMddHHMMSS-meta:ショットのメタデータ
 
         Args:
-            rawdata_filename: 生データcsvのファイル名
             start_sequential_number: 開始位置
             end_sequential_number: 終了位置
         """
@@ -409,6 +406,97 @@ class CutOutShot:
 
         # spmがしきい値以下の場合、Noneとする。
         self._set_to_none_for_low_spm()
+
+        # ショットメタデータをElasticsearchに出力
+        self._export_shots_meta_to_es(shots_meta_index)
+
+        logger.info("Cut out shot finished.")
+
+    def auto_cut_out_shot(self, pickle_files: List[str], shots_index: str, shots_meta_index: str) -> None:
+        """
+        * 自動ショット切り出し
+        * 物理変換 + 校正
+        * SPM計算
+        * Elasticsearchインデックスへの保存
+            * shots-yyyyMMddHHMMSS-data:切り出されたショットデータ
+            * shots-yyyyMMddHHMMSS-meta:ショットのメタデータ
+
+        Args:
+            target_files: 処理対象となるファイルパスリスト
+        """
+
+        logger.info("Cut out shot start.")
+
+        procs: List[multiprocessing.context.Process] = []
+        processed_count: int = 0
+
+        NOW: Final[datetime] = datetime.now()
+
+        # main loop
+        for loop_count, pickle_file in enumerate(pickle_files):
+            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
+
+            if len(rawdata_df) == 0:
+                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
+                continue
+
+            # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
+            # コードのシンプルさを優先し、全列まとめて物理変換している。
+            rawdata_df = self._apply_physical_conversion_formula(rawdata_df)
+
+            # ショット切り出し
+            self.cutter.cut_out_shot(rawdata_df)
+
+            # スループット表示
+            if loop_count != 0:
+                processed_count += len(rawdata_df)
+                throughput_counter(processed_count, NOW)
+
+            # ショットがなければ以降の処理はスキップ
+            if len(self.cutter.cut_out_targets) == 0:
+                logger.info(f"Shot is not detected in {pickle_file}")
+                continue
+
+            # NOTE: 以下処理のため一時的にDataFrameに変換している。
+            cut_out_df: DataFrame = pd.DataFrame(self.cutter.cut_out_targets)
+            # cutter.cut_out_targetは以降使わないためクリア
+            # self.cutter.cut_out_targets = []
+
+            if len(cut_out_df) == 0:
+                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
+                continue
+
+            # timestampをdatetimeに変換する
+            cut_out_df["timestamp"] = cut_out_df["timestamp"].astype(float).map(lambda x: datetime.fromtimestamp(x))
+
+            # indexフィールドにmachine_id追加
+            cut_out_df["machine_id"] = self.__machine_id
+
+            # Elasticsearchに格納するため、dictに戻す
+            cut_out_targets = cut_out_df.to_dict(orient="records")
+
+            # 子プロセスのjoin
+            procs = self.__join_process(procs)
+
+            # Elasticsearchに出力
+            procs = ElasticManager.multi_process_bulk_lazy_join(
+                data=cut_out_targets,
+                index_to_import=shots_index,
+                num_of_process=self.__num_of_process,
+                chunk_size=self.__chunk_size,
+            )
+
+            cut_out_targets = []
+
+        # 全ファイル走査後、子プロセスが残っていればjoin
+        procs = self.__join_process(procs)
+
+        if len(self.cutter.shots_summary) == 0:
+            logger.info("Shot is not detected.")
+            return
+
+        # ショットメタデータDF作成
+        self._create_shots_meta_df(self.cutter.shots_summary)
 
         # ショットメタデータをElasticsearchに出力
         self._export_shots_meta_to_es(shots_meta_index)
