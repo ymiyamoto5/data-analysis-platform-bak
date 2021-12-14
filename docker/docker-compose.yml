@@ -160,9 +160,10 @@ services:
       - ~/data-analysis-platform/backend:/backend
       - /mnt/datadrive:/mnt/datadrive  
     env_file: ~/data-analysis-platform/.env
-    environment:
-      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    network_mode: 'host'    
+    # environment:
+    #   - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
+    #   - CELERY_RESULT_BACKEND=redis://redis:6379/0
     command: celery -A backend.app.worker worker -l info -c 4
     depends_on:
       - webap
