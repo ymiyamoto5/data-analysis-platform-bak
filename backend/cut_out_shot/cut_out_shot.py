@@ -154,6 +154,7 @@ class CutOutShot:
             logger.error(traceback.format_exc())
 
         self.__shots_meta_df = shots_summary_df.drop(columns=["diff"])
+        self.__shots_meta_df["predicted"] = False
 
     def _export_shots_meta_to_es(self, shots_meta_index: str) -> None:
         """ショットメタデータをshots_metaインデックスに出力"""

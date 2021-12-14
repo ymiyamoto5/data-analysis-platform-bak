@@ -27,7 +27,7 @@ from pandas.testing import assert_frame_equal
 
 class TestAutoCutOutShot:
     def test_exec(self, stroke_displacement_target, pkl_files):
-        """自動ショット切り出し実行。実行できればOKとする。"""
+        """自動ショット切り出し実行。実行できればOKとする。auto_cut_out_shotデバッグ時にも利用可"""
 
         machine_id = "unittest-machine"
         shots_index: str = f"shots-{machine_id}-20201201103011-data"
