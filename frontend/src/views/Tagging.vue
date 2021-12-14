@@ -23,17 +23,17 @@
             <v-card-text>
               <v-form ref="form_group">
                 <v-menu
-                  ref="date_menu"
-                  v-model="editedItem.date_menu"
+                  ref="occurred_date_menu"
+                  v-model="editedItem.occurred_date_menu"
                   :close-on-content-click="false"
                   transition="scale-transition"
                   offset-y
                 >
                   <template v-slot:activator="{ on, attrs }">
                     <v-text-field
-                      v-model="editedItem.dateFormatted"
+                      v-model="editedItem.occurred_dateFormatted"
                       :rules="[rules.required]"
-                      label="日付"
+                      label="発生日"
                       prepend-icon="mdi-calendar"
                       readonly
                       v-bind="attrs"
@@ -41,7 +41,7 @@
                     ></v-text-field>
                   </template>
                   <v-date-picker
-                    v-model="date"
+                    v-model="occurred_date"
                     no-title
                     scrollable
                     width="450px"
@@ -51,14 +51,14 @@
                     <v-btn
                       text
                       color="primary"
-                      @click="editedItem.date_menu = false"
+                      @click="editedItem.occurred_date_menu = false"
                     >
                       キャンセル
                     </v-btn>
                     <v-btn
                       text
                       color="primary"
-                      @click="$refs.date_menu.save(date)"
+                      @click="$refs.occurred_date_menu.save(occurred_date)"
                     >
                       OK
                     </v-btn>
@@ -66,18 +66,18 @@
                 </v-menu>
 
                 <v-menu
-                  ref="time_menu"
-                  v-model="editedItem.time_menu"
+                  ref="occurred_time_menu"
+                  v-model="editedItem.occurred_time_menu"
                   :close-on-content-click="false"
-                  :return-value.sync="time"
+                  :return-value.sync="occurred_time"
                   transition="scale-transition"
                   offset-y
                 >
                   <template v-slot:activator="{ on, attrs }">
                     <v-text-field
-                      v-model="editedItem.time"
+                      v-model="editedItem.occurred_time"
                       :rules="[rules.required]"
-                      label="時刻"
+                      label="発生時刻"
                       prepend-icon="mdi-clock-time-four-outline"
                       readonly
                       v-bind="attrs"
@@ -85,12 +85,12 @@
                     ></v-text-field>
                   </template>
                   <v-time-picker
-                    v-if="editedItem.time_menu"
-                    v-model="editedItem.time"
+                    v-if="editedItem.occurred_time_menu"
+                    v-model="editedItem.occurred_time"
                     format="24hr"
                     use-seconds
                     full-width
-                    @click:second="$refs.time_menu.save(time)"
+                    @click:second="$refs.occurred_time_menu.save(occurred_time)"
                   ></v-time-picker>
                 </v-menu>
 
@@ -104,9 +104,10 @@
                   <template v-slot:activator="{ on, attrs }">
                     <v-text-field
                       v-model="editedItem.ended_dateFormatted"
-                      label="終了日付"
+                      label="終了日"
                       prepend-icon="mdi-calendar"
                       readonly
+                      clearable
                       v-bind="attrs"
                       v-on="on"
                     ></v-text-field>
@@ -147,6 +148,7 @@
                   <template v-slot:activator="{ on, attrs }">
                     <v-text-field
                       v-model="editedItem.ended_time"
+                      :rules="[endedTimeRequired]"
                       label="終了時刻"
                       prepend-icon="mdi-clock-time-four-outline"
                       readonly
@@ -203,6 +205,9 @@
         </v-dialog>
       </v-toolbar>
     </template>
+    <template v-slot:[`item.ended_at`]="{ item }">
+      {{ formatNull(item.ended_at) }}
+    </template>
     <template v-slot:[`item.actions`]="{ item }">
       <v-icon small class="mr-2" @click="editItem(item)">
         mdi-pencil
@@ -225,7 +230,7 @@ export default {
     dialogDelete: false,
     headers: [
       {
-        text: '開始日時',
+        text: '発生日時',
         align: 'start',
         value: 'occurred_at',
       },
@@ -237,7 +242,7 @@ export default {
       { text: 'アクション', value: 'actions', sortable: false },
     ],
     tags: [],
-    date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    occurred_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
       .toISOString()
       .substr(0, 10),
     ended_date: null,
@@ -247,14 +252,14 @@ export default {
       occurred_at: '',
       ended_at: null,
       tag: '',
-      dateFormatted: vm.formatDate(
+      occurred_dateFormatted: vm.formatDate(
         new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
           .toISOString()
           .substr(0, 10),
       ),
-      date_menu: false,
-      time: '00:00:00',
-      time_menu: false,
+      occurred_date_menu: false,
+      occurred_time: '00:00:00',
+      occurred_time_menu: false,
       ended_dateFormatted: null,
       ended_date_menu: false,
       ended_time: null,
@@ -265,14 +270,14 @@ export default {
       occurred_at: '',
       ended_at: null,
       tag: '',
-      dateFormatted: vm.formatDate(
+      occurred_dateFormatted: vm.formatDate(
         new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
           .toISOString()
           .substr(0, 10),
       ),
-      date_menu: false,
-      time: '00:00:00',
-      time_menu: false,
+      occurred_date_menu: false,
+      occurred_time: '00:00:00',
+      occurred_time_menu: false,
       ended_dateFormatted: null,
       ended_date_menu: false,
       ended_time: null,
@@ -291,6 +296,14 @@ export default {
     readOnlyID() {
       return this.editedIndex === -1 ? { disabled: false } : { disabled: true }
     },
+    // validation
+    endedTimeRequired() {
+      let rule = true
+      if (this.editedItem.ended_dateFormatted !== null) {
+        rule = (value) => value !== null || '必須です。'
+      }
+      return rule
+    },
   },
 
   // dialogをwatchし、val（bool値）に応じてクローズ
@@ -301,8 +314,10 @@ export default {
     dialogDelete(val) {
       val || this.closeDelete()
     },
-    date() {
-      this.editedItem.dateFormatted = this.formatDate(this.date)
+    occurred_date() {
+      this.editedItem.occurred_dateFormatted = this.formatDate(
+        this.occurred_date,
+      )
     },
     ended_date() {
       this.editedItem.ended_dateFormatted = this.formatDate(this.ended_date)
@@ -331,8 +346,8 @@ export default {
           }
           // 日付文字列を表示用にフォーマット
           this.tags = res.data.map((obj) => {
-            obj.dateFormatted = formatDate(obj.occurred_at)
-            obj.time = formatTime(obj.occurred_at)
+            obj.occurred_dateFormatted = formatDate(obj.occurred_at)
+            obj.occurred_time = formatTime(obj.occurred_at)
             obj.occurred_at = formatJST(obj.occurred_at)
             if (obj.ended_at === null) {
               obj.ended_dateFormatted = this.defaultItem.ended_dateFormatted
@@ -352,6 +367,11 @@ export default {
         })
     },
 
+    // 終了日時のNULL値を表示用にフォーマット
+    formatNull(ended_at) {
+      return ended_at !== null ? ended_at : '-'
+    },
+
     // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
       this.editedIndex = this.tags.indexOf(item)
@@ -368,7 +388,9 @@ export default {
 
       let url = ''
       let occurred_datetime = formatUTC(
-        this.editedItem.dateFormatted + ' ' + this.editedItem.time,
+        this.editedItem.occurred_dateFormatted +
+          ' ' +
+          this.editedItem.occurred_time,
       )
       let ended_datetime = null
       if (this.editedItem.ended_dateFormatted !== null) {
