@@ -69,6 +69,9 @@ test_machine = Machine(
     auto_predict=False,
     predict_model=None,
     model_version=None,
+    start_point_dsl=None,
+    max_point_dsl=None,
+    break_point_dsl=None,
     gateways=[
         Gateway(
             gateway_id="test-GW",
@@ -147,6 +150,9 @@ machine_01 = Machine(
     auto_predict=False,
     predict_model=None,
     model_version=None,
+    start_point_dsl=None,
+    max_point_dsl=None,
+    break_point_dsl=None,
     gateways=[
         Gateway(
             gateway_id="gw-01",
@@ -307,6 +313,9 @@ machine_j = Machine(
     auto_predict=False,
     predict_model=None,
     model_version=None,
+    start_point_dsl=None,
+    max_point_dsl=None,
+    break_point_dsl=None,
     gateways=[
         Gateway(
             gateway_id="GW-j",
