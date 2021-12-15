@@ -55,9 +55,9 @@ def fetch_shots(
 ):
     """対象区間の最初のpklファイルを読み込み、ストローク変位値をリサンプリングして返す"""
 
-    files_info: Optional[List[FileInfo]] = CutOutShotService.get_files_info(machine_id, target_date_str)
+    files_info: List[FileInfo] = CutOutShotService.get_files_info(machine_id, target_date_str)
 
-    if files_info is None:
+    if len(files_info) == 0:
         raise HTTPException(status_code=400, detail="対象ファイルがありません")
 
     # リクエストされたファイルがファイル数を超えている場合

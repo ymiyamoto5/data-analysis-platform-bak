@@ -2,7 +2,6 @@ import os
 import shutil
 import struct
 import sys
-import threading
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -80,7 +79,7 @@ class DataRecorderService:
 
             # NOTE: db sessionを使いまわすと更新データが取得できないため、新しいsessionを用意
             _db: Session = SessionLocal()
-            machine: Machine = CRUDMachine.select_by_id(_db, machine_id)
+            machine: Machine = CRUDMachine.select_by_id(db, machine_id)
             collect_status: str = machine.collect_status
             _db.close()
 
@@ -90,10 +89,10 @@ class DataRecorderService:
                 break
 
             # 対象機器のファイルリストを作成
-            files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_dir, machine_id, "dat")
+            files_info: List[FileInfo] = FileManager.create_files_info(data_dir, machine_id, "dat")
 
             # バイナリファイルが未生成のタイミングはあり得る（例えばネットワーク遅延等）
-            if files_info is None:
+            if len(files_info) == 0:
                 logger.debug(f"No files in {data_dir}")
                 continue
 
