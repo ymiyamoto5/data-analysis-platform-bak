@@ -221,6 +221,7 @@ class DataImporter:
                     "timestamp": datetime.utcfromtimestamp(timestamp),
                     "shot_number": shot_number,
                     "num_of_samples_in_cut_out": len(df),
+                    "predicted": False,
                 }
             )
 
