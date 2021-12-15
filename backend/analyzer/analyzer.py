@@ -17,7 +17,7 @@ import sys
 import traceback
 from typing import Callable, List, Optional, Tuple
 
-import backend.analyzer.h_one_extract_features as ef
+import backend.analyzer.extract_features as ef
 import pandas as pd
 from backend.common import common
 from backend.common.common_logger import logger
@@ -27,9 +27,7 @@ from pandas.core.frame import DataFrame
 
 
 class Analyzer:
-    def __init__(
-        self, target: str, shots_df: DataFrame, shots_meta_df: DataFrame, exclude_shots: Optional[Tuple[int, ...]]
-    ):
+    def __init__(self, target: str, shots_df: DataFrame, shots_meta_df: DataFrame, exclude_shots: Optional[Tuple[int, ...]]):
         self.__target = target
         self.__shots_df = shots_df
         self.__shots_meta_df = shots_meta_df
@@ -70,9 +68,7 @@ class Analyzer:
         num_of_shots: int = self.__shots_meta_df.shot_number.iloc[-1]
 
         # データをプロセッサの数に均等分配
-        shots_num_by_proc: List[int] = [
-            (num_of_shots + i) // common.NUM_OF_PROCESS for i in range(common.NUM_OF_PROCESS)
-        ]
+        shots_num_by_proc: List[int] = [(num_of_shots + i) // common.NUM_OF_PROCESS for i in range(common.NUM_OF_PROCESS)]
         logger.debug(f"shots_num_by_proc: {shots_num_by_proc}")
 
         procs: List[multiprocessing.context.Process] = []
@@ -195,9 +191,9 @@ class Analyzer:
             for i in self.__exclude_shots:
                 start_break_df = start_break_df.drop(start_break_df.index[start_break_df["shot_number"] == i])
         # 荷重開始と破断開始の時刻の差分を計算
-        start_break_df["diff"] = pd.to_datetime(start_break_df["timestamp_break"]).map(
-            pd.Timestamp.timestamp
-        ) - pd.to_datetime(start_break_df["timestamp_start"]).map(pd.Timestamp.timestamp)
+        start_break_df["diff"] = pd.to_datetime(start_break_df["timestamp_break"]).map(pd.Timestamp.timestamp) - pd.to_datetime(
+            start_break_df["timestamp_start"]
+        ).map(pd.Timestamp.timestamp)
         # 必要な列を選択
         diff_df: DataFrame = DataFrame(data=start_break_df[["timestamp_start", "shot_number", "load", "diff"]])
         diff_df.rename(columns={"timestamp_start": "timestamp"}, inplace=True)
