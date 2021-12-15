@@ -8,7 +8,7 @@ import pandas as pd
 sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../../"))
 
 
-from backend.analyzer.h_one_extract_features import NARROW_PADDING
+from backend.analyzer.extract_features import NARROW_PADDING
 
 # import backend.analyzer.h_one_extract_features as ef
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
@@ -219,8 +219,8 @@ def eval_dsl(d, spm, fs=100000, low=0, high=None, r_window=19, Debug=False, shot
     dslstr = "global df, ROLLING_MEAN, HORIZONTAL_LIMIT, VERTICAL_LIMIT, TARGET, NARROW\n" + dslstr
     exec(dslstr)
 
-    # return TARGET, df['d'][TARGET], None   # ここからdfは参照できない..
-    return TARGET, 0, None
+    return TARGET, df["d"][TARGET], None  # ここからdfは参照できない..
+    # return TARGET, 0, None
 
 
 ###
