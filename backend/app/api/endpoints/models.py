@@ -159,7 +159,12 @@ def fetch_binded_ports():
     containers = docker_client.containers.list()
     port_list = []
     for container in containers:
-        for port_binds in container.attrs["NetworkSettings"]["Ports"].values():
+        ports = container.attrs["NetworkSettings"]["Ports"]
+        if ports == {}:
+            continue
+        for port_binds in ports.values():
+            if port_binds is None:
+                continue
             port_list.append([port_bind["HostPort"] for port_bind in port_binds])
     port_list = sum(port_list, [])
 
