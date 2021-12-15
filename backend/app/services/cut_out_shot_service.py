@@ -1,12 +1,9 @@
-import os
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 import pandas as pd
 from backend.app.models.sensor import Sensor
-from backend.common import common
 from backend.data_converter.data_converter import DataConverter
-from backend.file_manager.file_manager import FileInfo, FileManager
 from pandas.core.frame import DataFrame
 
 
@@ -20,16 +17,6 @@ class CutOutShotService:
         target_date_str: str = datetime.strftime(target_date, "%Y%m%d%H%M%S")
 
         return target_date_str
-
-    @staticmethod
-    def get_files_info(machine_id: str, target_date_str: str) -> Optional[List[FileInfo]]:
-        target_dir = machine_id + "-" + target_date_str
-        data_dir: str = os.environ["data_dir"]
-        data_full_path: str = os.path.join(data_dir, target_dir)
-
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
-
-        return files_info
 
     @staticmethod
     def fetch_df(target_file: str) -> DataFrame:

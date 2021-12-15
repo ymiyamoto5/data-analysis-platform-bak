@@ -81,16 +81,16 @@
           <v-btn
             v-if="item.collect_status === 'recorded'"
             color="primary"
-            @click="
-              setup(item.machine_id, item.auto_cut_out_shot, item.auto_predict)
-            "
+            @click="setup(item.machine_id)"
           >
             段取開始
           </v-btn>
           <v-btn
             v-if="item.collect_status === 'setup'"
             color="success"
-            @click="start(item.machine_id)"
+            @click="
+              start(item.machine_id, item.auto_cut_out_shot, item.auto_predict)
+            "
           >
             収集開始
           </v-btn>
@@ -248,18 +248,12 @@ export default {
     formatBool(bool) {
       return bool ? 'ON' : 'OFF'
     },
-    setup: async function(machine_id, auto_cut_out_shot, auto_predict) {
+    setup: async function(machine_id) {
       const client = createBaseApiClient()
       await client
         .post(SETUP_API_URL + machine_id)
         .then(() => {
           this.runDataRecorder(machine_id)
-          if (auto_cut_out_shot) {
-            this.runCutOutShot(machine_id)
-          }
-          if (auto_predict) {
-            this.runPredictor(machine_id)
-          }
           this.fetchTableData()
         })
         .catch((e) => {
@@ -272,6 +266,24 @@ export default {
       await client
         .post(RUN_DATA_RECORDER_API_URL + machine_id)
         .then(() => {})
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+    start: async function(machine_id, auto_cut_out_shot, auto_predict) {
+      const client = createBaseApiClient()
+      await client
+        .post(START_API_URL + machine_id)
+        .then(() => {
+          if (auto_cut_out_shot) {
+            this.runCutOutShot(machine_id)
+          }
+          if (auto_predict) {
+            this.runPredictor(machine_id)
+          }
+          this.fetchTableData()
+        })
         .catch((e) => {
           console.log(e.response.data.detail)
           this.errorSnackbar(e.response)
@@ -292,18 +304,6 @@ export default {
       await client
         .post(RUN_PREDICTOR_API_URL + machine_id)
         .then(() => {})
-        .catch((e) => {
-          console.log(e.response.data.detail)
-          this.errorSnackbar(e.response)
-        })
-    },
-    start: async function(machine_id) {
-      const client = createBaseApiClient()
-      await client
-        .post(START_API_URL + machine_id)
-        .then(() => {
-          this.fetchTableData()
-        })
         .catch((e) => {
           console.log(e.response.data.detail)
           this.errorSnackbar(e.response)

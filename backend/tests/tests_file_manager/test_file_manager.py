@@ -65,7 +65,7 @@ class TestCreateFilesInfo:
 
         actual = FileManager.create_files_info("dummy_path", machine_id, "dat")
 
-        expected = None
+        expected = []
 
         assert actual == expected
 

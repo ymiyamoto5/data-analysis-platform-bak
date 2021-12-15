@@ -40,9 +40,9 @@ class DataRecorder:
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
         """
 
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(target_dir, machine_id, "dat")
+        files_info: List[FileInfo] = FileManager.create_files_info(target_dir, machine_id, "dat")
 
-        if files_info is None:
+        if len(files_info) == 0:
             logger.info(f"No files in {target_dir}")
             return
 
