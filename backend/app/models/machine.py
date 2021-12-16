@@ -15,6 +15,7 @@ class Machine(Base):
     start_displacement = Column(Float)
     end_displacement = Column(Float)
     margin = Column(Float)
+    threshold = Column(Float)
     auto_predict = Column(Boolean, nullable=False, default=False)
     predict_model = Column(String(255))
     model_version = Column(String(255))
