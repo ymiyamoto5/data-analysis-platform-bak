@@ -51,18 +51,21 @@
                       @change="resetCutOutShot"
                     ></v-checkbox>
                     <v-text-field
+                      v-if="cutOutSensor === 'stroke_displacement'"
                       v-model="editedItem.start_displacement"
                       :disabled="!editedItem.auto_cut_out_shot"
                       :rules="[autoCutOutShotRequired, rules.displacementRange]"
                       label="切り出し開始変位値"
                     ></v-text-field>
                     <v-text-field
+                      v-if="cutOutSensor === 'stroke_displacement'"
                       v-model="editedItem.end_displacement"
                       :disabled="!editedItem.auto_cut_out_shot"
                       :rules="[autoCutOutShotRequired, rules.displacementRange]"
                       label="切り出し終了変位値"
                     ></v-text-field>
                     <v-text-field
+                      v-if="cutOutSensor === 'stroke_displacement'"
                       v-model="editedItem.margin"
                       :disabled="!editedItem.auto_cut_out_shot"
                       :rules="[autoCutOutShotRequired, rules.marginRange]"
@@ -89,6 +92,13 @@
                         </v-tooltip>
                       </template>
                     </v-text-field>
+                    <v-text-field
+                      v-if="cutOutSensor === 'pulse'"
+                      v-model="editedItem.threshold"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[autoCutOutShotRequired]"
+                      label="しきい値"
+                    ></v-text-field>
                     <v-checkbox
                       v-model="editedItem.auto_predict"
                       :disabled="!editedItem.auto_cut_out_shot"
@@ -178,7 +188,14 @@
         {{ formatBool(item.auto_predict) }}
       </template>
       <template v-slot:[`item.actions`]="{ item }">
-        <v-icon small class="mr-2" @click="editItem(item)">
+        <v-icon
+          small
+          class="mr-2"
+          @click="
+            editItem(item)
+            fetchLatestDataCollectHistry()
+          "
+        >
           mdi-pencil
         </v-icon>
         <v-icon small @click="deleteItem(item)">
@@ -200,10 +217,14 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
+import { formatJST } from '@/common/common'
 const MACHINES_API_URL = '/api/v1/machines/'
 const MACHINE_TYPES_API_URL = '/api/v1/machine_types/'
 const MODELS_API_URL = '/api/v1/models/'
 const MODEL_VERSIONS_API_URL = '/api/v1/models/versions'
+const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_histories/'
+const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
+const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor'
 
 export default {
   data: () => ({
@@ -235,6 +256,7 @@ export default {
       start_displacement: '',
       end_displacement: '',
       margin: '',
+      threshold: '',
       auto_predict: false,
       predict_model: '',
       model_version: '',
@@ -250,6 +272,7 @@ export default {
       start_displacement: '',
       end_displacement: '',
       margin: '',
+      threshold: '',
       auto_predict: false,
       predict_model: '',
       model_version: '',
@@ -264,6 +287,9 @@ export default {
     snackbar: false,
     snackbarHeader: '',
     snackbarMessage: '',
+    targetDate: '',
+    targetDateStr: '',
+    cutOutSensor: '',
     // validation
     rules: {
       required: (value) => !!value || '必須です。',
@@ -410,6 +436,72 @@ export default {
       return bool ? 'ON' : 'OFF'
     },
 
+    // 最新のデータ収集履歴を取得
+    fetchLatestDataCollectHistry: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(
+          DATA_COLLECT_HISTORY_API_URL + this.editedItem.machine_id + '/latest',
+        )
+        .then((res) => {
+          if (res.data === null) {
+            return
+          }
+          this.targetDate = Date.parse(formatJST(res.data.started_at))
+          // 切り出し対象センサー特定
+          this.fetchTargetDir()
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+    // 最新のディレクトリ名を取得
+    fetchTargetDir: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(TARGET_DIR_API_URL, {
+          params: {
+            machine_id: this.editedItem.machine_id,
+            target_date_timestamp: this.targetDate,
+          },
+        })
+        .then((res) => {
+          if (res.data === null) {
+            return
+          }
+          this.targetDateStr = res.data
+          // 切り出し対象センサー特定
+          this.fetchCutOutSensor()
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
+    // 切り出しの基準となるセンサー特定
+    fetchCutOutSensor: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(CUT_OUT_SENSOR_API_URL, {
+          params: {
+            machine_id: this.editedItem.machine_id,
+            target_date_str: this.targetDateStr,
+          },
+        })
+        .then((res) => {
+          if (res.data === null) {
+            return
+          }
+          this.cutOutSensor = res.data.cut_out_sensor
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
     // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
       this.editedIndex = this.machines.indexOf(item)
@@ -515,6 +607,9 @@ export default {
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
+        this.targetDate = ''
+        this.targetDateStr = ''
+        this.cutOutSensor = ''
         this.$refs.form_group.resetValidation()
       }, 500)
     },
