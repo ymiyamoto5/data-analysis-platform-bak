@@ -29,6 +29,11 @@ def fetch_tags():
 def create(tag_in: tag.TagBase):
     """タグを記録する"""
 
+    tags_index: str = "tags"
+
+    if not ElasticManager.exists_index(index=tags_index):
+        ElasticManager.create_index(tags_index)
+
     if tag_in.ended_at is None:
         ended_at = tag_in.ended_at
     else:
@@ -41,7 +46,7 @@ def create(tag_in: tag.TagBase):
     }
 
     try:
-        tags = ElasticManager.create_doc("tags", doc_id=None, query=body)
+        tags = ElasticManager.create_doc(tags_index, doc_id=None, query=body)
         return tags
     except Exception:
         logger.error(traceback.format_exc())
