@@ -96,7 +96,7 @@
                       v-if="cutOutSensor === 'pulse'"
                       v-model="editedItem.threshold"
                       :disabled="!editedItem.auto_cut_out_shot"
-                      :rules="[autoCutOutShotRequired]"
+                      :rules="[autoCutOutShotRequired, rules.thresholdRange]"
                       label="しきい値"
                     ></v-text-field>
                     <v-checkbox
@@ -193,7 +193,7 @@
           class="mr-2"
           @click="
             editItem(item)
-            fetchLatestDataCollectHistry()
+            fetchCutOutSensor()
           "
         >
           mdi-pencil
@@ -217,13 +217,10 @@
 
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
-import { formatJST } from '@/common/common'
 const MACHINES_API_URL = '/api/v1/machines/'
 const MACHINE_TYPES_API_URL = '/api/v1/machine_types/'
 const MODELS_API_URL = '/api/v1/models/'
 const MODEL_VERSIONS_API_URL = '/api/v1/models/versions'
-const DATA_COLLECT_HISTORY_API_URL = '/api/v1/data_collect_histories/'
-const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
 const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor'
 
 export default {
@@ -287,8 +284,6 @@ export default {
     snackbar: false,
     snackbarHeader: '',
     snackbarMessage: '',
-    targetDate: '',
-    targetDateStr: '',
     cutOutSensor: '',
     // validation
     rules: {
@@ -305,6 +300,9 @@ export default {
         (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
       marginRange: (value) =>
         (value >= 0.0 && value <= 10000.0) || '0.0～10000.0のみ使用可能です。',
+      thresholdRange: (value) =>
+        (value >= -100.0 && value <= 100.0) ||
+        '-100.0～100.0のみ使用可能です。',
     },
   }),
 
@@ -436,50 +434,6 @@ export default {
       return bool ? 'ON' : 'OFF'
     },
 
-    // 最新のデータ収集履歴を取得
-    fetchLatestDataCollectHistry: async function() {
-      const client = createBaseApiClient()
-      await client
-        .get(
-          DATA_COLLECT_HISTORY_API_URL + this.editedItem.machine_id + '/latest',
-        )
-        .then((res) => {
-          if (res.data === null) {
-            return
-          }
-          this.targetDate = Date.parse(formatJST(res.data.started_at))
-          // 切り出し対象センサー特定
-          this.fetchTargetDir()
-        })
-        .catch((e) => {
-          console.log(e.response.data.detail)
-          this.errorSnackbar(e.response)
-        })
-    },
-    // 最新のディレクトリ名を取得
-    fetchTargetDir: async function() {
-      const client = createBaseApiClient()
-      await client
-        .get(TARGET_DIR_API_URL, {
-          params: {
-            machine_id: this.editedItem.machine_id,
-            target_date_timestamp: this.targetDate,
-          },
-        })
-        .then((res) => {
-          if (res.data === null) {
-            return
-          }
-          this.targetDateStr = res.data
-          // 切り出し対象センサー特定
-          this.fetchCutOutSensor()
-        })
-        .catch((e) => {
-          console.log(e.response.data.detail)
-          this.errorSnackbar(e.response)
-        })
-    },
-
     // 切り出しの基準となるセンサー特定
     fetchCutOutSensor: async function() {
       const client = createBaseApiClient()
@@ -487,7 +441,6 @@ export default {
         .get(CUT_OUT_SENSOR_API_URL, {
           params: {
             machine_id: this.editedItem.machine_id,
-            target_date_str: this.targetDateStr,
           },
         })
         .then((res) => {
@@ -607,8 +560,6 @@ export default {
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
-        this.targetDate = ''
-        this.targetDateStr = ''
         this.cutOutSensor = ''
         this.$refs.form_group.resetValidation()
       }, 500)
