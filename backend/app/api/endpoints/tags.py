@@ -29,7 +29,16 @@ def fetch_tags():
 def create(tag_in: tag.TagBase):
     """タグを記録する"""
 
-    body = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
+    if tag_in.ended_at is None:
+        ended_at = tag_in.ended_at
+    else:
+        ended_at = datetime.datetime.strptime(tag_in.ended_at, "%Y/%m/%d %H:%M:%S")
+
+    body = {
+        "occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"),
+        "ended_at": ended_at,
+        "tag": tag_in.tag,
+    }
 
     try:
         tags = ElasticManager.create_doc("tags", doc_id=None, query=body)
@@ -43,7 +52,16 @@ def create(tag_in: tag.TagBase):
 def update(tag_id: str, tag_in: tag.TagBase):
     """タグを更新する"""
 
-    body = {"occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"), "tag": tag_in.tag}
+    if tag_in.ended_at is None:
+        ended_at = tag_in.ended_at
+    else:
+        ended_at = datetime.datetime.strptime(tag_in.ended_at, "%Y/%m/%d %H:%M:%S")
+
+    body = {
+        "occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"),
+        "ended_at": ended_at,
+        "tag": tag_in.tag,
+    }
 
     try:
         tags = ElasticManager.update_doc("tags", doc_id=tag_id, query=body)
