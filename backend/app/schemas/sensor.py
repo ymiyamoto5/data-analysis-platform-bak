@@ -18,6 +18,9 @@ class Sensor(SensorBase):
     handler_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     slope: float
     intercept: float
+    start_point_dsl: Optional[str] = None
+    max_point_dsl: Optional[str] = None
+    break_point_dsl: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -29,9 +32,6 @@ class SensorCreate(SensorBase):
     handler_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     slope: float
     intercept: float
-    start_point_dsl: Optional[str] = None
-    max_point_dsl: Optional[str] = None
-    break_point_dsl: Optional[str] = None
 
 
 class SensorUpdate(SensorBase):
