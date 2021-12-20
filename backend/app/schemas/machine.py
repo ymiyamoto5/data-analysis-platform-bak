@@ -33,6 +33,7 @@ class Machine(MachineBase):
     start_displacement: Optional[float] = None
     end_displacement: Optional[float] = None
     margin: Optional[float] = None
+    threshold: Optional[float] = None
     auto_predict: bool
     predict_model: Optional[str] = None
     model_version: Optional[str] = None
@@ -57,6 +58,7 @@ class MachineUpdate(MachineBase):
     start_displacement: Optional[float]
     end_displacement: Optional[float]
     margin: Optional[float]
+    threshold: Optional[float]
     auto_predict: Optional[bool]
     predict_model: Optional[str]
     model_version: Optional[str]
