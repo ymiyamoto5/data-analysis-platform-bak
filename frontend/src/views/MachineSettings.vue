@@ -487,6 +487,7 @@ export default {
           start_displacement: this.editedItem.start_displacement,
           end_displacement: this.editedItem.end_displacement,
           margin: this.editedItem.margin,
+          threshold: this.editedItem.threshold,
           auto_predict: this.editedItem.auto_predict,
           predict_model: this.editedItem.predict_model,
           model_version: this.editedItem.model_version,
@@ -532,6 +533,7 @@ export default {
         this.editedItem.start_displacement = null
         this.editedItem.end_displacement = null
         this.editedItem.margin = null
+        this.editedItem.threshold = null
       }
 
       if (this.editedItem.auto_predict) {
