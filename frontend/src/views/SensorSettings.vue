@@ -58,6 +58,24 @@
                   v-bind="readOnlyID"
                 >
                 </v-select>
+                <v-textarea
+                  v-model="editedItem.start_point_dsl"
+                  auto-grow
+                  label="荷重開始点DSL"
+                >
+                </v-textarea>
+                <v-textarea
+                  v-model="editedItem.max_point_dsl"
+                  auto-grow
+                  label="最大荷重点DSL"
+                >
+                </v-textarea>
+                <v-textarea
+                  v-model="editedItem.break_point_dsl"
+                  auto-grow
+                  label="破断点DSL"
+                >
+                </v-textarea>
               </v-form>
             </v-card-text>
 
@@ -142,6 +160,9 @@ export default {
       slope: null,
       intercept: null,
       handler_id: 0,
+      start_point_dsl: '',
+      max_point_dsl: '',
+      break_point_dsl: '',
     },
     defaultItem: {
       sensor_name: '',
@@ -149,6 +170,9 @@ export default {
       slope: null,
       intercept: null,
       handler_id: 0,
+      start_point_dsl: '',
+      max_point_dsl: '',
+      break_point_dsl: '',
     },
     handlers: [],
     sensorTypes: [],
@@ -281,6 +305,9 @@ export default {
           slope: slope,
           intercept: intercept,
           handler_id: this.editedItem.handler_id,
+          start_point_dsl: this.editedItem.start_point_dsl,
+          max_point_dsl: this.editedItem.max_point_dsl,
+          break_point_dsl: this.editedItem.break_point_dsl,
         }
         await client
           .put(url, body)
