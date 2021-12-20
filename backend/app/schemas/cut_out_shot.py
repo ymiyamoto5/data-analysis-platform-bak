@@ -14,4 +14,4 @@ class CutOutShotStrokeDisplacement(CutOutShotBase):
 
 
 class CutOutShotPulse(CutOutShotBase):
-    threshold: float
+    threshold: float = Field(..., ge=-100.0, le=100.0)
