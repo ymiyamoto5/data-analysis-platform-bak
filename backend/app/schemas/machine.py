@@ -37,9 +37,6 @@ class Machine(MachineBase):
     auto_predict: bool
     predict_model: Optional[str] = None
     model_version: Optional[str] = None
-    start_point_dsl: Optional[str] = None
-    max_point_dsl: Optional[str] = None
-    break_point_dsl: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -62,6 +59,3 @@ class MachineUpdate(MachineBase):
     auto_predict: Optional[bool]
     predict_model: Optional[str]
     model_version: Optional[str]
-    start_point_dsl: Optional[str]
-    max_point_dsl: Optional[str]
-    break_point_dsl: Optional[str]
