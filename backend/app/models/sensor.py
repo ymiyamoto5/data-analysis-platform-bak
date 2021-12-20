@@ -22,3 +22,5 @@ class Sensor(Base):
     handler = relationship("Handler", back_populates="sensors")
     # NOTE: SensorとSensorTypeはMany to One
     sensor_type = relationship("SensorType", back_populates="sensors")
+    # NOTE: SensorとMachineはMany to ONe
+    machine = relationship("Machine", back_populates="sensors")

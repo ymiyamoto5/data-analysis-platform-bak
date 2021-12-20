@@ -26,3 +26,5 @@ class Machine(Base):
     gateways = relationship("Gateway", back_populates="machine")
     # NOTE: MachineとDataCollectHistoryはOne to Many
     data_collect_histories = relationship("DataCollectHistory", back_populates="machine", cascade="all, delete")
+    # NOTE: MachineとSensorはOne to Many
+    sensors = relationship("Sensor", back_populates="machine")
