@@ -14,7 +14,7 @@
 
     <v-data-table :headers="headers" :items="history" :search="search">
       <template v-slot:top>
-        <v-dialog v-model="dialog" max-width="700px">
+        <v-dialog v-model="dialog" max-width="1980px">
           <v-card>
             <v-card-title>
               <span class="text-h5">編集</span>
@@ -42,6 +42,21 @@
                     <v-text-field
                       v-model="props.item.intercept"
                       :rules="[rules.floatType]"
+                    ></v-text-field>
+                  </template>
+                  <template v-slot:[`item.start_point_dsl`]="props">
+                    <v-text-field
+                      v-model="props.item.start_point_dsl"
+                    ></v-text-field>
+                  </template>
+                  <template v-slot:[`item.max_point_dsl`]="props">
+                    <v-text-field
+                      v-model="props.item.max_point_dsl"
+                    ></v-text-field>
+                  </template>
+                  <template v-slot:[`item.break_point_dsl`]="props">
+                    <v-text-field
+                      v-model="props.item.break_point_dsl"
                     ></v-text-field>
                   </template>
                 </v-data-table>
@@ -162,6 +177,21 @@ export default {
           text: '校正（切片）',
           value: 'intercept',
         },
+        {
+          text: '荷重開始点DSL',
+          value: 'start_point_dsl',
+          width: '300px',
+        },
+        {
+          text: '最大荷重点DSL',
+          value: 'max_point_dsl',
+          width: '300px',
+        },
+        {
+          text: '破断点DSL',
+          value: 'break_point_dsl',
+          width: '300px',
+        },
       ],
       defaultItem: {
         sampling_frequency: 0,
@@ -173,6 +203,9 @@ export default {
             sensor_type_id: -1,
             slope: null,
             intercept: null,
+            start_point_dsl: '',
+            max_point_dsl: '',
+            break_point_dsl: '',
           },
         ],
       },

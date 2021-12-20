@@ -252,6 +252,9 @@ shot_df = dr.read_shot(shots_index, shot_number=1)
 # print(shot_df.head())
 
 # 特徴量を抽出するサンプル
+# 本来はセンサーごとに設定したDSLを取得し適用
+machine = CRUDMachine.select_by_id(db, machine_id)
+sensors = machine.sensors
 
 argstart, valstart, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.start_point_dsl)
 print(argstart, valstart)
