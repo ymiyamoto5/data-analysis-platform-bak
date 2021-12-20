@@ -70,9 +70,6 @@ test_machine = Machine(
     auto_predict=False,
     predict_model=None,
     model_version=None,
-    start_point_dsl=None,
-    max_point_dsl=None,
-    break_point_dsl=None,
     gateways=[
         Gateway(
             gateway_id="test-GW",
@@ -96,6 +93,9 @@ test_machine = Machine(
                             sensor_type_id="stroke_displacement",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="test-machine",
@@ -104,6 +104,9 @@ test_machine = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="test-machine",
@@ -112,6 +115,9 @@ test_machine = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="test-machine",
@@ -120,6 +126,9 @@ test_machine = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="test-machine",
@@ -128,6 +137,9 @@ test_machine = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                     ],
                 )
@@ -152,9 +164,6 @@ machine_01 = Machine(
     auto_predict=False,
     predict_model=None,
     model_version=None,
-    start_point_dsl=None,
-    max_point_dsl=None,
-    break_point_dsl=None,
     gateways=[
         Gateway(
             gateway_id="gw-01",
@@ -178,6 +187,9 @@ machine_01 = Machine(
                             sensor_type_id="stroke_displacement",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="machine-01",
@@ -186,6 +198,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="machine-01",
@@ -194,6 +209,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                     ],
                 ),
@@ -212,6 +230,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="machine-01",
@@ -220,6 +241,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                     ],
                 ),
@@ -316,9 +340,6 @@ machine_j = Machine(
     auto_predict=False,
     predict_model=None,
     model_version=None,
-    start_point_dsl=None,
-    max_point_dsl=None,
-    break_point_dsl=None,
     gateways=[
         Gateway(
             gateway_id="GW-j",
@@ -342,6 +363,9 @@ machine_j = Machine(
                             sensor_type_id="stroke_displacement",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="machine-j",
@@ -350,6 +374,9 @@ machine_j = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
+                            start_point_dsl=None,
+                            max_point_dsl=None,
+                            break_point_dsl=None,
                         ),
                     ],
                 ),
