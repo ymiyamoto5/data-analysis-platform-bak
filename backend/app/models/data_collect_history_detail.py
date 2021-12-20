@@ -1,5 +1,5 @@
 from backend.app.db.session import Base
-from sqlalchemy import Column, Float, ForeignKey, Integer, String
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 
@@ -12,6 +12,9 @@ class DataCollectHistoryDetail(Base):
     sensor_type_id = Column(String(255), nullable=False)
     slope = Column(Float, nullable=False)
     intercept = Column(Float, nullable=False)
+    start_point_dsl = Column(Text)
+    max_point_dsl = Column(Text)
+    break_point_dsl = Column(Text)
 
     # Many To One
     data_collect_history = relationship("DataCollectHistory", back_populates="data_collect_history_details")
