@@ -1,5 +1,5 @@
 from backend.app.db.session import Base
-from sqlalchemy import Column, Float, ForeignKey, String
+from sqlalchemy import Column, Float, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 
 
@@ -14,6 +14,9 @@ class Sensor(Base):
     slope = Column(Float, nullable=False)
     intercept = Column(Float, nullable=False)
     handler_id = Column(String(255), ForeignKey("handlers.handler_id"), nullable=False)
+    start_point_dsl = Column(Text)
+    max_point_dsl = Column(Text)
+    break_point_dsl = Column(Text)
 
     # NOTE: SensorとHandlerはMany to One
     handler = relationship("Handler", back_populates="sensors")
