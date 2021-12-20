@@ -51,18 +51,21 @@
                       @change="resetCutOutShot"
                     ></v-checkbox>
                     <v-text-field
+                      v-if="cutOutSensor === 'stroke_displacement'"
                       v-model="editedItem.start_displacement"
                       :disabled="!editedItem.auto_cut_out_shot"
                       :rules="[autoCutOutShotRequired, rules.displacementRange]"
                       label="切り出し開始変位値"
                     ></v-text-field>
                     <v-text-field
+                      v-if="cutOutSensor === 'stroke_displacement'"
                       v-model="editedItem.end_displacement"
                       :disabled="!editedItem.auto_cut_out_shot"
                       :rules="[autoCutOutShotRequired, rules.displacementRange]"
                       label="切り出し終了変位値"
                     ></v-text-field>
                     <v-text-field
+                      v-if="cutOutSensor === 'stroke_displacement'"
                       v-model="editedItem.margin"
                       :disabled="!editedItem.auto_cut_out_shot"
                       :rules="[autoCutOutShotRequired, rules.marginRange]"
@@ -89,6 +92,13 @@
                         </v-tooltip>
                       </template>
                     </v-text-field>
+                    <v-text-field
+                      v-if="cutOutSensor === 'pulse'"
+                      v-model="editedItem.threshold"
+                      :disabled="!editedItem.auto_cut_out_shot"
+                      :rules="[autoCutOutShotRequired, rules.thresholdRange]"
+                      label="しきい値"
+                    ></v-text-field>
                     <v-checkbox
                       v-model="editedItem.auto_predict"
                       :disabled="!editedItem.auto_cut_out_shot"
@@ -113,30 +123,6 @@
                       label="バージョン"
                     >
                     </v-select>
-                    <v-textarea
-                      v-model="editedItem.start_point_dsl"
-                      :disabled="!editedItem.auto_predict"
-                      :rules="[autoPredictRequired]"
-                      auto-grow
-                      label="荷重開始点DSL"
-                    >
-                    </v-textarea>
-                    <v-textarea
-                      v-model="editedItem.max_point_dsl"
-                      :disabled="!editedItem.auto_predict"
-                      :rules="[autoPredictRequired]"
-                      auto-grow
-                      label="最大荷重点DSL"
-                    >
-                    </v-textarea>
-                    <v-textarea
-                      v-model="editedItem.break_point_dsl"
-                      :disabled="!editedItem.auto_predict"
-                      :rules="[autoPredictRequired]"
-                      auto-grow
-                      label="破断点DSL"
-                    >
-                    </v-textarea>
                   </template>
                 </v-form>
               </v-card-text>
@@ -178,7 +164,14 @@
         {{ formatBool(item.auto_predict) }}
       </template>
       <template v-slot:[`item.actions`]="{ item }">
-        <v-icon small class="mr-2" @click="editItem(item)">
+        <v-icon
+          small
+          class="mr-2"
+          @click="
+            editItem(item)
+            fetchCutOutSensor()
+          "
+        >
           mdi-pencil
         </v-icon>
         <v-icon small @click="deleteItem(item)">
@@ -204,6 +197,7 @@ const MACHINES_API_URL = '/api/v1/machines/'
 const MACHINE_TYPES_API_URL = '/api/v1/machine_types/'
 const MODELS_API_URL = '/api/v1/models/'
 const MODEL_VERSIONS_API_URL = '/api/v1/models/versions'
+const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor'
 
 export default {
   data: () => ({
@@ -235,12 +229,10 @@ export default {
       start_displacement: '',
       end_displacement: '',
       margin: '',
+      threshold: '',
       auto_predict: false,
       predict_model: '',
       model_version: '',
-      start_point_dsl: '',
-      max_point_dsl: '',
-      break_point_dsl: '',
     },
     defaultItem: {
       machine_id: '',
@@ -250,12 +242,10 @@ export default {
       start_displacement: '',
       end_displacement: '',
       margin: '',
+      threshold: '',
       auto_predict: false,
       predict_model: '',
       model_version: '',
-      start_point_dsl: '',
-      max_point_dsl: '',
-      break_point_dsl: '',
     },
     machineTypes: [],
     models: [],
@@ -264,6 +254,7 @@ export default {
     snackbar: false,
     snackbarHeader: '',
     snackbarMessage: '',
+    cutOutSensor: '',
     // validation
     rules: {
       required: (value) => !!value || '必須です。',
@@ -279,6 +270,9 @@ export default {
         (value >= 0.0 && value <= 100.0) || '0.0～100.0のみ使用可能です。',
       marginRange: (value) =>
         (value >= 0.0 && value <= 10000.0) || '0.0～10000.0のみ使用可能です。',
+      thresholdRange: (value) =>
+        (value >= -100.0 && value <= 100.0) ||
+        '-100.0～100.0のみ使用可能です。',
     },
   }),
 
@@ -410,6 +404,27 @@ export default {
       return bool ? 'ON' : 'OFF'
     },
 
+    // 切り出しの基準となるセンサー特定
+    fetchCutOutSensor: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(CUT_OUT_SENSOR_API_URL, {
+          params: {
+            machine_id: this.editedItem.machine_id,
+          },
+        })
+        .then((res) => {
+          if (res.data === null) {
+            return
+          }
+          this.cutOutSensor = res.data.cut_out_sensor
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
     // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
       this.editedIndex = this.machines.indexOf(item)
@@ -442,12 +457,10 @@ export default {
           start_displacement: this.editedItem.start_displacement,
           end_displacement: this.editedItem.end_displacement,
           margin: this.editedItem.margin,
+          threshold: this.editedItem.threshold,
           auto_predict: this.editedItem.auto_predict,
           predict_model: this.editedItem.predict_model,
           model_version: this.editedItem.model_version,
-          start_point_dsl: this.editedItem.start_point_dsl,
-          max_point_dsl: this.editedItem.max_point_dsl,
-          break_point_dsl: this.editedItem.break_point_dsl,
         }
         await client
           .put(url, body)
@@ -487,6 +500,7 @@ export default {
         this.editedItem.start_displacement = null
         this.editedItem.end_displacement = null
         this.editedItem.margin = null
+        this.editedItem.threshold = null
       }
 
       if (this.editedItem.auto_predict) {
@@ -502,9 +516,6 @@ export default {
         this.editedItem.model_version = null
         this.selectedModel = ''
         this.versions = []
-        this.start_point_dsl = ''
-        this.max_point_dsl = ''
-        this.break_point_dsl = ''
       }
     },
 
@@ -515,6 +526,7 @@ export default {
       setTimeout(() => {
         this.editedItem = Object.assign({}, this.defaultItem)
         this.editedIndex = -1
+        this.cutOutSensor = ''
         this.$refs.form_group.resetValidation()
       }, 500)
     },

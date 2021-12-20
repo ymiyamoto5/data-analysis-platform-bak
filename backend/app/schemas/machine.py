@@ -33,12 +33,10 @@ class Machine(MachineBase):
     start_displacement: Optional[float] = None
     end_displacement: Optional[float] = None
     margin: Optional[float] = None
+    threshold: Optional[float] = None
     auto_predict: bool
     predict_model: Optional[str] = None
     model_version: Optional[str] = None
-    start_point_dsl: Optional[str] = None
-    max_point_dsl: Optional[str] = None
-    break_point_dsl: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -57,9 +55,7 @@ class MachineUpdate(MachineBase):
     start_displacement: Optional[float]
     end_displacement: Optional[float]
     margin: Optional[float]
+    threshold: Optional[float]
     auto_predict: Optional[bool]
     predict_model: Optional[str]
     model_version: Optional[str]
-    start_point_dsl: Optional[str]
-    max_point_dsl: Optional[str]
-    break_point_dsl: Optional[str]
