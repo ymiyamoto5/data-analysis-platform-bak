@@ -123,30 +123,6 @@
                       label="バージョン"
                     >
                     </v-select>
-                    <v-textarea
-                      v-model="editedItem.start_point_dsl"
-                      :disabled="!editedItem.auto_predict"
-                      :rules="[autoPredictRequired]"
-                      auto-grow
-                      label="荷重開始点DSL"
-                    >
-                    </v-textarea>
-                    <v-textarea
-                      v-model="editedItem.max_point_dsl"
-                      :disabled="!editedItem.auto_predict"
-                      :rules="[autoPredictRequired]"
-                      auto-grow
-                      label="最大荷重点DSL"
-                    >
-                    </v-textarea>
-                    <v-textarea
-                      v-model="editedItem.break_point_dsl"
-                      :disabled="!editedItem.auto_predict"
-                      :rules="[autoPredictRequired]"
-                      auto-grow
-                      label="破断点DSL"
-                    >
-                    </v-textarea>
                   </template>
                 </v-form>
               </v-card-text>
@@ -257,9 +233,6 @@ export default {
       auto_predict: false,
       predict_model: '',
       model_version: '',
-      start_point_dsl: '',
-      max_point_dsl: '',
-      break_point_dsl: '',
     },
     defaultItem: {
       machine_id: '',
@@ -273,9 +246,6 @@ export default {
       auto_predict: false,
       predict_model: '',
       model_version: '',
-      start_point_dsl: '',
-      max_point_dsl: '',
-      break_point_dsl: '',
     },
     machineTypes: [],
     models: [],
@@ -491,9 +461,6 @@ export default {
           auto_predict: this.editedItem.auto_predict,
           predict_model: this.editedItem.predict_model,
           model_version: this.editedItem.model_version,
-          start_point_dsl: this.editedItem.start_point_dsl,
-          max_point_dsl: this.editedItem.max_point_dsl,
-          break_point_dsl: this.editedItem.break_point_dsl,
         }
         await client
           .put(url, body)
@@ -549,9 +516,6 @@ export default {
         this.editedItem.model_version = null
         this.selectedModel = ''
         this.versions = []
-        this.start_point_dsl = ''
-        this.max_point_dsl = ''
-        this.break_point_dsl = ''
       }
     },
 
