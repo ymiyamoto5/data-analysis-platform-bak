@@ -1,0 +1,127 @@
+{
+    $schema: https://vega.github.io/schema/vega-lite/v5.json
+    repeat: {
+      row: [
+        load01
+        load02
+        load03
+        load04
+        shot_number
+      ]
+      column: [
+        load01
+        load02
+        load03
+        load04
+        shot_number
+      ]
+    }
+    spec: {
+      width: 120
+      height: 120
+      data: {
+        name: shots
+        url: {
+          %context%: true
+          %timefield%: timestamp
+          index: shots-*-data
+          body: {
+            _source: [
+              timestamp
+              sequential_number
+              shot_number
+              load01
+              load02
+              load03
+              load04
+            ]
+            sort: [
+              {
+                sequential_number: {
+                  order: asc
+                }
+              }
+            ]
+            size: 8000
+          }
+        }
+        format: {
+          property: hits.hits
+        }
+      }
+      transform: [
+        {
+          calculate: datum._source.load01
+          as: load01
+        }
+        {
+          calculate: datum._source.load02
+          as: load02
+        }
+        {
+          calculate: datum._source.load03
+          as: load03
+        }
+        {
+          calculate: datum._source.load04
+          as: load04
+        }
+        {
+          calculate: datum._source.shot_number
+          as: shot_number
+        }
+      ]
+      mark: {
+        type: point
+        // color: blue
+        opacity: 0.3
+      }
+      params: [
+        {
+          name: brush
+          select: {
+            type: interval
+            resolve: union
+            on: "[mousedown[event.shiftKey], window:mouseup] > window:mousemove!"
+            translate: "[mousedown[event.shiftKey], window:mouseup] > window:mousemove!"
+            zoom: wheel![event.shiftKey]
+          }
+        }
+        {
+          name: grid
+          select: {
+            type: interval
+            resolve: global
+            translate: "[mousedown[!event.shiftKey], window:mouseup] > window:mousemove!"
+            zoom: wheel![!event.shiftKey]
+          }
+          bind: scales
+        }
+      ]
+      encoding: {
+        x: {
+          field: {
+            repeat: column
+          }
+          type: quantitative
+        }
+        y: {
+          field: {
+            repeat: row
+          }
+          type: quantitative
+          axis: {
+            minExtent: 30
+            // title: null
+          }
+        } // color: {
+        //   condition: {
+        //     param: brush
+        //     field: Origin
+        //     type: nominal
+        //   }
+        //   value: grey
+        // }
+      }
+    }
+  }
