@@ -28,6 +28,8 @@ class CRUDController:
         # 収集履歴更新
         # NOTE: 複数GW, 複数Handlerであっても、最初のGWおよびそれに紐づく最初のHandlerを採用する。
         handler: Handler = machine.gateways[0].handlers[0]
+        # NOTE: センサー数はmachineから取得
+        sampling_ch_num = len(machine.sensors)
 
         new_data_collect_history = DataCollectHistory(
             machine_id=machine.machine_id,
@@ -36,7 +38,7 @@ class CRUDController:
             started_at=utc_now,
             ended_at=None,
             sampling_frequency=handler.sampling_frequency,
-            sampling_ch_num=handler.sampling_ch_num,
+            sampling_ch_num=sampling_ch_num,
             processed_dir_path=processed_dir_path,
             sample_count=0,
         )
