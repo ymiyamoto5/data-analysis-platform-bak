@@ -46,11 +46,11 @@ def cut_out_shot_task(machine_id: str) -> str:
 
     target_date_str: str = latest_data_collect_history.processed_dir_path.split("-")[-1]
 
-    shots_index: str = "shots-" + target_date_str + "-data"
+    shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
     setting_shots: str = os.environ["setting_shots_path"]
     ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
-    shots_meta_index: str = "shots-" + target_date_str + "-meta"
+    shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
     setting_shots_meta: str = os.environ["setting_shots_meta_path"]
     ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
@@ -93,8 +93,9 @@ def cut_out_shot_task(machine_id: str) -> str:
 
         # 切り出し処理
         logger.info(f"cut_out_shot processing. machine_id: {machine_id}, targets: {len(target_files)}")
-
         cut_out_shot.auto_cut_out_shot(target_files, shots_index, shots_meta_index)
+
+        has_been_processed.extend(target_files)
 
     db.close()
 
