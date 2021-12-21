@@ -62,7 +62,7 @@ def main(machine_id: str):
     gateway_id = machine.gateways[0].gateway_id
     handler_id = machine.gateways[0].handlers[0].handler_id
 
-    while True:
+    for _ in range(100):
         binaries = b""
         for i in range(resampling):
             binary = struct.pack("<ddddd", displacement_sample[i], load01_sample[i], load02_sample[i], load03_sample[i], load04_sample[i])
@@ -76,6 +76,8 @@ def main(machine_id: str):
         # 文字列のバイナリファイルへの書き込み
         with open(file_path, "wb") as f:
             f.write(binaries)
+
+        print(f"dat file created: {file_path}")
 
         # debug
         # read_binary(binaries, sampling_ch_num)
