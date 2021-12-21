@@ -2,55 +2,80 @@
     $schema: https://vega.github.io/schema/vega-lite/v5.json
     repeat: {
       row: [
-        Horsepower
-        Acceleration
-        Miles_per_Gallon
+        load01
+        load02
+        load03
+        load04
+        shot_number
       ]
       column: [
-        Miles_per_Gallon
-        Acceleration
-        Horsepower
+        load01
+        load02
+        load03
+        load04
+        shot_number
       ]
     }
     spec: {
+      width: 120
+      height: 120
       data: {
-        values: [
-          {
-            Name: chevrolet chevelle malibu
-            Miles_per_Gallon: 18
-            Cylinders: 8
-            Displacement: 307
-            Horsepower: 130
-            Weight_in_lbs: 3504
-            Acceleration: 12
-            Year: 1970-01-01
-            Origin: USA
+        name: shots
+        url: {
+          %context%: true
+          %timefield%: timestamp
+          index: shots-*-data
+          body: {
+            _source: [
+              timestamp
+              sequential_number
+              shot_number
+              load01
+              load02
+              load03
+              load04
+            ]
+            sort: [
+              {
+                sequential_number: {
+                  order: asc
+                }
+              }
+            ]
+            size: 8000
           }
-          {
-            Name: buick skylark 320
-            Miles_per_Gallon: 15
-            Cylinders: 8
-            Displacement: 350
-            Horsepower: 165
-            Weight_in_lbs: 3693
-            Acceleration: 11.5
-            Year: 1970-01-01
-            Origin: USA
-          }
-          {
-            Name: plymouth satellite
-            Miles_per_Gallon: 18
-            Cylinders: 8
-            Displacement: 318
-            Horsepower: 150
-            Weight_in_lbs: 3436
-            Acceleration: 11
-            Year: 1970-01-01
-            Origin: USA
-          }
-        ]
+        }
+        format: {
+          property: hits.hits
+        }
       }
-      mark: point
+      transform: [
+        {
+          calculate: datum._source.load01
+          as: load01
+        }
+        {
+          calculate: datum._source.load02
+          as: load02
+        }
+        {
+          calculate: datum._source.load03
+          as: load03
+        }
+        {
+          calculate: datum._source.load04
+          as: load04
+        }
+        {
+          calculate: datum._source.shot_number
+          as: shot_number
+        }
+      ]
+      mark: {
+        type: point
+        // color: blue
+        opacity: 0.3
+      }
       params: [
         {
           name: brush
@@ -87,16 +112,16 @@
           type: quantitative
           axis: {
             minExtent: 30
+            // title: null
           }
-        }
-        color: {
-          condition: {
-            param: brush
-            field: Origin
-            type: nominal
-          }
-          value: grey
-        }
+        } // color: {
+        //   condition: {
+        //     param: brush
+        //     field: Origin
+        //     type: nominal
+        //   }
+        //   value: grey
+        // }
       }
     }
   }
