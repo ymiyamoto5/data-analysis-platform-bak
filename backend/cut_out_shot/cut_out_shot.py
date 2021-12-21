@@ -418,9 +418,7 @@ class CutOutShot:
             target_files: 処理対象となるファイルパスリスト
         """
 
-        logger.info("Cut out shot start.")
-
-        procs: List[multiprocessing.context.Process] = []
+        logger.info(f"Cut out shot start. number of pickle_files: {len(pickle_files)}")
 
         # main loop
         for pickle_file in pickle_files:
@@ -460,21 +458,11 @@ class CutOutShot:
             # Elasticsearchに格納するため、dictに戻す
             cut_out_targets = cut_out_df.to_dict(orient="records")
 
-            # 子プロセスのjoin
-            procs = self.__join_process(procs)
-
-            # Elasticsearchに出力
-            procs = ElasticManager.multi_process_bulk_lazy_join(
-                data=cut_out_targets,
-                index_to_import=shots_index,
-                num_of_process=self.__num_of_process,
-                chunk_size=self.__chunk_size,
-            )
+            # NOTE: celeryからmultiprocess実行すると以下エラーになるため、シングルプロセス実行
+            # daemonic processes are not allowed to have children
+            ElasticManager.bulk_insert(cut_out_targets, shots_index)
 
             cut_out_targets = []
-
-        # 全ファイル走査後、子プロセスが残っていればjoin
-        procs = self.__join_process(procs)
 
         if len(self.cutter.shots_summary) == 0:
             logger.info("Shot is not detected.")
