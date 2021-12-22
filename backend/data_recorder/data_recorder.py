@@ -24,11 +24,7 @@ from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.common.common_logger import data_recorder_logger as logger
 from backend.file_manager.file_manager import FileInfo, FileManager
-from dotenv import load_dotenv
 from sqlalchemy.orm.session import Session
-
-env_file = ".env"
-load_dotenv(env_file)
 
 API_URL: Final[str] = os.environ["API_URL"]
 

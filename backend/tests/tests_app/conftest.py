@@ -31,14 +31,10 @@ from backend.app.models.machine_type import MachineType
 from backend.app.models.sensor import Sensor
 from backend.app.models.sensor_type import SensorType
 from backend.common import common
-from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
-
-env_file = ".env"
-load_dotenv(env_file)
 
 DATA_DIR: Final[str] = os.environ["data_dir"]
 DB_URL = "sqlite:////mnt/datadrive/temp.db"

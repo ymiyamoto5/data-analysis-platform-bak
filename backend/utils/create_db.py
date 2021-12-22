@@ -16,11 +16,7 @@ from backend.app.models.machine_type import MachineType
 from backend.app.models.sensor import Sensor
 from backend.app.models.sensor_type import SensorType
 from backend.common import common
-from dotenv import load_dotenv
 from sqlalchemy import event
-
-env_file = ".env"
-load_dotenv(env_file)
 
 DATA_DIR: Final[str] = os.environ["data_dir"]
 
