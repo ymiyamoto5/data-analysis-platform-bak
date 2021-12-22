@@ -46,5 +46,5 @@
     "prettier.singleQuote": true,
     "prettier.semi": false,
     "prettier.vueIndentScriptAndStyle": false,
-    "python.envFile": "",
+    "python.envFile": "${workspaceFolder}/.env.local",
 }
