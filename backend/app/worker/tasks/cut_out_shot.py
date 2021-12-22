@@ -86,7 +86,7 @@ def cut_out_shot_task(machine_id: str) -> str:
             collect_status = get_collect_status(machine_id)
 
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
-                logger.info(f"cut_out_shot process finished. machine_id: {machine_id}")
+                logger.info(f"cut_out_shot process stopped. machine_id: {machine_id}")
                 break
             # 記録が完了していなければ継続
             continue
