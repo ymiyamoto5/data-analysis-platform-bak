@@ -226,39 +226,39 @@ def eval_dsl(d, spm, fs=100000, low=0, high=None, r_window=19, Debug=False, shot
 ###
 
 ### ここからサンプル
+def extract_features_sample():
+    db = SessionLocal()
 
-db = SessionLocal()
+    # 機器に設定されたDSLを取得するサンプル
+    machine_id = "machine-01"
+    machine = CRUDMachine.select_by_id(db, machine_id)
 
-# 機器に設定されたDSLを取得するサンプル
-machine_id = "machine-01"
-machine = CRUDMachine.select_by_id(db, machine_id)
+    # print(machine.start_point_dsl)
+    # print(machine.max_point_dsl)
+    # print(machine.break_point_dsl)
 
-# print(machine.start_point_dsl)
-# print(machine.max_point_dsl)
-# print(machine.break_point_dsl)
+    # 処理対象のインデックスを特定するため、yyyyMMdd文字列を取得するサンプル
+    latest_data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    target_dir_str = latest_data_collect_history.processed_dir_path.split("-")[-1]  # yyyyMMdd文字列
 
-# 処理対象のインデックスを特定するため、yyyyMMdd文字列を取得するサンプル
-latest_data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
-target_dir_str = latest_data_collect_history.processed_dir_path.split("-")[-1]  # yyyyMMdd文字列
+    # ここでは最新のデータ収集ではなく20210709190000のサンプルデータを使う
+    target_dir_str = "20210709190000"
+    shots_index = f"shots-{machine_id}-{target_dir_str}-data"
 
-# ここでは最新のデータ収集ではなく20210709190000のサンプルデータを使う
-target_dir_str = "20210709190000"
-shots_index = f"shots-{machine_id}-{target_dir_str}-data"
+    # ショットデータを取得するサンプル
+    dr = DataReader()
+    shot_df = dr.read_shot(shots_index, shot_number=1)
 
-# ショットデータを取得するサンプル
-dr = DataReader()
-shot_df = dr.read_shot(shots_index, shot_number=1)
+    # print(shot_df.head())
 
-# print(shot_df.head())
+    # 特徴量を抽出するサンプル
 
-# 特徴量を抽出するサンプル
+    argstart, valstart, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.start_point_dsl)
+    print(argstart, valstart)
 
-argstart, valstart, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.start_point_dsl)
-print(argstart, valstart)
+    argmax, valmax, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.max_point_dsl)
 
-argmax, valmax, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.max_point_dsl)
+    print(argmax, valmax)
 
-print(argmax, valmax)
-
-argbreak, valbreak, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.break_point_dsl)
-print(argbreak, valbreak)
+    argbreak, valbreak, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.break_point_dsl)
+    print(argbreak, valbreak)
