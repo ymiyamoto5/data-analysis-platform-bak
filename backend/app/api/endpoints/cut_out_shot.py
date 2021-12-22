@@ -1,9 +1,11 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from backend.app.api.deps import get_db
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.sensor import Sensor
 from backend.app.schemas.cut_out_shot import CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.common import common
@@ -30,10 +32,26 @@ def fetch_target_date_str(target_date_timestamp: str = Query(...)):
 @router.get("/cut_out_sensor")
 def fetch_cut_out_sensor(
     machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """マスタデータから切り出しの基準となるセンサーがストローク変位、パルスどちらであるかを返す"""
+
+    # 機器に紐づくセンサー情報を取得
+    sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(db, machine_id)
+
+    # NOTE: 切り出しの基準となるセンサーはただひとつのみ存在する前提
+    cut_out_sensor = [sensor for sensor in sensors if sensor.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES][0]
+
+    return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
+
+
+@router.get("/cut_out_sensor_from_history")
+def fetch_cut_out_sensor_from_history(
+    machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN),
     target_date_str: str = Query(...),  # yyyyMMddHHMMSS文字列
     db: Session = Depends(get_db),
 ):
-    """切り出しの基準となるセンサーがストローク変位、パルスどちらであるかを返す"""
+    """履歴から切り出しの基準となるセンサーがストローク変位、パルスどちらであるかを返す"""
 
     # 機器に紐づく設定値を履歴から取得
     history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)

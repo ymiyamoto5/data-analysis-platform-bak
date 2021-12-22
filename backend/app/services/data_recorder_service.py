@@ -79,7 +79,7 @@ class DataRecorderService:
 
             # NOTE: db sessionを使いまわすと更新データが取得できないため、新しいsessionを用意
             _db: Session = SessionLocal()
-            machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+            machine: Machine = CRUDMachine.select_by_id(_db, machine_id)
             collect_status: str = machine.collect_status
             _db.close()
 

@@ -253,11 +253,15 @@ def extract_features_sample():
 
     # 特徴量を抽出するサンプル
 
+    # 特徴量を抽出するサンプル
+    # 本来はセンサーごとに設定したDSLを取得し適用
+    machine = CRUDMachine.select_by_id(db, machine_id)
+    sensors = machine.sensors
+
     argstart, valstart, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.start_point_dsl)
     print(argstart, valstart)
 
     argmax, valmax, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.max_point_dsl)
-
     print(argmax, valmax)
 
     argbreak, valbreak, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=machine.break_point_dsl)

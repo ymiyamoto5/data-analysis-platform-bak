@@ -105,7 +105,8 @@ import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
 import MarginTextField from '@/components/CutOutShot/MarginTextField.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
-const CUT_OUT_SENSOR_API_URL = '/api/v1/cut_out_shot/cut_out_sensor'
+const CUT_OUT_SENSOR_FROM_HISTORY_API_URL =
+  '/api/v1/cut_out_shot/cut_out_sensor_from_history'
 const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
   '/api/v1/cut_out_shot/stroke_displacement'
 const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse'
@@ -185,7 +186,7 @@ export default {
           }
           this.targetDateStr = res.data
           // 切り出し対象センサー特定
-          this.fetchCutOutSensor()
+          this.fetchCutOutSensorFromHistory()
         })
         .catch((e) => {
           console.log(e.response.data.detail)
@@ -194,10 +195,10 @@ export default {
     },
 
     // 切り出しの基準となるセンサー特定
-    fetchCutOutSensor: async function() {
+    fetchCutOutSensorFromHistory: async function() {
       const client = createBaseApiClient()
       await client
-        .get(CUT_OUT_SENSOR_API_URL, {
+        .get(CUT_OUT_SENSOR_FROM_HISTORY_API_URL, {
           params: {
             machine_id: this.machineId,
             target_date_str: this.targetDateStr,
