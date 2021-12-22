@@ -35,3 +35,7 @@ class Predict(BaseModel):
     machine_id: str
     target_dir: str
     shot: int
+
+
+class Predictor(BaseModel):
+    machine_id: str
