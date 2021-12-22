@@ -25,6 +25,8 @@ export const KIBANA_PATH = process.env.VUE_APP_KIBANA_URL
 export const JUPYTER_PATH = process.env.VUE_APP_JUPYTER_URL
 export const MODEL_MANAGEMENT_NAME = 'model_management'
 export const MODEL_MANAGEMENT_PATH = ROOT_PATH + MODEL_MANAGEMENT_NAME
+export const CSV_UPLOAD_NAME = 'csv_upload'
+export const CSV_UPLOAD_PATH = ROOT_PATH + CSV_UPLOAD_NAME
 
 const routes = [
   // '/'へのアクセスは/data_collectにリダイレクト
@@ -100,6 +102,11 @@ const routes = [
     beforeEnter() {
       window.open(JUPYTER_PATH, '_blank', 'noreferrer')
     },
+  },
+  {
+    path: CSV_UPLOAD_PATH,
+    name: CSV_UPLOAD_NAME,
+    component: () => import('@/views/CsvUpload.vue'),
   },
 ]
 
