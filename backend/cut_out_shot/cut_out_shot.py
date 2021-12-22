@@ -492,10 +492,6 @@ class CutOutShot:
 if __name__ == "__main__":
     from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
-    from dotenv import load_dotenv
-
-    env_file = ".env"
-    load_dotenv(env_file)
 
     machine_id: str = "machine-01"
     target: str = "20210327141514"
