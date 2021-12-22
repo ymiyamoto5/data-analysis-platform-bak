@@ -9,6 +9,7 @@ from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.machine import Machine
+from backend.app.models.sensor import Sensor
 from backend.app.worker.celery import celery_app
 from backend.data_reader.data_reader import DataReader
 from backend.elastic_manager.elastic_manager import ElasticManager
@@ -34,7 +35,8 @@ def predictor_task(machine_id: str):
 
     shot_df, target_shot = fetch_shot_data(machine_id, target_dir)
     features = feature_extract(machine, target_dir, shot_df)
-    result = predict(machine, features, target_dir, target_shot)
+    if not features.empty:
+        predict(machine, features, target_dir, target_shot)
 
 
 def fetch_shot_data(machine_id: str, target_dir: str) -> List:
@@ -53,31 +55,38 @@ def fetch_shot_data(machine_id: str, target_dir: str) -> List:
     return [shot_df, target_shot]
 
 
-def feature_extract(machine, target_dir, shot_df) -> DataFrame:
+def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> DataFrame:
     # DSLの取得
-    dsl_names: List[str] = [key for key in vars(machine).keys() if "_dsl" in key]
-    # DSLの適用
+    sensors: List[Sensor] = machine.sensors
+
     feature_entry: dict = {}
-    for dsl_name in dsl_names:
-        feature_name: str = dsl_name.split("_")[0]
-        dsl: str = getattr(machine, dsl_name)
-        arg, val, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=dsl)
-        for i, load in enumerate(["load01", "load02", "load03", "load04"]):
+    for sensor in sensors:
+        dsl_names: List[str] = [key for key in vars(sensor).keys() if "_dsl" in key]
+        # DSLの適用
+        for dsl_name in dsl_names:
+            feature_name: str = dsl_name.split("_")[0]
+            dsl: str = getattr(sensor, dsl_name)
+            if dsl is None:
+                continue
+            # extract_featuresが対象をload01-04に固定しているため変更する必要有
+            arg, val, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=dsl)
+            sensor_index_dict: dict = {k: i for i, k in enumerate(["load01", "load02", "load03", "load04"])}
+            sensor_index: int = sensor_index_dict[sensor.sensor_name]
             # ELSに格納
             els_entry: dict = {
                 "shot_number": shot_df.shot_number[0],
-                "load": load,
-                "sequential_number_by_shot": shot_df.sequential_number_by_shot[arg[i]],
-                "timestamp": shot_df.timestamp[arg[i]],
-                "value": val[i],
-                "sequential_number": shot_df.sequential_number[arg[i]],
+                "load": sensor.sensor_name,
+                "sequential_number_by_shot": shot_df.sequential_number_by_shot[arg[sensor_index]],
+                "timestamp": shot_df.timestamp[arg[sensor_index]],
+                "value": val[sensor_index],
+                "sequential_number": shot_df.sequential_number[arg[sensor_index]],
             }
             ind: str = f"shots-{machine.machine_id}-{target_dir}-{feature_name}-point"
             if not ElasticManager.exists_index(ind):
                 ElasticManager.create_index(ind)
             ElasticManager.create_doc(ind, els_entry)
             # 予測用の特徴量
-            feature_entry[f"{load}_{feature_name}-point"] = val[i]
+            feature_entry[f"{sensor.sensor_name}_{feature_name}-point"] = val[sensor_index]
 
     return pd.DataFrame.from_dict(feature_entry, orient="index").T
 
