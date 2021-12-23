@@ -50,7 +50,7 @@ services:
     volumes:
       - ~/data-analysis-platform/notebooks:/home/jovyan/work
       - ~/data-analysis-platform/backend:/home/jovyan/backend
-      - /mnt/datadrive/data:/mnt/datadrive/data
+      - /mnt/datadrive:/mnt/datadrive
     command: start-notebook.sh --NotebookApp.token=''
     network_mode: 'host'
   webap:
