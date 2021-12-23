@@ -20,7 +20,7 @@ from celery import current_task
 from sqlalchemy.orm.session import Session
 
 
-@celery_app.task(acks_late=True)
+@celery_app.task()
 def cut_out_shot_task(machine_id: str) -> str:
     """オンラインショット切り出しタスク
     * DBから設定値取得
