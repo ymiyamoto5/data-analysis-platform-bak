@@ -12,66 +12,80 @@
         <v-col cols="7">
           <v-file-input
             v-model="files"
+            accept=".csv"
             color="primary"
             counter
-            label="csvファイルを選択、またはドラッグ＆ドロップしてください。"
+            height="200"
+            label="csvファイルを選択、またはドラッグ＆ドロップしてください。            "
             multiple
-            placeholder="Select your files"
-            prepend-icon=""
             outlined
+            placeholder="※ここにテキスト表示可能"
+            prepend-icon=""
             :show-size="1000"
-            :background-color="isDragging ? 'blue' : 'null'"
+            :background-color="isDragging ? 'primary' : 'null'"
           >
             <template v-slot:selection="{ index, text }">
-              <v-chip v-if="index < 2" color="primary" dark label small>{{
-                text
-              }}</v-chip>
+              <v-chip v-if="index < 6" color="primary" dark label large close>
+                <v-icon left>
+                  mdi-file
+                </v-icon>
+                {{ text }}
+              </v-chip>
               <span
-                v-else-if="index === 2"
+                v-else-if="index === 6"
                 class="overline grey--text text--darken-3 mx-2"
-                >+{{ files.length - 2 }} File(s)</span
+                >+{{ files.length - 6 }} File(s)</span
               >
             </template>
           </v-file-input>
         </v-col>
       </v-row>
+
       <v-row dense>
         <v-col cols="5">
-          <MachineSelect @input="setMachine"></MachineSelect>
+          <MachineSelect @input="machineId = $event"></MachineSelect>
         </v-col>
       </v-row>
 
       <v-row dense>
-        <v-col cols="5">
+        <v-col cols="2">
           <v-datetime-picker
-            v-model="datetime"
             label="採取日時"
-            dateFormat="yyyy/MM/dd"
+            dateime="String"
+            dateFormat="YYYY/MM/DD"
             timeFormat="HH:mm:ss"
+            clearText="キャンセル"
+            :text-field-props="textProps"
+            :time-picker-props="timeProps"
+            @input="CollectDatetime = $event"
           >
-            <template slot="dateIcon">
-              <v-icon>mdi-calendar</v-icon>
-            </template>
-            <template slot="timeIcon">
-              <v-icon>mdi-clock-outline</v-icon>
-            </template>
           </v-datetime-picker>
         </v-col>
       </v-row>
 
       <v-row justify="center">
-        <v-btn color="primary">アップロード</v-btn>
+        <v-btn
+          color="primary"
+          @click="upload"
+          :disabled="
+            running ||
+              files.length === 0 ||
+              machineId === null ||
+              CollectDatetime === null
+          "
+          :loading="running"
+          >アップロード</v-btn
+        >
       </v-row>
     </v-container>
   </v-app>
 </template>
 
 <script>
-// import { createBaseApiClient } from '@/api/apiBase'
+import { createBaseApiClient } from '@/api/apiBase'
 import MachineSelect from '@/components/MachineSelect.vue'
 
 export default {
-  // name: 'DragAndDrop',
   components: {
     MachineSelect,
   },
@@ -80,8 +94,29 @@ export default {
     files: [],
     isDragging: false,
     dragCount: 0,
+    CollectDatetime: null,
+    textProps: {
+      dense: true,
+      clearable: true,
+      outlined: true,
+      // appendIcon: 'mdi-calendar-clock',
+    },
+    timeProps: {
+      useSeconds: true,
+      format: '24hr',
+    },
+    machineId: null,
+    running: false,
+    snackbar: false,
+    snackbarMessage: '',
   }),
   methods: {
+    errorSnackbar(message) {
+      this.$store.commit('setShowErrorSnackbar', true)
+      this.$store.commit('setErrorHeader', message.statusText)
+      this.$store.commit('setErrorMsg', message.data.detail)
+    },
+    // https://www.ultra-noob.com/blog/2020/106/
     onDrop(e) {
       e.preventDefault()
       e.stopPropagation()
@@ -94,13 +129,11 @@ export default {
         }
       }
     },
-
     onDragEnter(e) {
       e.preventDefault()
       this.isDragging = true
       this.dragCount++
     },
-
     onDragLeave(e) {
       e.preventDefault()
       this.dragCount--
@@ -108,12 +141,33 @@ export default {
         this.isDragging = false
       }
     },
+
+    // アップロードボタン押下
+    upload: async function() {
+      this.running = true
+
+      const postData = {
+        machine_id: this.machineId,
+        datetime: this.CollectDatetime,
+        files: this.files,
+      }
+
+      const client = createBaseApiClient()
+      const url = 'test'
+
+      await client
+        .post(url, postData)
+        .then(() => {
+          this.running = false
+          this.snackbarMessage = 'アップロードが完了しました'
+          this.snackbar = true
+        })
+        .catch((e) => {
+          this.running = false
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
   },
 }
 </script>
-
-<style scoped>
-#title {
-  margin: 15px;
-}
-</style>
