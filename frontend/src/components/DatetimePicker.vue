@@ -25,15 +25,15 @@
 
     <v-card>
       <v-card-text class="px-0 py-0">
-        <v-tabs fixed-tabs v-model="activeTab">
+        <v-tabs fixed-tabs v-model="activeTab" color="indigo">
           <v-tab key="calendar">
             <slot name="dateIcon">
-              <v-icon>event</v-icon>
+              <v-icon>mdi-calendar</v-icon>
             </slot>
           </v-tab>
           <v-tab key="timer" :disabled="dateSelected">
             <slot name="timeIcon">
-              <v-icon>access_time</v-icon>
+              <v-icon>mdi-clock-outline</v-icon>
             </slot>
           </v-tab>
           <v-tab-item key="calendar">
@@ -58,12 +58,10 @@
       <v-card-actions>
         <v-spacer></v-spacer>
         <slot name="actions" :parent="this">
-          <v-btn color="grey lighten-1" text @click.native="clearHandler">{{
+          <v-btn color="primary" text @click.native="clearHandler">{{
             clearText
           }}</v-btn>
-          <v-btn color="green darken-1" text @click="okHandler">{{
-            okText
-          }}</v-btn>
+          <v-btn color="primary" text @click="okHandler">{{ okText }}</v-btn>
         </slot>
       </v-card-actions>
     </v-card>
@@ -192,7 +190,7 @@ export default {
     },
     okHandler() {
       this.resetPicker()
-      this.$emit('input', this.selectedDatetime)
+      this.$emit('input', this.formattedDatetime)
     },
     clearHandler() {
       this.resetPicker()
