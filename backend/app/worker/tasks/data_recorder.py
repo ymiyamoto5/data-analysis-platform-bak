@@ -5,7 +5,7 @@ from celery import current_task
 from sqlalchemy.orm.session import Session
 
 
-@celery_app.task(acks_late=True)
+@celery_app.task()
 def data_recorder_task(machine_id: str) -> str:
     """データ記録処理をceleryタスクに登録する"""
 
