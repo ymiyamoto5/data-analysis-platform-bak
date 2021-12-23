@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import List
 
@@ -13,9 +14,7 @@ class CRUDDataCollectHistory:
         history: List[DataCollectHistory] = (
             db.query(DataCollectHistory)
             .order_by(desc(DataCollectHistory.started_at))
-            .options(
-                joinedload(DataCollectHistory.machine), joinedload(DataCollectHistory.data_collect_history_details)
-            )
+            .options(joinedload(DataCollectHistory.machine), joinedload(DataCollectHistory.data_collect_history_details))
             .all()
         )
 
@@ -54,6 +53,18 @@ class CRUDDataCollectHistory:
                 DataCollectHistory.started_at <= started_at + timedelta(seconds=1),
             )
             .one()
+        )
+
+        return history
+
+    @staticmethod
+    def select_by_machine_id_target_dir(db: Session, machine_id: str, target_dir: str) -> DataCollectHistory:
+        """退避ディレクトリパスに含まれる日時から特定した履歴を取得する"""
+
+        processed_dir_path: str = os.path.join(os.environ["data_dir"], f"{machine_id}-{target_dir}")
+
+        history: DataCollectHistory = (
+            db.query(DataCollectHistory).filter_by(machine_id=machine_id).filter_by(processed_dir_path=processed_dir_path).one()
         )
 
         return history
