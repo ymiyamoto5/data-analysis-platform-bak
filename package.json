@@ -1,12 +1,13 @@
 {
   "dependencies": {
-    "vuetify": "^2.4.0"
+    "vuetify": "^2.4.0",
+    "vuetify-datetime-picker": "^2.1.1"
   },
   "devDependencies": {
+    "build": "vue-cli-service build --mode production",
     "sass": "~1.32.0",
     "sass-loader": "^10.0.0",
     "vue-cli-plugin-vuetify": "~2.4.2",
-    "vuetify-loader": "^1.7.0",
-    "build": "vue-cli-service build --mode production"
+    "vuetify-loader": "^1.7.0"
   }
 }

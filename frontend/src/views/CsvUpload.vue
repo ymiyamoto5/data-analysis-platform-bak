@@ -16,7 +16,7 @@
             color="primary"
             counter
             height="200"
-            label="csvファイルを選択、またはドラッグ＆ドロップしてください。            "
+            label="csvファイルを選択、またはドラッグ＆ドロップしてください。"
             multiple
             outlined
             placeholder="※ここにテキスト表示可能"
@@ -57,7 +57,7 @@
             clearText="キャンセル"
             :text-field-props="textProps"
             :time-picker-props="timeProps"
-            @input="CollectDatetime = $event"
+            @input="setCollectDatetime"
           >
           </v-datetime-picker>
         </v-col>
@@ -71,12 +71,21 @@
             running ||
               files.length === 0 ||
               machineId === null ||
-              CollectDatetime === null
+              collectDatetime === null
           "
           :loading="running"
           >アップロード</v-btn
         >
       </v-row>
+
+      <v-snackbar v-model="snackbar" timeout="5000" top color="success">
+        {{ snackbarMessage }}
+        <template v-slot:action="{ attrs }">
+          <v-btn color="white" text v-bind="attrs" @click="snackbar = false">
+            Close
+          </v-btn>
+        </template>
+      </v-snackbar>
     </v-container>
   </v-app>
 </template>
@@ -84,6 +93,9 @@
 <script>
 import { createBaseApiClient } from '@/api/apiBase'
 import MachineSelect from '@/components/MachineSelect.vue'
+
+const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
+const CSV_UPLOAD_API_URL = '/api/v1/csv_upload/'
 
 export default {
   components: {
@@ -94,7 +106,8 @@ export default {
     files: [],
     isDragging: false,
     dragCount: 0,
-    CollectDatetime: null,
+    collectDatetime: null,
+    formatCollectDatetime: null,
     textProps: {
       dense: true,
       clearable: true,
@@ -110,12 +123,14 @@ export default {
     snackbar: false,
     snackbarMessage: '',
   }),
+
   methods: {
     errorSnackbar(message) {
       this.$store.commit('setShowErrorSnackbar', true)
       this.$store.commit('setErrorHeader', message.statusText)
       this.$store.commit('setErrorMsg', message.data.detail)
     },
+
     // https://www.ultra-noob.com/blog/2020/106/
     onDrop(e) {
       e.preventDefault()
@@ -142,21 +157,46 @@ export default {
       }
     },
 
+    // 採取日時（yyyy/MM/dd hh:mm:ss）選択後、yyyyMMddhhmmssに変換する
+    setCollectDatetime(value) {
+      this.collectDatetime = value
+      this.fetchFormatCollectDatetime()
+    },
+    fetchFormatCollectDatetime: async function() {
+      const unixDatetime = Date.parse(this.collectDatetime)
+
+      const client = createBaseApiClient()
+      await client
+        .get(TARGET_DIR_API_URL, {
+          params: {
+            target_date_timestamp: unixDatetime,
+          },
+        })
+        .then((res) => {
+          if (res.data === null) {
+            return
+          }
+          this.formatCollectDatetime = res.data
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
     // アップロードボタン押下
     upload: async function() {
       this.running = true
 
       const postData = {
-        machine_id: this.machineId,
-        datetime: this.CollectDatetime,
         files: this.files,
+        machine_id: this.machineId,
+        datetime: this.formatCollectDatetime,
       }
 
       const client = createBaseApiClient()
-      const url = 'test'
-
       await client
-        .post(url, postData)
+        .post(CSV_UPLOAD_API_URL, postData)
         .then(() => {
           this.running = false
           this.snackbarMessage = 'アップロードが完了しました'
