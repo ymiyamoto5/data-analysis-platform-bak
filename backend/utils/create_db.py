@@ -7,10 +7,8 @@ from typing import Final
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.app.db.session import Base, SessionLocal, engine
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import \
-    DataCollectHistoryDetail
-from backend.app.models.data_collect_history_event import \
-    DataCollectHistoryEvent
+from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -18,7 +16,11 @@ from backend.app.models.machine_type import MachineType
 from backend.app.models.sensor import Sensor
 from backend.app.models.sensor_type import SensorType
 from backend.common import common
+from dotenv import load_dotenv
 from sqlalchemy import event
+
+env_file = ".env.local"
+load_dotenv(env_file)
 
 DATA_DIR: Final[str] = os.environ["data_dir"]
 
