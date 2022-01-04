@@ -5,8 +5,6 @@ from typing import List
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from fastapi import APIRouter, File, UploadFile
-
-# from fastapi.datastructures import File, UploadFile
 from pydantic import BaseModel, Field
 
 router = APIRouter()
@@ -18,9 +16,36 @@ class Item(BaseModel):
     machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     datetime: str
 
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate_to_json
+
+    @classmethod
+    def validate_to_json(cls, value):
+        if isinstance(value, str):
+            return cls(**json.loads(value))
+        return value
+
+
+class Item2(BaseModel):
+    files: List[UploadFile] = File(...)
+    # files: List
+    machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
+    datetime: str
+
+    # @classmethod
+    # def __get_validators__(cls):
+    #     yield cls.validate_to_json
+
+    # @classmethod
+    # def validate_to_json(cls, value):
+    #     if isinstance(value, str):
+    #         return cls(**json.loads(value))
+    #     return value
+
 
 @router.post("/")
-def upload(postData: Item):
+def upload(postData: Item2):
     """csvファイルのアップロード"""
 
     # アップロード用のディレクトリを作成
