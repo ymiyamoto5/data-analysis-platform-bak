@@ -3,7 +3,6 @@ version: '3'
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
-    hostname: doc-elastic
     environment:
       - discovery.type=single-node
       - cluster.name=docker-cluster
@@ -19,14 +18,15 @@ services:
     restart: always
     ports:
       - '9200:9200/tcp'
-    network_mode: 'host'
     volumes:
       - /mnt/datadrive/data:/usr/share/elasticsearch/data
+    networks:
+      - docker_network
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
       SERVER_NAME: 'kibana'
-      ELASTICSEARCH_HOSTS: 'http://0.0.0.0:9200'
+      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
       ELASTICSEARCH_REQUESTTIMEOUT: '60000'
       ELASTICSEARCH_USERNAME: 'elastic'
       ELASTICSEARCH_PASSWORD: 'P@ssw0rd'
@@ -34,9 +34,10 @@ services:
     restart: always
     ports:
       - '5601:5601/tcp'
-    network_mode: 'host'
     depends_on:
       - elasticsearch
+    networks:
+      - docker_network
   notebook:
     image: build_jupyter/base-notebook
     build:
@@ -52,7 +53,8 @@ services:
       - ~/data-analysis-platform/backend:/home/jovyan/backend
       - /mnt/datadrive:/mnt/datadrive
     command: start-notebook.sh --NotebookApp.token=''
-    network_mode: 'host'
+    networks:
+      - docker_network
   webap:
     build:
       context: ~/data-analysis-platform
@@ -67,9 +69,10 @@ services:
       - /mnt/datadrive:/mnt/datadrive
       - /run:/run
       - ~/data-analysis-platform/backend:/app/backend
-    network_mode: 'host'
     depends_on:
       - elasticsearch
+    networks:
+      - docker_network
   metricbeat:
     image: build_docker.elastic.co/beats/metricbeat:7.14.0
     build:
@@ -78,9 +81,9 @@ services:
     user: root
     env_file: ~/data-analysis-platform/.env
     environment:
-      - ELASTICSEARCH_HOST=localhost:9200
-      - KIBANA_HOST=localhost:5601
-      - NO_PROXY=localhost
+      - ELASTICSEARCH_HOST=elasticsearch:9200
+      - KIBANA_HOST=elasticsearch:5601
+      - NO_PROXY=elasticsearch
     restart: always
     volumes:
       - /proc:/hostfs/proc:ro
@@ -89,9 +92,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       # - ~/data-analysis-platform/docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
     command: -system.hostfs=/hostfs
-    network_mode: 'host'
     depends_on:
       - elasticsearch
+    networks:
+      - docker_network
   mlflow:
     build:
       context: .
@@ -109,7 +113,7 @@ services:
     command: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root s3://default/ --host 0.0.0.0 --port 5000
     restart: always
     networks:
-      - mlflow_network
+      - docker_network
   minio:
     image: minio/minio
     ports:
@@ -123,8 +127,7 @@ services:
       MINIO_ROOT_PASSWORD: minio-secret-key
     command: server /export --console-address :9001
     networks:
-      - mlflow_network
-
+      - docker_network
   defaultbucket:
     image: minio/mc
     depends_on:
@@ -137,7 +140,7 @@ services:
       exit 0;
       "
     networks:
-      - mlflow_network
+      - docker_network
   rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -148,10 +151,14 @@ services:
       - "5672:5672"
       - "25672:25672"
       - "15672:15672"
+    networks:
+      - docker_network
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
+    networks:
+      - docker_network
   worker:
     build:
       context: ~/data-analysis-platform
@@ -160,7 +167,6 @@ services:
       - ~/data-analysis-platform/backend:/backend
       - /mnt/datadrive:/mnt/datadrive  
     env_file: ~/data-analysis-platform/.env
-    network_mode: 'host'    
     # environment:
     #   - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
     #   - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -169,6 +175,8 @@ services:
       - webap
       - rabbitmq
       - redis
+    networks:
+      - docker_network
   flower:  
     image: mher/flower
     environment:
@@ -180,9 +188,11 @@ services:
     depends_on:
       - rabbitmq
       - worker
+    networks:
+      - docker_network
 
 networks:
-  mlflow_network:
+  docker_network:
     driver: bridge
 
 volumes:
