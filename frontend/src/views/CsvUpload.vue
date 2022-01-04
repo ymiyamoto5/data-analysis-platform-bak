@@ -19,13 +19,20 @@
             label="csvファイルを選択、またはドラッグ＆ドロップしてください。"
             multiple
             outlined
-            placeholder="※ここにテキスト表示可能"
             prepend-icon=""
             :show-size="1000"
             :background-color="isDragging ? 'primary' : 'null'"
           >
             <template v-slot:selection="{ index, text }">
-              <v-chip v-if="index < 6" color="primary" dark label large close>
+              <v-chip
+                v-if="index < 6"
+                color="primary"
+                close
+                dark
+                label
+                large
+                @click:close="deleteFile(index)"
+              >
                 <v-icon left>
                   mdi-file
                 </v-icon>
@@ -104,6 +111,7 @@ export default {
 
   data: () => ({
     files: [],
+    Files: [],
     isDragging: false,
     dragCount: 0,
     collectDatetime: null,
@@ -137,6 +145,7 @@ export default {
       e.stopPropagation()
       this.isDragging = false
       const _files = e.dataTransfer.files
+      // this.Files = [...e.dataTransfer.files]
       for (const file in _files) {
         if (!isNaN(file)) {
           //filesはファイル以外のデータが入っており、ファイルの場合のみキー名が数字になるため
@@ -207,6 +216,10 @@ export default {
           console.log(e.response.data.detail)
           this.errorSnackbar(e.response)
         })
+    },
+
+    deleteFile(index) {
+      this.files.splice(index, 1)
     },
   },
 }
