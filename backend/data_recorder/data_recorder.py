@@ -18,15 +18,15 @@ from typing import Any, Dict, Final, List, Optional, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_detail import \
+    DataCollectHistoryDetail
+from backend.app.models.data_collect_history_event import \
+    DataCollectHistoryEvent
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.common.common_logger import data_recorder_logger as logger
 from backend.file_manager.file_manager import FileInfo, FileManager
 from sqlalchemy.orm.session import Session
-
-API_URL: Final[str] = os.environ["API_URL"]
 
 
 class DataRecorder:
