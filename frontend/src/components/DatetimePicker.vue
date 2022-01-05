@@ -25,7 +25,7 @@
 
     <v-card>
       <v-card-text class="px-0 py-0">
-        <v-tabs fixed-tabs v-model="activeTab" color="indigo">
+        <v-tabs fixed-tabs v-model="activeTab" color="primary">
           <v-tab key="calendar">
             <slot name="dateIcon">
               <v-icon>mdi-calendar</v-icon>

@@ -15,6 +15,7 @@
             accept=".csv"
             color="primary"
             counter
+            counter-size-string="$vuetify.fileInput.counterSize"
             height="200"
             label="csvファイルを選択、またはドラッグ＆ドロップしてください。"
             multiple
@@ -25,12 +26,12 @@
           >
             <template v-slot:selection="{ index, text }">
               <v-chip
-                v-if="index < 6"
+                v-if="index < 10"
                 color="primary"
                 close
                 dark
                 label
-                large
+                small
                 @click:close="deleteFile(index)"
               >
                 <v-icon left>
@@ -39,9 +40,9 @@
                 {{ text }}
               </v-chip>
               <span
-                v-else-if="index === 6"
+                v-else-if="index === 10"
                 class="overline grey--text text--darken-3 mx-2"
-                >+{{ files.length - 6 }} File(s)</span
+                >+{{ files.length - 10 }} File(s)</span
               >
             </template>
           </v-file-input>
@@ -63,6 +64,7 @@
             timeFormat="HH:mm:ss"
             clearText="キャンセル"
             :text-field-props="textProps"
+            :date-picker-props="dateProps"
             :time-picker-props="timeProps"
             @input="setCollectDatetime"
           >
@@ -117,9 +119,10 @@ export default {
     formatCollectDatetime: null,
     textProps: {
       dense: true,
-      clearable: true,
       outlined: true,
-      // appendIcon: 'mdi-calendar-clock',
+    },
+    dateProps: {
+      // color: 'primary',
     },
     timeProps: {
       useSeconds: true,
@@ -167,7 +170,9 @@ export default {
     // 採取日時（yyyy/MM/dd hh:mm:ss）選択後、yyyyMMddhhmmssに変換する
     setCollectDatetime(value) {
       this.collectDatetime = value
-      this.fetchFormatCollectDatetime()
+      if (this.collectDatetime !== null) {
+        this.fetchFormatCollectDatetime()
+      }
     },
     fetchFormatCollectDatetime: async function() {
       const unixDatetime = Date.parse(this.collectDatetime)
@@ -194,7 +199,6 @@ export default {
     // アップロードボタン押下
     upload: async function() {
       this.running = true
-      // this.createDir()
 
       const config = {
         headers: {
@@ -202,44 +206,26 @@ export default {
         },
       }
 
-      const url =
-        CSV_UPLOAD_API_URL + this.machineId + '-' + this.formatCollectDatetime
-
       const client = createBaseApiClient()
-      this.files.forEach((file) => {
-        let form = new FormData()
-        form.append('file', file)
-        client
-          .post(url, form, config)
-          .then(() => {
-            this.running = false
-            this.snackbarMessage = 'アップロードが完了しました'
-            this.snackbar = true
-          })
-          .catch((e) => {
-            this.running = false
-            console.log(e.response.data.detail)
-            this.errorSnackbar(e.response)
-          })
+      let form = new FormData()
+      form.append('machine_id', this.machineId)
+      form.append('datetime', this.formatCollectDatetime)
+      this.files.map((file) => {
+        form.append('files', file)
       })
+      client
+        .post(CSV_UPLOAD_API_URL, form, config)
+        .then(() => {
+          this.running = false
+          this.snackbarMessage = 'アップロードが完了しました'
+          this.snackbar = true
+        })
+        .catch((e) => {
+          this.running = false
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
     },
-
-    // createDir: async function()  {
-    //   const postData = {
-    //     machine_id: this.machineId,
-    //     datetime: this.formatCollectDatetime,
-    //   }
-    //   const client = createBaseApiClient()
-    //   client
-    //     .post(CSV_UPLOAD_API_URL, postData)
-    //     .then(() => {
-    //     })
-    //     .catch((e) => {
-    //       this.running = false
-    //       console.log(e.response.data.detail)
-    //       this.errorSnackbar(e.response)
-    //     })
-    // },
 
     deleteFile(index) {
       this.files.splice(index, 1)
