@@ -187,7 +187,9 @@ CELERY_RESULT_BACKEND=redis://localhost/0
 - docker/.env
 
 ```
-COMPOSE_PROJECT_NAME=dev
+COMPOSE_PROJECT_NAME=data-analysis-platform
+DATA_DIR=/mnt/datadrive/data
+DATA_DRIVE=/mnt/datadrive
 ```
 
 - frontend/.env.production
