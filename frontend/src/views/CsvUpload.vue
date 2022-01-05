@@ -111,7 +111,6 @@ export default {
 
   data: () => ({
     files: [],
-    Files: [],
     isDragging: false,
     dragCount: 0,
     collectDatetime: null,
@@ -145,7 +144,6 @@ export default {
       e.stopPropagation()
       this.isDragging = false
       const _files = e.dataTransfer.files
-      // this.Files = [...e.dataTransfer.files]
       for (const file in _files) {
         if (!isNaN(file)) {
           //filesはファイル以外のデータが入っており、ファイルの場合のみキー名が数字になるため
@@ -196,27 +194,52 @@ export default {
     // アップロードボタン押下
     upload: async function() {
       this.running = true
+      // this.createDir()
 
-      const postData = {
-        files: this.files,
-        machine_id: this.machineId,
-        datetime: this.formatCollectDatetime,
+      const config = {
+        headers: {
+          'Content-type': 'multipart/form-data',
+        },
       }
 
+      const url =
+        CSV_UPLOAD_API_URL + this.machineId + '-' + this.formatCollectDatetime
+
       const client = createBaseApiClient()
-      await client
-        .post(CSV_UPLOAD_API_URL, postData)
-        .then(() => {
-          this.running = false
-          this.snackbarMessage = 'アップロードが完了しました'
-          this.snackbar = true
-        })
-        .catch((e) => {
-          this.running = false
-          console.log(e.response.data.detail)
-          this.errorSnackbar(e.response)
-        })
+      this.files.forEach((file) => {
+        let form = new FormData()
+        form.append('file', file)
+        client
+          .post(url, form, config)
+          .then(() => {
+            this.running = false
+            this.snackbarMessage = 'アップロードが完了しました'
+            this.snackbar = true
+          })
+          .catch((e) => {
+            this.running = false
+            console.log(e.response.data.detail)
+            this.errorSnackbar(e.response)
+          })
+      })
     },
+
+    // createDir: async function()  {
+    //   const postData = {
+    //     machine_id: this.machineId,
+    //     datetime: this.formatCollectDatetime,
+    //   }
+    //   const client = createBaseApiClient()
+    //   client
+    //     .post(CSV_UPLOAD_API_URL, postData)
+    //     .then(() => {
+    //     })
+    //     .catch((e) => {
+    //       this.running = false
+    //       console.log(e.response.data.detail)
+    //       this.errorSnackbar(e.response)
+    //     })
+    // },
 
     deleteFile(index) {
       this.files.splice(index, 1)
