@@ -1,10 +1,11 @@
 import os
+import re
 import shutil
 from typing import List
 
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 router = APIRouter()
 
@@ -27,5 +28,7 @@ def upload(
 
     # fileをアップロード
     for file in files:
+        if re.search(common.CSV_PATTERN, file.filename) is None:
+            raise HTTPException(status_code=400, detail=f"{file.filename}の拡張子がCSVではありません")
         with open(os.path.join(upload_dir_path, file.filename), "wb+") as f:
             shutil.copyfileobj(file.file, f)
