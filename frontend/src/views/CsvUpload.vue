@@ -11,11 +11,11 @@
       >
         <v-col cols="7">
           <v-file-input
+            ref="file_form"
             v-model="files"
             accept=".csv"
             color="primary"
             counter
-            counter-size-string="$vuetify.fileInput.counterSize"
             height="200"
             label="csvファイルを選択、またはドラッグ＆ドロップしてください。"
             multiple
@@ -78,7 +78,7 @@
           @click="upload"
           :disabled="
             running ||
-              files.length === 0 ||
+              !validate ||
               machineId === null ||
               collectDatetime === null
           "
@@ -115,6 +115,7 @@ export default {
     files: [],
     isDragging: false,
     dragCount: 0,
+    validate: false,
     collectDatetime: null,
     formatCollectDatetime: null,
     textProps: {
@@ -132,7 +133,27 @@ export default {
     running: false,
     snackbar: false,
     snackbarMessage: '',
+    // validation
+    rules: {
+      fileRequired: (value) => value.length !== 0 || '必須です。',
+      filePattern: (values) => {
+        const pattern = /\.csv$/
+        for (const index in values) {
+          if (!pattern.test(values[index].name)) {
+            return 'CSVファイルのみアップロード可能です。'
+          }
+        }
+        return true
+      },
+    },
   }),
+
+  watch: {
+    // アップロードボタンの押下判定をするため、file_formのバリデーションチェック
+    files: function() {
+      this.validate = this.$refs.file_form.validate()
+    },
+  },
 
   methods: {
     errorSnackbar(message) {
