@@ -130,7 +130,7 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 
 - .env: Docker コンテナーで利用する環境変数を定義
 - .env.local: ローカルデバッグ時に利用する環境変数を定義
-- docker/.env: docker-compose で利用する環境変数。主にプロジェクト名（COMPOSE_PROJECT_NAME）を定義。
+- docker/.env: docker-compose で利用する環境変数
 - frontend/.env.production: フロントエンドの本番ビルド時（yarn build）で利用する環境変数
 - frontend/.env.development: フロントエンドの開発サーバー（yarn serve）で利用する環境変数
 
@@ -190,6 +190,7 @@ CELERY_RESULT_BACKEND=redis://localhost/0
 COMPOSE_PROJECT_NAME=data-analysis-platform
 DATA_DIR=/mnt/datadrive/data
 DATA_DRIVE=/mnt/datadrive
+IP=<ローカルIP>
 ```
 
 - frontend/.env.production

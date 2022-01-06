@@ -18,7 +18,7 @@ services:
         hard: -1
     restart: always
     ports:
-      - '9200:9200/tcp'
+      - '${IP}:9200:9200/tcp'
     volumes:
       - ${DATA_DIR}:/usr/share/elasticsearch/data
     networks:
@@ -35,7 +35,7 @@ services:
     env_file: ../.env
     restart: always
     ports:
-      - '5601:5601/tcp'
+      - '${IP}:5601:5601/tcp'
     depends_on:
       - elasticsearch
     networks:
@@ -48,7 +48,7 @@ services:
     env_file: ../.env
     restart: always
     ports:
-      - '8888:8888/tcp'
+      - '${IP}:8888:8888/tcp'
     working_dir: '/home/jovyan/work'
     volumes:
       - ~/${COMPOSE_PROJECT_NAME}/notebooks:/home/jovyan/work
@@ -66,7 +66,7 @@ services:
     env_file: ../.env
     restart: always
     ports:
-      - '80:80/tcp'
+      - '${IP}:80:80/tcp'
     volumes:
       - ${DATA_DRIVE}:/mnt/datadrive
       - /run:/run
@@ -105,7 +105,7 @@ services:
     volumes:
       - mlflow:/mlflow
     ports:
-      - 5000:5000
+      - ${IP}:5000:5000
     depends_on:
       - minio
     environment:
@@ -119,8 +119,8 @@ services:
   minio:
     image: minio/minio
     ports:
-      - 9000:9000
-      - 9001:9001
+      - ${IP}:9000:9000
+      - ${IP}:9001:9001
     restart: always
     volumes:
       - minio1:/export
@@ -149,16 +149,16 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     ports:
-      - "4369:4369"
-      - "5672:5672"
-      - "25672:25672"
-      - "15672:15672"
+      - "${IP}:4369:4369"
+      - "${IP}:5672:5672"
+      - "${IP}:25672:25672"
+      - "${IP}:15672:15672"
     networks:
       - docker_network
   redis:
     image: redis:latest
     ports:
-      - "6379:6379"
+      - "${IP}:6379:6379"
     networks:
       - docker_network
   worker:
@@ -185,8 +185,9 @@ services:
       - no_proxy=rabbitmq
       # - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
       - FLOWER_PORT=5555
+    env_file: ../.env
     ports:  
-      - 5555:5555
+      - ${IP}:5555:5555
     depends_on:
       - rabbitmq
       - worker
