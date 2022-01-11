@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from backend.elastic_manager.elastic_manager import ElasticManager
 from fastapi import APIRouter
+from fastapi.exceptions import HTTPException
 
 router = APIRouter()
 
@@ -66,5 +67,9 @@ def fetch_label(machine_id: str, target_dir: str):
     query = {"sort": {"shot_number": {"order": "asc"}}}
     docs = ElasticManager.get_docs(index=ind, query=query)
 
-    labels = [d["label"] for d in docs]
+    labels = [d["label"] for d in docs if "label" in d]
+
+    if labels == []:
+        raise HTTPException(status_code=500, detail="正解ラベルがありません")
+
     return {"labels": labels}
