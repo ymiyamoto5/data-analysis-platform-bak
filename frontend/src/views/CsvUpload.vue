@@ -21,6 +21,7 @@
             multiple
             outlined
             prepend-icon=""
+            :rules="[rules.fileRequired, rules.filePattern]"
             :show-size="1000"
             :background-color="isDragging ? 'primary' : 'null'"
           >
