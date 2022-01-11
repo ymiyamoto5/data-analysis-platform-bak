@@ -1,6 +1,7 @@
 import os
 import re
-from typing import List, Pattern
+import time
+from typing import Final, List, Match, Pattern, Tuple, Union
 
 import mlflow  # type: ignore
 import pandas as pd
@@ -11,6 +12,7 @@ from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.worker.celery import celery_app
+from backend.common.common_logger import logger
 from backend.data_reader.data_reader import DataReader
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.utils.extract_features_by_shot import eval_dsl, extract_features
@@ -19,27 +21,52 @@ from pandas.core.frame import DataFrame
 
 @celery_app.task(acks_late=True)
 def predictor_task(machine_id: str):
+
+    logger.info(f"predictor process started. machine_id: {machine_id}")
+
     db = SessionLocal()
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
     if machine.auto_predict is False:
+        db.close()
         return
-
     data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+
     basename: str = os.path.basename(data_collect_history.processed_dir_path)
     pattern: Pattern = re.compile(".*-(\d{14})")
-    pattern_match = pattern.match(basename)
+    pattern_match: Union[Match[str], None] = pattern.match(basename)
     if pattern_match is None:
+        db.close()
         return
     else:
         target_dir: str = pattern_match.group(1)
 
-    shot_df, target_shot = fetch_shot_data(machine_id, target_dir)
-    features = feature_extract(machine, target_dir, shot_df)
-    if not features.empty:
-        predict(machine, features, target_dir, target_shot)
+    INTERVAL: Final[int] = 5
+    RETRY_THRESHOLD: Final[int] = 10
+    retry_count: int = 0
+    while True:
+        time.sleep(INTERVAL)
+
+        shot_df, target_shot = fetch_shot_data(machine_id, target_dir)
+        if shot_df is None:
+            retry_count += 1
+            if retry_count > RETRY_THRESHOLD:
+                logger.info(f"[predictor] The maximum number of retries({retry_count}) has been reached.")
+                logger.info(f"predictor process end. machine_id: {machine_id}")
+                break
+            else:
+                continue
+        else:
+            retry_count = 0
+
+        logger.info(f"[predictor] Fetch shot data completed. Target shot is {target_shot}.")
+        features = feature_extract(machine, target_dir, shot_df)
+        if not features.empty:
+            predict(machine, features, target_dir, target_shot)
+
+    db.close()
 
 
-def fetch_shot_data(machine_id: str, target_dir: str) -> List:
+def fetch_shot_data(machine_id: str, target_dir: str) -> Tuple[DataFrame, int]:
 
     data_index = f"shots-{machine_id}-{target_dir}-data"
     meta_index = f"shots-{machine_id}-{target_dir}-meta"
@@ -49,10 +76,14 @@ def fetch_shot_data(machine_id: str, target_dir: str) -> List:
     query = {"query": {"term": {label: {"value": "false"}}}, "aggs": {agg_name: {"min": {"field": "shot_number"}}}}
     aggs = ElasticManager.es.search(index=meta_index, body=query)["aggregations"]
 
+    # TODO: すべて予測済みの場合のreturn処理追加
+    if aggs[agg_name]["value"] is None:
+        return [None, None]
+
     dr = DataReader()
     target_shot = int(aggs[agg_name]["value"])
     shot_df = dr.read_shot(data_index, shot_number=target_shot)
-    return [shot_df, target_shot]
+    return (shot_df, target_shot)
 
 
 def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> DataFrame:
