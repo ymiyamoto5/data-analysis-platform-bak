@@ -19,7 +19,7 @@ from backend.common import common
 from dotenv import load_dotenv
 from sqlalchemy import event
 
-env_file = ".env"
+env_file = ".env.local"
 load_dotenv(env_file)
 
 DATA_DIR: Final[str] = os.environ["data_dir"]
@@ -187,9 +187,6 @@ machine_01 = Machine(
                             sensor_type_id="stroke_displacement",
                             slope=1.0,
                             intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
                         ),
                         Sensor(
                             machine_id="machine-01",
@@ -198,9 +195,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
                         ),
                         Sensor(
                             machine_id="machine-01",
@@ -209,9 +206,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
                         ),
                     ],
                 ),
@@ -230,9 +227,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
                         ),
                         Sensor(
                             machine_id="machine-01",
@@ -241,9 +238,9 @@ machine_01 = Machine(
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
                         ),
                     ],
                 ),
@@ -301,6 +298,9 @@ data_collect_history_demo = DataCollectHistory(
             sensor_type_id="load",
             slope=1.0,
             intercept=0.0,
+            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
         ),
         DataCollectHistoryDetail(
             sensor_id="load02",
@@ -308,6 +308,9 @@ data_collect_history_demo = DataCollectHistory(
             sensor_type_id="load",
             slope=1.0,
             intercept=0.0,
+            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
         ),
         DataCollectHistoryDetail(
             sensor_id="load03",
@@ -315,6 +318,9 @@ data_collect_history_demo = DataCollectHistory(
             sensor_type_id="load",
             slope=1.0,
             intercept=0.0,
+            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
         ),
         DataCollectHistoryDetail(
             sensor_id="load04",
@@ -322,6 +328,9 @@ data_collect_history_demo = DataCollectHistory(
             sensor_type_id="load",
             slope=1.0,
             intercept=0.0,
+            start_point_dsl=r"ROLLING_WINDOW = 9;\ HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(ACC);",
+            max_point_dsl=r"ROLLING_WINDOW = 19;\ HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMIN(DST);",
+            break_point_dsl=r"ROLLING_WINDOW = 1;\ HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];\ VERTICAL_LIMIT = [None, None];\ TARGET = IDXMAX(ACC);",
         ),
     ],
 )

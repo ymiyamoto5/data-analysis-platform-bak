@@ -3,7 +3,6 @@ version: '3'
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
-    hostname: doc-elastic
     environment:
       - discovery.type=single-node
       - cluster.name=docker-cluster
@@ -12,86 +11,93 @@ services:
       - ELASTIC_PASSWORD=P@ssw0rd
       - bootstrap.memory_lock=true
       - 'ES_JAVA_OPTS=-Xms4096m -Xmx4096m'
+    env_file: ../.env
     ulimits:
       memlock:
         soft: -1
         hard: -1
     restart: always
     ports:
-      - '9200:9200/tcp'
-    network_mode: 'host'
+      - '${IP}:9200:9200/tcp'
     volumes:
-      - /mnt/datadrive/data:/usr/share/elasticsearch/data
+      - ${DATA_DIR}:/usr/share/elasticsearch/data
+    networks:
+      - docker_network
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
       SERVER_NAME: 'kibana'
-      ELASTICSEARCH_HOSTS: 'http://0.0.0.0:9200'
+      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
       ELASTICSEARCH_REQUESTTIMEOUT: '60000'
-      ELASTICSEARCH_USERNAME: 'elastic'
-      ELASTICSEARCH_PASSWORD: 'P@ssw0rd'
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: P@ssw0rd
       I18N_LOCALE: 'ja-JP'
+    env_file: ../.env
     restart: always
     ports:
-      - '5601:5601/tcp'
-    network_mode: 'host'
+      - '${IP}:5601:5601/tcp'
     depends_on:
       - elasticsearch
+    networks:
+      - docker_network
   notebook:
     image: build_jupyter/base-notebook
     build:
-      context: ~/data-analysis-platform
+      context: ~/${COMPOSE_PROJECT_NAME}
       dockerfile: ./docker/jupyter.dockerfile
-    env_file: ~/data-analysis-platform/.env
+    env_file: ../.env
     restart: always
     ports:
-      - '8888:8888/tcp'
+      - '${IP}:8888:8888/tcp'
     working_dir: '/home/jovyan/work'
     volumes:
-      - ~/data-analysis-platform/notebooks:/home/jovyan/work
-      - ~/data-analysis-platform/backend:/home/jovyan/backend
-      - /mnt/datadrive/data:/mnt/datadrive/data
+      - ~/${COMPOSE_PROJECT_NAME}/notebooks:/home/jovyan/work
+      - ~/${COMPOSE_PROJECT_NAME}/backend:/home/jovyan/backend
+      - ${DATA_DRIVE}:/mnt/datadrive
     command: start-notebook.sh --NotebookApp.token=''
-    network_mode: 'host'
+    networks:
+      - docker_network
   webap:
     build:
-      context: ~/data-analysis-platform
+      context: ~/${COMPOSE_PROJECT_NAME}
       dockerfile: ./docker/webap.dockerfile
     environment:
       MODULE_NAME: 'backend.app.main'
-    env_file: ~/data-analysis-platform/.env
+    env_file: ../.env
     restart: always
     ports:
-      - '80:80/tcp'
+      - '${IP}:80:80/tcp'
     volumes:
-      - /mnt/datadrive:/mnt/datadrive
+      - ${DATA_DRIVE}:/mnt/datadrive
       - /run:/run
-      - ~/data-analysis-platform/backend:/app/backend
-    network_mode: 'host'
+      - ~/${COMPOSE_PROJECT_NAME}/backend:/app/backend
     depends_on:
       - elasticsearch
+    networks:
+      - docker_network
   metricbeat:
     image: build_docker.elastic.co/beats/metricbeat:7.14.0
     build:
-      context: ~/data-analysis-platform
+      context: ~/${COMPOSE_PROJECT_NAME}
       dockerfile: ./docker/metricbeat.dockerfile
     user: root
-    env_file: ~/data-analysis-platform/.env
+    env_file: ../.env
     environment:
-      - ELASTICSEARCH_HOST=localhost:9200
-      - KIBANA_HOST=localhost:5601
-      - NO_PROXY=localhost
+      - ELASTICSEARCH_HOST=elasticsearch:9200
+      - KIBANA_HOST=elasticsearch:5601
+      - NO_PROXY=elasticsearch
     restart: always
     volumes:
       - /proc:/hostfs/proc:ro
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /:/hostfs:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      # - ~/data-analysis-platform/docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      # - ~/${COMPOSE_PROJECT_NAME}/docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
     command: -system.hostfs=/hostfs
-    network_mode: 'host'
     depends_on:
       - elasticsearch
+    networks:
+      - docker_network
   mlflow:
     build:
       context: .
@@ -99,7 +105,7 @@ services:
     volumes:
       - mlflow:/mlflow
     ports:
-      - 5000:5000
+      - ${IP}:5000:5000
     depends_on:
       - minio
     environment:
@@ -109,58 +115,61 @@ services:
     command: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root s3://default/ --host 0.0.0.0 --port 5000
     restart: always
     networks:
-      - mlflow_network
+      - docker_network
   minio:
     image: minio/minio
     ports:
-      - 9000:9000
-      - 9001:9001
+      - ${IP}:9000:9000
+      - ${IP}:9001:9001
     restart: always
     volumes:
       - minio1:/export
     environment:
       MINIO_ROOT_USER: minio-access-key
       MINIO_ROOT_PASSWORD: minio-secret-key
+      MINIO_SERVER_URL: http://${IP}:9000
     command: server /export --console-address :9001
     networks:
-      - mlflow_network
-
+      - docker_network
   defaultbucket:
     image: minio/mc
     depends_on:
       - minio
     entrypoint: >
       /bin/sh -c "
-      until (/usr/bin/mc alias set minio http://minio:9000 minio-access-key minio-secret-key) do echo 'try to create buckets...' && sleep 1; done;
+      until (/usr/bin/mc alias set minio http://${IP}:9000 minio-access-key minio-secret-key) do echo 'try to create buckets...' && sleep 1; done;
       /usr/bin/mc mb minio/default;
       /usr/bin/mc policy set public minio/default;
       exit 0;
       "
     networks:
-      - mlflow_network
+      - docker_network
   rabbitmq:
     image: rabbitmq:3-management
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     ports:
-      - "4369:4369"
-      - "5672:5672"
-      - "25672:25672"
-      - "15672:15672"
+      - "${IP}:4369:4369"
+      - "${IP}:5672:5672"
+      - "${IP}:25672:25672"
+      - "${IP}:15672:15672"
+    networks:
+      - docker_network
   redis:
     image: redis:latest
     ports:
-      - "6379:6379"
+      - "${IP}:6379:6379"
+    networks:
+      - docker_network
   worker:
     build:
-      context: ~/data-analysis-platform
+      context: ~/${COMPOSE_PROJECT_NAME}
       dockerfile: docker/celery.dockerfile
     volumes:
-      - ~/data-analysis-platform/backend:/backend
-      - /mnt/datadrive:/mnt/datadrive  
-    env_file: ~/data-analysis-platform/.env
-    network_mode: 'host'    
+      - ~/${COMPOSE_PROJECT_NAME}/backend:/backend
+      - ${DATA_DRIVE}:/mnt/datadrive  
+    env_file: ../.env
     # environment:
     #   - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
     #   - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -169,20 +178,25 @@ services:
       - webap
       - rabbitmq
       - redis
+    networks:
+      - docker_network
   flower:  
     image: mher/flower
     environment:
       - no_proxy=rabbitmq
-      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
+      # - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
       - FLOWER_PORT=5555
+    env_file: ../.env
     ports:  
-      - 5555:5555
+      - ${IP}:5555:5555
     depends_on:
       - rabbitmq
       - worker
+    networks:
+      - docker_network
 
 networks:
-  mlflow_network:
+  docker_network:
     driver: bridge
 
 volumes:
