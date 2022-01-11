@@ -5,9 +5,11 @@ from celery import current_task
 from sqlalchemy.orm.session import Session
 
 
-@celery_app.task(acks_late=True)
-def data_recorder_task(machine_id: str) -> str:
+@celery_app.task(bind=True)
+def data_recorder_task(self, machine_id: str) -> str:
     """データ記録処理をceleryタスクに登録する"""
+
+    # print(f"Request: {self.request}")
 
     current_task.update_state(state="PROGRESS", meta={"message": f"data recording start. machine_id: {machine_id}"})
 

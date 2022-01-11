@@ -236,6 +236,13 @@ def reset(
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="DB update error.")
 
+    # celeryタスク取り消し
+    active_tasks = celery_app.control.inspect().active()
+    for _, task_list in active_tasks.items():
+        for task in task_list:
+            if machine_id in task["args"]:
+                celery_app.control.revoke(task["id"], terminate=True)
+
     return
 
 

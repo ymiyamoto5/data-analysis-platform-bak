@@ -182,7 +182,7 @@ class DataImporter:
         pickle_filepath: str = os.path.join(file_dir, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
 
-    def import_by_shot_pkl(self, target: str):
+    def import_by_shot_pkl(self, target: str, machine_id: str):
         """ショット毎に分割されたpickleファイルからElasticsearchにインポートする"""
 
         # TODO: メソッド化
@@ -213,7 +213,8 @@ class DataImporter:
             df["shot_number"] = shot_number
             df["sequential_number_by_shot"] = pd.RangeIndex(0, len(df), 1)
             df["rawdata_sequential_number"] = pd.RangeIndex(start, start + len(df), 1)
-            df["tags"] = pd.Series([[] for _ in range(len(df))])  # tagsは[]で初期化
+            # df["tags"] = pd.Series([[] for _ in range(len(df))])  # tagsは[]で初期化
+            df["machine_id"] = machine_id
 
             timestamp = df.timestamp.iloc[0]
             shots_meta_records.append(
@@ -249,6 +250,7 @@ class DataImporter:
         shots_meta_df.replace(dict(spm={np.nan: None}), inplace=True)
         shots_meta_df.drop(columns=["time_diff"], inplace=True)
         shots_meta_df["timestamp"] = shots_meta_df["timestamp"].apply(lambda x: datetime.utcfromtimestamp(x))
+        shots_meta_df["machine_id"] = machine_id
 
         shots_meta_dict = shots_meta_df.to_dict(orient="records")
         shots_meta_index = "shots-" + target + "-meta"
@@ -257,11 +259,6 @@ class DataImporter:
 
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-
-    env_file = ".env"
-    load_dotenv(env_file)
-
     # 射出成形
     # target_date = "20190523094129"
     # start_time = None
@@ -320,4 +317,4 @@ if __name__ == "__main__":
     logger.info("process csv files finished")
 
     # pklをelasticsearchに格納
-    di.import_by_shot_pkl(target)
+    di.import_by_shot_pkl(target, machine_id)

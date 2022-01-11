@@ -124,25 +124,54 @@ docker コンテナーのファイル群。
 
 jupyter notebook のファイル群。分析ロジック適用は jupyter notebook から行う。
 
-### .env
+### .env, .env.local
 
-本システム共通で利用する環境変数。git 管理外のため、各自のローカルで管理すること。また、このファイルに変更を行った場合は他の開発者にアナウンスし、共有すること。
+本システム共通で利用する環境変数。git 管理外のため、各自のローカルで管理すること。また、このファイルに変更を行った場合は他の開発者にアナウンスし、共有すること。なお、環境変数の設定値はプロジェクトごとに異なる値を設定する。
+
+- .env: Docker コンテナーで利用する環境変数を定義
+- .env.local: ローカルデバッグ時に利用する環境変数を定義
+- docker/.env: docker-compose で利用する環境変数
+- frontend/.env.production: フロントエンドの本番ビルド時（yarn build）で利用する環境変数
+- frontend/.env.development: フロントエンドの開発サーバー（yarn serve）で利用する環境変数
 
 サンプル
 
-- プロジェクト直下の.env ファイル
+- .env
 
 ```
-API_URL=http://localhost:8000/api/v1
 SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
 DB_SQL_ECHO=0
-NO_PROXY=localhost
+NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
+no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
+mlflow_server_uri=http://mlflow:5000
+mlflow_experiment_name=some
+MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+AWS_ACCESS_KEY_ID=minio-access-key
+AWS_SECRET_ACCESS_KEY=minio-secret-key
+data_dir=/mnt/datadrive/data
+elastic_url=elasticsearch:9200
+elastic_user=elastic
+elastic_password=P@ssw0rd
+mapping_rawdata_path=backend/mappings/mapping_rawdata.json
+setting_rawdata_path=backend/mappings/setting_rawdata.json
+setting_shots_path=backend/mappings/setting_shots.json
+setting_shots_meta_path=backend/mappings/setting_shots_meta.json
+setting_resample_path=backend/mappings/setting_resample.json
+CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
+CELERY_RESULT_BACKEND=redis://redis/0
+```
+
+.env.local
+
+```
+SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
+DB_SQL_ECHO=1
 mlflow_server_uri=http://localhost:5000
 mlflow_experiment_name=some
 MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
 AWS_ACCESS_KEY_ID=minio-access-key
 AWS_SECRET_ACCESS_KEY=minio-secret-key
-data_dir=/mnt/datadrive/data/
+data_dir=/mnt/datadrive/data
 elastic_url=localhost:9200
 elastic_user=elastic
 elastic_password=P@ssw0rd
@@ -151,6 +180,17 @@ setting_rawdata_path=backend/mappings/setting_rawdata.json
 setting_shots_path=backend/mappings/setting_shots.json
 setting_shots_meta_path=backend/mappings/setting_shots_meta.json
 setting_resample_path=backend/mappings/setting_resample.json
+CELERY_BROKER_URL=pyamqp://guest:guest@localhost:5672
+CELERY_RESULT_BACKEND=redis://localhost/0
+```
+
+- docker/.env
+
+```
+COMPOSE_PROJECT_NAME=data-analysis-platform
+DATA_DIR=/mnt/datadrive/data
+DATA_DRIVE=/mnt/datadrive
+IP=<ローカルIP>
 ```
 
 - frontend/.env.production
@@ -161,6 +201,16 @@ VUE_APP_API_BASE_URL='http://<ローカルIP>'
 VUE_APP_KIBANA_URL='http://<ローカルIP>:5601/'
 VUE_APP_JUPYTER_URL='http://<ローカルIP>:8888/'
 VUE_APP_MLFLOW_URL='http://<ローカルIP>:5000'
+```
+
+- frontend/.env.development
+
+```
+NODE_ENV='development'
+VUE_APP_API_BASE_URL='http://localhost:8000'
+VUE_APP_KIBANA_URL='http://localhost:5601/'
+VUE_APP_JUPYTER_URL='http://localhost:8888/'
+VUE_APP_MLFLOW_URL='http://localhost:5000'
 ```
 
 ### mypy.ini
