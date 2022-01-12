@@ -36,6 +36,7 @@ import {
   TAGGING_PATH,
   MODEL_MANAGEMENT_PATH,
   SETTINGS_PATH,
+  CSV_UPLOAD_PATH,
 } from '@/router'
 
 export default {
@@ -92,6 +93,12 @@ export default {
           name: '分析画面',
           icon: 'mdi-flask-outline',
           link: '/jupyter',
+        },
+        {
+          id: 'csvUpload',
+          name: 'CSVアップロード',
+          icon: 'mdi-file-upload',
+          link: CSV_UPLOAD_PATH,
         },
       ],
     }

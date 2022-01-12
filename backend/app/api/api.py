@@ -1,5 +1,6 @@
 from backend.app.api.endpoints import (
     controller,
+    csv_upload,
     cut_out_shot,
     data_collect_histories,
     features,
@@ -32,3 +33,4 @@ api_router.include_router(
 api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
 api_router.include_router(features.router, prefix="/features", tags=["features"])
 api_router.include_router(models.router, prefix="/models", tags=["models"])
+api_router.include_router(csv_upload.router, prefix="/csv_upload", tags=["csv_upload"])
