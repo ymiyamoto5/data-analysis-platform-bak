@@ -42,6 +42,7 @@ def create(tag_in: tag.TagBase):
     body = {
         "occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"),
         "ended_at": ended_at,
+        "machine_id": tag_in.machine_id,
         "tag": tag_in.tag,
     }
 
@@ -65,6 +66,7 @@ def update(tag_id: str, tag_in: tag.TagBase):
     body = {
         "occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"),
         "ended_at": ended_at,
+        "machine_id": tag_in.machine_id,
         "tag": tag_in.tag,
     }
 
