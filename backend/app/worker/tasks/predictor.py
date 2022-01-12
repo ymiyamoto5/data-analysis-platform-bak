@@ -16,17 +16,18 @@ from backend.common.common_logger import logger
 from backend.data_reader.data_reader import DataReader
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.utils.extract_features_by_shot import eval_dsl, extract_features
-from celery import current_task
+
+# from celery import current_task
 from pandas.core.frame import DataFrame
 
 
-@celery_app.task(acks_late=True)
+@celery_app.task()
 def predictor_task(machine_id: str):
     """metaインデックスのpredictedがfalse（未予測）のショットを取得し、予測する。
     未予測のショットがないことが10回続いた場合は終了。
     """
 
-    current_task.update_state(state="PROGRESS", meta={"message": f"predictor start. machine_id: {machine_id}"})
+    # current_task.update_state(state="PROGRESS", meta={"message": f"predictor start. machine_id: {machine_id}"})
 
     logger.info(f"predictor process started. machine_id: {machine_id}")
 
@@ -136,23 +137,34 @@ def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> Da
     return pd.DataFrame.from_dict(feature_entry, orient="index").T
 
 
-def predict(machine: Machine, features: DataFrame, target_dir: str, target_shot: int) -> bool:
+def predict(machine: Machine, features: DataFrame, target_dir: str, target_shot: int) -> Optional[bool]:
+    """予測"""
+
     mlflow_server_uri: str = os.environ["mlflow_server_uri"]
     mlflow.set_tracking_uri(mlflow_server_uri)
     # machineテーブルの参照
     # モデルとバージョンの取得
     model_name: str = machine.predict_model
+    if model_name is None:
+        logger.error("model_name required.")
+        return
+
     model_version: str = machine.model_version
+    if model_version is None:
+        logger.error("model_version required.")
+        return None
 
     # MLFlowからモデルの取得
     model = mlflow.sklearn.load_model(model_uri=f"models:/{model_name}/{model_version}")
-    result = model.predict(features)
+    result: bool = model.predict(features)
 
     # 予測の実行
     if not all(map(lambda x: x in features.columns, model.feature_names_in_)):
-        return
+        return None
+
     data: DataFrame = features.reindex(columns=model.feature_names_in_)
-    result: bool = model.predict(data)[0]
+    result = model.predict(data)[0]
+
     els_entry: dict = {"shot_number": target_shot, "model": model_name, "version": model_version}
     els_entry.update(data.to_dict(orient="records")[0])
     els_entry["label"] = result
