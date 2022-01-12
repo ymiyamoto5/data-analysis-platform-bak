@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from typing import Final, List, Match, Pattern, Tuple, Union
+from typing import Final, List, Match, Optional, Pattern, Tuple, Union
 
 import mlflow  # type: ignore
 import pandas as pd
@@ -16,11 +16,17 @@ from backend.common.common_logger import logger
 from backend.data_reader.data_reader import DataReader
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.utils.extract_features_by_shot import eval_dsl, extract_features
+from celery import current_task
 from pandas.core.frame import DataFrame
 
 
 @celery_app.task(acks_late=True)
 def predictor_task(machine_id: str):
+    """metaインデックスのpredictedがfalse（未予測）のショットを取得し、予測する。
+    未予測のショットがないことが10回続いた場合は終了。
+    """
+
+    current_task.update_state(state="PROGRESS", meta={"message": f"predictor start. machine_id: {machine_id}"})
 
     logger.info(f"predictor process started. machine_id: {machine_id}")
 
@@ -32,6 +38,7 @@ def predictor_task(machine_id: str):
     data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
 
     basename: str = os.path.basename(data_collect_history.processed_dir_path)
+    # yyyyMMddhhmmss文字列
     pattern: Pattern = re.compile(".*-(\d{14})")
     pattern_match: Union[Match[str], None] = pattern.match(basename)
     if pattern_match is None:
@@ -58,6 +65,10 @@ def predictor_task(machine_id: str):
         else:
             retry_count = 0
 
+        if target_shot is None:
+            logger.error("Invalid. target_shot is None")
+            break
+
         logger.info(f"[predictor] Fetch shot data completed. Target shot is {target_shot}.")
         features = feature_extract(machine, target_dir, shot_df)
         if not features.empty:
@@ -66,7 +77,8 @@ def predictor_task(machine_id: str):
     db.close()
 
 
-def fetch_shot_data(machine_id: str, target_dir: str) -> Tuple[DataFrame, int]:
+def fetch_shot_data(machine_id: str, target_dir: str) -> Tuple[Optional[DataFrame], Optional[int]]:
+    """未予測のショットデータをElasticsearchから取得する"""
 
     data_index = f"shots-{machine_id}-{target_dir}-data"
     meta_index = f"shots-{machine_id}-{target_dir}-meta"
@@ -78,7 +90,7 @@ def fetch_shot_data(machine_id: str, target_dir: str) -> Tuple[DataFrame, int]:
 
     # TODO: すべて予測済みの場合のreturn処理追加
     if aggs[agg_name]["value"] is None:
-        return [None, None]
+        return (None, None)
 
     dr = DataReader()
     target_shot = int(aggs[agg_name]["value"])
@@ -87,6 +99,8 @@ def fetch_shot_data(machine_id: str, target_dir: str) -> Tuple[DataFrame, int]:
 
 
 def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> DataFrame:
+    """ショットデータから特徴量抽出"""
+
     # DSLの取得
     sensors: List[Sensor] = machine.sensors
 
@@ -99,7 +113,7 @@ def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> Da
             dsl: str = getattr(sensor, dsl_name)
             if dsl is None:
                 continue
-            # extract_featuresが対象をload01-04に固定しているため変更する必要有
+            # TODO: extract_featuresが対象をload01-04に固定しているため変更する必要有
             arg, val, _ = extract_features(shot_df, 80.0, eval_dsl, sub_func=None, dslstr=dsl)
             sensor_index_dict: dict = {k: i for i, k in enumerate(["load01", "load02", "load03", "load04"])}
             sensor_index: int = sensor_index_dict[sensor.sensor_name]

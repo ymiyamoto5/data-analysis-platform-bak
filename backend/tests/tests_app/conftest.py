@@ -130,6 +130,14 @@ def create_testdb(db):
         machine_name="テスト機器01",
         collect_status=common.COLLECT_STATUS.RECORDED.value,
         machine_type_id=1,
+        auto_cut_out_shot=False,
+        start_displacement=None,
+        end_displacement=None,
+        margin=None,
+        threshold=None,
+        auto_predict=False,
+        predict_model=None,
+        model_version=None,
         gateways=[
             Gateway(
                 gateway_id="test-gw-01",
