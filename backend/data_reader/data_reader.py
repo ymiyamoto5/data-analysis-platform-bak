@@ -9,7 +9,8 @@
 
 """
 
-from typing import List
+import glob
+from typing import List, Optional
 
 import pandas as pd
 from backend.common import common
@@ -130,6 +131,17 @@ class DataReader:
             return
 
         df: DataFrame = pd.DataFrame(result)
+        return df
+
+    def read_csv_files(self, path: str, headers: Optional[List[str]] = None) -> DataFrame:
+        """指定ディレクトリの全csvファイルをDataFrameにて取得"""
+        files = sorted(glob.glob(path + "/*.csv"))
+        df: DataFrame = pd.DataFrame()
+        df_lists = []
+        for f in files:
+            csv_df = pd.read_csv(f, names=headers, header=None)
+            df_lists.append(csv_df)
+        df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
 
