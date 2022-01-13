@@ -55,9 +55,9 @@ processors:
   - add_cloud_metadata: ~
 
 setup.kibana:
-  host: 'localhost:5601'
+  host: 'kibana:5601'
 
 output.elasticsearch:
-  hosts: 'localhost:9200'
+  hosts: 'elasticsearch:9200'
   username: 'elastic'
   password: 'P@ssw0rd'
