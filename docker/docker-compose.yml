@@ -1,4 +1,4 @@
-version: '3'
+version: '3.4'
 
 services:
   elasticsearch:
@@ -73,8 +73,32 @@ services:
       - ~/${COMPOSE_PROJECT_NAME}/backend:/app/backend
     depends_on:
       - elasticsearch
+      - fluentd
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+  fluentd:
+    image: build_fluent/fluentd:v1.14.1
+    build:
+      context: ~/${COMPOSE_PROJECT_NAME}
+      dockerfile: ./docker/fluentd.dockerfile
+    restart: always
+    command: >
+      /usr/bin/fluentd -c /fluentd/etc/fluent.conf -v
+    ports:
+      - '24224:24224'
+      - '24224:24224/udp'
+    volumes:
+      - ${DATA_DRIVE}/fluentd/log:/fluentd/log
+      - ./fluent.conf:/fluentd/etc/fluent.conf:ro
+    networks:
+      - docker_network
+    depends_on:
+      - elasticsearch      
   metricbeat:
     image: build_docker.elastic.co/beats/metricbeat:7.14.0
     build:
