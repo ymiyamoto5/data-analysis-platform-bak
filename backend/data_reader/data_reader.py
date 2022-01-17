@@ -9,7 +9,8 @@
 
 """
 
-from typing import List
+import glob
+from typing import List, Optional
 
 import pandas as pd
 from backend.common import common
@@ -130,6 +131,28 @@ class DataReader:
             return
 
         df: DataFrame = pd.DataFrame(result)
+        return df
+
+    def read_csv_files(
+        self, path: str, header: Optional[int] = None, names: Optional[List[str]] = None, encoding: str = "utf-8"
+    ) -> DataFrame:
+        """指定ディレクトリの全csvファイルをDataFrameにて取得"""
+        files = sorted(glob.glob(path + "/*.csv"))
+        df: DataFrame = pd.DataFrame()
+        df_lists = []
+
+        for f in files:
+            # 列数とnamesの要素数が一致しない場合はエラーとする
+            if names is not None:
+                csv_columns = len(pd.read_csv(f, header=header, names=None, encoding=encoding).columns)
+                if csv_columns != len(names):
+                    logger.error("Length of names list is not equal columns.")
+                    return
+
+            csv_df = pd.read_csv(f, header=header, names=names, encoding=encoding)
+            df_lists.append(csv_df)
+
+        df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
 
