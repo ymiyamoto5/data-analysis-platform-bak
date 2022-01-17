@@ -150,13 +150,8 @@ class DataReader:
                     return
 
             csv_df = pd.read_csv(f, header=header, names=names, encoding=encoding)
-
-            # 異なる列数の行が存在し、DataFrameに欠損値(NaN)が入った場合はエラーとする
-            if csv_df.isnull().values.sum() != 0:
-                logger.error("NaN exists in DataFrame.")
-                return
-
             df_lists.append(csv_df)
+
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
