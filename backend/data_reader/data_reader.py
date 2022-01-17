@@ -133,16 +133,29 @@ class DataReader:
         df: DataFrame = pd.DataFrame(result)
         return df
 
-    def read_csv_files(self, path: str, header: Optional[int] = None, names: Optional[List[str]] = None) -> DataFrame:
+    def read_csv_files(
+        self, path: str, header: Optional[int] = None, names: Optional[List[str]] = None, encoding: str = "utf-8"
+    ) -> DataFrame:
         """指定ディレクトリの全csvファイルをDataFrameにて取得"""
         files = sorted(glob.glob(path + "/*.csv"))
         df: DataFrame = pd.DataFrame()
         df_lists = []
+
         for f in files:
-            csv_df = pd.read_csv(f, header=header, names=names)
-            # if csv_df.isnull().values.sum() != 0:
-            #     logger.error("Nan exist in data.")
-            #     return
+            # 列数とnamesの要素数が一致しない場合はエラーとする
+            if names is not None:
+                csv_columns = len(pd.read_csv(f, header=header, names=None, encoding=encoding).columns)
+                if csv_columns != len(names):
+                    logger.error("Length of names list is not equal columns.")
+                    return
+
+            csv_df = pd.read_csv(f, header=header, names=names, encoding=encoding)
+
+            # 異なる列数の行が存在し、DataFrameに欠損値(NaN)が入った場合はエラーとする
+            if csv_df.isnull().values.sum() != 0:
+                logger.error("NaN exists in DataFrame.")
+                return
+
             df_lists.append(csv_df)
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
@@ -155,13 +168,3 @@ if __name__ == "__main__":
     target = "shots-" + machine_id + "-" + target_date + "-data"
     df = data_reader.multi_process_read_all(target)
     # logger.info(df.info())
-
-    # 276確認用
-    # path = "/mnt/datadrive/data/machine-01-20210709190000"
-    path = "/mnt/datadrive/data/not_header_exists"
-    header = 0
-    names = ["Date", "TIME", "INTERVAL", "SHOT数", "歪量", "ストローク"]
-    dr = DataReader()
-    # print(dr.read_csv_files(path=path))
-    # print(dr.read_csv_files(path=path, header=header))
-    print(dr.read_csv_files(path=path, names=names))
