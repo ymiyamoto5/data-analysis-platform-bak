@@ -51,8 +51,8 @@ services:
       - '${IP}:8888:8888/tcp'
     working_dir: '/home/jovyan/work'
     volumes:
-      - ./notebooks:/home/jovyan/work
-      - ./backend:/home/jovyan/backend
+      - ../notebooks:/home/jovyan/work
+      - ../backend:/home/jovyan/backend
       - ${DATA_DRIVE}:/mnt/datadrive
     command: start-notebook.sh --NotebookApp.token=''
     networks:
@@ -70,7 +70,7 @@ services:
     volumes:
       - ${DATA_DRIVE}:/mnt/datadrive
       - /run:/run
-      - ./backend:/app/backend
+      - ../backend:/app/backend
     depends_on:
       - elasticsearch
       - fluentd
@@ -191,7 +191,7 @@ services:
       context: ..
       dockerfile: docker/celery.dockerfile
     volumes:
-      - ./backend:/backend
+      - ../backend:/backend
       - ${DATA_DRIVE}:/mnt/datadrive
     env_file: ${ENV_FILE}
     # environment:
