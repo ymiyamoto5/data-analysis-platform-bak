@@ -23,6 +23,11 @@ services:
       - ${DATA_DIR}:/usr/share/elasticsearch/data
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
@@ -40,6 +45,11 @@ services:
       - elasticsearch
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   notebook:
     image: build_jupyter/base-notebook
     build:
@@ -57,6 +67,11 @@ services:
     command: start-notebook.sh --NotebookApp.token=''
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   webap:
     build:
       context: ~/${COMPOSE_PROJECT_NAME}
@@ -122,6 +137,11 @@ services:
       - elasticsearch
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   mlflow:
     build:
       context: .
@@ -140,6 +160,11 @@ services:
     restart: always
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   minio:
     image: minio/minio
     ports:
@@ -155,6 +180,11 @@ services:
     command: server /export --console-address :9001
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   defaultbucket:
     image: minio/mc
     depends_on:
@@ -168,6 +198,11 @@ services:
       "
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -180,12 +215,22 @@ services:
       - "${IP}:15672:15672"
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   redis:
     image: redis:latest
     ports:
       - "${IP}:6379:6379"
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   worker:
     build:
       context: ~/${COMPOSE_PROJECT_NAME}
@@ -204,6 +249,11 @@ services:
       - redis
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
   flower:  
     image: mher/flower
     environment:
