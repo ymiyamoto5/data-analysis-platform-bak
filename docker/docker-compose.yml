@@ -28,6 +28,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
@@ -50,6 +51,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   notebook:
     image: build_jupyter/base-notebook
     build:
@@ -72,6 +74,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   webap:
     build:
       context: ..
@@ -96,6 +99,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   fluentd:
     image: build_fluent/fluentd:v1.14.1
     build:
@@ -142,6 +146,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   mlflow:
     build:
       context: .
@@ -165,6 +170,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   minio:
     image: minio/minio
     ports:
@@ -185,6 +191,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   defaultbucket:
     image: minio/mc
     depends_on:
@@ -203,6 +210,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -220,6 +228,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   redis:
     image: redis:latest
     ports:
@@ -231,6 +240,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   worker:
     build:
       context: ..
@@ -254,6 +264,7 @@ services:
       options:
         fluentd-address: '0.0.0.0:24224'
         tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   flower:  
     image: mher/flower
     environment:
