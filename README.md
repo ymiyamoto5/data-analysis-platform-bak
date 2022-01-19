@@ -191,6 +191,9 @@ COMPOSE_PROJECT_NAME=data-analysis-platform
 DATA_DIR=/mnt/datadrive/data
 DATA_DRIVE=/mnt/datadrive
 IP=<ローカルIP>
+ELASTIC_USERNAME=elastic
+ELASTIC_PASSWORD=P@ssw0rd
+ENV_FILE=../.env
 ```
 
 - frontend/.env.production
