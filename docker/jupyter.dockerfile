@@ -6,11 +6,16 @@ ENV https_proxy=http://proxy.unisys.co.jp:8080
 USER root
 RUN chmod -R 777 /var/log
 RUN apt-get update -y && \
-    apt-get install -y tzdata && \
+    apt-get install -y tzdata \
+    curl && \
     ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
-USER jovyan
-WORKDIR /home/jovyan
-COPY --chown=1000:100 ./backend/requirements.txt .
 
-RUN pip install -r ./requirements.txt
+COPY ./pyproject.toml ./poetry.lock /home/jovyan/
+
+RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | POETRY_HOME=/home/jovyan/poetry python - \
+    && cd /usr/local/bin \
+    && ln -s /home/jovyan/poetry/bin/poetry \
+    && cd /home/jovyan \
+    && poetry config virtualenvs.create false \
+    && poetry install
