@@ -205,12 +205,12 @@ services:
       "
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   rabbitmq:
     image: rabbitmq:3-management
     environment:
