@@ -39,8 +39,8 @@ def predictor_task(machine_id: str):
         return
     data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
 
+    # yyyyMMddhhmmss文字列を取得
     basename: str = os.path.basename(data_collect_history.processed_dir_path)
-    # yyyyMMddhhmmss文字列
     pattern: Pattern = re.compile(".*-(\d{14})")
     pattern_match: Union[Match[str], None] = pattern.match(basename)
     if pattern_match is None:
@@ -49,15 +49,18 @@ def predictor_task(machine_id: str):
     else:
         target_dir: str = pattern_match.group(1)
 
+    meta_index = f"shots-{machine_id}-{target_dir}-meta"
+
     INTERVAL: Final[int] = 5
     RETRY_THRESHOLD: Final[int] = 10
     retry_count: int = 0
     while True:
         time.sleep(INTERVAL)
 
-        shot_metas = fetch_shot_meta(machine_id, target_dir)
-        if not shot_metas:
+        unpredicted_shots_meta: List[dict] = fetch_unpredicted_shots_meta(meta_index)
+        if not unpredicted_shots_meta:
             retry_count += 1
+            logger.info(f"[predictor] There are no unpredicted shots yet. retry_count: {retry_count}")
             if retry_count > RETRY_THRESHOLD:
                 logger.info(f"[predictor] The maximum number of retries({retry_count}) has been reached.")
                 logger.info(f"predictor process end. machine_id: {machine_id}")
@@ -68,25 +71,31 @@ def predictor_task(machine_id: str):
             retry_count = 0
 
         logger.info("[predictor] Fetch shot meta data completed.")
+
+        # 1ショットずつデータを取得し、特徴抽出
         dr = DataReader()
         data_index = f"shots-{machine_id}-{target_dir}-data"
         features_df = pd.DataFrame()
-        for shot_meta in shot_metas:
+        for shot_meta in unpredicted_shots_meta:
             shot_df = dr.read_shot(data_index, shot_meta["shot_number"])
             features = feature_extract(machine, target_dir, shot_df)
             features = features.rename(shot_meta["shot_number"])
             features_df = features_df.append(features)
+            logger.info(f"[predictor] feature extracted by shot_number: {shot_meta['shot_number']}")
 
         if not features_df.empty:
-            predict(machine, features_df, target_dir, shot_metas)
+            predict(machine, features_df, target_dir, unpredicted_shots_meta)
+            logger.info("[predictor] predict by loop finished.")
 
     db.close()
 
 
-def fetch_shot_meta(machine_id: str, target_dir: str) -> List[dict]:
+def fetch_unpredicted_shots_meta(meta_index: str) -> List[dict]:
     """未予測のショットメタデータをElasticsearchから取得する"""
 
-    meta_index = f"shots-{machine_id}-{target_dir}-meta"
+    # meta_indexが0件だとクエリが失敗するため、先にチェック
+    if ElasticManager.count(meta_index) == 0:
+        return []
 
     label = "predicted"
     query = {"query": {"term": {label: {"value": "false"}}}, "sort": {"shot_number": {"order": "asc"}}}
