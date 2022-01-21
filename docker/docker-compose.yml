@@ -1,4 +1,4 @@
-version: '3'
+version: '3.4'
 
 services:
   elasticsearch:
@@ -8,10 +8,10 @@ services:
       - cluster.name=docker-cluster
       - network.host=0.0.0.0
       - xpack.security.enabled=true
-      - ELASTIC_PASSWORD=P@ssw0rd
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
       - 'ES_JAVA_OPTS=-Xms4096m -Xmx4096m'
-    env_file: ../.env
+    env_file: ${ENV_FILE}
     ulimits:
       memlock:
         soft: -1
@@ -23,16 +23,22 @@ services:
       - ${DATA_DIR}:/usr/share/elasticsearch/data
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
       SERVER_NAME: 'kibana'
       ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
       ELASTICSEARCH_REQUESTTIMEOUT: '60000'
-      ELASTICSEARCH_USERNAME: elastic
-      ELASTICSEARCH_PASSWORD: P@ssw0rd
+      ELASTICSEARCH_USERNAME: ${ELASTIC_USERNAME}
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
       I18N_LOCALE: 'ja-JP'
-    env_file: ../.env
+    env_file: ${ENV_FILE}
     restart: always
     ports:
       - '${IP}:5601:5601/tcp'
@@ -40,48 +46,85 @@ services:
       - elasticsearch
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   notebook:
     image: build_jupyter/base-notebook
     build:
-      context: ~/${COMPOSE_PROJECT_NAME}
-      dockerfile: ./docker/jupyter.dockerfile
-    env_file: ../.env
+      context: ..
+      dockerfile: docker/jupyter.dockerfile
+    env_file: ${ENV_FILE}
     restart: always
     ports:
       - '${IP}:8888:8888/tcp'
     working_dir: '/home/jovyan/work'
     volumes:
-      - ~/${COMPOSE_PROJECT_NAME}/notebooks:/home/jovyan/work
-      - ~/${COMPOSE_PROJECT_NAME}/backend:/home/jovyan/backend
+      - ../notebooks:/home/jovyan/work
+      - ../backend:/home/jovyan/backend
       - ${DATA_DRIVE}:/mnt/datadrive
     command: start-notebook.sh --NotebookApp.token=''
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   webap:
     build:
-      context: ~/${COMPOSE_PROJECT_NAME}
-      dockerfile: ./docker/webap.dockerfile
+      context: ..
+      dockerfile: docker/webap.dockerfile
     environment:
       MODULE_NAME: 'backend.app.main'
-    env_file: ../.env
+    env_file: ${ENV_FILE}
     restart: always
     ports:
       - '${IP}:80:80/tcp'
     volumes:
       - ${DATA_DRIVE}:/mnt/datadrive
       - /run:/run
-      - ~/${COMPOSE_PROJECT_NAME}/backend:/app/backend
+      - ../backend:/app/backend
     depends_on:
       - elasticsearch
+      - fluentd
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
+  fluentd:
+    image: build_fluent/fluentd:v1.14.1
+    build:
+      context: .
+      dockerfile: fluentd.dockerfile
+    restart: always
+    command: >
+      /usr/bin/fluentd -c /fluentd/etc/fluent.conf -v
+    ports:
+      - '24224:24224'
+      - '24224:24224/udp'
+    volumes:
+      - ${DATA_DRIVE}/fluentd/log:/fluentd/log
+      - ./fluent.conf:/fluentd/etc/fluent.conf:ro
+    networks:
+      - docker_network
+    depends_on:
+      - elasticsearch
   metricbeat:
     image: build_docker.elastic.co/beats/metricbeat:7.14.0
     build:
-      context: ~/${COMPOSE_PROJECT_NAME}
-      dockerfile: ./docker/metricbeat.dockerfile
+      context: .
+      dockerfile: metricbeat.dockerfile
     user: root
-    env_file: ../.env
+    env_file: ${ENV_FILE}
     environment:
       - ELASTICSEARCH_HOST=elasticsearch:9200
       - KIBANA_HOST=elasticsearch:5601
@@ -92,16 +135,22 @@ services:
       - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
       - /:/hostfs:ro
       - /var/run/docker.sock:/var/run/docker.sock
-      # - ~/${COMPOSE_PROJECT_NAME}/docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      # - ../docker/metricbeat.docker.yml:/usr/share/metricbeat/metricbeat.yml:ro
     command: -system.hostfs=/hostfs
     depends_on:
       - elasticsearch
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   mlflow:
     build:
       context: .
-      dockerfile: ./mlflow.dockerfile
+      dockerfile: mlflow.dockerfile
     volumes:
       - mlflow:/mlflow
     ports:
@@ -116,6 +165,12 @@ services:
     restart: always
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   minio:
     image: minio/minio
     ports:
@@ -131,6 +186,12 @@ services:
     command: server /export --console-address :9001
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   defaultbucket:
     image: minio/mc
     depends_on:
@@ -144,32 +205,50 @@ services:
       "
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   rabbitmq:
     image: rabbitmq:3-management
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     ports:
-      - "${IP}:4369:4369"
-      - "${IP}:5672:5672"
-      - "${IP}:25672:25672"
-      - "${IP}:15672:15672"
+      - '${IP}:4369:4369'
+      - '${IP}:5672:5672'
+      - '${IP}:25672:25672'
+      - '${IP}:15672:15672'
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   redis:
     image: redis:latest
     ports:
-      - "${IP}:6379:6379"
+      - '${IP}:6379:6379'
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   worker:
     build:
-      context: ~/${COMPOSE_PROJECT_NAME}
+      context: ..
       dockerfile: docker/celery.dockerfile
     volumes:
-      - ~/${COMPOSE_PROJECT_NAME}/backend:/backend
-      - ${DATA_DRIVE}:/mnt/datadrive  
-    env_file: ../.env
+      - ../backend:/backend
+      - ${DATA_DRIVE}:/mnt/datadrive
+    env_file: ${ENV_FILE}
     # environment:
     #   - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
     #   - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -180,14 +259,20 @@ services:
       - redis
     networks:
       - docker_network
+    logging:
+      driver: 'fluentd'
+      options:
+        fluentd-address: '0.0.0.0:24224'
+        tag: 'docker.{{.Name}}'
+        fluentd-async-connect: 'true'
   flower:  
     image: mher/flower
     environment:
       - no_proxy=rabbitmq
       # - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
       - FLOWER_PORT=5555
-    env_file: ../.env
-    ports:  
+    env_file: ${ENV_FILE}
+    ports:
       - ${IP}:5555:5555
     depends_on:
       - rabbitmq
