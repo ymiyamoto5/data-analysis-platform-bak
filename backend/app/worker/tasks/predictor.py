@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from typing import Final, List, Match, Optional, Pattern, Tuple, Union
+from typing import Final, List, Match, Optional, Pattern, Union
 
 import mlflow  # type: ignore
 import pandas as pd
@@ -19,6 +19,7 @@ from backend.utils.extract_features_by_shot import eval_dsl, extract_features
 
 # from celery import current_task
 from pandas.core.frame import DataFrame
+from pandas.core.series import Series
 
 
 @celery_app.task()
@@ -54,8 +55,8 @@ def predictor_task(machine_id: str):
     while True:
         time.sleep(INTERVAL)
 
-        shot_df, target_shot = fetch_shot_data(machine_id, target_dir)
-        if shot_df is None:
+        shot_metas = fetch_shot_meta(machine_id, target_dir)
+        if not shot_metas:
             retry_count += 1
             if retry_count > RETRY_THRESHOLD:
                 logger.info(f"[predictor] The maximum number of retries({retry_count}) has been reached.")
@@ -66,40 +67,35 @@ def predictor_task(machine_id: str):
         else:
             retry_count = 0
 
-        if target_shot is None:
-            logger.error("Invalid. target_shot is None")
-            break
+        logger.info("[predictor] Fetch shot meta data completed.")
+        dr = DataReader()
+        data_index = f"shots-{machine_id}-{target_dir}-data"
+        features_df = pd.DataFrame()
+        for shot_meta in shot_metas:
+            shot_df = dr.read_shot(data_index, shot_meta["shot_number"])
+            features = feature_extract(machine, target_dir, shot_df)
+            features = features.rename(shot_meta["shot_number"])
+            features_df = features_df.append(features)
 
-        logger.info(f"[predictor] Fetch shot data completed. Target shot is {target_shot}.")
-        features = feature_extract(machine, target_dir, shot_df)
-        if not features.empty:
-            predict(machine, features, target_dir, target_shot)
+        if not features_df.empty:
+            predict(machine, features_df, target_dir, shot_metas)
 
     db.close()
 
 
-def fetch_shot_data(machine_id: str, target_dir: str) -> Tuple[Optional[DataFrame], Optional[int]]:
-    """未予測のショットデータをElasticsearchから取得する"""
+def fetch_shot_meta(machine_id: str, target_dir: str) -> List[dict]:
+    """未予測のショットメタデータをElasticsearchから取得する"""
 
-    data_index = f"shots-{machine_id}-{target_dir}-data"
     meta_index = f"shots-{machine_id}-{target_dir}-meta"
 
     label = "predicted"
-    agg_name = "predict_shotnum"
-    query = {"query": {"term": {label: {"value": "false"}}}, "aggs": {agg_name: {"min": {"field": "shot_number"}}}}
-    aggs = ElasticManager.es.search(index=meta_index, body=query)["aggregations"]
+    query = {"query": {"term": {label: {"value": "false"}}}, "sort": {"shot_number": {"order": "asc"}}}
+    metas = ElasticManager.get_docs(index=meta_index, query=query)
 
-    # TODO: すべて予測済みの場合のreturn処理追加
-    if aggs[agg_name]["value"] is None:
-        return (None, None)
-
-    dr = DataReader()
-    target_shot = int(aggs[agg_name]["value"])
-    shot_df = dr.read_shot(data_index, shot_number=target_shot)
-    return (shot_df, target_shot)
+    return metas
 
 
-def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> DataFrame:
+def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> Series:
     """ショットデータから特徴量抽出"""
 
     # DSLの取得
@@ -134,10 +130,11 @@ def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> Da
             # 予測用の特徴量
             feature_entry[f"{sensor.sensor_name}_{feature_name}-point"] = val[sensor_index]
 
-    return pd.DataFrame.from_dict(feature_entry, orient="index").T
+    return pd.Series(feature_entry)
+    # return pd.DataFrame.from_dict(feature_entry, orient="index").T
 
 
-def predict(machine: Machine, features: DataFrame, target_dir: str, target_shot: int) -> Optional[bool]:
+def predict(machine: Machine, features_df: DataFrame, target_dir: str, shot_metas: List[dict]) -> Optional[List[bool]]:
     """予測"""
 
     mlflow_server_uri: str = os.environ["mlflow_server_uri"]
@@ -156,28 +153,32 @@ def predict(machine: Machine, features: DataFrame, target_dir: str, target_shot:
 
     # MLFlowからモデルの取得
     model = mlflow.sklearn.load_model(model_uri=f"models:/{model_name}/{model_version}")
-    result: bool = model.predict(features)
 
     # 予測の実行
-    if not all(map(lambda x: x in features.columns, model.feature_names_in_)):
+    if not all(map(lambda x: x in features_df.columns, model.feature_names_in_)):
         return None
 
-    data: DataFrame = features.reindex(columns=model.feature_names_in_)
-    result = model.predict(data)[0]
+    features_df = features_df.reindex(columns=model.feature_names_in_)
+    results: List[bool] = model.predict(features_df)
 
-    els_entry: dict = {"shot_number": target_shot, "model": model_name, "version": model_version}
-    els_entry.update(data.to_dict(orient="records")[0])
-    els_entry["label"] = result
+    els_entries = []
+    for [df_index, feature], result in zip(features_df.iterrows(), results):
+        els_entry: dict = {"shot_number": df_index, "model": model_name, "version": model_version}
+        els_entry.update(feature.to_dict())
+        els_entry["label"] = result
+        els_entries.append(els_entry)
+
     # ELSに格納(予測結果＋予測済みフラグ)
-    ind: str = f"shots-{machine.machine_id}-{target_dir}-predict"
-    if not ElasticManager.exists_index(ind):
-        ElasticManager.create_index(ind)
-    ElasticManager.create_doc(ind, els_entry)
+    predict_index: str = f"shots-{machine.machine_id}-{target_dir}-predict"
+    if not ElasticManager.exists_index(predict_index):
+        ElasticManager.create_index(predict_index)
+    ElasticManager.bulk_insert(els_entries, predict_index)
 
     # MetaのPredictedを更新
     meta_index: str = f"shots-{machine.machine_id}-{target_dir}-meta"
-    query: dict = {"query": {"term": {"shot_number": {"value": target_shot}}}}
-    meta_data: dict = ElasticManager.get_docs_with_id(meta_index, query)[0]
-    ElasticManager.update_doc(meta_index, meta_data["id"], {"predicted": True})
+    for target_shot in features_df.index:
+        shot_ids = [meta["id"] for meta in shot_metas if meta["shot_number"] == target_shot]
+        if shot_ids:
+            ElasticManager.update_doc(meta_index, shot_ids[0], {"predicted": True})
 
-    return result
+    return results
