@@ -15,9 +15,10 @@ class TestPredictorTask:
     def init(self) -> None:
         self.machine_id = "machine-01"
 
+    @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
     def test_exec(self, init, mocker):
         """ジョブ実行のみ（デバッグ用）
-        通常はコメントアウト
+        通常はスキップ
         """
 
         machine: Machine = Machine(
