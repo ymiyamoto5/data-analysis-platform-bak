@@ -290,3 +290,26 @@ def run_cut_out_shot(
     logger.info(f"cut_out_shot started. task_id: {task.id}")
 
     return {"task_id": task.id, "task_info": task.info}
+
+
+@router.post("/run-predictor/{machine_id}")
+def run_predictor(
+    machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
+    db: Session = Depends(get_db),
+):
+    """predictorタスクを登録"""
+
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+
+    # 段取状態かつGW開始状態であることが前提
+    is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.START.value, common.STATUS.RUNNING.value)
+    if not is_valid:
+        raise HTTPException(status_code=error_code, detail=message)
+
+    task_name = "backend.app.worker.tasks.predictor.predictor_task"
+
+    task = celery_app.send_task(task_name, (machine_id,))
+
+    logger.info(f"predictor started. task_id: {task.id}")
+
+    return {"task_id": task.id, "task_info": task.info}
