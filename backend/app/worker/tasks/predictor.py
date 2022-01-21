@@ -84,7 +84,7 @@ def predictor_task(machine_id: str):
             logger.info(f"[predictor] feature extracted by shot_number: {shot_meta['shot_number']}")
 
         if not features_df.empty:
-            predict(machine, features_df, target_dir, unpredicted_shots_meta)
+            predict(machine, features_df, target_dir, unpredicted_shots_meta, meta_index)
             logger.info("[predictor] predict by loop finished.")
 
     db.close()
@@ -99,7 +99,7 @@ def fetch_unpredicted_shots_meta(meta_index: str) -> List[dict]:
 
     label = "predicted"
     query = {"query": {"term": {label: {"value": "false"}}}, "sort": {"shot_number": {"order": "asc"}}}
-    metas = ElasticManager.get_docs(index=meta_index, query=query)
+    metas = ElasticManager.get_docs_with_id(index=meta_index, query=query)
 
     return metas
 
@@ -143,7 +143,7 @@ def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> Se
     # return pd.DataFrame.from_dict(feature_entry, orient="index").T
 
 
-def predict(machine: Machine, features_df: DataFrame, target_dir: str, shot_metas: List[dict]) -> Optional[List[bool]]:
+def predict(machine: Machine, features_df: DataFrame, target_dir: str, shot_metas: List[dict], meta_index: str) -> Optional[List[bool]]:
     """予測"""
 
     mlflow_server_uri: str = os.environ["mlflow_server_uri"]
@@ -166,7 +166,6 @@ def predict(machine: Machine, features_df: DataFrame, target_dir: str, shot_meta
     # 予測の実行
     if not all(map(lambda x: x in features_df.columns, model.feature_names_in_)):
         return None
-
     features_df = features_df.reindex(columns=model.feature_names_in_)
     results: List[bool] = model.predict(features_df)
 
@@ -184,7 +183,6 @@ def predict(machine: Machine, features_df: DataFrame, target_dir: str, shot_meta
     ElasticManager.bulk_insert(els_entries, predict_index)
 
     # MetaのPredictedを更新
-    meta_index: str = f"shots-{machine.machine_id}-{target_dir}-meta"
     for target_shot in features_df.index:
         shot_ids = [meta["id"] for meta in shot_metas if meta["shot_number"] == target_shot]
         if shot_ids:
