@@ -8,12 +8,37 @@ from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.worker.tasks import predictor
 from backend.common import common
+from backend.elastic_manager.elastic_manager import ElasticManager
 
 
 class TestPredictorTask:
     @pytest.fixture
     def init(self) -> None:
         self.machine_id = "machine-01"
+
+    @pytest.mark.skip(reason="デバッグ用にpredictedフィールド書き換え")
+    def test_change_label(self, init):
+        """
+        shots-machine-01-20210709190000-meta の各ドキュメントのpredictedフィールドを書き換える。
+        1-990はTrue, 991-1000はFalseとする。
+        通常はスキップ
+        """
+
+        target = "20210709190000"
+        meta_index = f"shots-{self.machine_id}-{target}-meta"
+
+        query = {"sort": {"shot_number": {"order": "asc"}}}
+        shots_meta = ElasticManager.get_docs_with_id(index=meta_index, query=query)
+
+        for target_shot in range(1, 991):
+            shot_ids = [meta["id"] for meta in shots_meta if meta["shot_number"] == target_shot]
+            if shot_ids:
+                ElasticManager.update_doc(meta_index, shot_ids[0], {"predicted": True})
+
+        for target_shot in range(991, 1001):
+            shot_ids = [meta["id"] for meta in shots_meta if meta["shot_number"] == target_shot]
+            if shot_ids:
+                ElasticManager.update_doc(meta_index, shot_ids[0], {"predicted": False})
 
     @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
     def test_exec(self, init, mocker):
