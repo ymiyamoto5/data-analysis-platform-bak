@@ -23,12 +23,12 @@ services:
       - ${DATA_DIR}:/usr/share/elasticsearch/data
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
@@ -46,12 +46,12 @@ services:
       - elasticsearch
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   notebook:
     image: build_jupyter/base-notebook
     build:
@@ -69,12 +69,12 @@ services:
     command: start-notebook.sh --NotebookApp.token=''
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   webap:
     build:
       context: ..
@@ -91,33 +91,33 @@ services:
       - ../backend:/app/backend
     depends_on:
       - elasticsearch
-      - fluentd
+      # - fluentd
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
-  fluentd:
-    image: build_fluent/fluentd:v1.14.1
-    build:
-      context: .
-      dockerfile: fluentd.dockerfile
-    restart: always
-    command: >
-      /usr/bin/fluentd -c /fluentd/etc/fluent.conf -v
-    ports:
-      - '24224:24224'
-      - '24224:24224/udp'
-    volumes:
-      - ${DATA_DRIVE}/fluentd/log:/fluentd/log
-      - ./fluent.conf:/fluentd/etc/fluent.conf:ro
-    networks:
-      - docker_network
-    depends_on:
-      - elasticsearch
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
+  # fluentd:
+  #   image: build_fluent/fluentd:v1.14.1
+  #   build:
+  #     context: .
+  #     dockerfile: fluentd.dockerfile
+  #   restart: always
+  #   command: >
+  #     /usr/bin/fluentd -c /fluentd/etc/fluent.conf -v
+  #   ports:
+  #     - '24224:24224'
+  #     - '24224:24224/udp'
+  #   volumes:
+  #     - ${DATA_DRIVE}/fluentd/log:/fluentd/log
+  #     - ./fluent.conf:/fluentd/etc/fluent.conf:ro
+  #   networks:
+  #     - docker_network
+  #   depends_on:
+  #     - elasticsearch
   metricbeat:
     image: build_docker.elastic.co/beats/metricbeat:7.14.0
     build:
@@ -141,12 +141,12 @@ services:
       - elasticsearch
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   mlflow:
     build:
       context: .
@@ -165,12 +165,12 @@ services:
     restart: always
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   minio:
     image: minio/minio
     ports:
@@ -223,24 +223,24 @@ services:
       - '${IP}:15672:15672'
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   redis:
     image: redis:latest
     ports:
       - '${IP}:6379:6379'
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   worker:
     build:
       context: ..
@@ -259,12 +259,12 @@ services:
       - redis
     networks:
       - docker_network
-    logging:
-      driver: 'fluentd'
-      options:
-        fluentd-address: '0.0.0.0:24224'
-        tag: 'docker.{{.Name}}'
-        fluentd-async-connect: 'true'
+    # logging:
+    #   driver: 'fluentd'
+    #   options:
+    #     fluentd-address: '0.0.0.0:24224'
+    #     tag: 'docker.{{.Name}}'
+    #     fluentd-async-connect: 'true'
   flower:  
     image: mher/flower
     environment:
