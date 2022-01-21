@@ -241,10 +241,8 @@ def predict_label(predict: model.Predict):
 
 
 @router.post("/predictor")
-def run_predictor():
-    task_name = None
-    task_name = "backend.app.worker.tasks.predictor.test_celery"
-
-    task = celery_app.send_task(task_name, ["arg"])
+def run_predictor(machine: model.Predictor):
+    task_name = "backend.app.worker.tasks.predictor.predictor_task"
+    task = celery_app.send_task(task_name, [machine.machine_id])
 
     return {"task_id": task.id, "task_info": task.info}
