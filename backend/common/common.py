@@ -26,6 +26,7 @@ NUM_OF_LOAD_SENSOR: Final[int] = 4
 ID_PATTERN: Final[str] = "^[0-9a-zA-Z-]+$"
 CUT_OUT_SHOT_SENSOR_TYPES: Final[Tuple[str, ...]] = ("stroke_displacement", "pulse")
 INT_MAX: Final[int] = 2_147_483_647
+CSV_PATTERN: Final[str] = r"\.csv$"
 
 
 class STATUS(Enum):
