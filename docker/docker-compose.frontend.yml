@@ -1,0 +1,10 @@
+version: '3.4'
+
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.dockerfile
+    env_file: ${ENV_FILE}
+    volumes:
+      - ../backend:/app/backend
