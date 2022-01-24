@@ -43,6 +43,8 @@ backend/app/dist
 notebooks/20210810
 notebooks/20211009
 .env
+frontend/.env.production
+frontend/.env.development
 notebooks/DSL適用.ipynb
 Untitled.ipynb
 .VSCodeCounter
