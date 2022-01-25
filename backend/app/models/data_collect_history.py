@@ -28,3 +28,5 @@ class DataCollectHistory(Base):
         cascade="all, delete",
         order_by="DataCollectHistoryEvent.occurred_at",
     )
+    # One to Many
+    celery_tasks = relationship("CeleryTask", back_populates="data_collect_history", cascade="all, delete")
