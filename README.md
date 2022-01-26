@@ -164,6 +164,7 @@ CELERY_RESULT_BACKEND=redis://redis/0
 .env.local
 
 ```
+LOCAL_IP=<ローカルIP>
 SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
 DB_SQL_ECHO=1
 mlflow_server_uri=http://localhost:5000
@@ -181,7 +182,7 @@ setting_shots_path=backend/mappings/setting_shots.json
 setting_shots_meta_path=backend/mappings/setting_shots_meta.json
 setting_resample_path=backend/mappings/setting_resample.json
 CELERY_BROKER_URL=pyamqp://guest:guest@localhost:5672
-CELERY_RESULT_BACKEND=redis://localhost/0
+CELERY_RESULT_BACKEND=redis://${LOCAL_IP}/0
 ```
 
 - docker/.env

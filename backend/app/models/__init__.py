@@ -1,3 +1,4 @@
+from .celery_task import CeleryTask  # noqa
 from .data_collect_history import DataCollectHistory  # noqa
 from .data_collect_history_detail import DataCollectHistoryDetail  # noqa
 from .data_collect_history_event import DataCollectHistoryEvent  # noqa
