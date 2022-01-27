@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3.3'
 
 services:
   elasticsearch:
@@ -265,7 +265,7 @@ services:
     #     fluentd-address: '0.0.0.0:24224'
     #     tag: 'docker.{{.Name}}'
     #     fluentd-async-connect: 'true'
-  flower:  
+  flower:
     image: mher/flower
     environment:
       - no_proxy=rabbitmq
