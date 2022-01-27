@@ -373,12 +373,12 @@ class ElasticManager:
         return_dict[proc_num] = data
 
     @classmethod
-    def scan_docs(cls, index: str, query: dict) -> List[dict]:
+    def scan_docs(cls, index: str, query: dict, preserve_order: bool = False) -> List[dict]:
         """ドキュメントの範囲スキャン"""
 
         es = Elasticsearch(hosts=ELASTIC_URL, http_auth=(ELASTIC_USER, ELASTIC_PASSWORD), timeout=50000)
 
-        data_gen: Iterable = helpers.scan(client=es, index=index, query=query)
+        data_gen: Iterable = helpers.scan(client=es, index=index, query=query, preserve_order=preserve_order)
         data: List[dict] = [x["_source"] for x in data_gen]
 
         return data
