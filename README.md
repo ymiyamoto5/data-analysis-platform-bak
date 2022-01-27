@@ -187,7 +187,7 @@ CELERY_RESULT_BACKEND=redis://localhost/0
 - docker/.env
 
 ```
-COMPOSE_PROJECT_NAME=data-analysis-platform
+COMPOSE_PROJECT_NAME=dataanalysisplatform
 DATA_DIR=/mnt/datadrive/data
 DATA_DRIVE=/mnt/datadrive
 IP=<ローカルIP>
