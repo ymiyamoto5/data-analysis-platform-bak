@@ -6,6 +6,7 @@ from typing import Final
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.app.db.session import Base, SessionLocal, engine
+from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent

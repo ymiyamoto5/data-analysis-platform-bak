@@ -6,8 +6,12 @@ from datetime import datetime
 from typing import Final, List, Optional, Tuple
 
 from backend.app.api.deps import get_db
+from backend.app.crud.crud_celery_task import CRUDCeleryTask
 from backend.app.crud.crud_controller import CRUDController
+from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.models.celery_task import CeleryTask
+from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
@@ -266,6 +270,17 @@ def run_data_recorder(
 
     logger.info(f"data_recorder started. task_id: {task.id}")
 
+    # タスク情報を保持する
+    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+
+    new_data_celery_task = CeleryTask(
+        task_id=task.id,
+        data_collect_history_id=latest_data_collect_history.id,
+        task_type="data_recoder",
+    )
+
+    CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
+
     return {"task_id": task.id, "task_info": task.info}
 
 
@@ -289,6 +304,17 @@ def run_cut_out_shot(
 
     logger.info(f"cut_out_shot started. task_id: {task.id}")
 
+    # タスク情報を保持する
+    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+
+    new_data_celery_task = CeleryTask(
+        task_id=task.id,
+        data_collect_history_id=latest_data_collect_history.id,
+        task_type="cut_out_shot",
+    )
+
+    CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
+
     return {"task_id": task.id, "task_info": task.info}
 
 
@@ -311,5 +337,16 @@ def run_predictor(
     task = celery_app.send_task(task_name, (machine_id,))
 
     logger.info(f"predictor started. task_id: {task.id}")
+
+    # タスク情報を保持する
+    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+
+    new_data_celery_task = CeleryTask(
+        task_id=task.id,
+        data_collect_history_id=latest_data_collect_history.id,
+        task_type="predictor",
+    )
+
+    CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
 
     return {"task_id": task.id, "task_info": task.info}

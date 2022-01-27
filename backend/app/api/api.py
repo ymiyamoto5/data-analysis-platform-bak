@@ -1,4 +1,5 @@
 from backend.app.api.endpoints import (
+    celery_tasks,
     controller,
     csv_upload,
     cut_out_shot,
@@ -34,3 +35,4 @@ api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
 api_router.include_router(features.router, prefix="/features", tags=["features"])
 api_router.include_router(models.router, prefix="/models", tags=["models"])
 api_router.include_router(csv_upload.router, prefix="/csv_upload", tags=["csv_upload"])
+api_router.include_router(celery_tasks.router, prefix="/celery_tasks", tags=["celery_tasks"])
