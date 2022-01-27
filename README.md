@@ -167,13 +167,13 @@ CELERY_RESULT_BACKEND=redis://redis/0
 LOCAL_IP=<ローカルIP>
 SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
 DB_SQL_ECHO=1
-mlflow_server_uri=http://localhost:5000
+mlflow_server_uri=http://${LOCAL_IP}:5000
 mlflow_experiment_name=some
-MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
+MLFLOW_S3_ENDPOINT_URL=http://${LOCAL_IP}:9000
 AWS_ACCESS_KEY_ID=minio-access-key
 AWS_SECRET_ACCESS_KEY=minio-secret-key
 data_dir=/mnt/datadrive/data
-elastic_url=localhost:9200
+elastic_url=${LOCAL_IP}:9200
 elastic_user=elastic
 elastic_password=P@ssw0rd
 mapping_rawdata_path=backend/mappings/mapping_rawdata.json
@@ -181,7 +181,7 @@ setting_rawdata_path=backend/mappings/setting_rawdata.json
 setting_shots_path=backend/mappings/setting_shots.json
 setting_shots_meta_path=backend/mappings/setting_shots_meta.json
 setting_resample_path=backend/mappings/setting_resample.json
-CELERY_BROKER_URL=pyamqp://guest:guest@localhost:5672
+CELERY_BROKER_URL=pyamqp://guest:guest@${LOCAL_IP}:5672
 CELERY_RESULT_BACKEND=redis://${LOCAL_IP}/0
 ```
 
