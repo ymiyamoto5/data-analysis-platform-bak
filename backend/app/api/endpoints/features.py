@@ -33,7 +33,7 @@ def fetch_feature(machine_id: str, target_dir: str):
             continue
 
         query = {"sort": {"shot_number": {"order": "asc"}}}
-        docs = ElasticManager.get_docs(index=ind, query=query)
+        docs = ElasticManager.scan_docs(index=ind, query=query, preserve_order=True)
         docs_df = pd.DataFrame(docs)
         feature.update({f"{load}_{feature_label}": docs_df[docs_df["load"] == load]["value"].tolist() for load in docs_df["load"].unique()})
 
