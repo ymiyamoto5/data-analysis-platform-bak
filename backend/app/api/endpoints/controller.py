@@ -206,12 +206,20 @@ def check(
 
     data_dir: str = os.environ["data_dir"]
 
+    latest_predictor_task: CeleryTask = CRUDCeleryTask.select_latest_by_task_type(db, machine_id, "predictor")
+
     while True:
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, f"{machine_id}_*.dat"))
 
         if len(data_file_list) != 0:
             time.sleep(WAIT_SECONDS)
             continue
+
+        if machine.auto_predict:
+            preditor_task_info = CRUDCeleryTask.select_by_id(latest_predictor_task.task_id)
+            if preditor_task_info["status"] == "PROGRESS":
+                time.sleep(WAIT_SECONDS)
+                continue
 
         utc_now: datetime = datetime.utcnow()
 
