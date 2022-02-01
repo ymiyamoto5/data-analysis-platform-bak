@@ -12,12 +12,12 @@ from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.worker.celery import celery_app
+from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_reader.data_reader import DataReader
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.utils.extract_features_by_shot import eval_dsl, extract_features
-
-# from celery import current_task
+from celery import current_task
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
@@ -28,7 +28,7 @@ def predictor_task(machine_id: str):
     未予測のショットがないことが10回続いた場合は終了。
     """
 
-    # current_task.update_state(state="PROGRESS", meta={"message": f"predictor start. machine_id: {machine_id}"})
+    current_task.update_state(state="PROGRESS", meta={"message": f"predictor start. machine_id: {machine_id}"})
 
     logger.info(f"predictor process started. machine_id: {machine_id}")
 
@@ -56,19 +56,25 @@ def predictor_task(machine_id: str):
     retry_count: int = 0
     while True:
         time.sleep(INTERVAL)
-
+        # はじめにリトライカウントをチェック。しきい値を超えている場合はタスクステータスをSUCCESSとして無限ループを終了。
+        if retry_count > RETRY_THRESHOLD:
+            logger.info(f"[predictor] The maximum number of retries({retry_count}) has been reached.")
+            logger.info(f"predictor process end. machine_id: {machine_id}")
+            break
+        # 未予測ショットの取得
         unpredicted_shots_meta: List[dict] = fetch_unpredicted_shots_meta(meta_index)
         if not unpredicted_shots_meta:
-            retry_count += 1
-            logger.info(f"[predictor] There are no unpredicted shots yet. retry_count: {retry_count}")
-            if retry_count > RETRY_THRESHOLD:
-                logger.info(f"[predictor] The maximum number of retries({retry_count}) has been reached.")
-                logger.info(f"predictor process end. machine_id: {machine_id}")
-                break
-            else:
-                continue
-        else:
-            retry_count = 0
+            _db = SessionLocal()
+            _machine: Machine = CRUDMachine.select_by_id(_db, machine_id)
+            collect_status: str = _machine.collect_status
+            _db.close()
+            # COLLECT_STATUSがSTOPであればリトライカウントインクリメント
+            if collect_status == common.COLLECT_STATUS.STOP.value:
+                retry_count += 1
+                logger.info(f"[predictor] There are no unpredicted shots yet. retry_count: {retry_count}")
+            continue
+
+        retry_count = 0
 
         logger.info("[predictor] Fetch shot meta data completed.")
 
@@ -88,6 +94,7 @@ def predictor_task(machine_id: str):
             logger.info("[predictor] predict by loop finished.")
 
     db.close()
+    return f"preditor task finished. machine_id: {machine_id}"
 
 
 def fetch_unpredicted_shots_meta(meta_index: str) -> List[dict]:
