@@ -10,7 +10,7 @@ from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.machine import Machine
 from backend.app.worker.celery import celery_app
-from backend.app.worker.tasks.common import get_collect_status
+from backend.app.worker.tasks import common as tasks_common
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.cut_out_shot.cut_out_shot import CutOutShot
@@ -84,7 +84,7 @@ def cut_out_shot_task(machine_id: str) -> str:
 
         # NOTE: 毎度DBにアクセスするのは非効率なため、対象ファイルが存在しないときのみDBから収集ステータスを確認し、停止判断を行う。
         if len(target_files) == 0:
-            collect_status = get_collect_status(machine_id)
+            collect_status = tasks_common.get_collect_status(machine_id)
 
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
                 logger.info(f"cut_out_shot process stopped. machine_id: {machine_id}")
