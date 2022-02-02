@@ -6,6 +6,7 @@ from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
+from backend.app.worker.tasks import common as tasks_common
 from backend.app.worker.tasks import predictor
 from backend.common import common
 from backend.elastic_manager.elastic_manager import ElasticManager
@@ -195,6 +196,12 @@ class TestPredictorTask:
                 machine_id=self.machine_id,
                 processed_dir_path="/mnt/datadrive/data/machine-01-20210709190000",
             ),
+        )
+
+        mocker.patch.object(
+            tasks_common,
+            "get_collect_status",
+            return_value=common.COLLECT_STATUS.STOP.value,
         )
 
         predictor.predictor_task(self.machine_id)
