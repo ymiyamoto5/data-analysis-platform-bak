@@ -12,7 +12,7 @@ from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.worker.celery import celery_app
-from backend.app.worker.tasks.common import get_collect_status
+from backend.app.worker.tasks import common as tasks_common
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_reader.data_reader import DataReader
@@ -65,7 +65,7 @@ def predictor_task(machine_id: str):
         # 未予測ショットの取得
         unpredicted_shots_meta: List[dict] = fetch_unpredicted_shots_meta(meta_index)
         if not unpredicted_shots_meta:
-            collect_status = get_collect_status(machine_id)
+            collect_status = tasks_common.get_collect_status(machine_id)
             # COLLECT_STATUSがSTOPであればリトライカウントインクリメント
             if collect_status == common.COLLECT_STATUS.STOP.value:
                 retry_count += 1
