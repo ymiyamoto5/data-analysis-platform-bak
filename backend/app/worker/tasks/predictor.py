@@ -24,12 +24,13 @@ from pandas.core.series import Series
 
 
 @celery_app.task()
-def predictor_task(machine_id: str):
+def predictor_task(machine_id: str, debug_mode: bool = False):
     """metaインデックスのpredictedがfalse（未予測）のショットを取得し、予測する。
     未予測のショットがないことが10回続いた場合は終了。
     """
 
-    current_task.update_state(state="PROGRESS", meta={"message": f"predictor start. machine_id: {machine_id}"})
+    if not debug_mode:
+        current_task.update_state(state="PROGRESS", meta={"message": f"predictor start. machine_id: {machine_id}"})
 
     logger.info(f"predictor process started. machine_id: {machine_id}")
 
