@@ -204,4 +204,4 @@ class TestPredictorTask:
             return_value=common.COLLECT_STATUS.STOP.value,
         )
 
-        predictor.predictor_task(self.machine_id)
+        predictor.predictor_task(self.machine_id, debug_mode=True)
