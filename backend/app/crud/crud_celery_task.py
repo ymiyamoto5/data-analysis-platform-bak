@@ -3,7 +3,7 @@ from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.schemas import celery_task
 from celery.result import AsyncResult
 from sqlalchemy import desc
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 
 class CRUDCeleryTask:
@@ -28,9 +28,7 @@ class CRUDCeleryTask:
             db.query(CeleryTask)
             .filter_by(task_type=task_type)
             .order_by(desc(CeleryTask.data_collect_history_id))
-            .options(
-                joinedload(CeleryTask.data_collect_history),
-            )
+            .join(CeleryTask.data_collect_history)
             .filter(DataCollectHistory.machine_id == machine_id)
             .first()
         )
