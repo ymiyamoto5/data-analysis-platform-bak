@@ -1,18 +1,19 @@
+import json
 from typing import Any, Dict, List
 
 from backend.app.api.deps import get_db
+from backend.app.crud.crud_celery_task import CRUDCeleryTask
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.sensor import Sensor
 from backend.app.schemas.cut_out_shot import CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService
+from backend.app.worker.celery import celery_app
 from backend.common import common
-from backend.common.error_message import ErrorMessage, ErrorTypes
-from backend.cut_out_shot.cut_out_shot import CutOutShot
-from backend.cut_out_shot.pulse_cutter import PulseCutter
-from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
+from backend.common.common_logger import uvicorn_logger as logger
 from backend.file_manager.file_manager import FileInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pandas.core.frame import DataFrame
@@ -118,53 +119,67 @@ def fetch_shots(
 
 @router.post("/stroke_displacement")
 def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplacement, db: Session = Depends(get_db)):
-    """ストローク変位値でのショット切り出し"""
+    """ストローク変位値でのショット切り出しタスクを登録"""
 
-    try:
-        # データ収集時の履歴から、収集当時の設定値を取得する
-        history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
-            db, cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str
-        )
-    except Exception:
-        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+    cut_out_shot_json = json.dumps(cut_out_shot_in.__dict__)
 
-    cutter = StrokeDisplacementCutter(
-        cut_out_shot_in.start_stroke_displacement,
-        cut_out_shot_in.end_stroke_displacement,
-        margin=cut_out_shot_in.margin,
-        sensors=history.data_collect_history_details,
+    task_name = "backend.app.worker.tasks.cut_out_shot.cut_out_shot_task"
+
+    task = celery_app.send_task(
+        task_name,
+        (
+            cut_out_shot_json,
+            cut_out_shot_in.machine_id,
+            cut_out_shot_in.target_date_str,
+            common.CUT_OUT_SHOT_SENSOR_TYPES[0],
+        ),
     )
 
-    # TODO: サブプロセスでcut_out_shot実行
-    cut_out_shot = CutOutShot(
-        cutter=cutter, machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, data_collect_history=history
-    )
-    cut_out_shot.cut_out_shot()
+    logger.info(f"cut_out_shot started. task_id: {task.id}")
 
-    return
+    # タスク情報を保持する
+    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, cut_out_shot_in.machine_id)
+
+    new_data_celery_task = CeleryTask(
+        task_id=task.id,
+        data_collect_history_id=latest_data_collect_history.id,
+        task_type="cut_out_shot",
+    )
+
+    CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
+
+    return {"task_id": task.id, "task_info": task.info}
 
 
 @router.post("/pulse")
 def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(get_db)):
-    """パルスでのショット切り出し"""
+    """パルスでのショット切り出しタスクを登録"""
 
-    try:
-        # データ収集時の履歴から、収集当時の設定値を取得する
-        history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
-            db, cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str
-        )
-    except Exception:
-        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+    cut_out_shot_json = json.dumps(cut_out_shot_in.__dict__)
 
-    cutter = PulseCutter(
-        threshold=cut_out_shot_in.threshold,
-        sensors=history.data_collect_history_details,
+    task_name = "backend.app.worker.tasks.cut_out_shot.cut_out_shot_task"
+
+    task = celery_app.send_task(
+        task_name,
+        (
+            cut_out_shot_json,
+            cut_out_shot_in.machine_id,
+            cut_out_shot_in.target_date_str,
+            common.CUT_OUT_SHOT_SENSOR_TYPES[1],
+        ),
     )
 
-    # TODO: サブプロセスでcut_out_shot実行
-    cut_out_shot = CutOutShot(
-        cutter=cutter, machine_id=cut_out_shot_in.machine_id, target=cut_out_shot_in.target_date_str, data_collect_history=history
-    )
-    cut_out_shot.cut_out_shot()
+    logger.info(f"cut_out_shot started. task_id: {task.id}")
 
-    return
+    # タスク情報を保持する
+    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, cut_out_shot_in.machine_id)
+
+    new_data_celery_task = CeleryTask(
+        task_id=task.id,
+        data_collect_history_id=latest_data_collect_history.id,
+        task_type="cut_out_shot",
+    )
+
+    CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
+
+    return {"task_id": task.id, "task_info": task.info}

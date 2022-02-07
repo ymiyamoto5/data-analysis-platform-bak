@@ -289,7 +289,7 @@ def run_cut_out_shot(
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
     db: Session = Depends(get_db),
 ):
-    """cut_out_shotタスクを登録"""
+    """auto_cut_out_shotタスクを登録"""
 
     machine: Machine = CRUDMachine.select_by_id(db, machine_id)
 
@@ -298,7 +298,7 @@ def run_cut_out_shot(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    task_name = "backend.app.worker.tasks.cut_out_shot.cut_out_shot_task"
+    task_name = "backend.app.worker.tasks.cut_out_shot.auto_cut_out_shot_task"
 
     task = celery_app.send_task(task_name, (machine_id,))
 
@@ -310,7 +310,7 @@ def run_cut_out_shot(
     new_data_celery_task = CeleryTask(
         task_id=task.id,
         data_collect_history_id=latest_data_collect_history.id,
-        task_type="cut_out_shot",
+        task_type="auto_cut_out_shot",
     )
 
     CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
