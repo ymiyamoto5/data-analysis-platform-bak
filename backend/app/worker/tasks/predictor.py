@@ -54,7 +54,7 @@ def predictor_task(machine_id: str, debug_mode: bool = False):
     meta_index = f"shots-{machine_id}-{target_dir}-meta"
 
     INTERVAL: Final[int] = 5
-    RETRY_THRESHOLD: Final[int] = 10
+    RETRY_THRESHOLD: Final[int] = 3
     retry_count: int = 0
     while True:
         time.sleep(INTERVAL)
