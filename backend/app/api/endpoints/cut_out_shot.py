@@ -1,4 +1,5 @@
 import json
+import traceback
 from typing import Any, Dict, List
 
 from backend.app.api.deps import get_db
@@ -14,6 +15,7 @@ from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.app.worker.celery import celery_app
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
+from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.file_manager.file_manager import FileInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pandas.core.frame import DataFrame
@@ -148,6 +150,19 @@ def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplaceme
 
     CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
 
+    while True:
+        try:
+            celery_task = CRUDCeleryTask.select_by_id(task.id)
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+        if celery_task["status"] == "SUCCESS":
+            break
+        if celery_task["status"] == "FAILURE":
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.CUT_OUT_SHOT_ERROR, task.id))
+
     return {"task_id": task.id, "task_info": task.info}
 
 
@@ -181,5 +196,18 @@ def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(g
     )
 
     CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
+
+    while True:
+        try:
+            celery_task = CRUDCeleryTask.select_by_id(task.id)
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+        if celery_task["status"] == "SUCCESS":
+            break
+        if celery_task["status"] == "FAILURE":
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.CUT_OUT_SHOT_ERROR, task.id))
 
     return {"task_id": task.id, "task_info": task.info}
