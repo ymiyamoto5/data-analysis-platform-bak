@@ -24,13 +24,17 @@ from sqlalchemy.orm.session import Session
 
 
 @celery_app.task()
-def cut_out_shot_task(cut_out_shot_json: str, machine_id: str, target_date_str: str, sensor_type: str) -> str:
+def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     """ショット切り出し画面のショット切り出しタスク
     * DBから設定値取得
     * Elasticsearchインデックス作成
     * CutOutShotインスタンス作成
     * CutOutShot.cut_out_shot_by_task呼び出し
     """
+
+    cut_out_shot_in = json.loads(cut_out_shot_json)
+    machine_id: str = cut_out_shot_in["machine_id"]
+    target_date_str: str = cut_out_shot_in["target_date_str"]
 
     current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}"})
 
@@ -46,16 +50,8 @@ def cut_out_shot_task(cut_out_shot_json: str, machine_id: str, target_date_str: 
         sys.exit(1)
 
     shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
-    ElasticManager.delete_exists_index(index=shots_index)
-    setting_shots: str = os.environ["setting_shots_path"]
-    ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
-
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
-    ElasticManager.delete_exists_index(index=shots_meta_index)
-    setting_shots_meta: str = os.environ["setting_shots_meta_path"]
-    ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
-
-    cut_out_shot_in = json.loads(cut_out_shot_json)
+    create_shots_index_set(shots_index, shots_meta_index)
 
     if sensor_type == common.CUT_OUT_SHOT_SENSOR_TYPES[0]:
         cutter = StrokeDisplacementCutter(
@@ -79,6 +75,8 @@ def cut_out_shot_task(cut_out_shot_json: str, machine_id: str, target_date_str: 
     # 切り出し処理
     cut_out_shot = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, data_collect_history=history)
     cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index)
+
+    db.close()
 
     return f"cut_out_shot task finished. machine_id: {machine_id}"
 
@@ -110,12 +108,8 @@ def auto_cut_out_shot_task(machine_id: str) -> str:
     target_date_str: str = latest_data_collect_history.processed_dir_path.split("-")[-1]
 
     shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
-    setting_shots: str = os.environ["setting_shots_path"]
-    ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
-
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
-    setting_shots_meta: str = os.environ["setting_shots_meta_path"]
-    ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
+    create_shots_index_set(shots_index, shots_meta_index)
 
     # TODO: pulse対応
     cutter = StrokeDisplacementCutter(
@@ -163,6 +157,17 @@ def auto_cut_out_shot_task(machine_id: str) -> str:
     db.close()
 
     return f"auto_cut_out_shot task finished. machine_id: {machine_id}"
+
+
+def create_shots_index_set(shots_index: str, shots_meta_index: str) -> None:
+    """Elasticsearchインデックスを作成する"""
+    ElasticManager.delete_exists_index(index=shots_index)
+    setting_shots: str = os.environ["setting_shots_path"]
+    ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
+
+    ElasticManager.delete_exists_index(index=shots_meta_index)
+    setting_shots_meta: str = os.environ["setting_shots_meta_path"]
+    ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
 
 def get_target_files(all_files: List[str], has_been_processed: List[str]) -> List[str]:
