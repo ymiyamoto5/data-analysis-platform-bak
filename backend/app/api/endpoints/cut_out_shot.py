@@ -132,8 +132,6 @@ def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplaceme
         task_name,
         (
             cut_out_shot_json,
-            cut_out_shot_in.machine_id,
-            cut_out_shot_in.target_date_str,
             common.CUT_OUT_SHOT_SENSOR_TYPES[0],
         ),
     )
@@ -159,8 +157,6 @@ def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(g
         task_name,
         (
             cut_out_shot_json,
-            cut_out_shot_in.machine_id,
-            cut_out_shot_in.target_date_str,
             common.CUT_OUT_SHOT_SENSOR_TYPES[1],
         ),
     )
