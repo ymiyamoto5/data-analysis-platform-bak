@@ -140,7 +140,7 @@ def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplaceme
 
     logger.info(f"cut_out_shot started. task_id: {task.id}")
 
-    save_task_info(cut_out_shot_in.machine_id, task.id, db)
+    save_task_info(cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str, task.id, db)
 
     wait_until_task_finish(task.id)
 
@@ -167,20 +167,20 @@ def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(g
 
     logger.info(f"cut_out_shot started. task_id: {task.id}")
 
-    save_task_info(cut_out_shot_in.machine_id, task.id, db)
+    save_task_info(cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str, task.id, db)
 
     wait_until_task_finish(task.id)
 
     return {"task_id": task.id, "task_info": task.info}
 
 
-def save_task_info(machine_id: str, task_id: str, db: Session) -> None:
+def save_task_info(machine_id: str, target_date_str: str, task_id: str, db: Session) -> None:
     """タスク情報を保持する"""
-    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
 
     new_data_celery_task = CeleryTask(
         task_id=task_id,
-        data_collect_history_id=latest_data_collect_history.id,
+        data_collect_history_id=data_collect_history.id,
         task_type="cut_out_shot",
     )
 
