@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import time
@@ -14,6 +15,7 @@ from backend.app.worker.tasks import common as tasks_common
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.cut_out_shot.cut_out_shot import CutOutShot
+from backend.cut_out_shot.pulse_cutter import PulseCutter
 from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
@@ -22,19 +24,79 @@ from sqlalchemy.orm.session import Session
 
 
 @celery_app.task()
-def cut_out_shot_task(machine_id: str) -> str:
+def cut_out_shot_task(cut_out_shot_json: str, machine_id: str, target_date_str: str, sensor_type: str) -> str:
+    """ショット切り出し画面のショット切り出しタスク
+    * DBから設定値取得
+    * Elasticsearchインデックス作成
+    * CutOutShotインスタンス作成
+    * CutOutShot.cut_out_shot_by_task呼び出し
+    """
+
+    current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}"})
+
+    logger.info(f"cut_out_shot process started. machine_id: {machine_id}")
+
+    db: Session = SessionLocal()
+
+    try:
+        # データ収集時の履歴から、収集当時の設定値を取得する
+        history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
+    except Exception:
+        logger.exception(traceback.format_exc())
+        sys.exit(1)
+
+    shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
+    ElasticManager.delete_exists_index(index=shots_index)
+    setting_shots: str = os.environ["setting_shots_path"]
+    ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
+
+    shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
+    ElasticManager.delete_exists_index(index=shots_meta_index)
+    setting_shots_meta: str = os.environ["setting_shots_meta_path"]
+    ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
+
+    cut_out_shot_in = json.loads(cut_out_shot_json)
+
+    if sensor_type == common.CUT_OUT_SHOT_SENSOR_TYPES[0]:
+        cutter = StrokeDisplacementCutter(
+            cut_out_shot_in["start_stroke_displacement"],
+            cut_out_shot_in["end_stroke_displacement"],
+            margin=cut_out_shot_in["margin"],
+            sensors=history.data_collect_history_details,
+        )
+    else:
+        cutter = PulseCutter(
+            threshold=cut_out_shot_in["threshold"],
+            sensors=history.data_collect_history_details,
+        )
+
+    # ディレクトリに存在するすべてのpklファイルパスリスト
+    data_dir: str = os.environ["data_dir"]
+    dir_path: str = os.path.join(data_dir, f"{machine_id}-{target_date_str}")
+    all_files: List[str] = FileManager.get_files(dir_path=dir_path, pattern=f"{machine_id}_*.pkl")
+    target_files: List[str] = get_target_files(all_files, has_been_processed=[])
+
+    # 切り出し処理
+    cut_out_shot = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, data_collect_history=history)
+    cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index)
+
+    return f"cut_out_shot task finished. machine_id: {machine_id}"
+
+
+@celery_app.task()
+def auto_cut_out_shot_task(machine_id: str) -> str:
     """オンラインショット切り出しタスク
     * DBから設定値取得
     * Elasticsearchインデックス作成
     * CutOutShotインスタンス作成
     * ループ処理
       * 処理対象特定
-      * CutOutShot.auto_cut_out_shot呼び出し
+      * CutOutShot.cut_out_shot_by_task呼び出し
     """
 
-    current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}"})
+    current_task.update_state(state="PROGRESS", meta={"message": f"auto_cut_out_shot start. machine_id: {machine_id}"})
 
-    logger.info(f"cut_out_shot process started. machine_id: {machine_id}")
+    logger.info(f"auto_cut_out_shot process started. machine_id: {machine_id}")
 
     db: Session = SessionLocal()
 
@@ -87,20 +149,20 @@ def cut_out_shot_task(machine_id: str) -> str:
             collect_status = tasks_common.get_collect_status(machine_id)
 
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
-                logger.info(f"cut_out_shot process stopped. machine_id: {machine_id}")
+                logger.info(f"auto_cut_out_shot process stopped. machine_id: {machine_id}")
                 break
             # 記録が完了していなければ継続
             continue
 
         # 切り出し処理
-        logger.info(f"cut_out_shot processing. machine_id: {machine_id}, targets: {len(target_files)}")
-        cut_out_shot.auto_cut_out_shot(target_files, shots_index, shots_meta_index)
+        logger.info(f"auto_cut_out_shot processing. machine_id: {machine_id}, targets: {len(target_files)}")
+        cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index)
 
         has_been_processed.extend(target_files)
 
     db.close()
 
-    return f"cut_out_shot task finished. machine_id: {machine_id}"
+    return f"auto_cut_out_shot task finished. machine_id: {machine_id}"
 
 
 def get_target_files(all_files: List[str], has_been_processed: List[str]) -> List[str]:
