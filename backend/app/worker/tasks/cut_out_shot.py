@@ -23,13 +23,17 @@ from sqlalchemy.orm.session import Session
 
 
 @celery_app.task()
-def cut_out_shot_task(cut_out_shot_json: str, machine_id: str, target_date_str: str, sensor_type: str) -> str:
+def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     """ショット切り出し画面のショット切り出しタスク
     * DBから設定値取得
     * Elasticsearchインデックス作成
     * CutOutShotインスタンス作成
     * CutOutShot.cut_out_shot_by_task呼び出し
     """
+
+    cut_out_shot_in = json.loads(cut_out_shot_json)
+    machine_id: str = cut_out_shot_in["machine_id"]
+    target_date_str: str = cut_out_shot_in["target_date_str"]
 
     current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}"})
 
@@ -47,8 +51,6 @@ def cut_out_shot_task(cut_out_shot_json: str, machine_id: str, target_date_str: 
     shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
     create_shots_index_set(shots_index, shots_meta_index)
-
-    cut_out_shot_in = json.loads(cut_out_shot_json)
 
     if sensor_type == common.CUT_OUT_SHOT_SENSOR_TYPES[0]:
         cutter = StrokeDisplacementCutter(
