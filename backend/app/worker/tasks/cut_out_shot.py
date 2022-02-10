@@ -75,7 +75,7 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
 
     # 切り出し処理
     cut_out_shot = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, data_collect_history=history)
-    cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index, machine_id)
+    cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index)
 
     db.close()
 

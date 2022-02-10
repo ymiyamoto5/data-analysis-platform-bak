@@ -413,7 +413,6 @@ class CutOutShot:
         pickle_files: List[str],
         shots_index: str,
         shots_meta_index: str,
-        machine_id: Optional[str] = None,
     ) -> None:
         """
         * ショット切り出し画面のショット切り出し・自動ショット切り出し（celeryタスク実行）
@@ -476,14 +475,13 @@ class CutOutShot:
 
             cut_out_targets = []
 
-            # ショット切り出し画面からバッチ実行したときは、進捗率を計算して記録
-            if machine_id is not None:
-                has_been_processed += 1
-                progress = round(has_been_processed / all_files * 100.0, 1)
-                current_task.update_state(
-                    state="PROGRESS",
-                    meta={"message": f"cut_out_shot processing. machine_id: {machine_id}", "progress": progress},
-                )
+            # 進捗率を計算して記録
+            has_been_processed += 1
+            progress = round(has_been_processed / all_files * 100.0, 1)
+            current_task.update_state(
+                state="PROGRESS",
+                meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
+            )
 
         if len(self.cutter.shots_summary) == 0:
             logger.info("Shot is not detected.")
