@@ -233,7 +233,7 @@ class CutOutShot:
         end_sequential_number: Optional[int] = None,
     ) -> None:
         """
-        * ショット切り出し
+        * ショット切り出し（スクリプト実行）
         * 中断区間のデータ除外
         * 物理変換 + 校正
         * SPM計算
@@ -416,7 +416,7 @@ class CutOutShot:
         machine_id: Optional[str] = None,
     ) -> None:
         """
-        * ショット切り出し画面のショット切り出し・自動ショット切り出し
+        * ショット切り出し画面のショット切り出し・自動ショット切り出し（celeryタスク実行）
         * 物理変換 + 校正
         * SPM計算
         * Elasticsearchインデックスへの保存
