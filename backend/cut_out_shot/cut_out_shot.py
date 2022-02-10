@@ -230,7 +230,7 @@ class CutOutShot:
         end_sequential_number: Optional[int] = None,
     ) -> None:
         """
-        * ショット切り出し
+        * ショット切り出し（スクリプト実行）
         * 中断区間のデータ除外
         * 物理変換 + 校正
         * SPM計算
@@ -407,7 +407,7 @@ class CutOutShot:
 
     def cut_out_shot_by_task(self, pickle_files: List[str], shots_index: str, shots_meta_index: str) -> None:
         """
-        * ショット切り出し画面のショット切り出し・自動ショット切り出し
+        * ショット切り出し画面のショット切り出し・自動ショット切り出し（celeryタスク実行）
         * 物理変換 + 校正
         * SPM計算
         * Elasticsearchインデックスへの保存
