@@ -28,6 +28,9 @@ from backend.data_converter.data_converter import DataConverter
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
 from backend.utils.throughput_counter import throughput_counter
+
+# from celery.result import AsyncResult
+from celery import current_task
 from pandas.core.frame import DataFrame
 
 from .pulse_cutter import PulseCutter
@@ -405,7 +408,13 @@ class CutOutShot:
 
         logger.info("Cut out shot finished.")
 
-    def cut_out_shot_by_task(self, pickle_files: List[str], shots_index: str, shots_meta_index: str) -> None:
+    def cut_out_shot_by_task(
+        self,
+        pickle_files: List[str],
+        shots_index: str,
+        shots_meta_index: str,
+        machine_id: Optional[str] = None,
+    ) -> None:
         """
         * ショット切り出し画面のショット切り出し・自動ショット切り出し
         * 物理変換 + 校正
@@ -413,12 +422,15 @@ class CutOutShot:
         * Elasticsearchインデックスへの保存
             * shots-yyyyMMddHHMMSS-data:切り出されたショットデータ
             * shots-yyyyMMddHHMMSS-meta:ショットのメタデータ
+        * Celeryにタスクの進捗を記録
 
         Args:
             target_files: 処理対象となるファイルパスリスト
         """
 
-        logger.info(f"Cut out shot start. number of pickle_files: {len(pickle_files)}")
+        all_files: int = len(pickle_files)
+        has_been_processed: int = 0
+        logger.info(f"Cut out shot start. number of pickle_files: {all_files}")
 
         # main loop
         for pickle_file in pickle_files:
@@ -463,6 +475,15 @@ class CutOutShot:
             ElasticManager.bulk_insert(cut_out_targets, shots_index)
 
             cut_out_targets = []
+
+            # ショット切り出し画面からバッチ実行したときは、進捗率を計算して記録
+            if machine_id is not None:
+                has_been_processed += 1
+                progress = round(has_been_processed / all_files * 100, 1)
+                current_task.update_state(
+                    state="PROGRESS",
+                    meta={"message": f"cut_out_shot processing. machine_id: {machine_id}", "progress": progress},
+                )
 
         if len(self.cutter.shots_summary) == 0:
             logger.info("Shot is not detected.")
