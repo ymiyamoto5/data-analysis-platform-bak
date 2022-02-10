@@ -405,9 +405,9 @@ class CutOutShot:
 
         logger.info("Cut out shot finished.")
 
-    def auto_cut_out_shot(self, pickle_files: List[str], shots_index: str, shots_meta_index: str) -> None:
+    def cut_out_shot_by_task(self, pickle_files: List[str], shots_index: str, shots_meta_index: str) -> None:
         """
-        * 自動ショット切り出し
+        * ショット切り出し画面のショット切り出し・自動ショット切り出し
         * 物理変換 + 校正
         * SPM計算
         * Elasticsearchインデックスへの保存
