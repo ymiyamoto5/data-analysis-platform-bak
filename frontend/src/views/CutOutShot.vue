@@ -110,6 +110,7 @@ const CUT_OUT_SENSOR_FROM_HISTORY_API_URL =
 const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
   '/api/v1/cut_out_shot/stroke_displacement'
 const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse'
+const CUT_OUT_SHOT_TASK_STATUS = '/api/v1/cut_out_shot/task-status/'
 
 export default {
   components: {
@@ -252,10 +253,35 @@ export default {
       const client = createBaseApiClient()
       await client
         .post(url, postData)
-        .then(() => {
-          this.running = false
-          this.snackbarMessage = 'ショット切り出しが完了しました'
-          this.snackbar = true
+        .then((res) => {
+          // NOTE: setIntervalでthisのコンテキストが変わってしまうため、thatに退避（もっと良い方法があるかも）
+          const that = this
+          // 3秒置きにタスクステータスをチェックし、成功または失敗するまでループ
+          const intervalId = setInterval(async function() {
+            const pollingClinet = createBaseApiClient()
+            await pollingClinet
+              .get(CUT_OUT_SHOT_TASK_STATUS + res.data.task_id)
+              .then((res) => {
+                // console.log(res.data.taskStatus)
+                if (res.data.taskStatus === 'SUCCESS') {
+                  that.running = false
+                  that.snackbarMessage = 'ショット切り出しが完了しました'
+                  that.snackbar = true
+                  clearInterval(intervalId)
+                } else if (res.data.taskStatus === 'FAILURE') {
+                  that.running = false
+                  that.errorSnackbar('ショット切り出しが失敗しました')
+                  clearInterval(intervalId)
+                } else if (res.data.taskStatus === 'PROGRESS') {
+                  // TODO: プログレスバー更新
+                }
+              })
+              .catch((e) => {
+                that.running = false
+                console.log(e.response.data.detail)
+                that.errorSnackbar(e.response)
+              })
+          }, 3000)
         })
         .catch((e) => {
           this.running = false

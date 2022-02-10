@@ -140,8 +140,6 @@ def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplaceme
 
     save_task_info(cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str, task.id, db)
 
-    wait_until_task_finish(task.id)
-
     return {"task_id": task.id, "task_info": task.info}
 
 
@@ -165,9 +163,20 @@ def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(g
 
     save_task_info(cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str, task.id, db)
 
-    wait_until_task_finish(task.id)
-
     return {"task_id": task.id, "task_info": task.info}
+
+
+@router.get("/task-status/{task_id}")
+def check_task_status(task_id: str):
+    """タスクステータスの取得"""
+
+    try:
+        celery_task = CRUDCeleryTask.select_by_id(task_id)
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+    return {"taskStatus": celery_task["status"]}
 
 
 def save_task_info(machine_id: str, target_date_str: str, task_id: str, db: Session) -> None:
@@ -181,22 +190,3 @@ def save_task_info(machine_id: str, target_date_str: str, task_id: str, db: Sess
     )
 
     CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
-
-
-def wait_until_task_finish(task_id: str) -> None:
-    """タスクの終了判定をする"""
-    INTERVAL: Final[int] = 3
-    while True:
-        time.sleep(INTERVAL)
-
-        try:
-            celery_task = CRUDCeleryTask.select_by_id(task_id)
-        except Exception:
-            logger.error(traceback.format_exc())
-            raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
-
-        if celery_task["status"] == "SUCCESS":
-            break
-        if celery_task["status"] == "FAILURE":
-            logger.error(traceback.format_exc())
-            raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.CUT_OUT_SHOT_ERROR, task_id))
