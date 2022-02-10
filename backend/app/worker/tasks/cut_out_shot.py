@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import traceback
-from typing import Final, List
+from typing import Final, List, Union
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
@@ -53,6 +53,7 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
     create_shots_index_set(shots_index, shots_meta_index)
 
+    cutter: Union[StrokeDisplacementCutter, PulseCutter]
     if sensor_type == common.CUT_OUT_SHOT_SENSOR_TYPES[0]:
         cutter = StrokeDisplacementCutter(
             cut_out_shot_in["start_stroke_displacement"],
