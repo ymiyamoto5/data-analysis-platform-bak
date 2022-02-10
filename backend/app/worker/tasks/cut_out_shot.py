@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import traceback
-from typing import Final, List
+from typing import Final, List, Union
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
@@ -11,6 +11,7 @@ from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.machine import Machine
 from backend.app.worker.celery import celery_app
+from backend.app.worker.tasks import common as tasks_common
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.cut_out_shot.cut_out_shot import CutOutShot
@@ -52,6 +53,7 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
     create_shots_index_set(shots_index, shots_meta_index)
 
+    cutter: Union[StrokeDisplacementCutter, PulseCutter]
     if sensor_type == common.CUT_OUT_SHOT_SENSOR_TYPES[0]:
         cutter = StrokeDisplacementCutter(
             cut_out_shot_in["start_stroke_displacement"],
@@ -139,7 +141,7 @@ def auto_cut_out_shot_task(machine_id: str) -> str:
 
         # NOTE: 毎度DBにアクセスするのは非効率なため、対象ファイルが存在しないときのみDBから収集ステータスを確認し、停止判断を行う。
         if len(target_files) == 0:
-            collect_status = get_collect_status(machine_id)
+            collect_status = tasks_common.get_collect_status(machine_id)
 
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
                 logger.info(f"auto_cut_out_shot process stopped. machine_id: {machine_id}")
@@ -178,15 +180,3 @@ def get_target_files(all_files: List[str], has_been_processed: List[str]) -> Lis
             target_files.append(file)
 
     return target_files
-
-
-def get_collect_status(machine_id) -> str:
-    """データ収集ステータスを取得する"""
-
-    # NOTE: DBセッションを使いまわすと更新データが得られないため、新しいセッション作成
-    db: Session = SessionLocal()
-    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
-    collect_status: str = machine.collect_status
-    db.close()
-
-    return collect_status
