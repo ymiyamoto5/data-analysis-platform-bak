@@ -75,12 +75,19 @@
 
       <v-row justify="center" v-if="dataSelected">
         <v-btn
+          class="mb-3"
           color="primary"
           @click="start"
           :disabled="running || !marginValidate"
           :loading="running"
           >ショット切り出し開始</v-btn
         >
+      </v-row>
+
+      <v-row justify="center" class="mr-16 ml-16 pr-16 pl-16" v-if="running">
+        <v-progress-linear :value="progress" height="25">
+          <strong>{{ progress }}%</strong>
+        </v-progress-linear>
       </v-row>
     </v-container>
     <v-snackbar v-model="snackbar" timeout="5000" top color="success">
@@ -143,6 +150,7 @@ export default {
       minStrokeDisplacement: 0, // ストローク変位しきい値の最小値
       snackbar: false,
       snackbarMessage: '',
+      progress: 0, // タスクの進捗
     }
   },
   methods: {
@@ -266,15 +274,17 @@ export default {
                 console.log(taskStatus)
                 if (taskStatus === 'SUCCESS') {
                   that.running = false
+                  that.progress = 0
                   that.snackbarMessage = 'ショット切り出しが完了しました'
                   that.snackbar = true
                   clearInterval(intervalId)
                 } else if (taskStatus === 'FAILURE') {
                   that.running = false
+                  that.progress = 0
                   that.errorSnackbar('ショット切り出しが失敗しました')
                   clearInterval(intervalId)
                 } else if (taskStatus === 'PROGRESS') {
-                  // TODO: プログレスバー更新
+                  that.progress = res.data.result.progress
                 }
               })
               .catch((e) => {
