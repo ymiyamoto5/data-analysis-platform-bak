@@ -36,7 +36,7 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     machine_id: str = cut_out_shot_in["machine_id"]
     target_date_str: str = cut_out_shot_in["target_date_str"]
 
-    current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}"})
+    current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}", "progress": 0})
 
     logger.info(f"cut_out_shot process started. machine_id: {machine_id}")
 
