@@ -166,19 +166,6 @@ def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(g
     return {"task_id": task.id, "task_info": task.info}
 
 
-@router.get("/task-status/{task_id}")
-def check_task_status(task_id: str):
-    """タスクステータスの取得"""
-
-    try:
-        celery_task = CRUDCeleryTask.select_by_id(task_id)
-    except Exception:
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
-
-    return {"taskStatus": celery_task["status"]}
-
-
 def save_task_info(machine_id: str, target_date_str: str, task_id: str, db: Session) -> None:
     """タスク情報を保持する"""
     data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)

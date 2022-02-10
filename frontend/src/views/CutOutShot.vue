@@ -110,7 +110,7 @@ const CUT_OUT_SENSOR_FROM_HISTORY_API_URL =
 const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
   '/api/v1/cut_out_shot/stroke_displacement'
 const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse'
-const CUT_OUT_SHOT_TASK_STATUS = '/api/v1/cut_out_shot/task-status/'
+const CUT_OUT_SHOT_TASK = '/api/v1/celery_tasks/'
 
 export default {
   components: {
@@ -260,19 +260,20 @@ export default {
           const intervalId = setInterval(async function() {
             const pollingClinet = createBaseApiClient()
             await pollingClinet
-              .get(CUT_OUT_SHOT_TASK_STATUS + res.data.task_id)
+              .get(CUT_OUT_SHOT_TASK + res.data.task_id)
               .then((res) => {
-                // console.log(res.data.taskStatus)
-                if (res.data.taskStatus === 'SUCCESS') {
+                const taskStatus = res.data.status
+                console.log(taskStatus)
+                if (taskStatus === 'SUCCESS') {
                   that.running = false
                   that.snackbarMessage = 'ショット切り出しが完了しました'
                   that.snackbar = true
                   clearInterval(intervalId)
-                } else if (res.data.taskStatus === 'FAILURE') {
+                } else if (taskStatus === 'FAILURE') {
                   that.running = false
                   that.errorSnackbar('ショット切り出しが失敗しました')
                   clearInterval(intervalId)
-                } else if (res.data.taskStatus === 'PROGRESS') {
+                } else if (taskStatus === 'PROGRESS') {
                   // TODO: プログレスバー更新
                 }
               })
