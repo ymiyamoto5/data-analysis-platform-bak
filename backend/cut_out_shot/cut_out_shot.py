@@ -479,7 +479,7 @@ class CutOutShot:
             # ショット切り出し画面からバッチ実行したときは、進捗率を計算して記録
             if machine_id is not None:
                 has_been_processed += 1
-                progress = round(has_been_processed / all_files * 100, 1)
+                progress = round(has_been_processed / all_files * 100.0, 1)
                 current_task.update_state(
                     state="PROGRESS",
                     meta={"message": f"cut_out_shot processing. machine_id: {machine_id}", "progress": progress},
