@@ -259,7 +259,7 @@ services:
     # environment:
     #   - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
     #   - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    command: celery -A backend.app.worker worker -l info -c 4
+    command: celery -A backend.app.worker worker -l info -c 4 --uid=nobody --gid=nogroup
     depends_on:
       - webap
       - rabbitmq
