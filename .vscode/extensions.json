@@ -10,6 +10,7 @@
         "esbenp.prettier-vscode",
         "ms-python.python",
         "humao.rest-client",
-        "octref.vetur"
+        "octref.vetur",
+        "msjsdiag.debugger-for-chrome"
     ]
 }
