@@ -1,9 +1,5 @@
 FROM python:3.8.12-slim-buster
 
-ENV http_proxy=http://proxy.unisys.co.jp:8080
-ENV https_proxy=http://proxy.unisys.co.jp:8080
-ENV no_proxy=rabbitmq,redis
-
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     curl \
