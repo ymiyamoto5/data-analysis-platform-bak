@@ -139,6 +139,10 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 - .env
 
 ```
+http_proxy=http://proxy.unisys.co.jp:8080
+https_proxy=http://proxy.unisys.co.jp:8080
+NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
+no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
 SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
 DB_SQL_ECHO=0
 NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
