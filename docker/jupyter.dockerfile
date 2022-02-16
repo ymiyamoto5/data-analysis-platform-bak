@@ -5,8 +5,9 @@ RUN chmod -R 777 /var/log
 RUN apt-get update -y && \
     apt-get install -y tzdata \
     curl && \
-    ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
-
+    ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime \
+    && apt-get -y clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY ./pyproject.toml ./poetry.lock /home/jovyan/
 
