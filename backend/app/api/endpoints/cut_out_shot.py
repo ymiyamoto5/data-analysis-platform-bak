@@ -94,11 +94,7 @@ def fetch_shots(
 
     # リサンプリング
     # 切り出し基準となるセンサーの種別からrate決定
-    cut_out_sensor_type: str = [
-        sensor.sensor_type_id
-        for sensor in history.data_collect_history_details
-        if sensor.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES
-    ][0]
+    cut_out_sensor_type: str = common.get_cut_out_shot_sensor(sensors).sensor_type_id
 
     # TODO: rate可変化
     rate: int = 1000 if cut_out_sensor_type == "stroke_displacement" else 10
