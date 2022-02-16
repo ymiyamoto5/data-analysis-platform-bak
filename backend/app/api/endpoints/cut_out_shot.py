@@ -43,8 +43,7 @@ def fetch_cut_out_sensor(
     # 機器に紐づくセンサー情報を取得
     sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(db, machine_id)
 
-    # NOTE: 切り出しの基準となるセンサーはただひとつのみ存在する前提
-    cut_out_sensor = [sensor for sensor in sensors if sensor.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES][0]
+    cut_out_sensor: Sensor = common.get_cut_out_shot_sensor(sensors)
 
     return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
 
@@ -60,10 +59,7 @@ def fetch_cut_out_sensor_from_history(
     # 機器に紐づく設定値を履歴から取得
     history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
 
-    # NOTE: 切り出しの基準となるセンサーはただひとつのみ存在する前提
-    cut_out_sensor = [
-        sensor for sensor in history.data_collect_history_details if sensor.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES
-    ][0]
+    cut_out_sensor: DataCollectHistoryDetail = common.get_cut_out_shot_sensor(history.data_collect_history_details)
 
     return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
 
@@ -98,11 +94,7 @@ def fetch_shots(
 
     # リサンプリング
     # 切り出し基準となるセンサーの種別からrate決定
-    cut_out_sensor_type: str = [
-        sensor.sensor_type_id
-        for sensor in history.data_collect_history_details
-        if sensor.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES
-    ][0]
+    cut_out_sensor_type: str = common.get_cut_out_shot_sensor(sensors).sensor_type_id
 
     # TODO: rate可変化
     rate: int = 1000 if cut_out_sensor_type == "stroke_displacement" else 10

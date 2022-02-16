@@ -53,14 +53,7 @@ class DataRecorderService:
             sys.exit(1)
 
         sensors: List[DataCollectHistoryDetail] = latest_data_collect_history.data_collect_history_details
-        displacement_sensor: List[DataCollectHistoryDetail] = [s for s in sensors if s.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES]
-
-        # 変位センサーは機器にただひとつのみ紐づいている前提
-        if len(displacement_sensor) != 1:
-            logger.error(f"Only one displacement sensor is needed. num_of_displacement_sensor: {displacement_sensor}")
-            sys.exit(1)
-
-        displacement_sensor_id: str = displacement_sensor[0].sensor_id
+        displacement_sensor_id: str = common.get_cut_out_shot_sensor(sensors).sensor_id
 
         # TODO: 並び順の保証
         sensor_ids_other_than_displacement: List[str] = [
