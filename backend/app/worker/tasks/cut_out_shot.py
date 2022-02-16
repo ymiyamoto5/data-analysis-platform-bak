@@ -83,7 +83,7 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
 
 
 @celery_app.task()
-def auto_cut_out_shot_task(machine_id: str) -> str:
+def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
     """オンラインショット切り出しタスク
     * DBから設定値取得
     * Elasticsearchインデックス作成
@@ -112,13 +112,19 @@ def auto_cut_out_shot_task(machine_id: str) -> str:
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
     create_shots_index_set(shots_index, shots_meta_index)
 
-    # TODO: pulse対応
-    cutter = StrokeDisplacementCutter(
-        machine.start_displacement,
-        machine.end_displacement,
-        margin=machine.margin,
-        sensors=latest_data_collect_history.data_collect_history_details,
-    )
+    cutter: Union[StrokeDisplacementCutter, PulseCutter]
+    if sensor_type == common.CUT_OUT_SHOT_SENSOR_TYPES[0]:
+        cutter = StrokeDisplacementCutter(
+            machine.start_displacement,
+            machine.end_displacement,
+            margin=machine.margin,
+            sensors=latest_data_collect_history.data_collect_history_details,
+        )
+    else:
+        cutter = PulseCutter(
+            threshold=machine.threshold,
+            sensors=latest_data_collect_history.data_collect_history_details,
+        )
 
     cut_out_shot: CutOutShot = CutOutShot(
         cutter=cutter,
