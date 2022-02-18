@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import pandas as pd
 from backend.app.models.sensor import Sensor
+from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.file_manager.file_manager import FileInfo, FileManager
 from pandas.core.frame import DataFrame
@@ -39,10 +40,21 @@ class CutOutShotService:
         return df
 
     @staticmethod
-    def resample_df(df: DataFrame, sampling_frequency: int, rate: int) -> DataFrame:
+    def resample_df(df: DataFrame, sampling_frequency: int) -> DataFrame:
         """引数のDataFrameについてリサンプリングして返却する"""
 
-        df = DataConverter.down_sampling_df(df, sampling_frequency, rate=rate)
+        rate: float = sampling_frequency / 1000
+
+        # 1kHz以下の場合はリサンプリングしない
+        if rate <= 1:
+            logger.error(f"Invalid parameter 'rate'={rate}. 'n' should be greater than 1.")
+            return df
+
+        df = df.loc[:: int(rate)]
+
+        # データ数が1,000件を超える場合は先頭1,000件のみ取得
+        if len(df) > 1000:
+            df = df.head(1000)
 
         return df
 
