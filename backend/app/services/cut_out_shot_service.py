@@ -40,21 +40,16 @@ class CutOutShotService:
         return df
 
     @staticmethod
-    def resample_df(df: DataFrame, sampling_frequency: int) -> DataFrame:
-        """引数のDataFrameについてリサンプリングして返却する"""
+    def resample_df(df: DataFrame, sampling_frequency: int, convert_frequency: int = 10_000) -> DataFrame:
+        """引数のDataFrameについて、convert_frequency(既定10kHz)の間隔でデータ取得して返却する"""
 
-        rate: float = sampling_frequency / 1000
-
-        # 1kHz以下の場合はリサンプリングしない
-        if rate <= 1:
-            logger.error(f"Invalid parameter 'rate'={rate}. 'n' should be greater than 1.")
+        if sampling_frequency < convert_frequency:
+            logger.info(f"sampling_frequency less than convert_frequency({convert_frequency})")
             return df
 
-        df = df.loc[:: int(rate)]
-
-        # データ数が1,000件を超える場合は先頭1,000件のみ取得
-        if len(df) > 1000:
-            df = df.head(1000)
+        # ex) 100kHzの場合、10kHz換算にリサンプリングするため 100kHz / 10kHz = 10サンプルごとにデータ取得
+        sampling_frequency_kHz: float = sampling_frequency / convert_frequency
+        df = df.loc[:: int(sampling_frequency_kHz)]
 
         return df
 
