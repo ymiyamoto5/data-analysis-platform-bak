@@ -95,6 +95,10 @@ def fetch_shots(
     # リサンプリング
     resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency)
 
+    # データ数が1,000件を超える場合は先頭1,000件のみ取得
+    if len(resampled_df) > 1000:
+        resampled_df = resampled_df.head(1000)
+
     # センサー値を物理変換
     converted_df: DataFrame = CutOutShotService.physical_convert_df(resampled_df, sensors)
     # NOTE: nanはJSON解釈できないので変換しておく
