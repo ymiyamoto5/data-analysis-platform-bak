@@ -158,6 +158,18 @@ def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(g
     return {"task_id": task.id, "task_info": task.info}
 
 
+@router.get("/cancel")
+def cut_out_shot_cancel(machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN)):
+    """ショット切り出しタスクを取り消し"""
+    active_tasks = celery_app.control.inspect().active()
+    for _, task_list in active_tasks.items():
+        for task in task_list:
+            if machine_id in task["args"][0]:
+                celery_app.control.revoke(task["id"], terminate=True)
+
+    return
+
+
 def save_task_info(machine_id: str, target_date_str: str, task_id: str, db: Session) -> None:
     """タスク情報を保持する"""
     data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
