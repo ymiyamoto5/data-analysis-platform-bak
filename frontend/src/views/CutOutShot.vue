@@ -84,6 +84,12 @@
         >
       </v-row>
 
+      <v-row justify="center" v-if="running">
+        <v-btn color="grey" class="mb-3 white--text" @click="beforeCancel"
+          >キャンセル</v-btn
+        >
+      </v-row>
+
       <v-row justify="center" class="mr-16 ml-16 pr-16 pl-16" v-if="running">
         <v-progress-linear :value="progress" height="25">
           <strong>{{ progress }}%</strong>
@@ -117,6 +123,7 @@ const CUT_OUT_SENSOR_FROM_HISTORY_API_URL =
 const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
   '/api/v1/cut_out_shot/stroke_displacement'
 const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse'
+const CUT_OUT_SHOT_CANCEL_API_URL = '/api/v1/cut_out_shot/cancel'
 const CUT_OUT_SHOT_TASK = '/api/v1/celery_tasks/'
 
 export default {
@@ -154,6 +161,11 @@ export default {
     }
   },
   methods: {
+    confirmDialog(message, callback) {
+      this.$store.commit('setShowConfirmDialog', true)
+      this.$store.commit('setConfirmMsg', message)
+      this.$store.commit('setCallbackFunc', callback)
+    },
     errorSnackbar(message) {
       this.$store.commit('setShowErrorSnackbar', true)
       this.$store.commit('setErrorHeader', message.statusText)
@@ -285,6 +297,8 @@ export default {
                   clearInterval(intervalId)
                 } else if (taskStatus === 'PROGRESS') {
                   that.progress = res.data.result.progress
+                } else if (taskStatus === 'REVOKED') {
+                  clearInterval(intervalId)
                 }
               })
               .catch((e) => {
@@ -300,6 +314,32 @@ export default {
           this.errorSnackbar(e.response)
         })
     },
+    // ショット切り出し停止
+    beforeCancel() {
+      this.confirmDialog(
+        'ショット切り出しをキャンセルしても良いですか？',
+        this.cancel,
+      )
+    },
+    cancel: async function() {
+      const postData = {
+        machine_id: this.machineId,
+      }
+      const client = createBaseApiClient()
+      await client
+        .post(CUT_OUT_SHOT_CANCEL_API_URL, postData)
+        .then(() => {
+          this.running = false
+          this.progress = 0
+          this.snackbarMessage = 'ショット切り出しをキャンセルしました'
+          this.snackbar = true
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
     setMaxPage(maxPage) {
       this.maxPage = maxPage
       this.switchDisplayNextPage()
@@ -334,4 +374,8 @@ export default {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.v-btn {
+  width: 180px;
+}
+</style>
