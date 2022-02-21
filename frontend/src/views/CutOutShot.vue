@@ -316,16 +316,18 @@ export default {
     },
     // ショット切り出し停止
     beforeCancel() {
-      this.confirmDialog('停止してもよいですか？', this.cancel)
+      this.confirmDialog(
+        'ショット切り出しをキャンセルしても良いですか？',
+        this.cancel,
+      )
     },
     cancel: async function() {
+      const postData = {
+        machine_id: this.machineId,
+      }
       const client = createBaseApiClient()
       await client
-        .get(CUT_OUT_SHOT_CANCEL_API_URL, {
-          params: {
-            machine_id: this.machineId,
-          },
-        })
+        .post(CUT_OUT_SHOT_CANCEL_API_URL, postData)
         .then(() => {
           this.running = false
           this.progress = 0

@@ -11,7 +11,7 @@ from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.sensor import Sensor
-from backend.app.schemas.cut_out_shot import CutOutShotPulse, CutOutShotStrokeDisplacement
+from backend.app.schemas.cut_out_shot import CutOutShotCancel, CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.app.worker.celery import celery_app
 from backend.common import common
@@ -158,13 +158,13 @@ def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(g
     return {"task_id": task.id, "task_info": task.info}
 
 
-@router.get("/cancel")
-def cut_out_shot_cancel(machine_id: str = Query(..., max_length=255, regex=common.ID_PATTERN)):
+@router.post("/cancel")
+def cut_out_shot_cancel(cut_out_shot_in: CutOutShotCancel):
     """ショット切り出しタスクを取り消し"""
     active_tasks = celery_app.control.inspect().active()
     for _, task_list in active_tasks.items():
         for task in task_list:
-            if machine_id in task["args"][0]:
+            if cut_out_shot_in.machine_id in task["args"][0]:
                 celery_app.control.revoke(task["id"], terminate=True)
 
     return
