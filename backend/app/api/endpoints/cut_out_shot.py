@@ -93,14 +93,7 @@ def fetch_shots(
     sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
 
     # リサンプリング
-    # 切り出し基準となるセンサーの種別からrate決定
-    cut_out_sensor_type: str = common.get_cut_out_shot_sensor(sensors).sensor_type_id
-
-    # TODO: rate可変化
-    rate: int = 1000 if cut_out_sensor_type == "stroke_displacement" else 10
-    # rate: int = 1
-
-    resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency, rate)
+    resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency)
 
     # センサー値を物理変換
     converted_df: DataFrame = CutOutShotService.physical_convert_df(resampled_df, sensors)
