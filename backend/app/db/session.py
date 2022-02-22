@@ -20,6 +20,6 @@ def _fk_pragma_on_connect(dbapi_con, con_record):
 
 event.listen(engine, "connect", _fk_pragma_on_connect)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
 Base = declarative_base()
