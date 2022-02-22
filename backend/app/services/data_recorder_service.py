@@ -11,7 +11,6 @@ from typing import Any, Dict, Final, List, Tuple
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
-from backend.app.worker.tasks import common as tasks_common
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.file_manager.file_manager import FileInfo, FileManager
@@ -68,7 +67,7 @@ class DataRecorderService:
         while True:
             time.sleep(INTERVAL)
 
-            collect_status = tasks_common.get_collect_status(machine_id)
+            collect_status = common.get_collect_status(machine_id)
 
             # collect_statusがRECORDEDになるのは、停止ボタン押下後全てのバイナリファイルが捌けたとき。
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
