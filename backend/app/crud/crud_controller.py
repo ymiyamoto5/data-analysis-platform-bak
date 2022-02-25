@@ -44,7 +44,6 @@ class CRUDController:
         )
 
         db.add(new_data_collect_history)
-        db.flush()
 
         sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(db, machine.machine_id)
 
