@@ -6,14 +6,11 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
-from backend.app.models.machine import Machine
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.file_manager.file_manager import FileInfo, FileManager
@@ -70,11 +67,7 @@ class DataRecorderService:
         while True:
             time.sleep(INTERVAL)
 
-            # NOTE: db sessionを使いまわすと更新データが取得できないため、新しいsessionを用意
-            _db: Session = SessionLocal()
-            machine: Machine = CRUDMachine.select_by_id(_db, machine_id)
-            collect_status: str = machine.collect_status
-            _db.close()
+            collect_status = common.get_collect_status(machine_id)
 
             # collect_statusがRECORDEDになるのは、停止ボタン押下後全てのバイナリファイルが捌けたとき。
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
