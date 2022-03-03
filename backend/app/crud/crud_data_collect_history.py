@@ -16,12 +16,29 @@ class CRUDDataCollectHistory:
             .order_by(desc(DataCollectHistory.started_at))
             .options(
                 joinedload(DataCollectHistory.machine),
-                joinedload(DataCollectHistory.data_collect_history_gateways),
-                joinedload(DataCollectHistory.data_collect_history_handlers),
-                joinedload(DataCollectHistory.data_collect_history_sensors),
             )
             .all()
         )
+
+        # joinする場合
+        # history: List[DataCollectHistory] = (
+        #     db.query(DataCollectHistory, DataCollectHistoryGateway, DataCollectHistoryHandler, DataCollectHistorySensor)
+        #     .filter(DataCollectHistory.id == DataCollectHistoryGateway.data_collect_history_id)
+        #     .filter(
+        #         DataCollectHistoryGateway.data_collect_history_id == DataCollectHistoryHandler.data_collect_history_id
+        #         and DataCollectHistoryGateway.gateway_id == DataCollectHistoryHandler.gateway_id
+        #     )
+        #     .filter(
+        #         DataCollectHistoryHandler.data_collect_history_id == DataCollectHistorySensor.data_collect_history_id
+        #         and DataCollectHistoryHandler.gateway_id == DataCollectHistorySensor.gateway_id
+        #         and DataCollectHistoryHandler.handler_id == DataCollectHistorySensor.handler_id
+        #     )
+        #     .order_by(desc(DataCollectHistory.started_at))
+        #     .options(
+        #         joinedload(DataCollectHistory.machine),
+        #     )
+        #     .all()
+        # )
 
         return history
 
