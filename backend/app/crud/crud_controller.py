@@ -5,7 +5,7 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_data_collect_history_event import CRUDDataCollectHistoryEvent
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -49,7 +49,7 @@ class CRUDController:
 
         # 収集時のスナップショット
         for sensor in sensors:
-            new_data_collect_history_detail = DataCollectHistorySensor(
+            new_data_collect_history_sensor = DataCollectHistorySensor(
                 data_collect_history_id=new_data_collect_history.id,
                 sensor_id=sensor.sensor_id,
                 sensor_name=sensor.sensor_name,
@@ -57,7 +57,7 @@ class CRUDController:
                 slope=sensor.slope,
                 intercept=sensor.intercept,
             )
-            db.add(new_data_collect_history_detail)
+            db.add(new_data_collect_history_sensor)
 
         # 収集イベント更新
         event = DataCollectHistoryEvent(

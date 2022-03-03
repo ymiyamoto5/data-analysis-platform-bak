@@ -12,7 +12,8 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app

@@ -10,7 +10,8 @@ from typing import Any, Dict, Final, List, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.file_manager.file_manager import FileInfo, FileManager

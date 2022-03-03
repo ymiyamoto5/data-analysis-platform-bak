@@ -17,7 +17,7 @@ class DataCollectHistoryHandler(DataCollectHistoryHandlerBase):
     sampling_ch_num: int = Field(..., ge=0, le=99)
     filewrite_time: int = Field(..., ge=1, le=360)
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
-    sensors: List[DataCollectHistorySensor]
+    data_collect_history_sensors: List[DataCollectHistorySensor]
 
     class Config:
         orm_mode = True
