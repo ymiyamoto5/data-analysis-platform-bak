@@ -12,8 +12,7 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_sensor import \
-    DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
@@ -211,6 +210,7 @@ def check(
     latest_predictor_task: CeleryTask = CRUDCeleryTask.select_latest_by_task_type(db, machine_id, "predictor")
 
     while True:
+        # gateway, handlerに関係なくすべてのdatファイルが捌けていること
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, f"{machine_id}_*.dat"))
 
         if len(data_file_list) != 0:

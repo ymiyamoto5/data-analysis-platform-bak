@@ -9,9 +9,12 @@ from decimal import Decimal
 from typing import Any, Dict, Final, List, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.crud.crud_machine import CRUDMachine
+from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_sensor import \
-    DataCollectHistorySensor
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.machine import Machine
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.file_manager.file_manager import FileInfo, FileManager
@@ -39,18 +42,21 @@ class DataRecorderService:
         return processed_dir_path
 
     @staticmethod
-    def record(db: Session, machine_id: str) -> None:
+    def record(db: Session, machine_id: str, gateway_id: str, handler_id: str) -> None:
         """バイナリデータをpklに変換して出力する。celeryタスクから実行。"""
 
-        logger.info(f"data recording process started. machine_id: {machine_id}")
+        logger.info(f"data recording process started. target: {machine_id}_{gateway_id}_{handler_id}")
 
         try:
-            latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+            # latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+            latest_data_collect_history_handler: DataCollectHistoryHandler = (
+                CRUDDataCollectHistory.select_latest_by_machine_gateway_handler_id(db, machine_id, gateway_id, handler_id)
+            )
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        sensors: List[DataCollectHistorySensor] = latest_data_collect_history.data_collect_history_sensors
+        sensors: List[DataCollectHistorySensor] = latest_data_collect_history_handler.data_collect_history_sensors
         displacement_sensor_id: str = common.get_cut_out_shot_sensor(sensors).sensor_id
 
         # TODO: 並び順の保証
@@ -58,7 +64,9 @@ class DataRecorderService:
             s.sensor_id for s in sensors if s.sensor_type_id not in common.CUT_OUT_SHOT_SENSOR_TYPES
         ]
 
-        started_timestamp: float = latest_data_collect_history.started_at.timestamp()
+        started_timestamp: float = (
+            latest_data_collect_history_handler.data_collect_history_gateway.data_collect_history.started_at.timestamp()
+        )
 
         num_of_records: int = 0
         INTERVAL: Final[int] = 1
@@ -68,7 +76,7 @@ class DataRecorderService:
         while True:
             time.sleep(INTERVAL)
 
-            collect_status = common.get_collect_status(machine_id)
+            collect_status = DataRecorderService.get_collect_status(machine_id)
 
             # collect_statusがRECORDEDになるのは、停止ボタン押下後全てのバイナリファイルが捌けたとき。
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
@@ -87,7 +95,7 @@ class DataRecorderService:
             time.sleep(3)
 
             num_of_records = DataRecorderService.data_record(
-                latest_data_collect_history,
+                latest_data_collect_history_handler,
                 files_info,
                 Decimal(started_timestamp),
                 num_of_records,
@@ -97,7 +105,7 @@ class DataRecorderService:
 
     @staticmethod
     def data_record(
-        data_collect_history: DataCollectHistory,
+        data_collect_history_handler: DataCollectHistoryHandler,
         target_files: List[FileInfo],
         started_timestamp: Decimal,
         num_of_records: int,
@@ -109,7 +117,7 @@ class DataRecorderService:
 
         sequential_number: int = num_of_records
         # プロセス跨ぎを考慮した時刻付け
-        sampling_interval: Decimal = Decimal(1.0 / data_collect_history.sampling_frequency)
+        sampling_interval: Decimal = Decimal(1.0 / data_collect_history_handler.sampling_frequency)
         timestamp: Decimal = started_timestamp + sequential_number * sampling_interval
 
         for file in target_files:
@@ -119,18 +127,19 @@ class DataRecorderService:
                 file,
                 sequential_number,
                 timestamp,
-                data_collect_history,
+                data_collect_history_handler,
                 displacement_sensor_id,
                 sensor_ids_other_than_displacement,
                 sampling_interval,
             )
 
             # pklファイルに出力
-            FileManager.export_to_pickle(samples, file, data_collect_history.processed_dir_path)
+            processed_dir_path = data_collect_history_handler.data_collect_history_gateway.data_collect_history.processed_dir_path
+            FileManager.export_to_pickle(samples, file, processed_dir_path)
 
             # 手動インポートでないとき（スケジュール実行のとき）、ファイルを退避する
             if not is_manual:
-                shutil.move(file.file_path, data_collect_history.processed_dir_path)
+                shutil.move(file.file_path, processed_dir_path)
 
             logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
 
@@ -192,3 +201,15 @@ class DataRecorderService:
             timestamp += sampling_interval
 
         return samples, sequential_number, timestamp
+
+    @staticmethod
+    def get_collect_status(machine_id) -> str:
+        """データ収集ステータスを取得する"""
+
+        # NOTE: DBセッションを使いまわすと更新データが得られないため、新しいセッション作成
+        db: Session = SessionLocal()
+        machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+        collect_status: str = machine.collect_status
+        db.close()
+
+        return collect_status
