@@ -14,7 +14,12 @@ class CRUDDataCollectHistory:
         history: List[DataCollectHistory] = (
             db.query(DataCollectHistory)
             .order_by(desc(DataCollectHistory.started_at))
-            .options(joinedload(DataCollectHistory.machine), joinedload(DataCollectHistory.data_collect_history_sensors))
+            .options(
+                joinedload(DataCollectHistory.machine),
+                joinedload(DataCollectHistory.data_collect_history_gateways),
+                joinedload(DataCollectHistory.data_collect_history_handlers),
+                joinedload(DataCollectHistory.data_collect_history_sensors),
+            )
             .all()
         )
 
