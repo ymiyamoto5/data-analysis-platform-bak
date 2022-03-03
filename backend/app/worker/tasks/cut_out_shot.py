@@ -58,12 +58,12 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
             cut_out_shot_in["start_stroke_displacement"],
             cut_out_shot_in["end_stroke_displacement"],
             margin=cut_out_shot_in["margin"],
-            sensors=history.data_collect_history_details,
+            sensors=history.data_collect_history_sensors,
         )
     else:
         cutter = PulseCutter(
             threshold=cut_out_shot_in["threshold"],
-            sensors=history.data_collect_history_details,
+            sensors=history.data_collect_history_sensors,
         )
 
     # ディレクトリに存在するすべてのpklファイルパスリスト
@@ -117,12 +117,12 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
             machine.start_displacement,
             machine.end_displacement,
             margin=machine.margin,
-            sensors=latest_data_collect_history.data_collect_history_details,
+            sensors=latest_data_collect_history.data_collect_history_sensors,
         )
     else:
         cutter = PulseCutter(
             threshold=machine.threshold,
-            sensors=latest_data_collect_history.data_collect_history_details,
+            sensors=latest_data_collect_history.data_collect_history_sensors,
         )
 
     cut_out_shot: CutOutShot = CutOutShot(

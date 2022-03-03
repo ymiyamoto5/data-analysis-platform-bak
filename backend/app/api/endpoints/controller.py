@@ -12,7 +12,7 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
 from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
@@ -309,7 +309,7 @@ def run_cut_out_shot(
 
     latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
 
-    sensors: List[DataCollectHistoryDetail] = latest_data_collect_history.data_collect_history_details
+    sensors: List[DataCollectHistorySensor] = latest_data_collect_history.data_collect_history_sensors
     sensor_type: str = common.get_cut_out_shot_sensor(sensors).sensor_type_id
 
     task_name = "backend.app.worker.tasks.cut_out_shot.auto_cut_out_shot_task"

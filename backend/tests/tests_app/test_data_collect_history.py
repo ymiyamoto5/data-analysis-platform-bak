@@ -57,7 +57,7 @@ class TestUpdate:
         self.endpoint = "/api/v1/data_collect_histories"
         self.data = {
             "sampling_frequency": 777,
-            "data_collect_history_details": [
+            "data_collect_history_sensors": [
                 {
                     "data_collect_history_id": self.data_collect_history_id,
                     "sensor_id": "stroke_displacement",

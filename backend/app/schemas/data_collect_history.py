@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import List, Optional
 
-from backend.app.schemas.data_collect_history_detail import DataCollectHistoryDetail, DataCollectHistoryDetailUpdate
 from backend.app.schemas.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.schemas.data_collect_history_gateway import DataCollectHistoryGateway, DataCollectHistoryGatewayUpdate
+from backend.app.schemas.data_collect_history_handler import DataCollectHistoryHandler, DataCollectHistoryHandlerUpdate
+from backend.app.schemas.data_collect_history_sensor import DataCollectHistorySensor, DataCollectHistorySensorUpdate
 from backend.common import common
 from pydantic import BaseModel, Field
 
@@ -17,10 +19,9 @@ class DataCollectHistory(DataCollectHistoryBase):
     machine_name: str = Field(..., max_length=255)
     machine_type_id: int
     started_at: datetime
-    sampling_frequency: int
-    sampling_ch_num: int
-    sample_count: int
-    data_collect_history_details: List[DataCollectHistoryDetail]
+    data_collect_history_gateways: List[DataCollectHistoryGateway]
+    data_collect_history_handlers: List[DataCollectHistoryHandler]
+    data_collect_history_sensors: List[DataCollectHistorySensor]
     data_collect_history_events: List[DataCollectHistoryEvent]
 
     class Config:
@@ -28,6 +29,6 @@ class DataCollectHistory(DataCollectHistoryBase):
 
 
 class DataCollectHistoryUpdate(DataCollectHistoryBase):
-    sampling_frequency: Optional[int] = Field(None)
-    sample_count: Optional[int] = Field(None)
-    data_collect_history_details: Optional[List[DataCollectHistoryDetailUpdate]] = Field(None)
+    data_collect_history_gateways: Optional[List[DataCollectHistoryGatewayUpdate]] = Field(None)
+    data_collect_history_handlers: Optional[List[DataCollectHistoryHandlerUpdate]] = Field(None)
+    data_collect_history_sensors: Optional[List[DataCollectHistorySensorUpdate]] = Field(None)

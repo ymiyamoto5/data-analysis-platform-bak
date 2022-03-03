@@ -14,7 +14,7 @@ class CRUDDataCollectHistory:
         history: List[DataCollectHistory] = (
             db.query(DataCollectHistory)
             .order_by(desc(DataCollectHistory.started_at))
-            .options(joinedload(DataCollectHistory.machine), joinedload(DataCollectHistory.data_collect_history_details))
+            .options(joinedload(DataCollectHistory.machine), joinedload(DataCollectHistory.data_collect_history_sensors))
             .all()
         )
 
@@ -93,11 +93,11 @@ class CRUDDataCollectHistory:
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
-            # NOTE: プロパティにList[DataCollectHistoryDetail]を直接代入するとエラーになるため、ループしてセット
-            if key == "data_collect_history_details":
+            # NOTE: プロパティにList[DataCollectHistorySensor]を直接代入するとエラーになるため、ループしてセット
+            if key == "data_collect_history_sensors":
                 for detail_number, detail in enumerate(value):
                     for k, v in detail.items():
-                        setattr(db_obj.data_collect_history_details[detail_number], k, v)
+                        setattr(db_obj.data_collect_history_sensors[detail_number], k, v)
             else:
                 setattr(db_obj, key, value)
 

@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.sensor import Sensor
 from backend.common import common
@@ -445,36 +445,36 @@ def create_data_collect_history():
                 occurred_at=started_at + timedelta(hours=-9) + timedelta(minutes=121),
             ),
         ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
+        data_collect_history_sensors=[
+            DataCollectHistorySensor(
                 sensor_id="stroke_displacement",
                 sensor_name="ストローク変位",
                 sensor_type_id="stroke_displacement",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load01",
                 sensor_name="load01",
                 sensor_type_id="load",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load02",
                 sensor_name="load02",
                 sensor_type_id="load",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load03",
                 sensor_name="load03",
                 sensor_type_id="load",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load04",
                 sensor_name="load04",
                 sensor_type_id="load",

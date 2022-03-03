@@ -18,7 +18,7 @@ from typing import Any, Dict, Final, List, Optional, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.common.common_logger import data_recorder_logger as logger
@@ -53,7 +53,7 @@ class DataRecorder:
             logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
             sys.exit(1)
 
-        sensors: List[DataCollectHistoryDetail] = data_collect_history.data_collect_history_details
+        sensors: List[DataCollectHistorySensor] = data_collect_history.data_collect_history_sensors
         displacement_sensor_id: str = common.get_cut_out_shot_sensor(sensors).sensor_id
 
         # TODO: 並び順の保証

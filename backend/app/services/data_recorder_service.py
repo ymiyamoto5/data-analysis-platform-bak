@@ -10,7 +10,7 @@ from typing import Any, Dict, Final, List, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.file_manager.file_manager import FileInfo, FileManager
@@ -49,7 +49,7 @@ class DataRecorderService:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        sensors: List[DataCollectHistoryDetail] = latest_data_collect_history.data_collect_history_details
+        sensors: List[DataCollectHistorySensor] = latest_data_collect_history.data_collect_history_sensors
         displacement_sensor_id: str = common.get_cut_out_shot_sensor(sensors).sensor_id
 
         # TODO: 並び順の保証

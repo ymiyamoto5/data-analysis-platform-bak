@@ -9,7 +9,7 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
 from backend.app.models.sensor import Sensor
 from backend.app.schemas.cut_out_shot import CutOutShotCancel, CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService
@@ -59,7 +59,7 @@ def fetch_cut_out_sensor_from_history(
     # 機器に紐づく設定値を履歴から取得
     history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
 
-    cut_out_sensor: DataCollectHistoryDetail = common.get_cut_out_shot_sensor(history.data_collect_history_details)
+    cut_out_sensor: DataCollectHistorySensor = common.get_cut_out_shot_sensor(history.data_collect_history_sensors)
 
     return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
 
@@ -89,8 +89,8 @@ def fetch_shots(
     # 機器に紐づく設定値を履歴から取得
     history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
 
-    # DataCollectHistoryDetailはセンサー毎の設定値
-    sensors: List[DataCollectHistoryDetail] = history.data_collect_history_details
+    # DataCollectHistorySensorはセンサー毎の設定値
+    sensors: List[DataCollectHistorySensor] = history.data_collect_history_sensors
 
     # リサンプリング
     resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency)

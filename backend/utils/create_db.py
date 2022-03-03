@@ -463,15 +463,15 @@ db.add(data_collect_history_demo)
 #             occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
 #         ),
 #     ],
-#     data_collect_history_details=[
-#         DataCollectHistoryDetail(
+#     data_collect_history_sensors=[
+#         DataCollectHistorySensor(
 #             sensor_id="stroke_displacement",
 #             sensor_name="ストローク変位",
 #             sensor_type_id="stroke_displacement",
 #             slope=1.0,
 #             intercept=0.0,
 #         ),
-#         DataCollectHistoryDetail(
+#         DataCollectHistorySensor(
 #             sensor_id="load01",
 #             sensor_name="歪み",
 #             sensor_type_id="load",
@@ -516,15 +516,15 @@ db.add(data_collect_history_demo)
 #             occurred_at=j_started_at_2 + timedelta(hours=-9) + timedelta(minutes=121),
 #         ),
 #     ],
-#     data_collect_history_details=[
-#         DataCollectHistoryDetail(
+#     data_collect_history_sensors=[
+#         DataCollectHistorySensor(
 #             sensor_id="stroke_displacement",
 #             sensor_name="ストローク変位",
 #             sensor_type_id="stroke_displacement",
 #             slope=1.0,
 #             intercept=0.0,
 #         ),
-#         DataCollectHistoryDetail(
+#         DataCollectHistorySensor(
 #             sensor_id="load01",
 #             sensor_name="歪み",
 #             sensor_type_id="load",
