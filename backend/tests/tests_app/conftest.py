@@ -153,6 +153,7 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=5,
                         filewrite_time=10,
+                        is_primary=False,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-01",
@@ -252,6 +253,7 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=3,
                         filewrite_time=1,
+                        is_primary=False,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-02",
@@ -286,6 +288,7 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=2,
                         filewrite_time=1,
+                        is_primary=False,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-02",
@@ -406,6 +409,7 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=2,
                         filewrite_time=1,
+                        is_primary=False,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-03",
@@ -441,6 +445,7 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=2,
                         filewrite_time=1,
+                        is_primary=False,
                         sensors=[],
                     ),
                 ],

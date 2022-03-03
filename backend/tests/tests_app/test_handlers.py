@@ -7,6 +7,7 @@ class TestRead:
     def init(self):
         self.endpoint = "/api/v1/handlers"
         self.handler_id = "test-handler-01"
+        self.gateway_id = "test-gw-01"
 
     def test_normal_db_select_all(self, client, init):
         response = client.get(self.endpoint)
@@ -34,6 +35,20 @@ class TestRead:
 
         assert response.status_code == 500
 
+    def test_normal_db_select_primary_by_gateway_id(self, client, init):
+        endpoint = f"{self.endpoint}/primary/{self.gateway_id}"
+        response = client.get(endpoint)
+        actual_code = response.status_code
+
+        assert actual_code == 200
+
+    def test_db_select_primary_by_gateway_id_failed(self, client, mocker, init):
+        endpoint = f"{self.endpoint}/primary/{self.gateway_id}"
+        mocker.patch.object(CRUDHandler, "select_primary_by_gateway_id", side_effect=Exception("some exception"))
+        response = client.get(endpoint)
+
+        assert response.status_code == 500
+
 
 class TestCreate:
     @pytest.fixture
@@ -47,6 +62,7 @@ class TestCreate:
             "sampling_frequency": 1,
             "filewrite_time": 1,
             "gateway_id": "test-gw-01",
+            "is_primary": False,
         }
 
     def test_normal(self, client, init):
@@ -64,6 +80,7 @@ class TestCreate:
             "sampling_frequency": 1,
             "filewrite_time": 1,
             "gateway_id": "test-gw-01",
+            "is_primary": False,
         }
 
         response = client.post(self.endpoint, json=data)
@@ -80,6 +97,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -91,6 +109,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -102,6 +121,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -113,6 +133,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -124,6 +145,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -136,6 +158,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -147,6 +170,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -159,6 +183,7 @@ class TestCreate:
                 "sampling_frequency": 0,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -170,6 +195,7 @@ class TestCreate:
                 "sampling_frequency": 100_001,
                 "filewrite_time": 1,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -182,6 +208,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 0,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -193,6 +220,7 @@ class TestCreate:
                 "sampling_frequency": 1,
                 "filewrite_time": 361,
                 "gateway_id": "test-gw-01",
+                "is_primary": False,
             },
             422,
         ),
@@ -224,6 +252,7 @@ class TestUpdate:
             "adc_serial_num": "12345678",
             "sampling_frequency": 1,
             "filewrite_time": 1,
+            "is_primary": True,
         }
 
     def test_normal(self, client, init):
@@ -247,6 +276,7 @@ class TestUpdate:
                 "adc_serial_num": "12345678",
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
+                "is_primary": False,
             },
             422,
         ),
@@ -256,6 +286,7 @@ class TestUpdate:
                 "adc_serial_num": "12345678",
                 "sampling_frequency": 1,
                 "filewrite_time": 1,
+                "is_primary": False,
             },
             422,
         ),
@@ -266,6 +297,7 @@ class TestUpdate:
                 "adc_serial_num": "12345678",
                 "sampling_frequency": 0,
                 "filewrite_time": 1,
+                "is_primary": False,
             },
             422,
         ),
@@ -275,6 +307,7 @@ class TestUpdate:
                 "adc_serial_num": "12345678",
                 "sampling_frequency": 100_001,
                 "filewrite_time": 1,
+                "is_primary": False,
             },
             422,
         ),
@@ -285,6 +318,7 @@ class TestUpdate:
                 "adc_serial_num": "12345678",
                 "sampling_frequency": 1,
                 "filewrite_time": 0,
+                "is_primary": False,
             },
             422,
         ),
@@ -294,6 +328,7 @@ class TestUpdate:
                 "adc_serial_num": "12345678",
                 "sampling_frequency": 1,
                 "filewrite_time": 361,
+                "is_primary": False,
             },
             422,
         ),
