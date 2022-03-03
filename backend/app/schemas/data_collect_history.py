@@ -20,9 +20,6 @@ class DataCollectHistory(DataCollectHistoryBase):
     machine_type_id: int
     started_at: datetime
     data_collect_history_gateways: List[DataCollectHistoryGateway]
-    data_collect_history_handlers: List[DataCollectHistoryHandler]
-    data_collect_history_sensors: List[DataCollectHistorySensor]
-    data_collect_history_events: List[DataCollectHistoryEvent]
 
     class Config:
         orm_mode = True
@@ -30,5 +27,3 @@ class DataCollectHistory(DataCollectHistoryBase):
 
 class DataCollectHistoryUpdate(DataCollectHistoryBase):
     data_collect_history_gateways: Optional[List[DataCollectHistoryGatewayUpdate]] = Field(None)
-    data_collect_history_handlers: Optional[List[DataCollectHistoryHandlerUpdate]] = Field(None)
-    data_collect_history_sensors: Optional[List[DataCollectHistorySensorUpdate]] = Field(None)

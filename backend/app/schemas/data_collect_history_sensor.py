@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 class DataCollectHistorySensorBase(BaseModel):
     data_collect_history_id: int
-    sensor_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
+    sensor_id: str
     handler_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     sensor_name: str = Field(..., max_length=255)
