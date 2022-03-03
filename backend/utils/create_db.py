@@ -6,10 +6,13 @@ from typing import Final
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.app.db.session import Base, SessionLocal, engine
-from backend.app.models.celery_task import CeleryTask
+
+# from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -259,10 +262,7 @@ data_collect_history_demo = DataCollectHistory(
     machine_type_id=1,
     started_at=demo_started_at + timedelta(hours=-9),
     ended_at=demo_started_at + timedelta(hours=-9) + timedelta(hours=1),
-    sampling_frequency=100000,
-    sampling_ch_num=5,
     processed_dir_path=os.path.join(DATA_DIR, "machine-01-20210709190000"),
-    sample_count=0,
     data_collect_history_events=[
         DataCollectHistoryEvent(
             event_id=0,
@@ -285,108 +285,82 @@ data_collect_history_demo = DataCollectHistory(
             occurred_at=demo_started_at + timedelta(hours=-9) + timedelta(minutes=121),
         ),
     ],
-    data_collect_history_details=[
-        DataCollectHistoryDetail(
-            sensor_id="stroke_displacement",
-            sensor_name="ストローク変位",
-            sensor_type_id="stroke_displacement",
-            slope=1.0,
-            intercept=0.0,
-        ),
-        DataCollectHistoryDetail(
-            sensor_id="load01",
-            sensor_name="荷重01",
-            sensor_type_id="load",
-            slope=1.0,
-            intercept=0.0,
-            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
-            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
-            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
-        ),
-        DataCollectHistoryDetail(
-            sensor_id="load02",
-            sensor_name="荷重02",
-            sensor_type_id="load",
-            slope=1.0,
-            intercept=0.0,
-            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
-            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
-            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
-        ),
-        DataCollectHistoryDetail(
-            sensor_id="load03",
-            sensor_name="荷重03",
-            sensor_type_id="load",
-            slope=1.0,
-            intercept=0.0,
-            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
-            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
-            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
-        ),
-        DataCollectHistoryDetail(
-            sensor_id="load04",
-            sensor_name="荷重04",
-            sensor_type_id="load",
-            slope=1.0,
-            intercept=0.0,
-            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
-            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
-            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
-        ),
-    ],
-)
-db.add(data_collect_history_demo)
-
-machine_j = Machine(
-    machine_id="machine-j",
-    machine_name="デモ用プレス機",
-    collect_status=common.COLLECT_STATUS.RECORDED.value,
-    machine_type_id=1,
-    auto_cut_out_shot=False,
-    start_displacement=None,
-    end_displacement=None,
-    margin=None,
-    threshold=None,
-    auto_predict=False,
-    predict_model=None,
-    model_version=None,
-    gateways=[
-        Gateway(
-            gateway_id="GW-j",
-            sequence_number=1,
-            gateway_result=0,
-            status=common.STATUS.STOP.value,
+    data_collect_history_gateways=[
+        DataCollectHistoryGateway(
+            gateway_id="gw-01",
             log_level=5,
-            handlers=[
-                Handler(
-                    handler_id="handler-j",
+            data_collect_history_handlers=[
+                DataCollectHistoryHandler(
+                    data_collect_history_id=1,
+                    handler_id="handler-01",
                     handler_type="USB_1608HS",
                     adc_serial_num="00002222",
                     sampling_frequency=100000,
-                    sampling_ch_num=2,
+                    sampling_ch_num=3,
                     filewrite_time=1,
-                    sensors=[
-                        Sensor(
-                            machine_id="machine-j",
+                    data_collect_history_sensors=[
+                        DataCollectHistorySensor(
+                            data_collect_history_id=1,
                             sensor_id="stroke_displacement",
                             sensor_name="stroke_displacement",
                             sensor_type_id="stroke_displacement",
                             slope=1.0,
                             intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
                         ),
-                        Sensor(
-                            machine_id="machine-j",
+                        DataCollectHistorySensor(
+                            data_collect_history_id=1,
                             sensor_id="load01",
-                            sensor_name="歪み",
+                            sensor_name="load01",
                             sensor_type_id="load",
                             slope=1.0,
                             intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                        DataCollectHistorySensor(
+                            data_collect_history_id=1,
+                            sensor_id="load02",
+                            sensor_name="load02",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                    ],
+                ),
+                DataCollectHistoryHandler(
+                    data_collect_history_id=1,
+                    handler_id="handler-02",
+                    handler_type="USB_1608HS",
+                    adc_serial_num="00003333",
+                    sampling_frequency=100000,
+                    sampling_ch_num=2,
+                    filewrite_time=1,
+                    data_collect_history_sensors=[
+                        DataCollectHistorySensor(
+                            data_collect_history_id=1,
+                            sensor_id="load03",
+                            sensor_name="load03",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                        DataCollectHistorySensor(
+                            data_collect_history_id=1,
+                            sensor_id="load04",
+                            sensor_name="load04",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
                     ],
                 ),
@@ -394,113 +368,172 @@ machine_j = Machine(
         )
     ],
 )
-db.add(machine_j)
+db.add(data_collect_history_demo)
 
-j_started_at_1 = datetime(2021, 8, 1, 9, 40, 30, 0)
+# machine_j = Machine(
+#     machine_id="machine-j",
+#     machine_name="デモ用プレス機",
+#     collect_status=common.COLLECT_STATUS.RECORDED.value,
+#     machine_type_id=1,
+#     auto_cut_out_shot=False,
+#     start_displacement=None,
+#     end_displacement=None,
+#     margin=None,
+#     threshold=None,
+#     auto_predict=False,
+#     predict_model=None,
+#     model_version=None,
+#     gateways=[
+#         Gateway(
+#             gateway_id="GW-j",
+#             sequence_number=1,
+#             gateway_result=0,
+#             status=common.STATUS.STOP.value,
+#             log_level=5,
+#             handlers=[
+#                 Handler(
+#                     handler_id="handler-j",
+#                     handler_type="USB_1608HS",
+#                     adc_serial_num="00002222",
+#                     sampling_frequency=100000,
+#                     sampling_ch_num=2,
+#                     filewrite_time=1,
+#                     sensors=[
+#                         Sensor(
+#                             machine_id="machine-j",
+#                             sensor_id="stroke_displacement",
+#                             sensor_name="stroke_displacement",
+#                             sensor_type_id="stroke_displacement",
+#                             slope=1.0,
+#                             intercept=0.0,
+#                             start_point_dsl=None,
+#                             max_point_dsl=None,
+#                             break_point_dsl=None,
+#                         ),
+#                         Sensor(
+#                             machine_id="machine-j",
+#                             sensor_id="load01",
+#                             sensor_name="歪み",
+#                             sensor_type_id="load",
+#                             slope=1.0,
+#                             intercept=0.0,
+#                             start_point_dsl=None,
+#                             max_point_dsl=None,
+#                             break_point_dsl=None,
+#                         ),
+#                     ],
+#                 ),
+#             ],
+#         )
+#     ],
+# )
+# db.add(machine_j)
 
-data_collect_history_j_1 = DataCollectHistory(
-    machine_id="machine-j",
-    machine_name="デモ用プレス機",
-    machine_type_id=1,
-    started_at=j_started_at_1 + timedelta(hours=-9),
-    ended_at=j_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
-    sampling_frequency=100000,
-    sampling_ch_num=2,
-    processed_dir_path="/mnt/datadrive/data/machine-j-20210801094030",
-    sample_count=0,
-    data_collect_history_events=[
-        DataCollectHistoryEvent(
-            event_id=0,
-            event_name=common.COLLECT_STATUS.SETUP.value,
-            occurred_at=j_started_at_1 + timedelta(hours=-9),
-        ),
-        DataCollectHistoryEvent(
-            event_id=1,
-            event_name=common.COLLECT_STATUS.START.value,
-            occurred_at=j_started_at_1 + timedelta(hours=-9),
-        ),
-        DataCollectHistoryEvent(
-            event_id=2,
-            event_name=common.COLLECT_STATUS.STOP.value,
-            occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=120),
-        ),
-        DataCollectHistoryEvent(
-            event_id=3,
-            event_name=common.COLLECT_STATUS.RECORDED.value,
-            occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
-        ),
-    ],
-    data_collect_history_details=[
-        DataCollectHistoryDetail(
-            sensor_id="stroke_displacement",
-            sensor_name="ストローク変位",
-            sensor_type_id="stroke_displacement",
-            slope=1.0,
-            intercept=0.0,
-        ),
-        DataCollectHistoryDetail(
-            sensor_id="load01",
-            sensor_name="歪み",
-            sensor_type_id="load",
-            slope=1.0,
-            intercept=0.0,
-        ),
-    ],
-)
-db.add(data_collect_history_j_1)
+# j_started_at_1 = datetime(2021, 8, 1, 9, 40, 30, 0)
 
-j_started_at_2 = datetime(2021, 10, 9, 15, 56, 26, 0)
+# data_collect_history_j_1 = DataCollectHistory(
+#     machine_id="machine-j",
+#     machine_name="デモ用プレス機",
+#     machine_type_id=1,
+#     started_at=j_started_at_1 + timedelta(hours=-9),
+#     ended_at=j_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
+#     sampling_frequency=100000,
+#     sampling_ch_num=2,
+#     processed_dir_path="/mnt/datadrive/data/machine-j-20210801094030",
+#     sample_count=0,
+#     data_collect_history_events=[
+#         DataCollectHistoryEvent(
+#             event_id=0,
+#             event_name=common.COLLECT_STATUS.SETUP.value,
+#             occurred_at=j_started_at_1 + timedelta(hours=-9),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=1,
+#             event_name=common.COLLECT_STATUS.START.value,
+#             occurred_at=j_started_at_1 + timedelta(hours=-9),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=2,
+#             event_name=common.COLLECT_STATUS.STOP.value,
+#             occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=120),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=3,
+#             event_name=common.COLLECT_STATUS.RECORDED.value,
+#             occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
+#         ),
+#     ],
+#     data_collect_history_details=[
+#         DataCollectHistoryDetail(
+#             sensor_id="stroke_displacement",
+#             sensor_name="ストローク変位",
+#             sensor_type_id="stroke_displacement",
+#             slope=1.0,
+#             intercept=0.0,
+#         ),
+#         DataCollectHistoryDetail(
+#             sensor_id="load01",
+#             sensor_name="歪み",
+#             sensor_type_id="load",
+#             slope=1.0,
+#             intercept=0.0,
+#         ),
+#     ],
+# )
+# db.add(data_collect_history_j_1)
 
-data_collect_history_j_2 = DataCollectHistory(
-    machine_id="machine-j",
-    machine_name="デモ用プレス機",
-    machine_type_id=1,
-    started_at=j_started_at_2 + timedelta(hours=-9),
-    ended_at=j_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
-    sampling_frequency=100000,
-    sampling_ch_num=2,
-    processed_dir_path=os.path.join(DATA_DIR, "machine-j-20211009155626"),
-    sample_count=0,
-    data_collect_history_events=[
-        DataCollectHistoryEvent(
-            event_id=0,
-            event_name=common.COLLECT_STATUS.SETUP.value,
-            occurred_at=j_started_at_2 + timedelta(hours=-9),
-        ),
-        DataCollectHistoryEvent(
-            event_id=1,
-            event_name=common.COLLECT_STATUS.START.value,
-            occurred_at=j_started_at_2 + timedelta(hours=-9),
-        ),
-        DataCollectHistoryEvent(
-            event_id=2,
-            event_name=common.COLLECT_STATUS.STOP.value,
-            occurred_at=j_started_at_2 + timedelta(hours=-9) + timedelta(minutes=120),
-        ),
-        DataCollectHistoryEvent(
-            event_id=3,
-            event_name=common.COLLECT_STATUS.RECORDED.value,
-            occurred_at=j_started_at_2 + timedelta(hours=-9) + timedelta(minutes=121),
-        ),
-    ],
-    data_collect_history_details=[
-        DataCollectHistoryDetail(
-            sensor_id="stroke_displacement",
-            sensor_name="ストローク変位",
-            sensor_type_id="stroke_displacement",
-            slope=1.0,
-            intercept=0.0,
-        ),
-        DataCollectHistoryDetail(
-            sensor_id="load01",
-            sensor_name="歪み",
-            sensor_type_id="load",
-            slope=1.0,
-            intercept=0.0,
-        ),
-    ],
-)
-db.add(data_collect_history_j_2)
+# j_started_at_2 = datetime(2021, 10, 9, 15, 56, 26, 0)
+
+# data_collect_history_j_2 = DataCollectHistory(
+#     machine_id="machine-j",
+#     machine_name="デモ用プレス機",
+#     machine_type_id=1,
+#     started_at=j_started_at_2 + timedelta(hours=-9),
+#     ended_at=j_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
+#     sampling_frequency=100000,
+#     sampling_ch_num=2,
+#     processed_dir_path=os.path.join(DATA_DIR, "machine-j-20211009155626"),
+#     sample_count=0,
+#     data_collect_history_events=[
+#         DataCollectHistoryEvent(
+#             event_id=0,
+#             event_name=common.COLLECT_STATUS.SETUP.value,
+#             occurred_at=j_started_at_2 + timedelta(hours=-9),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=1,
+#             event_name=common.COLLECT_STATUS.START.value,
+#             occurred_at=j_started_at_2 + timedelta(hours=-9),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=2,
+#             event_name=common.COLLECT_STATUS.STOP.value,
+#             occurred_at=j_started_at_2 + timedelta(hours=-9) + timedelta(minutes=120),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=3,
+#             event_name=common.COLLECT_STATUS.RECORDED.value,
+#             occurred_at=j_started_at_2 + timedelta(hours=-9) + timedelta(minutes=121),
+#         ),
+#     ],
+#     data_collect_history_details=[
+#         DataCollectHistoryDetail(
+#             sensor_id="stroke_displacement",
+#             sensor_name="ストローク変位",
+#             sensor_type_id="stroke_displacement",
+#             slope=1.0,
+#             intercept=0.0,
+#         ),
+#         DataCollectHistoryDetail(
+#             sensor_id="load01",
+#             sensor_name="歪み",
+#             sensor_type_id="load",
+#             slope=1.0,
+#             intercept=0.0,
+#         ),
+#     ],
+# )
+# db.add(data_collect_history_j_2)
 
 db.commit()
 
@@ -511,5 +544,7 @@ db.commit()
 [print(vars(x)) for x in db.query(Sensor).all()]  # type: ignore
 [print(vars(x)) for x in db.query(SensorType).all()]  # type: ignore
 [print(vars(x)) for x in db.query(DataCollectHistory).all()]  # type: ignore
-[print(vars(x)) for x in db.query(DataCollectHistoryDetail).all()]  # type: ignore
+[print(vars(x)) for x in db.query(DataCollectHistoryGateway).all()]  # type: ignore
+[print(vars(x)) for x in db.query(DataCollectHistoryHandler).all()]  # type: ignore
+[print(vars(x)) for x in db.query(DataCollectHistorySensor).all()]  # type: ignore
 [print(vars(x)) for x in db.query(DataCollectHistoryEvent).all()]  # type: ignore

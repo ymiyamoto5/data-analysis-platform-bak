@@ -12,15 +12,14 @@ class DataCollectHistory(Base):
     machine_type_id = Column(Integer, nullable=False)
     started_at = Column(DateTime, nullable=False)
     ended_at = Column(DateTime)
-    sampling_frequency = Column(Integer, nullable=False)
-    sampling_ch_num = Column(Integer, nullable=False)
     processed_dir_path = Column(String(255), nullable=False)
-    sample_count = Column(Integer, nullable=False)
 
     # Many To One
     machine = relationship("Machine", back_populates="data_collect_histories")
     # One to Many
-    data_collect_history_details = relationship("DataCollectHistoryDetail", back_populates="data_collect_history", cascade="all, delete")
+    data_collect_history_gateways = relationship("DataCollectHistoryGateway", back_populates="data_collect_history", cascade="all, delete")
+    data_collect_history_handlers = relationship("DataCollectHistoryHandler", back_populates="data_collect_history", cascade="all, delete")
+    data_collect_history_sensors = relationship("DataCollectHistorySensor", back_populates="data_collect_history", cascade="all, delete")
     # One to Many
     data_collect_history_events = relationship(
         "DataCollectHistoryEvent",

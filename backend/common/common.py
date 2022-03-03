@@ -19,7 +19,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Final, List, Tuple, Union
 
 from backend.app.db.session import SessionLocal
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
@@ -93,9 +93,9 @@ def increment_sequence_number(sequence_number: int) -> int:
     return 1 if sequence_number >= INT_MAX else sequence_number + 1
 
 
-def get_cut_out_shot_sensor(sensors: Union[List[Sensor], List[DataCollectHistoryDetail]]) -> Union[Sensor, DataCollectHistoryDetail]:
+def get_cut_out_shot_sensor(sensors: Union[List[Sensor], List[DataCollectHistorySensor]]) -> Union[Sensor, DataCollectHistorySensor]:
     """ショット切り出し対象となるセンサーを特定する"""
-    cut_out_sensor: Union[List[Sensor], List[DataCollectHistoryDetail]] = [
+    cut_out_sensor: Union[List[Sensor], List[DataCollectHistorySensor]] = [
         s for s in sensors if s.sensor_type_id in CUT_OUT_SHOT_SENSOR_TYPES
     ]
 
