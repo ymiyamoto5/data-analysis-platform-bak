@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 from typing import List
 
 from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.schemas.data_collect_history import DataCollectHistoryUpdate
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
@@ -19,26 +22,6 @@ class CRUDDataCollectHistory:
             )
             .all()
         )
-
-        # joinする場合
-        # history: List[DataCollectHistory] = (
-        #     db.query(DataCollectHistory, DataCollectHistoryGateway, DataCollectHistoryHandler, DataCollectHistorySensor)
-        #     .filter(DataCollectHistory.id == DataCollectHistoryGateway.data_collect_history_id)
-        #     .filter(
-        #         DataCollectHistoryGateway.data_collect_history_id == DataCollectHistoryHandler.data_collect_history_id
-        #         and DataCollectHistoryGateway.gateway_id == DataCollectHistoryHandler.gateway_id
-        #     )
-        #     .filter(
-        #         DataCollectHistoryHandler.data_collect_history_id == DataCollectHistorySensor.data_collect_history_id
-        #         and DataCollectHistoryHandler.gateway_id == DataCollectHistorySensor.gateway_id
-        #         and DataCollectHistoryHandler.handler_id == DataCollectHistorySensor.handler_id
-        #     )
-        #     .order_by(desc(DataCollectHistory.started_at))
-        #     .options(
-        #         joinedload(DataCollectHistory.machine),
-        #     )
-        #     .all()
-        # )
 
         return history
 
@@ -102,6 +85,43 @@ class CRUDDataCollectHistory:
             )
             .first()
         )
+
+        return history
+
+    @staticmethod
+    def select_latest_by_machine_gateway_handler_id(
+        db: Session, machine_id: str, gateway_id: str, handler_id: str
+    ) -> DataCollectHistoryHandler:
+        history: DataCollectHistoryHandler = (
+            db.query(DataCollectHistoryHandler)
+            .filter(DataCollectHistoryHandler.handler_id == handler_id)
+            .join(DataCollectHistoryGateway)
+            .filter(DataCollectHistoryGateway.gateway_id == gateway_id)
+            .join(DataCollectHistory)
+            .filter(DataCollectHistory.machine_id == machine_id)
+            .order_by(desc(DataCollectHistory.started_at))
+            .first()
+        )
+
+        # joinする場合
+        # history: List[DataCollectHistory] = (
+        #     db.query(DataCollectHistory, DataCollectHistoryGateway, DataCollectHistoryHandler, DataCollectHistorySensor)
+        #     .filter(DataCollectHistory.id == DataCollectHistoryGateway.data_collect_history_id)
+        #     .filter(
+        #         DataCollectHistoryGateway.data_collect_history_id == DataCollectHistoryHandler.data_collect_history_id
+        #         and DataCollectHistoryGateway.gateway_id == DataCollectHistoryHandler.gateway_id
+        #     )
+        #     .filter(
+        #         DataCollectHistoryHandler.data_collect_history_id == DataCollectHistorySensor.data_collect_history_id
+        #         and DataCollectHistoryHandler.gateway_id == DataCollectHistorySensor.gateway_id
+        #         and DataCollectHistoryHandler.handler_id == DataCollectHistorySensor.handler_id
+        #     )
+        #     .order_by(desc(DataCollectHistory.started_at))
+        #     .options(
+        #         joinedload(DataCollectHistory.machine),
+        #     )
+        #     .all()
+        # )
 
         return history
 

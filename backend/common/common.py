@@ -9,15 +9,14 @@
 
 """
 
-from __future__ import annotations
-
 import json
 import multiprocessing
 import sys
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Final, List, Tuple, Union
+from typing import Final, List, Tuple, Union
 
+from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
@@ -25,9 +24,6 @@ from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
 from pytz import timezone
 from sqlalchemy.orm.session import Session
-
-if TYPE_CHECKING:
-    from backend.app.crud.crud_machine import CRUDMachine
 
 # グローバル定数
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
@@ -105,15 +101,3 @@ def get_cut_out_shot_sensor(sensors: Union[List[Sensor], List[DataCollectHistory
         sys.exit(1)
 
     return cut_out_sensor[0]
-
-
-def get_collect_status(machine_id) -> str:
-    """データ収集ステータスを取得する"""
-
-    # NOTE: DBセッションを使いまわすと更新データが得られないため、新しいセッション作成
-    db: Session = SessionLocal()
-    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
-    collect_status: str = machine.collect_status
-    db.close()
-
-    return collect_status

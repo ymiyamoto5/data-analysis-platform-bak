@@ -14,8 +14,10 @@ from decimal import Decimal
 
 import pytest
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.file_manager.file_manager import FileManager
@@ -26,6 +28,8 @@ class TestReadBinaryFiles:
         """正常系：バイナリファイルが正常に読めること"""
 
         machine_id: str = "test-machine-01"
+        gateway_id: str = "test-gw-01"
+        handler_id: str = "test-handler-01"
 
         file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
         file = file_infos[0]
@@ -64,42 +68,87 @@ class TestReadBinaryFiles:
                     occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
                 ),
             ],
-            data_collect_history_sensors=[
-                DataCollectHistorySensor(
-                    sensor_id="stroke_displacement",
-                    sensor_name="ストローク変位",
-                    sensor_type_id="stroke_displacement",
-                    slope=1.0,
-                    intercept=0.0,
-                ),
-                DataCollectHistorySensor(
-                    sensor_id="load01",
-                    sensor_name="load01",
-                    sensor_type_id="load",
-                    slope=1.0,
-                    intercept=0.0,
-                ),
-                DataCollectHistorySensor(
-                    sensor_id="load02",
-                    sensor_name="load02",
-                    sensor_type_id="load",
-                    slope=1.0,
-                    intercept=0.0,
-                ),
-                DataCollectHistorySensor(
-                    sensor_id="load03",
-                    sensor_name="load03",
-                    sensor_type_id="load",
-                    slope=1.0,
-                    intercept=0.0,
-                ),
-                DataCollectHistorySensor(
-                    sensor_id="load04",
-                    sensor_name="load04",
-                    sensor_type_id="load",
-                    slope=1.0,
-                    intercept=0.0,
-                ),
+            data_collect_history_gateways=[
+                DataCollectHistoryGateway(
+                    gateway_id="gw-01",
+                    log_level=5,
+                    data_collect_history_handlers=[
+                        DataCollectHistoryHandler(
+                            data_collect_history_id=1,
+                            handler_id="handler-01",
+                            handler_type="USB_1608HS",
+                            adc_serial_num="00002222",
+                            sampling_frequency=100000,
+                            sampling_ch_num=3,
+                            filewrite_time=1,
+                            data_collect_history_sensors=[
+                                DataCollectHistorySensor(
+                                    data_collect_history_id=1,
+                                    sensor_id="stroke_displacement",
+                                    sensor_name="stroke_displacement",
+                                    sensor_type_id="stroke_displacement",
+                                    slope=1.0,
+                                    intercept=0.0,
+                                ),
+                                DataCollectHistorySensor(
+                                    data_collect_history_id=1,
+                                    sensor_id="load01",
+                                    sensor_name="load01",
+                                    sensor_type_id="load",
+                                    slope=1.0,
+                                    intercept=0.0,
+                                    start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                    max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                    break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                                ),
+                                DataCollectHistorySensor(
+                                    data_collect_history_id=1,
+                                    sensor_id="load02",
+                                    sensor_name="load02",
+                                    sensor_type_id="load",
+                                    slope=1.0,
+                                    intercept=0.0,
+                                    start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                    max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                    break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                                ),
+                            ],
+                        ),
+                        DataCollectHistoryHandler(
+                            data_collect_history_id=1,
+                            handler_id="handler-02",
+                            handler_type="USB_1608HS",
+                            adc_serial_num="00003333",
+                            sampling_frequency=100000,
+                            sampling_ch_num=2,
+                            filewrite_time=1,
+                            data_collect_history_sensors=[
+                                DataCollectHistorySensor(
+                                    data_collect_history_id=1,
+                                    sensor_id="load03",
+                                    sensor_name="load03",
+                                    sensor_type_id="load",
+                                    slope=1.0,
+                                    intercept=0.0,
+                                    start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                    max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                    break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                                ),
+                                DataCollectHistorySensor(
+                                    data_collect_history_id=1,
+                                    sensor_id="load04",
+                                    sensor_name="load04",
+                                    sensor_type_id="load",
+                                    slope=1.0,
+                                    intercept=0.0,
+                                    start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                    max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                    break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                                ),
+                            ],
+                        ),
+                    ],
+                )
             ],
         )
 
@@ -144,10 +193,14 @@ class TestReadBinaryFiles:
 class TestRecord:
     @pytest.fixture
     def init(self) -> None:
-        self.machine_id = "test-machine-01"
+        self.machine_id: str = "test-machine-01"
+        self.gateway_id: str = "test-gw-01"
+        self.handler_id: str = "test-handler-01"
 
-    # def test_exec(self, db, init):
-    #     """ジョブ実行のみ（デバッグ用）
-    #     通常はコメントアウト
-    #     """
-    #     DataRecorderService.record(db, self.machine_id)
+    @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
+    def test_exec(self, db, init):
+        """ジョブ実行のみ（デバッグ用）
+        通常はコメントアウト
+        """
+
+        DataRecorderService.record(db, self.machine_id, self.gateway_id, self.handler_id)
