@@ -86,6 +86,7 @@ test_machine = Machine(
                     sampling_frequency=100000,
                     sampling_ch_num=5,
                     filewrite_time=10,
+                    is_primary=False,
                     sensors=[
                         Sensor(
                             machine_id="test-machine",
@@ -180,6 +181,7 @@ machine_01 = Machine(
                     sampling_frequency=100000,
                     sampling_ch_num=3,
                     filewrite_time=1,
+                    is_primary=False,
                     sensors=[
                         Sensor(
                             machine_id="machine-01",
@@ -220,6 +222,7 @@ machine_01 = Machine(
                     sampling_frequency=100000,
                     sampling_ch_num=2,
                     filewrite_time=1,
+                    is_primary=False,
                     sensors=[
                         Sensor(
                             machine_id="machine-01",
@@ -365,6 +368,7 @@ machine_j = Machine(
                     sampling_frequency=100000,
                     sampling_ch_num=2,
                     filewrite_time=1,
+                    is_primary=False,
                     sensors=[
                         Sensor(
                             machine_id="machine-j",
