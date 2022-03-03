@@ -22,7 +22,7 @@ from backend.app.api.deps import get_db
 from backend.app.db.session import Base
 from backend.app.main import app
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
@@ -212,15 +212,15 @@ def create_testdb(db):
                 occurred_at=test_machine_01_started_at + timedelta(hours=-9) + timedelta(minutes=121),
             ),
         ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
+        data_collect_history_sensors=[
+            DataCollectHistorySensor(
                 sensor_id="stroke_displacement",
                 sensor_name="ストローク変位",
                 sensor_type_id="stroke_displacement",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load01",
                 sensor_name="荷重01",
                 sensor_type_id="load",
@@ -345,36 +345,36 @@ def create_testdb(db):
                 occurred_at=test_machine_02_started_at + timedelta(hours=-9) + timedelta(minutes=121),
             ),
         ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
+        data_collect_history_sensors=[
+            DataCollectHistorySensor(
                 sensor_id="pulse",
                 sensor_name="パルス",
                 sensor_type_id="pulse",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load01",
                 sensor_name="荷重01",
                 sensor_type_id="load",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load02",
                 sensor_name="荷重02",
                 sensor_type_id="load",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load03",
                 sensor_name="荷重03",
                 sensor_type_id="load",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load04",
                 sensor_name="荷重04",
                 sensor_type_id="load",
@@ -483,15 +483,15 @@ def create_testdb(db):
                 occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
             ),
         ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
+        data_collect_history_sensors=[
+            DataCollectHistorySensor(
                 sensor_id="stroke_displacement",
                 sensor_name="ストローク変位",
                 sensor_type_id="stroke_displacement",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load01",
                 sensor_name="歪み",
                 sensor_type_id="load",
@@ -536,15 +536,15 @@ def create_testdb(db):
                 occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(minutes=121),
             ),
         ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
+        data_collect_history_sensors=[
+            DataCollectHistorySensor(
                 sensor_id="stroke_displacement",
                 sensor_name="ストローク変位",
                 sensor_type_id="stroke_displacement",
                 slope=1.0,
                 intercept=0.0,
             ),
-            DataCollectHistoryDetail(
+            DataCollectHistorySensor(
                 sensor_id="load01",
                 sensor_name="歪み",
                 sensor_type_id="load",

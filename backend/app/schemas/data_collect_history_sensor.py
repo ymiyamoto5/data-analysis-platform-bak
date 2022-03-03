@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class DataCollectHistoryDetailBase(BaseModel):
+class DataCollectHistorySensorBase(BaseModel):
     data_collect_history_id: int
     sensor_id: str
     sensor_name: str = Field(..., max_length=255)
@@ -15,10 +15,10 @@ class DataCollectHistoryDetailBase(BaseModel):
     break_point_dsl: Optional[str] = None
 
 
-class DataCollectHistoryDetail(DataCollectHistoryDetailBase):
+class DataCollectHistorySensor(DataCollectHistorySensorBase):
     class Config:
         orm_mode = True
 
 
-class DataCollectHistoryDetailUpdate(DataCollectHistoryDetailBase):
+class DataCollectHistorySensorUpdate(DataCollectHistorySensorBase):
     pass

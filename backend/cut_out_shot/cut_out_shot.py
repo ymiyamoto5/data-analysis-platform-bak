@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, Final, List, Optional, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.common import common
 from backend.common.common_logger import logger
@@ -55,7 +55,7 @@ class CutOutShot:
         self.__chunk_size: int = chunk_size
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
         self.__data_collect_history: DataCollectHistory = data_collect_history
-        self.__sensors: List[DataCollectHistoryDetail] = data_collect_history.data_collect_history_details
+        self.__sensors: List[DataCollectHistorySensor] = data_collect_history.data_collect_history_sensors
         self.__max_samples_per_shot: int = int(60 / self.__min_spm) * data_collect_history.sampling_frequency
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
@@ -509,7 +509,7 @@ if __name__ == "__main__":
         start_stroke_displacement=47.0,
         end_stroke_displacement=34.0,
         margin=0.3,
-        sensors=history.data_collect_history_details,
+        sensors=history.data_collect_history_sensors,
     )
 
     cut_out_shot = CutOutShot(
