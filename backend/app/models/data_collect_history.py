@@ -18,8 +18,6 @@ class DataCollectHistory(Base):
     machine = relationship("Machine", back_populates="data_collect_histories")
     # One to Many
     data_collect_history_gateways = relationship("DataCollectHistoryGateway", back_populates="data_collect_history", cascade="all, delete")
-    data_collect_history_handlers = relationship("DataCollectHistoryHandler", back_populates="data_collect_history", cascade="all, delete")
-    data_collect_history_sensors = relationship("DataCollectHistorySensor", back_populates="data_collect_history", cascade="all, delete")
     # One to Many
     data_collect_history_events = relationship(
         "DataCollectHistoryEvent",

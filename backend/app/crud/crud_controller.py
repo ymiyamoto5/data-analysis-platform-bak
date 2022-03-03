@@ -1,15 +1,13 @@
 from datetime import datetime
-from typing import List
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_data_collect_history_event import CRUDDataCollectHistoryEvent
-from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
-from backend.app.models.handler import Handler
+from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
-from backend.app.models.sensor import Sensor
 from backend.common import common
 from sqlalchemy.orm import Session
 
@@ -25,39 +23,59 @@ class CRUDController:
             gateway.sequence_number = common.increment_sequence_number(gateway.sequence_number)
             gateway.status = common.STATUS.RUNNING.value
 
-        # 収集履歴更新
-        # NOTE: 複数GW, 複数Handlerであっても、最初のGWおよびそれに紐づく最初のHandlerを採用する。
-        handler: Handler = machine.gateways[0].handlers[0]
-        # NOTE: センサー数はmachineから取得
-        sampling_ch_num = len(machine.sensors)
-
+        # 収集時のスナップショットを履歴として保存
         new_data_collect_history = DataCollectHistory(
             machine_id=machine.machine_id,
             machine_name=machine.machine_name,
             machine_type_id=machine.machine_type_id,
             started_at=utc_now,
             ended_at=None,
-            sampling_frequency=handler.sampling_frequency,
-            sampling_ch_num=sampling_ch_num,
             processed_dir_path=processed_dir_path,
-            sample_count=0,
         )
-
         db.add(new_data_collect_history)
+        db.flush()
 
-        sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(db, machine.machine_id)
-
-        # 収集時のスナップショット
-        for sensor in sensors:
-            new_data_collect_history_sensor = DataCollectHistorySensor(
+        for gateway in machine.gateways:
+            new_data_collect_history_gateway = DataCollectHistoryGateway(
                 data_collect_history_id=new_data_collect_history.id,
-                sensor_id=sensor.sensor_id,
-                sensor_name=sensor.sensor_name,
-                sensor_type_id=sensor.sensor_type_id,
-                slope=sensor.slope,
-                intercept=sensor.intercept,
+                gateway_id=gateway.gateway_id,
+                log_level=gateway.log_level,
             )
-            db.add(new_data_collect_history_sensor)
+            db.add(new_data_collect_history_gateway)
+            db.flush()
+
+            for handler in gateway.handlers:
+                new_data_collect_history_handler = DataCollectHistoryHandler(
+                    data_collect_history_id=new_data_collect_history.id,
+                    gateway_id=new_data_collect_history_gateway.gateway_id,
+                    handler_id=handler.handler_id,
+                    handler_type=handler.handler_type,
+                    adc_serial_num=handler.adc_serial_num,
+                    sampling_frequency=handler.sampling_frequency,
+                    sampling_ch_num=handler.sampling_ch_num,
+                    filewrite_time=handler.filewrite_time,
+                    # TODO: 設定
+                    # is_primary=False,
+                )
+                db.add(new_data_collect_history_handler)
+                db.flush()
+
+                for sensor in handler.sensors:
+                    new_data_collect_history_sensor = DataCollectHistorySensor(
+                        data_collect_history_id=new_data_collect_history.id,
+                        gateway_id=new_data_collect_history_gateway.gateway_id,
+                        handler_id=new_data_collect_history_handler.handler_id,
+                        sensor_id=sensor.sensor_id,
+                        sensor_name=sensor.sensor_name,
+                        sensor_type_id=sensor.sensor_type_id,
+                        slope=sensor.slope,
+                        intercept=sensor.intercept,
+                        start_point_dsl=sensor.start_point_dsl,
+                        max_point_dsl=sensor.max_point_dsl,
+                        break_point_dsl=sensor.break_point_dsl,
+                    )
+                    db.add(new_data_collect_history_sensor)
+                    db.flush()
 
         # 収集イベント更新
         event = DataCollectHistoryEvent(
