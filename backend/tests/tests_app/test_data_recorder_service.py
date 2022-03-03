@@ -14,7 +14,7 @@ from decimal import Decimal
 
 import pytest
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common

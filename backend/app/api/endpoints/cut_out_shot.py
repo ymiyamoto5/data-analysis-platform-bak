@@ -9,7 +9,7 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.sensor import Sensor
 from backend.app.schemas.cut_out_shot import CutOutShotCancel, CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService

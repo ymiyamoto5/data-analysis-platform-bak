@@ -1,6 +1,6 @@
 from typing import List
 
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common.common_logger import logger
 from pandas.core.frame import DataFrame
 

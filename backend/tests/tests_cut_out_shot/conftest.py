@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.sensor import Sensor
 from backend.common import common

@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, Final, List, Optional, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.common import common
 from backend.common.common_logger import logger

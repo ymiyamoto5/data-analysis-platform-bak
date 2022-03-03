@@ -22,7 +22,7 @@ from backend.app.api.deps import get_db
 from backend.app.db.session import Base
 from backend.app.main import app
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistorySensor
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler

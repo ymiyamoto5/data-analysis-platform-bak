@@ -12,7 +12,7 @@ class DataCollectHistoryGatewayBase(BaseModel):
 class DataCollectHistoryGateway(DataCollectHistoryGatewayBase):
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     log_level: int = Field(..., ge=1, le=5)
-    handlers: List[DataCollectHistoryHandler]
+    data_collect_history_handlers: List[DataCollectHistoryHandler]
 
     class Config:
         orm_mode = True
