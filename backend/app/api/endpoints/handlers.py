@@ -37,6 +37,18 @@ def fetch_handler(handler_id: str = Path(..., max_length=255, regex=common.ID_PA
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
 
+@router.get("/primary/{gateway_id}", response_model=handler.Handler)
+def fetch_primary_handler(gateway_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
+    """指定gatewayの主要なハンドラー情報を取得"""
+
+    try:
+        handler = CRUDHandler.select_primary_by_gateway_id(db, gateway_id)
+        return handler
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
+
+
 @router.post("/", response_model=handler.Handler)
 def create(handler_in: handler.HandlerCreate, db: Session = Depends(get_db)):
     """handlerの作成"""
