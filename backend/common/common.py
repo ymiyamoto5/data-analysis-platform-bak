@@ -16,14 +16,10 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Final, List, Tuple, Union
 
-from backend.app.crud.crud_machine import CRUDMachine
-from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
-from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
 from pytz import timezone
-from sqlalchemy.orm.session import Session
 
 # グローバル定数
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
