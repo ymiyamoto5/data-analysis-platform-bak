@@ -59,8 +59,8 @@ def main(machine_id: str):
     # plt.savefig("tmp.png")
 
     data_dir = os.environ["data_dir"]
-    gateway_id = "test-gw-01"
-    handlers = ["test-handler-01", "test-handler-02"]
+    gateway_id = "gw-01"
+    handlers = ["handler-01", "handler-02"]
 
     for _ in range(10):
         # handler[0]
