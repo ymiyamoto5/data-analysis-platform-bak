@@ -9,6 +9,8 @@
 
 """
 
+import os
+import shutil
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -196,6 +198,7 @@ class TestRecord:
         self.machine_id: str = "test-machine-01"
         self.gateway_id: str = "test-gw-01"
         self.handler_id: str = "test-handler-01"
+        self.handler_id_2: str = "test-handler-02"
 
     # @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
     def test_exec(self, db, init, mocker):
@@ -203,11 +206,14 @@ class TestRecord:
         通常はコメントアウト
         """
 
-        # テスト用に収集ステータス更新
-        # machine = db.query(Machine).filter(Machine.machine_id == self.machine_id).one()
-        # machine.collect_status = common.COLLECT_STATUS.SETUP.value
-        # db.commit()
+        data_dir = os.environ["data_dir"]
+        dir_path = os.path.join(data_dir, self.machine_id + "-20211111110000")
+
+        if os.path.exists(dir_path):
+            shutil.rmtree(dir_path)
+        os.mkdir(dir_path)
 
         mocker.patch.object(DataRecorderService, "get_collect_status", return_value="setup")
 
-        DataRecorderService.record(db, self.machine_id, self.gateway_id, self.handler_id)
+        # DataRecorderService.record(db, self.machine_id, self.gateway_id, self.handler_id)
+        DataRecorderService.record(db, self.machine_id, self.gateway_id, self.handler_id_2)

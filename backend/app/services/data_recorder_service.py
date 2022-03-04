@@ -6,7 +6,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any, Dict, Final, List, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
@@ -57,7 +57,8 @@ class DataRecorderService:
             sys.exit(1)
 
         sensors: List[DataCollectHistorySensor] = latest_data_collect_history_handler.data_collect_history_sensors
-        displacement_sensor_id: str = common.get_cut_out_shot_sensor(sensors).sensor_id
+        displacement_sensor: Optional[DataCollectHistorySensor] = common.get_cut_out_shot_sensor(sensors)
+        displacement_sensor_id: Optional[str] = displacement_sensor.sensor_id if displacement_sensor is not None else None
 
         # TODO: 並び順の保証
         sensor_ids_other_than_displacement: List[str] = [
@@ -84,7 +85,7 @@ class DataRecorderService:
                 break
 
             # 対象機器のファイルリストを作成
-            files_info: List[FileInfo] = FileManager.create_files_info(data_dir, machine_id, "dat")
+            files_info: List[FileInfo] = FileManager.create_files_info(data_dir, machine_id, gateway_id, handler_id, "dat")
 
             # バイナリファイルが未生成のタイミングはあり得る（例えばネットワーク遅延等）
             if len(files_info) == 0:
@@ -109,7 +110,7 @@ class DataRecorderService:
         target_files: List[FileInfo],
         started_timestamp: Decimal,
         num_of_records: int,
-        displacement_sensor_id: str,
+        displacement_sensor_id: Optional[str],
         sensor_ids_other_than_displacement: List[str],
         is_manual: bool = False,
     ) -> int:
@@ -152,7 +153,7 @@ class DataRecorderService:
         sequential_number: int,
         timestamp: Decimal,
         data_collect_history: DataCollectHistory,
-        displacement_sensor_id: str,
+        displacement_sensor_id: Optional[str],
         sensor_ids_other_than_displacement: List[str],
         sampling_interval: Decimal,
     ) -> Tuple[List[Dict[str, Any]], int, Decimal]:
@@ -185,12 +186,16 @@ class DataRecorderService:
             sample: Dict[str, Any] = {
                 "sequential_number": sequential_number,
                 "timestamp": timestamp,
-                displacement_sensor_id: round(dataset[0], ROUND_DIGITS),
             }
 
-            # 変位センサー以外のセンサー
-            for i, s in enumerate(sensor_ids_other_than_displacement):
-                sample[s] = round(dataset[i + 1], ROUND_DIGITS)
+            if displacement_sensor_id is not None:
+                sample[displacement_sensor_id] = round(dataset[0], ROUND_DIGITS)
+                # 変位センサー以外のセンサー
+                for i, s in enumerate(sensor_ids_other_than_displacement):
+                    sample[s] = round(dataset[i + 1], ROUND_DIGITS)
+            else:
+                for i, s in enumerate(sensor_ids_other_than_displacement):
+                    sample[s] = round(dataset[i], ROUND_DIGITS)
 
             samples.append(sample)
 

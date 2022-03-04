@@ -14,7 +14,7 @@ import multiprocessing
 import sys
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Final, List, Tuple, Union
+from typing import Final, List, Optional, Tuple, Union
 
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.sensor import Sensor
@@ -85,15 +85,17 @@ def increment_sequence_number(sequence_number: int) -> int:
     return 1 if sequence_number >= INT_MAX else sequence_number + 1
 
 
-def get_cut_out_shot_sensor(sensors: Union[List[Sensor], List[DataCollectHistorySensor]]) -> Union[Sensor, DataCollectHistorySensor]:
+def get_cut_out_shot_sensor(
+    sensors: Union[List[Sensor], List[DataCollectHistorySensor]]
+) -> Optional[Union[Sensor, DataCollectHistorySensor]]:
     """ショット切り出し対象となるセンサーを特定する"""
     cut_out_sensor: Union[List[Sensor], List[DataCollectHistorySensor]] = [
         s for s in sensors if s.sensor_type_id in CUT_OUT_SHOT_SENSOR_TYPES
     ]
 
     # 変位センサーは機器にただひとつのみ紐づいている前提
-    if len(cut_out_sensor) != 1:
+    if len(cut_out_sensor) > 1:
         logger.error(f"Only one displacement sensor is needed. num_of_displacement_sensor: {cut_out_sensor}")
         sys.exit(1)
 
-    return cut_out_sensor[0]
+    return None if len(cut_out_sensor) == 0 else cut_out_sensor[0]

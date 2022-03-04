@@ -19,11 +19,11 @@ from backend.app.db.session import SessionLocal
 
 
 def main(machine_id: str):
-    db = SessionLocal()
+    # db = SessionLocal()
 
-    machine = CRUDMachine.select_by_id(db, machine_id)
-    data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
-    sampling_ch_num = data_collect_history.sampling_ch_num
+    # machine = CRUDMachine.select_by_id(db, machine_id)
+    # data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    # sampling_ch_num = data_collect_history.sampling_ch_num
 
     # 元データ
     freq = 1  # 周波数
@@ -59,18 +59,36 @@ def main(machine_id: str):
     # plt.savefig("tmp.png")
 
     data_dir = os.environ["data_dir"]
-    gateway_id = machine.gateways[0].gateway_id
-    handler_id = machine.gateways[0].handlers[0].handler_id
+    gateway_id = "test-gw-01"
+    handlers = ["test-handler-01", "test-handler-02"]
 
-    for _ in range(100):
+    for _ in range(10):
+        # handler[0]
         binaries = b""
         for i in range(resampling):
-            binary = struct.pack("<ddddd", displacement_sample[i], load01_sample[i], load02_sample[i], load03_sample[i], load04_sample[i])
+            binary = struct.pack("<ddd", displacement_sample[i], load01_sample[i], load02_sample[i])
             binaries += binary
 
         utc_now = datetime.utcnow()
         now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}.dat"
+        file_name = f"{machine_id}_{gateway_id}_{handlers[0]}_{now_str}.dat"
+        file_path = os.path.join(data_dir, file_name)
+
+        # 文字列のバイナリファイルへの書き込み
+        with open(file_path, "wb") as f:
+            f.write(binaries)
+
+        print(f"dat file created: {file_path}")
+
+        # handler[1]
+        binaries = b""
+        for i in range(resampling):
+            binary = struct.pack("<dd", load03_sample[i], load04_sample[i])
+            binaries += binary
+
+        utc_now = datetime.utcnow()
+        now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
+        file_name = f"{machine_id}_{gateway_id}_{handlers[1]}_{now_str}.dat"
         file_path = os.path.join(data_dir, file_name)
 
         # 文字列のバイナリファイルへの書き込み
