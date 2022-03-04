@@ -18,6 +18,7 @@ from backend.app.models.data_collect_history_event import DataCollectHistoryEven
 from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.file_manager.file_manager import FileManager
@@ -45,7 +46,6 @@ class TestReadBinaryFiles:
             sampling_frequency=100000,
             sampling_ch_num=5,
             processed_dir_path="/mnt/datadrive/data/xxx",
-            sample_count=0,
             data_collect_history_events=[
                 DataCollectHistoryEvent(
                     event_id=0,
@@ -197,10 +197,17 @@ class TestRecord:
         self.gateway_id: str = "test-gw-01"
         self.handler_id: str = "test-handler-01"
 
-    @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
-    def test_exec(self, db, init):
+    # @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
+    def test_exec(self, db, init, mocker):
         """ジョブ実行のみ（デバッグ用）
         通常はコメントアウト
         """
+
+        # テスト用に収集ステータス更新
+        # machine = db.query(Machine).filter(Machine.machine_id == self.machine_id).one()
+        # machine.collect_status = common.COLLECT_STATUS.SETUP.value
+        # db.commit()
+
+        mocker.patch.object(DataRecorderService, "get_collect_status", return_value="setup")
 
         DataRecorderService.record(db, self.machine_id, self.gateway_id, self.handler_id)

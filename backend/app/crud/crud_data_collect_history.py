@@ -103,25 +103,10 @@ class CRUDDataCollectHistory:
             .first()
         )
 
-        # joinする場合
-        # history: List[DataCollectHistory] = (
-        #     db.query(DataCollectHistory, DataCollectHistoryGateway, DataCollectHistoryHandler, DataCollectHistorySensor)
-        #     .filter(DataCollectHistory.id == DataCollectHistoryGateway.data_collect_history_id)
-        #     .filter(
-        #         DataCollectHistoryGateway.data_collect_history_id == DataCollectHistoryHandler.data_collect_history_id
-        #         and DataCollectHistoryGateway.gateway_id == DataCollectHistoryHandler.gateway_id
-        #     )
-        #     .filter(
-        #         DataCollectHistoryHandler.data_collect_history_id == DataCollectHistorySensor.data_collect_history_id
-        #         and DataCollectHistoryHandler.gateway_id == DataCollectHistorySensor.gateway_id
-        #         and DataCollectHistoryHandler.handler_id == DataCollectHistorySensor.handler_id
-        #     )
-        #     .order_by(desc(DataCollectHistory.started_at))
-        #     .options(
-        #         joinedload(DataCollectHistory.machine),
-        #     )
-        #     .all()
-        # )
+        # joinする場合の例
+        # db.query(DataCollectHistory,DataCollectHistoryGateway,DataCollectHistoryHandler).filter(DataCollectHistory.machine_id==machine_id)
+        # .join(DataCollectHistory.data_collect_history_gateways).filter(DataCollectHistoryGateway.gateway_id==gateway_id)
+        # .join(DataCollectHistoryGateway.data_collect_history_handlers).filter(DataCollectHistoryHandler.handler_id==handler_id).all()
 
         return history
 
