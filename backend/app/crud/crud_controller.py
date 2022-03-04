@@ -56,6 +56,7 @@ class CRUDController:
                     filewrite_time=handler.filewrite_time,
                     # TODO: 設定
                     # is_primary=False,
+                    is_cut_out_target=True,
                 )
                 db.add(new_data_collect_history_handler)
                 db.flush()

@@ -16,6 +16,7 @@ class DataCollectHistoryHandler(Base):
     sampling_ch_num = Column(Integer, nullable=False)
     filewrite_time = Column(Integer, nullable=False)
     is_primary = Column(Boolean, nullable=False, default=False)
+    is_cut_out_target = Column(Boolean, nullable=False, default=False)
 
     # NOTE: 複合外部キーが含まれる場合、個別に外部キー設定するとINSERT時に外部キー参照エラーとなる。以下で設定が必要。
     # なお、直接の親を参照しないとダメなことにも注意。（この箇所の場合、DataCollectHistoryのdata_collect_history.idを参照するとエラー）

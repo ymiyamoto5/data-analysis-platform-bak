@@ -103,12 +103,20 @@ class CRUDDataCollectHistory:
             .first()
         )
 
-        # joinする場合の例
-        # db.query(DataCollectHistory,DataCollectHistoryGateway,DataCollectHistoryHandler).filter(DataCollectHistory.machine_id==machine_id)
-        # .join(DataCollectHistory.data_collect_history_gateways).filter(DataCollectHistoryGateway.gateway_id==gateway_id)
-        # .join(DataCollectHistoryGateway.data_collect_history_handlers).filter(DataCollectHistoryHandler.handler_id==handler_id).all()
-
         return history
+
+    @staticmethod
+    def select_cut_out_target_handlers_by_hisotry_id(db: Session, history_id: int) -> List[DataCollectHistoryHandler]:
+        cut_out_target_handlers: List[DataCollectHistoryHandler] = (
+            db.query(DataCollectHistoryHandler)
+            .join(DataCollectHistoryGateway)
+            .join(DataCollectHistory)
+            .filter(DataCollectHistory.id == history_id)
+            .filter(DataCollectHistoryHandler.is_cut_out_target)
+            .all()
+        )
+
+        return cut_out_target_handlers
 
     @staticmethod
     def update(db: Session, db_obj: DataCollectHistory, obj_in: DataCollectHistoryUpdate) -> DataCollectHistory:

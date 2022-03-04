@@ -298,6 +298,7 @@ data_collect_history_demo = DataCollectHistory(
                     sampling_frequency=100000,
                     sampling_ch_num=3,
                     filewrite_time=1,
+                    is_cut_out_target=True,
                     data_collect_history_sensors=[
                         DataCollectHistorySensor(
                             data_collect_history_id=1,
@@ -339,6 +340,7 @@ data_collect_history_demo = DataCollectHistory(
                     sampling_frequency=100000,
                     sampling_ch_num=2,
                     filewrite_time=1,
+                    is_cut_out_target=True,
                     data_collect_history_sensors=[
                         DataCollectHistorySensor(
                             data_collect_history_id=1,
