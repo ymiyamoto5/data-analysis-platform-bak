@@ -21,10 +21,10 @@ class FileInfo:
 
 class FileManager:
     @staticmethod
-    def create_files_info(target_dir: str, machine_id: str, extension: str) -> List[FileInfo]:
+    def create_files_info(target_dir: str, machine_id: str, gateway_id: str, handler_id: str, extension: str) -> List[FileInfo]:
         """指定した拡張子ファイルの情報（パスとファイル名から抽出した日時）リストを生成"""
 
-        file_list: List[str] = glob.glob(os.path.join(target_dir, f"{machine_id}_*.{extension}"))
+        file_list: List[str] = glob.glob(os.path.join(target_dir, f"{machine_id}_{gateway_id}_{handler_id}_*.{extension}"))
 
         if len(file_list) == 0:
             return []
