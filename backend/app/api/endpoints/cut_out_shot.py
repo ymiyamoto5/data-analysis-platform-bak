@@ -1,22 +1,24 @@
 import json
 import time
 import traceback
-from typing import Any, Dict, Final, List
+from typing import Any, Dict, Final, List, Optional
 
+import pandas as pd
 from backend.app.api.deps import get_db
 from backend.app.crud.crud_celery_task import CRUDCeleryTask
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.schemas.cut_out_shot import CutOutShotCancel, CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.app.worker.celery import celery_app
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
-from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.file_manager.file_manager import FileInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pandas.core.frame import DataFrame
@@ -43,7 +45,9 @@ def fetch_cut_out_sensor(
     # 機器に紐づくセンサー情報を取得
     sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(db, machine_id)
 
-    cut_out_sensor: Sensor = common.get_cut_out_shot_sensor(sensors)
+    cut_out_sensor: Optional[Sensor] = common.get_cut_out_shot_sensor(sensors)
+    if cut_out_sensor is None:
+        raise HTTPException(status_code=500, detail="切り出し基準となるセンサーがありません")
 
     return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
 
@@ -57,9 +61,20 @@ def fetch_cut_out_sensor_from_history(
     """履歴から切り出しの基準となるセンサーがストローク変位、パルスどちらであるかを返す"""
 
     # 機器に紐づく設定値を履歴から取得
+    # NOTE: 1クエリで取得可能だが、複雑なクエリになるためひとまず2クエリに分けている。
     history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
+    cut_out_target_handlers: List[DataCollectHistoryHandler] = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(
+        db, history.id
+    )
 
-    cut_out_sensor: DataCollectHistorySensor = common.get_cut_out_shot_sensor(history.data_collect_history_sensors)
+    # 切り出し基準となるセンサーを特定
+    for handler in cut_out_target_handlers:
+        cut_out_sensor: Optional[DataCollectHistorySensor] = common.get_cut_out_shot_sensor(handler.data_collect_history_sensors)
+        if cut_out_sensor is not None:
+            break
+
+    if cut_out_sensor is None:
+        raise HTTPException(status_code=500, detail="切り出し基準となるセンサーがありません")
 
     return {"cut_out_sensor": cut_out_sensor.sensor_type_id}
 
@@ -73,27 +88,60 @@ def fetch_shots(
 ):
     """対象区間の最初のpklファイルを読み込み、ストローク変位値をリサンプリングして返す"""
 
-    files_info: List[FileInfo] = CutOutShotService.get_files_info(machine_id, target_date_str)
-
-    if len(files_info) == 0:
-        raise HTTPException(status_code=400, detail="対象ファイルがありません")
-
-    # リクエストされたファイルがファイル数を超えている場合
-    if page > len(files_info) - 1:
-        raise HTTPException(status_code=400, detail="データがありません")
-
-    # 対象ディレクトリから1ファイル取得
-    target_file = files_info[page].file_path
-    df: DataFrame = CutOutShotService.fetch_df(target_file)
-
-    # 機器に紐づく設定値を履歴から取得
     history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
+    cut_out_target_handlers: List[DataCollectHistoryHandler] = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(
+        db, history.id
+    )
 
-    # DataCollectHistorySensorはセンサー毎の設定値
-    sensors: List[DataCollectHistorySensor] = history.data_collect_history_sensors
+    # ハンドラーごとのファイルリスト作成
+    files_info_by_handler: List[List[FileInfo]] = []
+    sensors: List[DataCollectHistorySensor] = []
+    for handler in cut_out_target_handlers:
+        files_info: List[FileInfo] = CutOutShotService.get_files_info(
+            machine_id, handler.data_collect_history_gateway.gateway_id, handler.handler_id, target_date_str
+        )
+        if len(files_info) == 0:
+            raise HTTPException(status_code=400, detail="対象ファイルがありません")
+        # リクエストされたファイルがファイル数を超えている場合
+        if page > len(files_info) - 1:
+            raise HTTPException(status_code=400, detail="データがありません")
+
+        files_info_by_handler.append(files_info)
+
+        sensors.append(handler.data_collect_history_sensors)
+
+    sensors = [x for sensor in sensors for x in sensor]  # flatten
+
+    files_len_list = []
+    for files_info in files_info_by_handler:
+        files_len_list.append(len(files_info))
+
+    if not all(val == files_len_list[0] for val in files_len_list):
+        logger.error("The number of files for each handler does not match.")
+
+    # files_len: int = min(files_len_list)
+    # num_of_handler: int = len(files_info_by_handler)
+
+    # file_set_list: List[List[FileInfo]] = []
+    # for i in range(files_len):
+    #     file_set: List[FileInfo] = [x[i] for x in files_info_by_handler]
+    #     file_set_list.append(file_set)
+
+    # # 対象ディレクトリから1ファイル取得
+    # target_files = [x[page].file_path for x in file_set_list]
+
+    merged_df = pd.DataFrame()
+    for i, files_info in enumerate(files_info_by_handler):
+        target_file = files_info[page].file_path
+        df: DataFrame = CutOutShotService.fetch_df(target_file)
+        if i == 0:
+            merged_df = df.copy()
+            continue
+        merged_df = pd.merge(merged_df, df, on="sequential_number", suffixes=["", "_right"]).drop(columns="timestamp_right")
 
     # リサンプリング
-    resampled_df: DataFrame = CutOutShotService.resample_df(df, history.sampling_frequency)
+    sampling_frequency: int = cut_out_target_handlers[0].sampling_frequency
+    resampled_df: DataFrame = CutOutShotService.resample_df(merged_df, sampling_frequency)
 
     # データ数が1,000件を超える場合は先頭1,000件のみ取得
     if len(resampled_df) > 1000:

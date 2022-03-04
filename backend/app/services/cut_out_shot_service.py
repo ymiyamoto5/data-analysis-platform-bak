@@ -1,8 +1,9 @@
 import os
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import pandas as pd
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -22,12 +23,12 @@ class CutOutShotService:
         return target_date_str
 
     @staticmethod
-    def get_files_info(machine_id: str, target_date_str: str) -> Optional[List[FileInfo]]:
+    def get_files_info(machine_id: str, gateway_id: str, handler_id: str, target_date_str: str) -> List[FileInfo]:
         target_dir = machine_id + "-" + target_date_str
         data_dir: str = os.environ["data_dir"]
         data_full_path: str = os.path.join(data_dir, target_dir)
 
-        files_info: Optional[List[FileInfo]] = FileManager.create_files_info(data_full_path, machine_id, "pkl")
+        files_info: List[FileInfo] = FileManager.create_files_info(data_full_path, machine_id, gateway_id, handler_id, "pkl")
 
         return files_info
 
@@ -54,8 +55,8 @@ class CutOutShotService:
         return df
 
     @staticmethod
-    def physical_convert_df(df: DataFrame, sensors: List[Sensor]) -> DataFrame:
-        """引数のDataFrameをリサンプリングして返却する"""
+    def physical_convert_df(df: DataFrame, sensors: List[Union[Sensor, DataCollectHistorySensor]]) -> DataFrame:
+        """引数のDataFrameを物理変換して返却する"""
 
         for sensor in sensors:
             func = DataConverter.get_physical_conversion_formula(sensor)

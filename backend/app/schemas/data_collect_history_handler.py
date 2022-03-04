@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class DataCollectHistoryHandlerBase(BaseModel):
     data_collect_history_id: int
+    is_cut_out_target: bool
 
 
 class DataCollectHistoryHandler(DataCollectHistoryHandlerBase):
