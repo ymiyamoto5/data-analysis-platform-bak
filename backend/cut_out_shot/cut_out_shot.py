@@ -21,16 +21,18 @@ from typing import Any, Callable, Dict, Final, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
-from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import \
+    DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
 from backend.utils.throughput_counter import throughput_counter
-
 # from celery.result import AsyncResult
 from celery import current_task
 from pandas.core.frame import DataFrame
@@ -511,11 +513,12 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
+    from backend.app.crud.crud_data_collect_history import \
+        CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
     machine_id: str = "machine-01"
-    target: str = "20220304162319"
+    target: str = "20220307192421"
     db = SessionLocal()
     # TODO: ここは効率化する
     history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
