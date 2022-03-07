@@ -11,17 +11,19 @@
 
 import multiprocessing
 import os
+import re
 import sys
 import traceback
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable, Dict, Final, List, Optional, Union
+from typing import Any, Callable, Dict, Final, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -42,6 +44,8 @@ class CutOutShot:
         self,
         cutter: Union[StrokeDisplacementCutter, PulseCutter],
         data_collect_history: DataCollectHistory,
+        handlers: List[DataCollectHistoryHandler],
+        sensors: List[DataCollectHistorySensor],
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
         min_spm: int = 15,
@@ -55,8 +59,11 @@ class CutOutShot:
         self.__chunk_size: int = chunk_size
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
         self.__data_collect_history: DataCollectHistory = data_collect_history
-        self.__sensors: List[DataCollectHistorySensor] = data_collect_history.data_collect_history_sensors
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * data_collect_history.sampling_frequency
+        self.__handlers: List[DataCollectHistoryHandler] = handlers
+        self.__sensors: List[DataCollectHistorySensor] = sensors
+        self.__max_samples_per_shot: int = (
+            int(60 / self.__min_spm) * handlers[0].sampling_frequency
+        )  # ショット切り出し対象ハンドラーのサンプリングレートは各ハンドラーで同値である前提
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
     # テスト用の公開プロパティ
@@ -249,18 +256,10 @@ class CutOutShot:
 
         logger.info("Cut out shot start.")
 
-        # 取り込むpickleファイルのリストを取得
         data_dir: str = os.environ["data_dir"]
         rawdata_dir_path: str = os.path.join(data_dir, self.__rawdata_dir_name)
-
         if not os.path.exists(rawdata_dir_path):
             logger.error(f"Directory not found. {rawdata_dir_path}")
-            sys.exit(1)
-
-        pickle_files: List[str] = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{self.__machine_id}_*.pkl")
-
-        if len(pickle_files) == 0:
-            logger.error("pickle files not found.")
             sys.exit(1)
 
         # パラメータによる範囲フィルター設定
@@ -306,9 +305,24 @@ class CutOutShot:
 
         NOW: Final[datetime] = datetime.now()
 
+        file_set_list: Union[List[str], List[List[str]]]
+        if len(self.__handlers) >= 2:
+            file_set_list = FileManager.get_pickle_file_list(machine_id, rawdata_dir_path, self.__handlers)
+        else:
+            file_set_list = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{machine_id}_*.pkl")
+
         # main loop
-        for loop_count, pickle_file in enumerate(pickle_files):
-            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
+        for loop_count, file_set in enumerate(file_set_list):
+            if len(self.__handlers) >= 2:
+                # ADC台数分のファイルを読み、1つのDataFrameにする
+                rawdata_df: DataFrame = pd.read_pickle(file_set[0])
+                for file in file_set[1:]:
+                    df: DataFrame = pd.read_pickle(file)
+                    rawdata_df = pd.merge(rawdata_df, df, on="sequential_number", how="outer", suffixes=["", "_right"]).drop(
+                        columns="timestamp_right"
+                    )
+            else:
+                rawdata_df = pd.read_pickle(file_set)
 
             # パラメータで指定された対象範囲に含まれないデータを除外
             if has_target_interval:
@@ -321,14 +335,14 @@ class CutOutShot:
                 rawdata_df = self._exclude_non_target_interval(rawdata_df, start_sequential_number, end_sequential_number)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
+                logger.info(f"All data was excluded by non-target interval. {file_set}")
                 continue
 
             # 段取区間の除外
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by setup interval. {pickle_file}")
+                logger.info(f"All data was excluded by setup interval. {file_set}")
                 continue
 
             # 中断区間の除外
@@ -336,7 +350,7 @@ class CutOutShot:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by pause interval. {pickle_file}")
+                logger.info(f"All data was excluded by pause interval. {file_set}")
                 continue
 
             # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
@@ -353,7 +367,7 @@ class CutOutShot:
 
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
-                logger.info(f"Shot is not detected in {pickle_file}")
+                logger.info(f"Shot is not detected in {file_set}")
                 continue
 
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
@@ -365,7 +379,7 @@ class CutOutShot:
             cut_out_df = self._exclude_over_sample(cut_out_df)
 
             if len(cut_out_df) == 0:
-                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
+                logger.info(f"Shot is not detected in {file_set} by over_sample_filter.")
                 continue
 
             # timestampをdatetimeに変換する
@@ -501,15 +515,22 @@ if __name__ == "__main__":
     from backend.app.db.session import SessionLocal  # noqa
 
     machine_id: str = "machine-01"
-    target: str = "20210327141514"
+    target: str = "20220304162319"
     db = SessionLocal()
+    # TODO: ここは効率化する
     history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
+    cut_out_target_handlers: List[DataCollectHistoryHandler] = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(
+        db, history.id
+    )
+    cut_out_target_sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(
+        db, history.id
+    )
 
     cutter = StrokeDisplacementCutter(
         start_stroke_displacement=47.0,
         end_stroke_displacement=34.0,
         margin=0.3,
-        sensors=history.data_collect_history_sensors,
+        sensors=cut_out_target_sensors,
     )
 
     cut_out_shot = CutOutShot(
@@ -517,6 +538,8 @@ if __name__ == "__main__":
         machine_id=machine_id,
         target=target,
         data_collect_history=history,
+        handlers=cut_out_target_handlers,
+        sensors=cut_out_target_sensors,
         min_spm=15,
     )
 

@@ -1,6 +1,8 @@
 import pathlib
 from datetime import datetime, timedelta
 
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileInfo, FileManager
 
@@ -190,6 +192,82 @@ class TestGetFiles:
             tmp_file_1._str,
             tmp_file_3._str,
             tmp_file_4._str,
+        ]
+
+        assert actual == expected
+
+
+class TestGetPickleFileList:
+    def test_normal_two_handler(self, tmp_path):
+        machine_id = "machine-01"
+        handler_01_id = "test-handler-01"
+        handler_02_id = "test-handler-02"
+        handlers = [
+            DataCollectHistoryHandler(handler_id=handler_01_id),
+            DataCollectHistoryHandler(handler_id=handler_02_id),
+        ]
+
+        tmp_file_1 = tmp_path / f"{machine_id}_{handler_01_id}_20201216-075958.708968.pkl"
+        tmp_file_2 = tmp_path / f"{machine_id}_{handler_01_id}_20201216-080000.280213.pkl"
+        tmp_file_3 = tmp_path / f"{machine_id}_{handler_01_id}_20201216-080001.853297.pkl"
+        tmp_file_4 = tmp_path / f"{machine_id}_{handler_02_id}_20201216-075958.708969.pkl"
+        tmp_file_5 = tmp_path / f"{machine_id}_{handler_02_id}_20201216-080000.280214.pkl"
+        tmp_file_6 = tmp_path / f"{machine_id}_{handler_02_id}_20201216-080001.853298.pkl"
+
+        tmp_file_1.write_text("")
+        tmp_file_2.write_text("")
+        tmp_file_3.write_text("")
+        tmp_file_4.write_text("")
+        tmp_file_5.write_text("")
+        tmp_file_6.write_text("")
+
+        actual = FileManager.get_pickle_file_list(machine_id, tmp_path, handlers=handlers)
+
+        expected = [
+            [tmp_file_1._str, tmp_file_4._str],
+            [tmp_file_2._str, tmp_file_5._str],
+            [tmp_file_3._str, tmp_file_6._str],
+        ]
+
+        assert actual == expected
+
+    def test_normal_three_handler(self, tmp_path):
+        machine_id = "machine-01"
+        handler_01_id = "test-handler-01"
+        handler_02_id = "test-handler-02"
+        handler_03_id = "test-handler-03"
+        handlers = [
+            DataCollectHistoryHandler(handler_id=handler_01_id),
+            DataCollectHistoryHandler(handler_id=handler_02_id),
+            DataCollectHistoryHandler(handler_id=handler_03_id),
+        ]
+
+        tmp_file_1 = tmp_path / f"{machine_id}_{handler_01_id}_20201216-075958.708968.pkl"
+        tmp_file_2 = tmp_path / f"{machine_id}_{handler_01_id}_20201216-080000.280213.pkl"
+        tmp_file_3 = tmp_path / f"{machine_id}_{handler_01_id}_20201216-080001.853297.pkl"
+        tmp_file_4 = tmp_path / f"{machine_id}_{handler_02_id}_20201216-075958.708969.pkl"
+        tmp_file_5 = tmp_path / f"{machine_id}_{handler_02_id}_20201216-080000.280214.pkl"
+        tmp_file_6 = tmp_path / f"{machine_id}_{handler_02_id}_20201216-080001.853298.pkl"
+        tmp_file_7 = tmp_path / f"{machine_id}_{handler_03_id}_20201216-075958.708970.pkl"
+        tmp_file_8 = tmp_path / f"{machine_id}_{handler_03_id}_20201216-080000.280215.pkl"
+        tmp_file_9 = tmp_path / f"{machine_id}_{handler_03_id}_20201216-080001.853299.pkl"
+
+        tmp_file_1.write_text("")
+        tmp_file_2.write_text("")
+        tmp_file_3.write_text("")
+        tmp_file_4.write_text("")
+        tmp_file_5.write_text("")
+        tmp_file_6.write_text("")
+        tmp_file_7.write_text("")
+        tmp_file_8.write_text("")
+        tmp_file_9.write_text("")
+
+        actual = FileManager.get_pickle_file_list(machine_id, tmp_path, handlers=handlers)
+
+        expected = [
+            [tmp_file_1._str, tmp_file_4._str, tmp_file_7._str],
+            [tmp_file_2._str, tmp_file_5._str, tmp_file_8._str],
+            [tmp_file_3._str, tmp_file_6._str, tmp_file_9._str],
         ]
 
         assert actual == expected

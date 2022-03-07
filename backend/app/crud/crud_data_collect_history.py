@@ -119,6 +119,20 @@ class CRUDDataCollectHistory:
         return cut_out_target_handlers
 
     @staticmethod
+    def select_cut_out_target_sensors_by_history_id(db: Session, history_id: int) -> List[DataCollectHistorySensor]:
+        cut_out_target_sensors: List[DataCollectHistorySensor] = (
+            db.query(DataCollectHistorySensor)
+            .join(DataCollectHistoryHandler)
+            .join(DataCollectHistoryGateway)
+            .join(DataCollectHistory)
+            .filter(DataCollectHistory.id == history_id)
+            .filter(DataCollectHistoryHandler.is_cut_out_target)
+            .all()
+        )
+
+        return cut_out_target_sensors
+
+    @staticmethod
     def update(db: Session, db_obj: DataCollectHistory, obj_in: DataCollectHistoryUpdate) -> DataCollectHistory:
 
         if isinstance(obj_in, dict):
