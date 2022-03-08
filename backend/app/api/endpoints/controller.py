@@ -12,8 +12,8 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_sensor import \
-    DataCollectHistorySensor
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
@@ -275,7 +275,11 @@ def run_data_recorder(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    try:
+        latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="DB read error.")
 
     task_name = "backend.app.worker.tasks.data_recorder.data_recorder_task"
 
@@ -310,9 +314,16 @@ def run_cut_out_shot(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    try:
+        latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+        cut_out_target_sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(
+            db, latest_data_collect_history.id
+        )
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="DB read error.")
 
-    sensors: List[DataCollectHistorySensor] = latest_data_collect_history.data_collect_history_sensors
+    sensors: List[DataCollectHistorySensor] = cut_out_target_sensors
     sensor_type: str = common.get_cut_out_shot_sensor(sensors).sensor_type_id
 
     task_name = "backend.app.worker.tasks.cut_out_shot.auto_cut_out_shot_task"

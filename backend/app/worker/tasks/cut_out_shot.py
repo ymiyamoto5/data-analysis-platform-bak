@@ -148,16 +148,16 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
     )
 
     INTERVAL: Final[int] = 5
-    has_been_processed: List[str] = []  # 処理済みファイルパスリスト
+    has_been_processed: List[List[str]] = []  # 処理済みファイルパスリスト
 
     while True:
         time.sleep(INTERVAL)
 
-        # 退避ディレクトリに存在するすべてのpklファイルパスリスト
-        all_files: List[str] = FileManager.get_files(dir_path=history.processed_dir_path, pattern=f"{machine_id}_*.pkl")
+        # # 退避ディレクトリに存在するすべてのpklファイルパスリスト
+        files_list: List[List[str]] = FileManager.get_files_list(machine_id, cut_out_target_handlers, history.processed_dir_path)
 
         # ループ毎の処理対象。未処理のもののみ対象とする。
-        target_files: List[str] = get_target_files(all_files, has_been_processed)
+        target_files: List[List[str]] = get_target_files(files_list, has_been_processed)
 
         # NOTE: 毎度DBにアクセスするのは非効率なため、対象ファイルが存在しないときのみDBから収集ステータスを確認し、停止判断を行う。
         if len(target_files) == 0:
@@ -191,13 +191,15 @@ def create_shots_index_set(shots_index: str, shots_meta_index: str) -> None:
     ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
 
-def get_target_files(all_files: List[str], has_been_processed: List[str]) -> List[str]:
+def get_target_files(all_files: List[List[str]], has_been_processed: List[List[str]]) -> List[List[str]]:
     """all_files（全ファイル）のうち、has_been_processed（処理済み）を除外したリストを返す"""
-    target_files: List[str] = []
 
-    for file in all_files:
-        if file not in has_been_processed:
-            target_files.append(file)
+    target_files: List[List[str]] = []
+
+    # ハンドラーごとのリスト、つまり[[ADC1_1.dat, ADC2_1.dat, ...], [ADC1_2.dat, ADC2_2.dat, ...]] になっている
+    for handlers_file in all_files:
+        if handlers_file not in has_been_processed:
+            target_files.append(handlers_file)
 
     return target_files
 

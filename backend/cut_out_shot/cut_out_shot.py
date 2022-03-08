@@ -431,30 +431,25 @@ class CutOutShot:
 
     def auto_cut_out_shot(
         self,
-        pickle_files: List[str],
+        file_set_list: List[List[str]],
         shots_index: str,
         shots_meta_index: str,
     ) -> None:
         """
-        * ショット切り出し画面のショット切り出し・自動ショット切り出し（celeryタスク実行）
-        * 物理変換 + 校正
-        * SPM計算
-        * Elasticsearchインデックスへの保存
-            * shots-yyyyMMddHHMMSS-data:切り出されたショットデータ
-            * shots-yyyyMMddHHMMSS-meta:ショットのメタデータ
-        * Celeryにタスクの進捗を記録
+        自動ショット切り出し（celeryタスク実行）
+        自動の場合は以下が異なる。
+        * 切り出し対象のファイルリストは呼び出し元から取得する
+        * Elasticsearchインデックスは呼び出し元で作成する
         """
 
-        all_files: int = len(pickle_files)
-        has_been_processed: int = 0
-        logger.info(f"Cut out shot start. number of pickle_files: {all_files}")
+        logger.info(f"Cut out shot start. number of pickle_files: {len(file_set_list)}")
 
         # main loop
-        for pickle_file in pickle_files:
-            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
+        for processed_count, file_set in enumerate(file_set_list):
+            rawdata_df: DataFrame = self._read_pickle_file(file_set)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
+                logger.info(f"All data was excluded by non-target interval. {file_set}")
                 continue
 
             # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
@@ -466,7 +461,7 @@ class CutOutShot:
 
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
-                logger.info(f"Shot is not detected in {pickle_file}")
+                logger.info(f"Shot is not detected in {file_set}")
                 continue
 
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
@@ -475,7 +470,7 @@ class CutOutShot:
             self.cutter.cut_out_targets = []
 
             if len(cut_out_df) == 0:
-                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
+                logger.info(f"Shot is not detected in {file_set} by over_sample_filter.")
                 continue
 
             # timestampをdatetimeに変換する
@@ -494,8 +489,7 @@ class CutOutShot:
             cut_out_targets = []
 
             # 進捗率を計算して記録
-            has_been_processed += 1
-            progress = round(has_been_processed / all_files * 100.0, 1)
+            progress = round(processed_count / len(file_set_list) * 100.0, 1)
             current_task.update_state(
                 state="PROGRESS",
                 meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
