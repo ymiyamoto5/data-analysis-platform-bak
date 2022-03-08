@@ -176,3 +176,17 @@ class FileManager:
             file_set_list.append(file_set)
 
         return file_set_list
+
+    @staticmethod
+    def get_files_list(machine_id, handlers: List[DataCollectHistoryHandler], rawdata_dir_path: str) -> List[List[str]]:
+        """ショット切り出し対象ファイルリストを返す。ハンドラーが単一か複数台かで分岐。"""
+
+        # 単一ハンドラー
+        if len(handlers) == 1:
+            files: List[str] = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{machine_id}_*.pkl")
+            files_list: List[List[str]] = [[x] for x in files]
+        # 複数ハンドラー
+        else:
+            files_list = FileManager.get_pickle_file_list(machine_id, rawdata_dir_path, handlers)
+
+        return files_list

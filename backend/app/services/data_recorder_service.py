@@ -57,13 +57,6 @@ class DataRecorderService:
             sys.exit(1)
 
         sensors: List[DataCollectHistorySensor] = latest_data_collect_history_handler.data_collect_history_sensors
-        displacement_sensor: Optional[DataCollectHistorySensor] = common.get_cut_out_shot_sensor(sensors)
-        displacement_sensor_id: Optional[str] = displacement_sensor.sensor_id if displacement_sensor is not None else None
-
-        # TODO: 並び順の保証
-        sensor_ids_other_than_displacement: List[str] = [
-            s.sensor_id for s in sensors if s.sensor_type_id not in common.CUT_OUT_SHOT_SENSOR_TYPES
-        ]
 
         started_timestamp: float = (
             latest_data_collect_history_handler.data_collect_history_gateway.data_collect_history.started_at.timestamp()
@@ -96,12 +89,7 @@ class DataRecorderService:
             time.sleep(3)
 
             num_of_records = DataRecorderService.data_record(
-                latest_data_collect_history_handler,
-                files_info,
-                Decimal(started_timestamp),
-                num_of_records,
-                displacement_sensor_id,
-                sensor_ids_other_than_displacement,
+                latest_data_collect_history_handler, files_info, Decimal(started_timestamp), num_of_records, sensors
             )
 
     @staticmethod
@@ -110,8 +98,7 @@ class DataRecorderService:
         target_files: List[FileInfo],
         started_timestamp: Decimal,
         num_of_records: int,
-        displacement_sensor_id: Optional[str],
-        sensor_ids_other_than_displacement: List[str],
+        sensors: List[DataCollectHistorySensor],
         is_manual: bool = False,
     ) -> int:
         """バイナリファイル読み取りおよびES/pkl出力"""
@@ -128,9 +115,7 @@ class DataRecorderService:
                 file,
                 sequential_number,
                 timestamp,
-                data_collect_history_handler,
-                displacement_sensor_id,
-                sensor_ids_other_than_displacement,
+                sensors,
                 sampling_interval,
             )
 
@@ -152,18 +137,24 @@ class DataRecorderService:
         file: FileInfo,
         sequential_number: int,
         timestamp: Decimal,
-        data_collect_history: DataCollectHistory,
-        displacement_sensor_id: Optional[str],
-        sensor_ids_other_than_displacement: List[str],
+        sensors: List[DataCollectHistorySensor],
         sampling_interval: Decimal,
     ) -> Tuple[List[Dict[str, Any]], int, Decimal]:
         """バイナリファイルを読んで、そのデータをリストにして返す"""
 
         BYTE_SIZE: Final[int] = 8
         ROUND_DIGITS: Final[int] = 3
-        SAMPLING_CH_NUM: Final[int] = data_collect_history.sampling_ch_num
+        SAMPLING_CH_NUM: Final[int] = len(sensors)
         ROW_BYTE_SIZE: Final[int] = BYTE_SIZE * SAMPLING_CH_NUM  # 8 byte * チャネル数
         UNPACK_FORMAT: Final[str] = "<" + "d" * SAMPLING_CH_NUM  # 5chの場合 "<ddddd"
+
+        displacement_sensor: Optional[DataCollectHistorySensor] = common.get_cut_out_shot_sensor(sensors)
+        displacement_sensor_id: Optional[str] = displacement_sensor.sensor_id if displacement_sensor is not None else None
+
+        # TODO: 並び順の保証
+        sensor_ids_other_than_displacement: List[str] = [
+            s.sensor_id for s in sensors if s.sensor_type_id not in common.CUT_OUT_SHOT_SENSOR_TYPES
+        ]
 
         dataset_number: int = 0  # ファイル内での連番
         samples: List[Dict[str, Any]] = []
