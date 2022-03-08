@@ -15,7 +15,7 @@ import sys
 import traceback
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable, Dict, Final, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -28,9 +28,6 @@ from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
-from backend.utils.throughput_counter import throughput_counter
-
-# from celery.result import AsyncResult
 from celery import current_task
 from pandas.core.frame import DataFrame
 
@@ -254,6 +251,7 @@ class CutOutShot:
         self,
         start_sequential_number: Optional[int] = None,
         end_sequential_number: Optional[int] = None,
+        is_called_by_task: bool = False,
     ) -> None:
         """
         * ショット切り出し（スクリプト実行）
@@ -317,14 +315,11 @@ class CutOutShot:
         pause_events: List[DataCollectHistoryEvent] = [e for e in events if e.event_name == common.COLLECT_STATUS.PAUSE.value]
 
         procs: List[multiprocessing.context.Process] = []
-        processed_count: int = 0
 
-        NOW: Final[datetime] = datetime.now()
-
-        files_list: List[List[str]] = FileManager.get_files_list(machine_id, self.__handlers, rawdata_dir_path)
+        files_list: List[List[str]] = FileManager.get_files_list(self.__machine_id, self.__handlers, rawdata_dir_path)
 
         # main loop
-        for loop_count, file_set in enumerate(files_list):
+        for processed_count, file_set in enumerate(files_list):
             rawdata_df: DataFrame = self._read_pickle_file(file_set)
 
             # パラメータで指定された対象範囲に含まれないデータを除外
@@ -363,10 +358,13 @@ class CutOutShot:
             # ショット切り出し
             self.cutter.cut_out_shot(rawdata_df)
 
-            # スループット表示
-            if loop_count != 0:
-                processed_count += len(rawdata_df)
-                throughput_counter(processed_count, NOW)
+            # 進捗率を計算して記録
+            if is_called_by_task:
+                progress = round(processed_count / len(files_list) * 100.0, 1)
+                current_task.update_state(
+                    state="PROGRESS",
+                    meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
+                )
 
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
@@ -394,21 +392,27 @@ class CutOutShot:
             # Elasticsearchに格納するため、dictに戻す
             cut_out_targets = cut_out_df.to_dict(orient="records")
 
-            # 子プロセスのjoin
-            procs = self.__join_process(procs)
+            # NOTE: celeryからmultiprocess実行すると以下エラーになるため、シングルプロセス実行
+            # daemonic processes are not allowed to have children
+            if is_called_by_task:
+                ElasticManager.bulk_insert(cut_out_targets, shots_index)
+            else:
+                # 子プロセスのjoin
+                procs = self.__join_process(procs)
 
-            # Elasticsearchに出力
-            procs = ElasticManager.multi_process_bulk_lazy_join(
-                data=cut_out_targets,
-                index_to_import=shots_index,
-                num_of_process=self.__num_of_process,
-                chunk_size=self.__chunk_size,
-            )
+                # Elasticsearchに出力
+                procs = ElasticManager.multi_process_bulk_lazy_join(
+                    data=cut_out_targets,
+                    index_to_import=shots_index,
+                    num_of_process=self.__num_of_process,
+                    chunk_size=self.__chunk_size,
+                )
 
             cut_out_targets = []
 
-        # 全ファイル走査後、子プロセスが残っていればjoin
-        procs = self.__join_process(procs)
+        if not is_called_by_task:
+            # 全ファイル走査後、子プロセスが残っていればjoin
+            procs = self.__join_process(procs)
 
         if len(self.cutter.shots_summary) == 0:
             logger.info("Shot is not detected.")
@@ -425,7 +429,7 @@ class CutOutShot:
 
         logger.info("Cut out shot finished.")
 
-    def cut_out_shot_by_task(
+    def auto_cut_out_shot(
         self,
         pickle_files: List[str],
         shots_index: str,
@@ -439,9 +443,6 @@ class CutOutShot:
             * shots-yyyyMMddHHMMSS-data:切り出されたショットデータ
             * shots-yyyyMMddHHMMSS-meta:ショットのメタデータ
         * Celeryにタスクの進捗を記録
-
-        Args:
-            target_files: 処理対象となるファイルパスリスト
         """
 
         all_files: int = len(pickle_files)
