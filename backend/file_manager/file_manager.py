@@ -137,7 +137,7 @@ class FileManager:
         """
 
         MAX_RETRY_COUNT: Final[int] = 3
-        MAX_RETRY_INTERVAL: Final[int] = 3
+        RETRY_INTERVAL: Final[int] = 3
         retry_count = 0
 
         while True:
@@ -148,8 +148,8 @@ class FileManager:
             # 取り込むpickleファイルのリストをまずはハンドラー関係なく取得。
             all_pickle_files: List[str] = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{machine_id}_*.pkl")
             if len(all_pickle_files) == 0:
-                logger.error("pickle files not found.")
-                sys.exit(1)
+                time.sleep(RETRY_INTERVAL)
+                continue
 
             pickle_files_by_handler: List[List[str]] = []  # [[ADC1_1, ADC1_2, ADC1_3, ...], [ADC2_1, ADC2_2, ADC2_3, ...], ...]
             for i, handler in enumerate(handlers):
@@ -168,7 +168,7 @@ class FileManager:
                 logger.info("All handler has same number of files.")
                 break
 
-            time.sleep(MAX_RETRY_INTERVAL)
+            time.sleep(RETRY_INTERVAL)
 
         file_set_list = []  # [[ADC1_1, ADC2_1, ADC3_1], [ADC1_2, ADC2_2, ADC3_2], ...]
         for file_number in range(len(pickle_files_by_handler[0])):
