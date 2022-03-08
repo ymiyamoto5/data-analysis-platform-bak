@@ -38,7 +38,7 @@
             "request": "launch",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
-            "preLaunchTask": "Sleepdelay"
+            // "preLaunchTask": "Sleepdelay"
         },
         {
             "name": "data_importer",

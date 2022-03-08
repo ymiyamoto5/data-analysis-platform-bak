@@ -170,7 +170,7 @@ class CRUDController:
 
         machine.collect_status = common.COLLECT_STATUS.RECORDED.value
 
-        latest_data_collect_history = CRUDDataCollectHistory.select_by_machine_id(db, machine.machine_id)[0]
+        latest_data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine.machine_id)
 
         latest_data_collect_history.ended_at = utc_now
 
