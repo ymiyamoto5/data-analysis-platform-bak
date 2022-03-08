@@ -11,28 +11,25 @@
 
 import multiprocessing
 import os
-import re
 import sys
 import traceback
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable, Dict, Final, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Final, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import \
-    DataCollectHistoryEvent
-from backend.app.models.data_collect_history_handler import \
-    DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import \
-    DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
 from backend.utils.throughput_counter import throughput_counter
+
 # from celery.result import AsyncResult
 from celery import current_task
 from pandas.core.frame import DataFrame
@@ -46,7 +43,7 @@ class CutOutShot:
         self,
         cutter: Union[StrokeDisplacementCutter, PulseCutter],
         data_collect_history: DataCollectHistory,
-        handlers: List[DataCollectHistoryHandler],
+        handlers: Union[DataCollectHistoryHandler, List[DataCollectHistoryHandler]],
         sensors: List[DataCollectHistorySensor],
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
@@ -236,6 +233,23 @@ class CutOutShot:
 
         return end_sequential_number
 
+    def _read_pickle_file(self, file_set: List[str]) -> DataFrame:
+        """pickleファイルを読み込みDataFrameとして返す。複数ADCの場合、ADC台数分のファイルを読んで1つのDataFrameにする。"""
+
+        # 単一ハンドラー
+        if len(file_set) == 1:
+            rawdata_df: DataFrame = pd.read_pickle(file_set[0])
+        # 複数ハンドラー
+        else:
+            rawdata_df = pd.read_pickle(file_set[0])
+            for file in file_set[1:]:
+                df: DataFrame = pd.read_pickle(file)
+                rawdata_df = pd.merge(rawdata_df, df, on="sequential_number", how="outer", suffixes=["", "_right"]).drop(
+                    columns="timestamp_right"
+                )
+
+        return rawdata_df
+
     def cut_out_shot(
         self,
         start_sequential_number: Optional[int] = None,
@@ -307,24 +321,11 @@ class CutOutShot:
 
         NOW: Final[datetime] = datetime.now()
 
-        file_set_list: Union[List[str], List[List[str]]]
-        if len(self.__handlers) >= 2:
-            file_set_list = FileManager.get_pickle_file_list(machine_id, rawdata_dir_path, self.__handlers)
-        else:
-            file_set_list = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{machine_id}_*.pkl")
+        files_list: List[List[str]] = FileManager.get_files_list(machine_id, self.__handlers, rawdata_dir_path)
 
         # main loop
-        for loop_count, file_set in enumerate(file_set_list):
-            if len(self.__handlers) >= 2:
-                # ADC台数分のファイルを読み、1つのDataFrameにする
-                rawdata_df: DataFrame = pd.read_pickle(file_set[0])
-                for file in file_set[1:]:
-                    df: DataFrame = pd.read_pickle(file)
-                    rawdata_df = pd.merge(rawdata_df, df, on="sequential_number", how="outer", suffixes=["", "_right"]).drop(
-                        columns="timestamp_right"
-                    )
-            else:
-                rawdata_df = pd.read_pickle(file_set)
+        for loop_count, file_set in enumerate(files_list):
+            rawdata_df: DataFrame = self._read_pickle_file(file_set)
 
             # パラメータで指定された対象範囲に含まれないデータを除外
             if has_target_interval:
@@ -513,12 +514,11 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import \
-        CRUDDataCollectHistory  # noqa
+    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
-    machine_id: str = "machine-01"
-    target: str = "20220307192421"
+    machine_id = "machine-02"
+    target: str = "20220308143301"
     db = SessionLocal()
     # TODO: ここは効率化する
     history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
@@ -530,9 +530,9 @@ if __name__ == "__main__":
     )
 
     cutter = StrokeDisplacementCutter(
-        start_stroke_displacement=47.0,
-        end_stroke_displacement=34.0,
-        margin=0.3,
+        start_stroke_displacement=1.8,
+        end_stroke_displacement=1.5,
+        margin=0.01,
         sensors=cut_out_target_sensors,
     )
 

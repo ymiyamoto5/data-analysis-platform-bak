@@ -9,6 +9,8 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.db.session import SessionLocal
 from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
 from backend.app.worker.celery import celery_app
 from backend.common import common
@@ -44,8 +46,15 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     try:
         # データ収集時の履歴から、収集当時の設定値を取得する
         history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target_date_str)
+        cut_out_target_handlers: List[DataCollectHistoryHandler] = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(
+            db, history.id
+        )
+        cut_out_target_sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(
+            db, history.id
+        )
     except Exception:
         logger.exception(traceback.format_exc())
+        db.close()
         sys.exit(1)
 
     shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
@@ -58,12 +67,12 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
             cut_out_shot_in["start_stroke_displacement"],
             cut_out_shot_in["end_stroke_displacement"],
             margin=cut_out_shot_in["margin"],
-            sensors=history.data_collect_history_sensors,
+            sensors=cut_out_target_sensors,
         )
     else:
         cutter = PulseCutter(
             threshold=cut_out_shot_in["threshold"],
-            sensors=history.data_collect_history_sensors,
+            sensors=history.cut_out_target_sensors,
         )
 
     # ディレクトリに存在するすべてのpklファイルパスリスト
@@ -73,7 +82,14 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     target_files: List[str] = get_target_files(all_files, has_been_processed=[])
 
     # 切り出し処理
-    cut_out_shot = CutOutShot(cutter=cutter, machine_id=machine_id, target=target_date_str, data_collect_history=history)
+    cut_out_shot = CutOutShot(
+        cutter=cutter,
+        machine_id=machine_id,
+        target=target_date_str,
+        data_collect_history=history,
+        handlers=cut_out_target_handlers,
+        sensors=cut_out_target_sensors,
+    )
     cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index)
 
     db.close()
@@ -100,12 +116,19 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
 
     try:
         machine: Machine = CRUDMachine.select_by_id(db, machine_id)
-        latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+        history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+        cut_out_target_handlers: List[DataCollectHistoryHandler] = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(
+            db, history.id
+        )
+        cut_out_target_sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(
+            db, history.id
+        )
     except Exception:
         logger.exception(traceback.format_exc())
+        db.close()
         sys.exit(1)
 
-    target_date_str: str = latest_data_collect_history.processed_dir_path.split("-")[-1]
+    target_date_str: str = history.processed_dir_path.split("-")[-1]
 
     shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
@@ -117,17 +140,19 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
             machine.start_displacement,
             machine.end_displacement,
             margin=machine.margin,
-            sensors=latest_data_collect_history.data_collect_history_sensors,
+            sensors=cut_out_target_sensors,
         )
     else:
         cutter = PulseCutter(
             threshold=machine.threshold,
-            sensors=latest_data_collect_history.data_collect_history_sensors,
+            sensors=cut_out_target_sensors,
         )
 
     cut_out_shot: CutOutShot = CutOutShot(
         cutter=cutter,
-        data_collect_history=latest_data_collect_history,
+        data_collect_history=history,
+        handlers=cut_out_target_handlers,
+        sensors=cut_out_target_sensors,
         machine_id=machine_id,
         target=target_date_str,
     )
@@ -139,14 +164,14 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
         time.sleep(INTERVAL)
 
         # 退避ディレクトリに存在するすべてのpklファイルパスリスト
-        all_files: List[str] = FileManager.get_files(dir_path=latest_data_collect_history.processed_dir_path, pattern=f"{machine_id}_*.pkl")
+        all_files: List[str] = FileManager.get_files(dir_path=history.processed_dir_path, pattern=f"{machine_id}_*.pkl")
 
         # ループ毎の処理対象。未処理のもののみ対象とする。
         target_files: List[str] = get_target_files(all_files, has_been_processed)
 
         # NOTE: 毎度DBにアクセスするのは非効率なため、対象ファイルが存在しないときのみDBから収集ステータスを確認し、停止判断を行う。
         if len(target_files) == 0:
-            collect_status = common.get_collect_status(machine_id)
+            collect_status = get_collect_status(machine_id)
 
             if collect_status == common.COLLECT_STATUS.RECORDED.value:
                 logger.info(f"auto_cut_out_shot process stopped. machine_id: {machine_id}")
@@ -185,3 +210,16 @@ def get_target_files(all_files: List[str], has_been_processed: List[str]) -> Lis
             target_files.append(file)
 
     return target_files
+
+
+def get_collect_status(machine_id) -> str:
+    """データ収集ステータスを取得する"""
+    # TODO: 共通化
+
+    # NOTE: DBセッションを使いまわすと更新データが得られないため、新しいセッション作成
+    db: Session = SessionLocal()
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+    collect_status: str = machine.collect_status
+    db.close()
+
+    return collect_status

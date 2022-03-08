@@ -154,7 +154,7 @@ test_machine = Machine(
 
 db.add(test_machine)
 
-# デモシナリオ（刃がなまるシナリオ）
+# ローカルテスト用（複数ハンドラー）
 machine_01 = Machine(
     machine_id="machine-01",
     machine_name="デモ用プレス機",
@@ -254,62 +254,46 @@ machine_01 = Machine(
 )
 db.add(machine_01)
 
-demo_started_at = datetime(2021, 7, 9, 19, 0, 0, 0)
-
-data_collect_history_demo = DataCollectHistory(
-    machine_id="machine-01",
+# ローカルテスト用（単一ハンドラー）
+machine_02 = Machine(
+    machine_id="machine-02",
     machine_name="デモ用プレス機",
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
-    started_at=demo_started_at + timedelta(hours=-9),
-    ended_at=demo_started_at + timedelta(hours=-9) + timedelta(hours=1),
-    processed_dir_path=os.path.join(DATA_DIR, "machine-01-20210709190000"),
-    data_collect_history_events=[
-        DataCollectHistoryEvent(
-            event_id=0,
-            event_name=common.COLLECT_STATUS.SETUP.value,
-            occurred_at=demo_started_at + timedelta(hours=-9),
-        ),
-        DataCollectHistoryEvent(
-            event_id=1,
-            event_name=common.COLLECT_STATUS.START.value,
-            occurred_at=demo_started_at + timedelta(hours=-9),
-        ),
-        DataCollectHistoryEvent(
-            event_id=2,
-            event_name=common.COLLECT_STATUS.STOP.value,
-            occurred_at=demo_started_at + timedelta(hours=-9) + timedelta(minutes=120),
-        ),
-        DataCollectHistoryEvent(
-            event_id=3,
-            event_name=common.COLLECT_STATUS.RECORDED.value,
-            occurred_at=demo_started_at + timedelta(hours=-9) + timedelta(minutes=121),
-        ),
-    ],
-    data_collect_history_gateways=[
-        DataCollectHistoryGateway(
-            gateway_id="gw-01",
+    auto_cut_out_shot=False,
+    start_displacement=None,
+    end_displacement=None,
+    margin=None,
+    threshold=None,
+    auto_predict=False,
+    predict_model=None,
+    model_version=None,
+    gateways=[
+        Gateway(
+            gateway_id="gw-02",
+            sequence_number=1,
+            gateway_result=0,
+            status=common.STATUS.STOP.value,
             log_level=5,
-            data_collect_history_handlers=[
-                DataCollectHistoryHandler(
-                    data_collect_history_id=1,
-                    handler_id="handler-01",
+            handlers=[
+                Handler(
+                    handler_id="handler-single",
                     handler_type="USB_1608HS",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
                     sampling_ch_num=3,
                     filewrite_time=1,
-                    is_cut_out_target=True,
-                    data_collect_history_sensors=[
-                        DataCollectHistorySensor(
-                            data_collect_history_id=1,
+                    sensors=[
+                        Sensor(
+                            machine_id="machine-02",
                             sensor_id="stroke_displacement",
                             sensor_name="stroke_displacement",
                             sensor_type_id="stroke_displacement",
                             slope=1.0,
                             intercept=0.0,
                         ),
-                        DataCollectHistorySensor(
-                            data_collect_history_id=1,
+                        Sensor(
+                            machine_id="machine-02",
                             sensor_id="load01",
                             sensor_name="load01",
                             sensor_type_id="load",
@@ -319,8 +303,8 @@ data_collect_history_demo = DataCollectHistory(
                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
-                        DataCollectHistorySensor(
-                            data_collect_history_id=1,
+                        Sensor(
+                            machine_id="machine-02",
                             sensor_id="load02",
                             sensor_name="load02",
                             sensor_type_id="load",
@@ -330,20 +314,8 @@ data_collect_history_demo = DataCollectHistory(
                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
-                    ],
-                ),
-                DataCollectHistoryHandler(
-                    data_collect_history_id=1,
-                    handler_id="handler-02",
-                    handler_type="USB_1608HS",
-                    adc_serial_num="00003333",
-                    sampling_frequency=100,
-                    sampling_ch_num=2,
-                    filewrite_time=1,
-                    is_cut_out_target=True,
-                    data_collect_history_sensors=[
-                        DataCollectHistorySensor(
-                            data_collect_history_id=1,
+                        Sensor(
+                            machine_id="machine-02",
                             sensor_id="load03",
                             sensor_name="load03",
                             sensor_type_id="load",
@@ -353,8 +325,8 @@ data_collect_history_demo = DataCollectHistory(
                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
-                        DataCollectHistorySensor(
-                            data_collect_history_id=1,
+                        Sensor(
+                            machine_id="machine-02",
                             sensor_id="load04",
                             sensor_name="load04",
                             sensor_type_id="load",
@@ -370,7 +342,125 @@ data_collect_history_demo = DataCollectHistory(
         )
     ],
 )
-db.add(data_collect_history_demo)
+db.add(machine_02)
+
+# demo_started_at = datetime(2021, 7, 9, 19, 0, 0, 0)
+
+# data_collect_history_demo = DataCollectHistory(
+#     machine_id="machine-01",
+#     machine_name="デモ用プレス機",
+#     machine_type_id=1,
+#     started_at=demo_started_at + timedelta(hours=-9),
+#     ended_at=demo_started_at + timedelta(hours=-9) + timedelta(hours=1),
+#     processed_dir_path=os.path.join(DATA_DIR, "machine-01-20210709190000"),
+#     data_collect_history_events=[
+#         DataCollectHistoryEvent(
+#             event_id=0,
+#             event_name=common.COLLECT_STATUS.SETUP.value,
+#             occurred_at=demo_started_at + timedelta(hours=-9),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=1,
+#             event_name=common.COLLECT_STATUS.START.value,
+#             occurred_at=demo_started_at + timedelta(hours=-9),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=2,
+#             event_name=common.COLLECT_STATUS.STOP.value,
+#             occurred_at=demo_started_at + timedelta(hours=-9) + timedelta(minutes=120),
+#         ),
+#         DataCollectHistoryEvent(
+#             event_id=3,
+#             event_name=common.COLLECT_STATUS.RECORDED.value,
+#             occurred_at=demo_started_at + timedelta(hours=-9) + timedelta(minutes=121),
+#         ),
+#     ],
+#     data_collect_history_gateways=[
+#         DataCollectHistoryGateway(
+#             gateway_id="gw-01",
+#             log_level=5,
+#             data_collect_history_handlers=[
+#                 DataCollectHistoryHandler(
+#                     data_collect_history_id=1,
+#                     handler_id="handler-01",
+#                     handler_type="USB_1608HS",
+#                     adc_serial_num="00002222",
+#                     sampling_frequency=100,
+#                     sampling_ch_num=3,
+#                     filewrite_time=1,
+#                     is_cut_out_target=True,
+#                     data_collect_history_sensors=[
+#                         DataCollectHistorySensor(
+#                             data_collect_history_id=1,
+#                             sensor_id="stroke_displacement",
+#                             sensor_name="stroke_displacement",
+#                             sensor_type_id="stroke_displacement",
+#                             slope=1.0,
+#                             intercept=0.0,
+#                         ),
+#                         DataCollectHistorySensor(
+#                             data_collect_history_id=1,
+#                             sensor_id="load01",
+#                             sensor_name="load01",
+#                             sensor_type_id="load",
+#                             slope=1.0,
+#                             intercept=0.0,
+#                             start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+#                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+#                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+#                         ),
+#                         DataCollectHistorySensor(
+#                             data_collect_history_id=1,
+#                             sensor_id="load02",
+#                             sensor_name="load02",
+#                             sensor_type_id="load",
+#                             slope=1.0,
+#                             intercept=0.0,
+#                             start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+#                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+#                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+#                         ),
+#                     ],
+#                 ),
+#                 DataCollectHistoryHandler(
+#                     data_collect_history_id=1,
+#                     handler_id="handler-02",
+#                     handler_type="USB_1608HS",
+#                     adc_serial_num="00003333",
+#                     sampling_frequency=100,
+#                     sampling_ch_num=2,
+#                     filewrite_time=1,
+#                     is_cut_out_target=True,
+#                     data_collect_history_sensors=[
+#                         DataCollectHistorySensor(
+#                             data_collect_history_id=1,
+#                             sensor_id="load03",
+#                             sensor_name="load03",
+#                             sensor_type_id="load",
+#                             slope=1.0,
+#                             intercept=0.0,
+#                             start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+#                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+#                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+#                         ),
+#                         DataCollectHistorySensor(
+#                             data_collect_history_id=1,
+#                             sensor_id="load04",
+#                             sensor_name="load04",
+#                             sensor_type_id="load",
+#                             slope=1.0,
+#                             intercept=0.0,
+#                             start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+#                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+#                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+#                         ),
+#                     ],
+#                 ),
+#             ],
+#         )
+#     ],
+# )
+# db.add(data_collect_history_demo)
 
 # machine_j = Machine(
 #     machine_id="machine-j",
