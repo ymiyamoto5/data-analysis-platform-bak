@@ -19,7 +19,7 @@ from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.app.worker.celery import celery_app
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
-from backend.file_manager.file_manager import FileInfo
+from backend.file_manager.file_manager import FileInfo, FileManager
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pandas.core.frame import DataFrame
 from sqlalchemy.orm import Session
@@ -94,58 +94,36 @@ def fetch_shots(
     )
 
     # ハンドラーごとのファイルリスト作成
-    files_info_by_handler: List[List[FileInfo]] = []
-    sensors: List[DataCollectHistorySensor] = []
-    for handler in cut_out_target_handlers:
-        files_info: List[FileInfo] = CutOutShotService.get_files_info(
-            machine_id, handler.data_collect_history_gateway.gateway_id, handler.handler_id, target_date_str
+    try:
+        files_info_by_handler: List[List[FileInfo]] = FileManager.get_files_info_by_handler(
+            machine_id=machine_id, target_date_str=target_date_str, handlers=cut_out_target_handlers
         )
-        if len(files_info) == 0:
-            raise HTTPException(status_code=400, detail="対象ファイルがありません")
-        # リクエストされたファイルがファイル数を超えている場合
+    except Exception:
+        raise HTTPException(status_code=400, detail="対象ファイルがありません")
+
+    # リクエストされたファイルがファイル数を超えている場合
+    for files_info in files_info_by_handler:
         if page > len(files_info) - 1:
             raise HTTPException(status_code=400, detail="データがありません")
 
-        files_info_by_handler.append(files_info)
+    # ハンドラー毎のファイル数が同数であることをチェック
+    _ = FileManager.get_num_of_files_unified_handler(files_info_by_handler)
 
-        sensors.append(handler.data_collect_history_sensors)
-
-    sensors = [x for sensor in sensors for x in sensor]  # flatten
-
-    files_len_list = []
-    for files_info in files_info_by_handler:
-        files_len_list.append(len(files_info))
-
-    if not all(val == files_len_list[0] for val in files_len_list):
-        logger.error("The number of files for each handler does not match.")
-
-    # files_len: int = min(files_len_list)
-    # num_of_handler: int = len(files_info_by_handler)
-
-    # file_set_list: List[List[FileInfo]] = []
-    # for i in range(files_len):
-    #     file_set: List[FileInfo] = [x[i] for x in files_info_by_handler]
-    #     file_set_list.append(file_set)
-
-    # # 対象ディレクトリから1ファイル取得
-    # target_files = [x[page].file_path for x in file_set_list]
-
-    merged_df = pd.DataFrame()
-    for i, files_info in enumerate(files_info_by_handler):
-        target_file = files_info[page].file_path
-        df: DataFrame = CutOutShotService.fetch_df(target_file)
-        if i == 0:
-            merged_df = df.copy()
-            continue
-        merged_df = pd.merge(merged_df, df, on="sequential_number", suffixes=["", "_right"]).drop(columns="timestamp_right")
+    merged_df: DataFrame = CutOutShotService.merge_by_handler_df(files_info_by_handler, file_number=page)
 
     # リサンプリング
+    # TODO: サンプリングレートはprimaryハンドラーの値を採用
     sampling_frequency: int = cut_out_target_handlers[0].sampling_frequency
     resampled_df: DataFrame = CutOutShotService.resample_df(merged_df, sampling_frequency)
 
     # データ数が1,000件を超える場合は先頭1,000件のみ取得
     if len(resampled_df) > 1000:
         resampled_df = resampled_df.head(1000)
+
+    sensors: List[DataCollectHistorySensor] = []
+    for handler in cut_out_target_handlers:
+        sensors.append(handler.data_collect_history_sensors)
+    sensors = [x for sensor in sensors for x in sensor]  # flatten
 
     # センサー値を物理変換
     converted_df: DataFrame = CutOutShotService.physical_convert_df(resampled_df, sensors)

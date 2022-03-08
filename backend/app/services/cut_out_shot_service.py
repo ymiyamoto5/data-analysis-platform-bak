@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Union
 
 import pandas as pd
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
@@ -21,16 +21,6 @@ class CutOutShotService:
         target_date_str: str = datetime.strftime(target_date, "%Y%m%d%H%M%S")
 
         return target_date_str
-
-    @staticmethod
-    def get_files_info(machine_id: str, gateway_id: str, handler_id: str, target_date_str: str) -> List[FileInfo]:
-        target_dir = machine_id + "-" + target_date_str
-        data_dir: str = os.environ["data_dir"]
-        data_full_path: str = os.path.join(data_dir, target_dir)
-
-        files_info: List[FileInfo] = FileManager.create_files_info(data_full_path, machine_id, gateway_id, handler_id, "pkl")
-
-        return files_info
 
     @staticmethod
     def fetch_df(target_file: str) -> DataFrame:
@@ -63,3 +53,18 @@ class CutOutShotService:
             df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
 
         return df
+
+    @staticmethod
+    def merge_by_handler_df(files_info_by_handler: List[List[FileInfo]], file_number: int) -> DataFrame:
+        """指定ファイル番号のファイルをハンドラーごとに読み、マージしたDataFrameを返す。"""
+
+        merged_df = pd.DataFrame()
+        for i, files_info in enumerate(files_info_by_handler):
+            target_file = files_info[file_number].file_path
+            df: DataFrame = CutOutShotService.fetch_df(target_file)
+            if i == 0:
+                merged_df = df.copy()
+                continue
+            merged_df = pd.merge(merged_df, df, on="sequential_number", suffixes=["", "_right"]).drop(columns="timestamp_right")
+
+        return merged_df
