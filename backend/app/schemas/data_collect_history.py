@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 
 class DataCollectHistoryBase(BaseModel):
-    ended_at: Optional[datetime]
+    pass
 
 
 class DataCollectHistory(DataCollectHistoryBase):
@@ -19,6 +19,7 @@ class DataCollectHistory(DataCollectHistoryBase):
     machine_name: str = Field(..., max_length=255)
     machine_type_id: int
     started_at: datetime
+    ended_at: Optional[datetime]
     data_collect_history_gateways: List[DataCollectHistoryGateway]
 
     class Config:

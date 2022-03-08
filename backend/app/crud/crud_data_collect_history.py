@@ -136,10 +136,32 @@ class CRUDDataCollectHistory:
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
             # NOTE: プロパティにList[DataCollectHistorySensor]を直接代入するとエラーになるため、ループしてセット
-            if key == "data_collect_history_sensors":
-                for detail_number, detail in enumerate(value):
-                    for k, v in detail.items():
-                        setattr(db_obj.data_collect_history_sensors[detail_number], k, v)
+            if key == "data_collect_history_gateways":
+                for gateway_number, gateway in enumerate(value):
+                    for k, v in gateway.items():
+                        if k == "data_collect_history_handlers":
+                            for handler_number, handler in enumerate(v):
+                                for _k, _v in handler.items():
+                                    if _k == "data_collect_history_sensors":
+                                        for sensor_number, sensor in enumerate(_v):
+                                            for __k, __v in sensor.items():
+                                                setattr(
+                                                    db_obj.data_collect_history_gateways[gateway_number]
+                                                    .data_collect_history_handlers[handler_number]
+                                                    .data_collect_history_sensors[sensor_number],
+                                                    __k,
+                                                    __v,
+                                                )
+                                    else:
+                                        setattr(
+                                            db_obj.data_collect_history_gateways[gateway_number].data_collect_history_handlers[
+                                                handler_number
+                                            ],
+                                            _k,
+                                            _v,
+                                        )
+                        else:
+                            setattr(db_obj.data_collect_history_gateways[gateway_number], k, v)
             else:
                 setattr(db_obj, key, value)
 
