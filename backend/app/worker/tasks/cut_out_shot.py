@@ -57,10 +57,6 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
         db.close()
         sys.exit(1)
 
-    shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
-    shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
-    create_shots_index_set(shots_index, shots_meta_index)
-
     cutter: Union[StrokeDisplacementCutter, PulseCutter]
     if sensor_type == common.CUT_OUT_SHOT_SENSOR_TYPES[0]:
         cutter = StrokeDisplacementCutter(
@@ -72,14 +68,8 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     else:
         cutter = PulseCutter(
             threshold=cut_out_shot_in["threshold"],
-            sensors=history.cut_out_target_sensors,
+            sensors=cut_out_target_sensors,
         )
-
-    # ディレクトリに存在するすべてのpklファイルパスリスト
-    data_dir: str = os.environ["data_dir"]
-    dir_path: str = os.path.join(data_dir, f"{machine_id}-{target_date_str}")
-    all_files: List[str] = FileManager.get_files(dir_path=dir_path, pattern=f"{machine_id}_*.pkl")
-    target_files: List[str] = get_target_files(all_files, has_been_processed=[])
 
     # 切り出し処理
     cut_out_shot = CutOutShot(
@@ -90,7 +80,7 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
         handlers=cut_out_target_handlers,
         sensors=cut_out_target_sensors,
     )
-    cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index)
+    cut_out_shot.cut_out_shot(is_called_by_task=True)
 
     db.close()
 
@@ -181,7 +171,7 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
 
         # 切り出し処理
         logger.info(f"auto_cut_out_shot processing. machine_id: {machine_id}, targets: {len(target_files)}")
-        cut_out_shot.cut_out_shot_by_task(target_files, shots_index, shots_meta_index)
+        cut_out_shot.auto_cut_out_shot(target_files, shots_index, shots_meta_index)
 
         has_been_processed.extend(target_files)
 
