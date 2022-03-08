@@ -200,7 +200,7 @@ class TestRecord:
         self.handler_id: str = "test-handler-01"
         self.handler_id_2: str = "test-handler-02"
 
-    # @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
+    @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
     def test_exec(self, db, init, mocker):
         """ジョブ実行のみ（デバッグ用）
         通常はコメントアウト

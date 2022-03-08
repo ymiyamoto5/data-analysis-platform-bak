@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Final, List
 
 import pandas as pd
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.common.common_logger import logger
 from pandas.core.frame import DataFrame
 
@@ -40,6 +41,47 @@ class FileManager:
         files_info: List[FileInfo] = [FileInfo(file_path=row[0], timestamp=row[1]) for row in zip(file_list, files_timestamp)]
 
         return files_info
+
+    @staticmethod
+    def get_files_info(machine_id: str, gateway_id: str, handler_id: str, target_date_str: str) -> List[FileInfo]:
+        target_dir = machine_id + "-" + target_date_str
+        data_dir: str = os.environ["data_dir"]
+        data_full_path: str = os.path.join(data_dir, target_dir)
+
+        files_info: List[FileInfo] = FileManager.create_files_info(data_full_path, machine_id, gateway_id, handler_id, "pkl")
+
+        return files_info
+
+    @staticmethod
+    def get_files_info_by_handler(machine_id: str, target_date_str: str, handlers: List[DataCollectHistoryHandler]) -> List[List[FileInfo]]:
+        """ハンドラー毎のファイル情報を取得する"""
+
+        files_info_by_handler: List[List[FileInfo]] = []
+        for handler in handlers:
+            files_info: List[FileInfo] = FileManager.get_files_info(
+                machine_id, handler.data_collect_history_gateway.gateway_id, handler.handler_id, target_date_str
+            )
+            if len(files_info) == 0:
+                raise Exception
+
+            files_info_by_handler.append(files_info)
+
+        return files_info_by_handler
+
+    @staticmethod
+    def get_num_of_files_unified_handler(files_info_by_handler: List[List[FileInfo]]) -> int:
+        """ハンドラー毎のファイル数をチェックし、その数を返す。この数はハンドラー毎に同じであるはずだが、一致しない場合は最小ファイル数を返す。"""
+
+        files_len_list = []
+        for files_info in files_info_by_handler:
+            files_len_list.append(len(files_info))
+
+        # ハンドラーごとでファイル数は一致するはずだが、もし一致しない場合は最小値を返す。
+        if not all(val == files_len_list[0] for val in files_len_list):
+            logger.error("The number of files for each handler does not match.")
+            return min(files_len_list)
+
+        return files_len_list[0]
 
     @staticmethod
     def _create_file_timestamp(filepath: str) -> float:
