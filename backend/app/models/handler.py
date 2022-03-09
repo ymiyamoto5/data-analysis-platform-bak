@@ -15,6 +15,7 @@ class Handler(Base):
     filewrite_time = Column(Integer, nullable=False)
     gateway_id = Column(Integer, ForeignKey("gateways.gateway_id"), nullable=False)
     is_primary = Column(Boolean, nullable=False, default=False)
+    is_cut_out_target = Column(Boolean, nullable=False, default=True)
 
     gateway = relationship("Gateway", back_populates="handlers")
     sensors = relationship("Sensor", back_populates="handler")

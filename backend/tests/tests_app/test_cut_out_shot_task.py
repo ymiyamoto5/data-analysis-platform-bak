@@ -1,10 +1,12 @@
+import pytest
 from backend.app.worker.tasks import cut_out_shot
 from backend.common import common
 
 
 class TestAutoCutOutShotTask:
+    @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
     def test_normal_multi_handler(self, db, mocker):
-        machine_id = "machine-01"
+        machine_id = "test-machine-01"
         sensor_type = common.CUT_OUT_SHOT_SENSOR_TYPES[0]
         mocker.patch.object(cut_out_shot, "create_shots_index_set")
         cut_out_shot.auto_cut_out_shot_task(machine_id=machine_id, sensor_type=sensor_type, debug_mode=True)

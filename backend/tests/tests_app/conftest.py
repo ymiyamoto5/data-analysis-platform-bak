@@ -22,10 +22,14 @@ from backend.app.api.deps import get_db
 from backend.app.db.session import Base
 from backend.app.main import app
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
-from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
-from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import \
+    DataCollectHistoryEvent
+from backend.app.models.data_collect_history_gateway import \
+    DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -155,6 +159,8 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=3,
                         filewrite_time=1,
+                        is_primary=True,
+                        is_cut_out_target=True,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-01",
@@ -189,6 +195,8 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=2,
                         filewrite_time=1,
+                        is_primary=False,
+                        is_cut_out_target=True,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-01",
@@ -258,6 +266,8 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=3,
                         filewrite_time=1,
+                        is_primary=True,
+                        is_cut_out_target=True,
                         data_collect_history_sensors=[
                             DataCollectHistorySensor(
                                 data_collect_history_id=1,
@@ -299,6 +309,8 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=2,
                         filewrite_time=1,
+                        is_primary=False,
+                        is_cut_out_target=True,
                         data_collect_history_sensors=[
                             DataCollectHistorySensor(
                                 data_collect_history_id=1,
@@ -351,7 +363,8 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=3,
                         filewrite_time=1,
-                        is_primary=False,
+                        is_primary=True,
+                        is_cut_out_target=True,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-02",
@@ -445,6 +458,8 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=5,
                         filewrite_time=1,
+                        is_primary=True,
+                        is_cut_out_target=True,
                         data_collect_history_sensors=[
                             DataCollectHistorySensor(
                                 data_collect_history_id=1,
@@ -677,7 +692,7 @@ def create_testdb(db):
     # db.add(test_data_collect_history_03_2)
 
     # 子が存在しないデータの作成
-    test_machine_04 = Machine(
+    test_machine_no_gateway = Machine(
         machine_id="test-machine-04",
         machine_name="テスト機器04",
         collect_status=common.COLLECT_STATUS.RECORDED.value,
@@ -685,8 +700,8 @@ def create_testdb(db):
         gateways=[],
     )
 
-    test_gw_05 = Gateway(
-        gateway_id="test-gateway-05",
+    test_gateway_no_handler = Gateway(
+        gateway_id="test-gateway-no-handler",
         sequence_number=1,
         gateway_result=0,
         status=common.STATUS.STOP.value,
@@ -695,8 +710,32 @@ def create_testdb(db):
         handlers=[],
     )
 
-    db.add(test_machine_04)
-    db.add(test_gw_05)
+    test_gw_no_sensor = Gateway(
+        gateway_id="test-gateway-no-sensor",
+        sequence_number=1,
+        gateway_result=0,
+        status=common.STATUS.STOP.value,
+        machine_id="test-machine-01",
+        log_level=5,
+        handlers=[
+            Handler(
+                gateway_id="test-gateway-no-sensor",
+                handler_id="test-handler-no-child",
+                handler_type="USB_1608HS",
+                adc_serial_num="01ED23FA",
+                sampling_frequency=100000,
+                sampling_ch_num=5,
+                filewrite_time=1,
+                is_primary=True,
+                is_cut_out_target=True,
+                sensors=[],
+            ),
+        ],
+    )
+
+    db.add(test_machine_no_gateway)
+    db.add(test_gateway_no_handler)
+    db.add(test_gw_no_sensor)
 
     db.commit()
 
