@@ -31,7 +31,7 @@ class TestReadBinaryFiles:
         """正常系：バイナリファイルが正常に読めること"""
 
         machine_id: str = "test-machine-01"
-        gateway_id: str = "test-gw-01"
+        gateway_id: str = "test-gateway-01"
         handler_id: str = "test-handler-01"
 
         file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
@@ -196,7 +196,7 @@ class TestRecord:
     @pytest.fixture
     def init(self) -> None:
         self.machine_id: str = "test-machine-01"
-        self.gateway_id: str = "test-gw-01"
+        self.gateway_id: str = "test-gateway-01"
         self.handler_id: str = "test-handler-01"
         self.handler_id_2: str = "test-handler-02"
 

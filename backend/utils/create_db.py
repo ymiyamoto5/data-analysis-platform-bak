@@ -52,7 +52,7 @@ db.add(machine_type_02)
 sensor_type_01 = SensorType(sensor_type_id="load", sensor_type_name="荷重")
 sensor_type_02 = SensorType(sensor_type_id="stroke_displacement", sensor_type_name="ストローク変位")
 sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
-sensor_type_04 = SensorType(sensor_type_id="volt", sensor_type_name="ボルト")
+sensor_type_04 = SensorType(sensor_type_id="bolt", sensor_type_name="ボルト")
 sensor_type_05 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
 db.add(sensor_type_01)
 db.add(sensor_type_02)
@@ -60,104 +60,10 @@ db.add(sensor_type_03)
 db.add(sensor_type_04)
 db.add(sensor_type_05)
 
-# 結合テスト用
-test_machine = Machine(
-    machine_id="test-machine",
-    machine_name="結合テスト用",
-    collect_status=common.COLLECT_STATUS.RECORDED.value,
-    machine_type_id=1,
-    auto_cut_out_shot=False,
-    start_displacement=None,
-    end_displacement=None,
-    margin=None,
-    threshold=None,
-    auto_predict=False,
-    predict_model=None,
-    model_version=None,
-    gateways=[
-        Gateway(
-            gateway_id="test-GW",
-            sequence_number=1,
-            gateway_result=0,
-            status=common.STATUS.STOP.value,
-            log_level=5,
-            handlers=[
-                Handler(
-                    handler_id="test-handler",
-                    handler_type="USB_1608HS",
-                    adc_serial_num="01ED23FA",
-                    sampling_frequency=100000,
-                    sampling_ch_num=5,
-                    filewrite_time=10,
-                    sensors=[
-                        Sensor(
-                            machine_id="test-machine",
-                            sensor_id="stroke_displacement",
-                            sensor_name="stroke_displacement",
-                            sensor_type_id="stroke_displacement",
-                            slope=1.0,
-                            intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
-                        ),
-                        Sensor(
-                            machine_id="test-machine",
-                            sensor_id="load01",
-                            sensor_name="load01",
-                            sensor_type_id="load",
-                            slope=1.0,
-                            intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
-                        ),
-                        Sensor(
-                            machine_id="test-machine",
-                            sensor_id="load02",
-                            sensor_name="load02",
-                            sensor_type_id="load",
-                            slope=1.0,
-                            intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
-                        ),
-                        Sensor(
-                            machine_id="test-machine",
-                            sensor_id="load03",
-                            sensor_name="load03",
-                            sensor_type_id="load",
-                            slope=1.0,
-                            intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
-                        ),
-                        Sensor(
-                            machine_id="test-machine",
-                            sensor_id="load04",
-                            sensor_name="load04",
-                            sensor_type_id="load",
-                            slope=1.0,
-                            intercept=0.0,
-                            start_point_dsl=None,
-                            max_point_dsl=None,
-                            break_point_dsl=None,
-                        ),
-                    ],
-                )
-            ],
-        )
-    ],
-)
-
-db.add(test_machine)
-
 # ローカルテスト用（複数ハンドラー）
 machine_01 = Machine(
-    machine_id="machine-01",
-    machine_name="デモ用プレス機",
+    machine_id="unittest-machine-01",
+    machine_name="ユニットテスト機器01",
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
     auto_cut_out_shot=False,
@@ -170,14 +76,14 @@ machine_01 = Machine(
     model_version=None,
     gateways=[
         Gateway(
-            gateway_id="gw-01",
+            gateway_id="unittest-gateway-01",
             sequence_number=1,
             gateway_result=0,
             status=common.STATUS.STOP.value,
             log_level=5,
             handlers=[
                 Handler(
-                    handler_id="handler-01",
+                    handler_id="unittest-handler-01-1",
                     handler_type="USB_1608HS",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
@@ -185,7 +91,7 @@ machine_01 = Machine(
                     filewrite_time=1,
                     sensors=[
                         Sensor(
-                            machine_id="machine-01",
+                            machine_id="unittest-machine-01",
                             sensor_id="stroke_displacement",
                             sensor_name="stroke_displacement",
                             sensor_type_id="stroke_displacement",
@@ -193,7 +99,7 @@ machine_01 = Machine(
                             intercept=0.0,
                         ),
                         Sensor(
-                            machine_id="machine-01",
+                            machine_id="unittest-machine-01",
                             sensor_id="load01",
                             sensor_name="load01",
                             sensor_type_id="load",
@@ -204,7 +110,7 @@ machine_01 = Machine(
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
                         Sensor(
-                            machine_id="machine-01",
+                            machine_id="unittest-machine-01",
                             sensor_id="load02",
                             sensor_name="load02",
                             sensor_type_id="load",
@@ -217,7 +123,7 @@ machine_01 = Machine(
                     ],
                 ),
                 Handler(
-                    handler_id="handler-02",
+                    handler_id="unittest-handler-01-2",
                     handler_type="USB_1608HS",
                     adc_serial_num="00003333",
                     sampling_frequency=100,
@@ -225,7 +131,7 @@ machine_01 = Machine(
                     filewrite_time=1,
                     sensors=[
                         Sensor(
-                            machine_id="machine-01",
+                            machine_id="unittest-machine-01",
                             sensor_id="load03",
                             sensor_name="load03",
                             sensor_type_id="load",
@@ -236,7 +142,7 @@ machine_01 = Machine(
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
                         Sensor(
-                            machine_id="machine-01",
+                            machine_id="unittest-machine-01",
                             sensor_id="load04",
                             sensor_name="load04",
                             sensor_type_id="load",
@@ -256,7 +162,7 @@ db.add(machine_01)
 
 # ローカルテスト用（単一ハンドラー）
 machine_02 = Machine(
-    machine_id="machine-02",
+    machine_id="unittest-machine-02",
     machine_name="デモ用プレス機",
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
@@ -270,14 +176,14 @@ machine_02 = Machine(
     model_version=None,
     gateways=[
         Gateway(
-            gateway_id="gw-02",
+            gateway_id="unittest-gateway-02",
             sequence_number=1,
             gateway_result=0,
             status=common.STATUS.STOP.value,
             log_level=5,
             handlers=[
                 Handler(
-                    handler_id="handler-single",
+                    handler_id="unittest-handler-02",
                     handler_type="USB_1608HS",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
@@ -285,7 +191,7 @@ machine_02 = Machine(
                     filewrite_time=1,
                     sensors=[
                         Sensor(
-                            machine_id="machine-02",
+                            machine_id="unittest-machine-02",
                             sensor_id="stroke_displacement",
                             sensor_name="stroke_displacement",
                             sensor_type_id="stroke_displacement",
@@ -293,7 +199,7 @@ machine_02 = Machine(
                             intercept=0.0,
                         ),
                         Sensor(
-                            machine_id="machine-02",
+                            machine_id="unittest-machine-02",
                             sensor_id="load01",
                             sensor_name="load01",
                             sensor_type_id="load",
@@ -304,7 +210,7 @@ machine_02 = Machine(
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
                         Sensor(
-                            machine_id="machine-02",
+                            machine_id="unittest-machine-02",
                             sensor_id="load02",
                             sensor_name="load02",
                             sensor_type_id="load",
@@ -315,7 +221,7 @@ machine_02 = Machine(
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
                         Sensor(
-                            machine_id="machine-02",
+                            machine_id="unittest-machine-02",
                             sensor_id="load03",
                             sensor_name="load03",
                             sensor_type_id="load",
@@ -326,7 +232,7 @@ machine_02 = Machine(
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                         ),
                         Sensor(
-                            machine_id="machine-02",
+                            machine_id="unittest-machine-02",
                             sensor_id="load04",
                             sensor_name="load04",
                             sensor_type_id="load",
