@@ -107,7 +107,10 @@ def fetch_shots(
             raise HTTPException(status_code=400, detail="データがありません")
 
     # ハンドラー毎のファイル数が同数であることをチェック
-    _ = FileManager.get_num_of_files_unified_handler(files_info_by_handler)
+    try:
+        _ = FileManager.get_num_of_files_unified_handler(files_info_by_handler)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ハンドラー間でファイル数が一致しません")
 
     merged_df: DataFrame = CutOutShotService.merge_by_handler_df(files_info_by_handler, file_number=page)
 

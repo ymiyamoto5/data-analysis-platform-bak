@@ -71,7 +71,7 @@ def simulate_single_handler(machine_id, resampling, displacement_sample, load01_
     gateway_id = "gw-02"
     handler_id = "handler-single"
 
-    for _ in range(100):
+    for file_number in range(100):
         binaries = b""
         for i in range(resampling):
             binary = struct.pack("<ddddd", displacement_sample[i], load01_sample[i], load02_sample[i], load03_sample[i], load04_sample[i])
@@ -79,7 +79,7 @@ def simulate_single_handler(machine_id, resampling, displacement_sample, load01_
 
         utc_now = datetime.utcnow()
         now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}.dat"
+        file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}_{file_number}.dat"
         file_path = os.path.join(data_dir, file_name)
 
         # 文字列のバイナリファイルへの書き込み
@@ -94,7 +94,7 @@ def simulate_multi_handler(machine_id, resampling, displacement_sample, load01_s
     gateway_id = "gw-01"
     handlers = ["handler-01", "handler-02"]
 
-    for _ in range(100):
+    for file_number in range(100):
         # handler[0]
         binaries = b""
         for i in range(resampling):
@@ -103,7 +103,7 @@ def simulate_multi_handler(machine_id, resampling, displacement_sample, load01_s
 
         utc_now = datetime.utcnow()
         now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handlers[0]}_{now_str}.dat"
+        file_name = f"{machine_id}_{gateway_id}_{handlers[0]}_{now_str}_{file_number}.dat"
         file_path = os.path.join(data_dir, file_name)
 
         # 文字列のバイナリファイルへの書き込み
@@ -120,7 +120,7 @@ def simulate_multi_handler(machine_id, resampling, displacement_sample, load01_s
 
         utc_now = datetime.utcnow()
         now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handlers[1]}_{now_str}.dat"
+        file_name = f"{machine_id}_{gateway_id}_{handlers[1]}_{now_str}_{file_number}.dat"
         file_path = os.path.join(data_dir, file_name)
 
         # 文字列のバイナリファイルへの書き込み

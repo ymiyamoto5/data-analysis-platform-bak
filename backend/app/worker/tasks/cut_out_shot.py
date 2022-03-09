@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import traceback
+from inspect import trace
 from typing import Final, List, Union
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
@@ -25,7 +26,7 @@ from sqlalchemy.orm.session import Session
 
 
 @celery_app.task()
-def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
+def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str, debug_mode: bool = False) -> str:
     """ショット切り出し画面のショット切り出しタスク
     * DBから設定値取得
     * Elasticsearchインデックス作成
@@ -37,7 +38,8 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
     machine_id: str = cut_out_shot_in["machine_id"]
     target_date_str: str = cut_out_shot_in["target_date_str"]
 
-    current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}", "progress": 0})
+    if not debug_mode:
+        current_task.update_state(state="PROGRESS", meta={"message": f"cut_out_shot start. machine_id: {machine_id}", "progress": 0})
 
     logger.info(f"cut_out_shot process started. machine_id: {machine_id}")
 
@@ -80,15 +82,19 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str) -> str:
         handlers=cut_out_target_handlers,
         sensors=cut_out_target_sensors,
     )
-    cut_out_shot.cut_out_shot(is_called_by_task=True)
-
-    db.close()
+    try:
+        cut_out_shot.cut_out_shot(is_called_by_task=True)
+    except Exception:
+        logger.exception(traceback.format_exc())
+        sys.exit(1)
+    finally:
+        db.close()
 
     return f"cut_out_shot task finished. machine_id: {machine_id}"
 
 
 @celery_app.task()
-def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
+def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool = False) -> str:
     """オンラインショット切り出しタスク
     * DBから設定値取得
     * Elasticsearchインデックス作成
@@ -98,7 +104,8 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
       * CutOutShot.cut_out_shot_by_task呼び出し
     """
 
-    current_task.update_state(state="PROGRESS", meta={"message": f"auto_cut_out_shot start. machine_id: {machine_id}"})
+    if not debug_mode:
+        current_task.update_state(state="PROGRESS", meta={"message": f"auto_cut_out_shot start. machine_id: {machine_id}"})
 
     logger.info(f"auto_cut_out_shot process started. machine_id: {machine_id}")
 
@@ -149,12 +156,34 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
 
     INTERVAL: Final[int] = 5
     has_been_processed: List[List[str]] = []  # 処理済みファイルパスリスト
+    retry_count: int = 0
+    MAX_RETRY_COUNT: Final[int] = 3
+    loop_count: int = 0
 
     while True:
+        if retry_count >= MAX_RETRY_COUNT:
+            logger.error("Over max retry count. File index numbers may not be equal between handlers.")
+            sys.exit(1)
+
         time.sleep(INTERVAL)
 
-        # # 退避ディレクトリに存在するすべてのpklファイルパスリスト
-        files_list: List[List[str]] = FileManager.get_files_list(machine_id, cut_out_target_handlers, history.processed_dir_path)
+        loop_count += 1
+
+        # 退避ディレクトリに存在するすべてのpklファイルパスリスト
+        try:
+            # logger.info(f"history.processed_dir_path: {history.processed_dir_path}")
+            files_list: List[List[str]] = FileManager.get_files_list(machine_id, cut_out_target_handlers, history.processed_dir_path)
+        except Exception:
+            logger.error(traceback.format_exc())
+            retry_count += 1
+            continue
+
+        retry_count = 0
+
+        if len(files_list) == 0:
+            continue
+
+        # logger.info(f"len(files_list): {len(files_list)}, len(files_list[0]): {len(files_list[0])}")
 
         # ループ毎の処理対象。未処理のもののみ対象とする。
         target_files: List[List[str]] = get_target_files(files_list, has_been_processed)
@@ -170,10 +199,14 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str) -> str:
             continue
 
         # 切り出し処理
-        logger.info(f"auto_cut_out_shot processing. machine_id: {machine_id}, targets: {len(target_files)}")
-        cut_out_shot.auto_cut_out_shot(target_files, shots_index, shots_meta_index)
+        logger.info(f"cut_out_shot processing (loop_count: {loop_count}). machine_id: {machine_id}, targets: {len(target_files)}")
+        cut_out_shot.auto_cut_out_shot(target_files, shots_index, shots_meta_index, debug_mode=debug_mode)
+        logger.info(f"cut_out_shot finished (loop_count: {loop_count}). machine_id: {machine_id}, targets: {len(target_files)}")
 
         has_been_processed.extend(target_files)
+
+        if debug_mode:
+            break
 
     db.close()
 
