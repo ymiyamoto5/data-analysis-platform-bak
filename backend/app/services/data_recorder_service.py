@@ -48,7 +48,6 @@ class DataRecorderService:
         logger.info(f"data recording process started. target: {machine_id}_{gateway_id}_{handler_id}")
 
         try:
-            # latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
             latest_data_collect_history_handler: DataCollectHistoryHandler = (
                 CRUDDataCollectHistory.select_latest_by_machine_gateway_handler_id(db, machine_id, gateway_id, handler_id)
             )
@@ -127,7 +126,7 @@ class DataRecorderService:
             if not is_manual:
                 shutil.move(file.file_path, processed_dir_path)
 
-            logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
+            # logger.info(f"processed: {file.file_path}, sequential_number(count): {sequential_number}")
 
         # 記録した件数
         return sequential_number

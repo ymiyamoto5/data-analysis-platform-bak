@@ -20,9 +20,12 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
-from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import \
+    DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -233,8 +236,10 @@ class CutOutShot:
     def _read_pickle_file(self, file_set: List[str]) -> DataFrame:
         """pickleファイルを読み込みDataFrameとして返す。複数ADCの場合、ADC台数分のファイルを読んで1つのDataFrameにする。"""
 
+        if len(file_set) == 0:
+            raise Exception("Not exist file_set.")
         # 単一ハンドラー
-        if len(file_set) == 1:
+        elif len(file_set) == 1:
             rawdata_df: DataFrame = pd.read_pickle(file_set[0])
         # 複数ハンドラー
         else:
@@ -316,7 +321,10 @@ class CutOutShot:
 
         procs: List[multiprocessing.context.Process] = []
 
-        files_list: List[List[str]] = FileManager.get_files_list(self.__machine_id, self.__handlers, rawdata_dir_path)
+        try:
+            files_list: List[List[str]] = FileManager.get_files_list(self.__machine_id, self.__handlers, rawdata_dir_path)
+        except Exception:
+            raise
 
         # main loop
         for processed_count, file_set in enumerate(files_list):
@@ -434,6 +442,7 @@ class CutOutShot:
         file_set_list: List[List[str]],
         shots_index: str,
         shots_meta_index: str,
+        debug_mode: bool = False,
     ) -> None:
         """
         自動ショット切り出し（celeryタスク実行）
@@ -490,10 +499,11 @@ class CutOutShot:
 
             # 進捗率を計算して記録
             progress = round(processed_count / len(file_set_list) * 100.0, 1)
-            current_task.update_state(
-                state="PROGRESS",
-                meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
-            )
+            if not debug_mode:
+                current_task.update_state(
+                    state="PROGRESS",
+                    meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
+                )
 
         if len(self.cutter.shots_summary) == 0:
             logger.info("Shot is not detected.")
@@ -505,11 +515,10 @@ class CutOutShot:
         # ショットメタデータをElasticsearchに出力
         self._export_shots_meta_to_es(shots_meta_index)
 
-        logger.info("Cut out shot finished.")
-
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
+    from backend.app.crud.crud_data_collect_history import \
+        CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
     machine_id = "machine-02"
@@ -541,4 +550,8 @@ if __name__ == "__main__":
         min_spm=15,
     )
 
-    cut_out_shot.cut_out_shot()
+    try:
+        cut_out_shot.cut_out_shot()
+    except Exception:
+        logger.exception(traceback.format_exc())
+        sys.exit(1)
