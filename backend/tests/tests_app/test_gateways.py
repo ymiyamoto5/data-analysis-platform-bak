@@ -7,7 +7,7 @@ class TestRead:
     @pytest.fixture
     def init(self):
         self.endpoint = "/api/v1/gateways"
-        self.gateway_id = "test-gw-01"
+        self.gateway_id = "test-gateway-01"
 
     def test_normal_db_select_all(self, client, init):
         response = client.get(self.endpoint)
@@ -56,7 +56,7 @@ class TestCreate:
     def test_not_unique_gateway_id(self, client, init):
         """重複しているgateway_id"""
         data = {
-            "gateway_id": "test-gw-01",
+            "gateway_id": "test-gateway-01",
             "log_level": 5,
             "machine_id": "test-machine-01",
         }
@@ -145,7 +145,7 @@ class TestCreate:
 class TestUpdate:
     @pytest.fixture
     def init(self):
-        self.gateway_id = "test-gw-01"
+        self.gateway_id = "test-gateway-01"
         self.endpoint = "/api/v1/gateways"
         self.data = {
             "log_level": 1,
@@ -230,7 +230,7 @@ class TestUpdate:
 class TestUpdateFromGateway:
     @pytest.fixture
     def init(self):
-        self.gateway_id = "test-gw-01"
+        self.gateway_id = "test-gateway-01"
         self.endpoint = "/api/v1/gateways"
         self.data = {"sequence_number": 1, "gateway_result": 1, "status": common.STATUS.RUNNING.value, "log_level": 5}
 
@@ -247,7 +247,7 @@ class TestDelete:
         self.endpoint = "/api/v1/gateways"
 
     def test_normal(self, client, init):
-        endpoint = f"{self.endpoint}/test-gw-05"
+        endpoint = f"{self.endpoint}/test-gateway-05"
         response = client.delete(endpoint)
 
         assert response.status_code == 200
@@ -261,7 +261,7 @@ class TestDelete:
 
     def test_foreign_key_error(self, client, init):
         """子が存在するgateway_id"""
-        endpoint = f"{self.endpoint}/test-gw-01"
+        endpoint = f"{self.endpoint}/test-gateway-01"
         response = client.delete(endpoint)
 
         assert response.status_code == 500
