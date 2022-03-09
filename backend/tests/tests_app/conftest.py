@@ -675,27 +675,27 @@ def create_testdb(db):
     # )
     # db.add(test_data_collect_history_03_2)
 
-    # # 子が存在しないデータの作成
-    # test_machine_04 = Machine(
-    #     machine_id="test-machine-04",
-    #     machine_name="テスト機器04",
-    #     collect_status=common.COLLECT_STATUS.RECORDED.value,
-    #     machine_type_id=1,
-    #     gateways=[],
-    # )
+    # 子が存在しないデータの作成
+    test_machine_04 = Machine(
+        machine_id="test-machine-04",
+        machine_name="テスト機器04",
+        collect_status=common.COLLECT_STATUS.RECORDED.value,
+        machine_type_id=1,
+        gateways=[],
+    )
 
-    # test_gw_05 = Gateway(
-    #     gateway_id="test-gateway-05",
-    #     sequence_number=1,
-    #     gateway_result=0,
-    #     status=common.STATUS.STOP.value,
-    #     machine_id="test-machine-01",
-    #     log_level=5,
-    #     handlers=[],
-    # )
+    test_gw_05 = Gateway(
+        gateway_id="test-gateway-05",
+        sequence_number=1,
+        gateway_result=0,
+        status=common.STATUS.STOP.value,
+        machine_id="test-machine-01",
+        log_level=5,
+        handlers=[],
+    )
 
-    # db.add(test_machine_04)
-    # db.add(test_gw_05)
+    db.add(test_machine_04)
+    db.add(test_gw_05)
 
     db.commit()
 
@@ -707,7 +707,6 @@ class DatFiles:
     tmp_dat_2: pathlib.Path
     tmp_dat_3: pathlib.Path
     tmp_dat_4: pathlib.Path
-    tmp_dat_5: pathlib.Path
 
 
 @pytest.fixture
@@ -715,22 +714,25 @@ def dat_files(tmp_path):
     """datファイルのfixture"""
 
     machine_id: str = "test-machine-01"
+    gateway_id: str = "test-gateway-01"
+    handlers = ["test-handler-01-1", "test-handler-01-2"]
 
-    tmp_dat_1: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080058.620753.dat"
-    tmp_dat_2: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080059.620753.dat"
-    tmp_dat_3: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080100.620753.dat"
-    tmp_dat_4: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080101.620753.dat"
-    tmp_dat_5: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080102.620753.dat"
+    tmp_dat_1: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[0]}_20201216-080058.620753_1.dat"
+    tmp_dat_2: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[0]}_20201216-080059.620753_2.dat"
+    tmp_dat_3: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[1]}_20201216-080100.620753_1.dat"
+    tmp_dat_4: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[1]}_20201216-080101.620753_2.dat"
 
-    binary = struct.pack("<ddddd", 10.0, 1.1, 2.2, 3.3, 4.4) + struct.pack("<ddddd", 9.0, 1.2, 2.3, 3.4, 4.5)
+    binary_1 = struct.pack("<ddd", 10.0, 1.1, 2.2)
+    binary_2 = struct.pack("<ddd", 9.0, 1.2, 2.3)
+    binary_3 = struct.pack("<dd", 3.3, 4.4)
+    binary_4 = struct.pack("<dd", 3.4, 4.5)
 
-    tmp_dat_1.write_bytes(binary)
-    tmp_dat_2.write_bytes(binary)
-    tmp_dat_3.write_bytes(binary)
-    tmp_dat_4.write_bytes(binary)
-    tmp_dat_5.write_bytes(binary)
+    tmp_dat_1.write_bytes(binary_1)
+    tmp_dat_2.write_bytes(binary_2)
+    tmp_dat_3.write_bytes(binary_3)
+    tmp_dat_4.write_bytes(binary_4)
 
-    dat_files = DatFiles(tmp_path, tmp_dat_1, tmp_dat_2, tmp_dat_3, tmp_dat_4, tmp_dat_5)
+    dat_files = DatFiles(tmp_path, tmp_dat_1, tmp_dat_2, tmp_dat_3, tmp_dat_4)
 
     yield dat_files
 

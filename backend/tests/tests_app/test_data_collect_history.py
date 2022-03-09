@@ -6,7 +6,7 @@ class TestRead:
     @pytest.fixture
     def init(self):
         self.endpoint = "/api/v1/data_collect_histories"
-        self.machine_id = "machine-test-01"
+        self.machine_id = "test-machine-01"
         self.data_collect_history_id = 1
 
     def test_normal_db_select_all(self, client, init):

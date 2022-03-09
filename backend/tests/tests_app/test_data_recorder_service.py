@@ -20,64 +20,63 @@ from backend.app.models.data_collect_history_event import DataCollectHistoryEven
 from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
-from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.file_manager.file_manager import FileManager
 
 
 class TestReadBinaryFiles:
-    def test_normal(self, dat_files):
-        """正常系：バイナリファイルが正常に読めること"""
+    # TODO: 複数ハンドラーや複数ファイルのケース追加
+
+    def test_normal(self, dat_files, db):
+        """正常系：バイナリファイルが正常に読めること(1つのハンドラー、1つのファイルのみ対象）"""
 
         machine_id: str = "test-machine-01"
         gateway_id: str = "test-gateway-01"
-        handler_id: str = "test-handler-01"
+        handler_id: str = "test-handler-01-1"
 
-        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, "dat")
+        file_infos = FileManager.create_files_info(dat_files.tmp_path._str, machine_id, gateway_id, handler_id, "dat")
         file = file_infos[0]
 
-        j_started_at_1 = datetime(2020, 8, 1, 9, 40, 30, 0)
+        started_at = datetime(2020, 8, 1, 9, 40, 30, 0)
 
         dummy_data_collect_history = DataCollectHistory(
             machine_id="test-machine-01",
-            machine_name="デモ用プレス機",
+            machine_name="テスト",
             machine_type_id=1,
-            started_at=j_started_at_1 + timedelta(hours=-9),
-            ended_at=j_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
-            sampling_frequency=100000,
-            sampling_ch_num=5,
+            started_at=started_at + timedelta(hours=-9),
+            ended_at=started_at + timedelta(hours=-9) + timedelta(hours=1),
             processed_dir_path="/mnt/datadrive/data/xxx",
             data_collect_history_events=[
                 DataCollectHistoryEvent(
                     event_id=0,
                     event_name=common.COLLECT_STATUS.SETUP.value,
-                    occurred_at=j_started_at_1 + timedelta(hours=-9),
+                    occurred_at=started_at + timedelta(hours=-9),
                 ),
                 DataCollectHistoryEvent(
                     event_id=1,
                     event_name=common.COLLECT_STATUS.START.value,
-                    occurred_at=j_started_at_1 + timedelta(hours=-9),
+                    occurred_at=started_at + timedelta(hours=-9),
                 ),
                 DataCollectHistoryEvent(
                     event_id=2,
                     event_name=common.COLLECT_STATUS.STOP.value,
-                    occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=120),
+                    occurred_at=started_at + timedelta(hours=-9) + timedelta(minutes=120),
                 ),
                 DataCollectHistoryEvent(
                     event_id=3,
                     event_name=common.COLLECT_STATUS.RECORDED.value,
-                    occurred_at=j_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
+                    occurred_at=started_at + timedelta(hours=-9) + timedelta(minutes=121),
                 ),
             ],
             data_collect_history_gateways=[
                 DataCollectHistoryGateway(
-                    gateway_id="gw-01",
+                    gateway_id="test-gateway-01",
                     log_level=5,
                     data_collect_history_handlers=[
                         DataCollectHistoryHandler(
                             data_collect_history_id=1,
-                            handler_id="handler-01",
+                            handler_id="test-handler-01-1",
                             handler_type="USB_1608HS",
                             adc_serial_num="00002222",
                             sampling_frequency=100000,
@@ -118,7 +117,7 @@ class TestReadBinaryFiles:
                         ),
                         DataCollectHistoryHandler(
                             data_collect_history_id=1,
-                            handler_id="handler-02",
+                            handler_id="test-handler-01-2",
                             handler_type="USB_1608HS",
                             adc_serial_num="00003333",
                             sampling_frequency=100000,
@@ -154,14 +153,15 @@ class TestReadBinaryFiles:
             ],
         )
 
+        handler = dummy_data_collect_history.data_collect_history_gateways[0].data_collect_history_handlers[0]
+        sensors = handler.data_collect_history_sensors
+
         actual = DataRecorderService.read_binary_files(
             file=file,
             sequential_number=0,
             timestamp=Decimal(file.timestamp),
-            data_collect_history=dummy_data_collect_history,
-            displacement_sensor_id="stroke_displacement",
-            sensor_ids_other_than_displacement=["load01", "load02", "load03", "load04"],
-            sampling_interval=Decimal(1.0 / dummy_data_collect_history.sampling_frequency),
+            sensors=sensors,
+            sampling_interval=Decimal(1.0 / handler.sampling_frequency),
         )
 
         expected = (
@@ -172,21 +172,10 @@ class TestReadBinaryFiles:
                     "stroke_displacement": 10.0,
                     "load01": 1.1,
                     "load02": 2.2,
-                    "load03": 3.3,
-                    "load04": 4.4,
-                },
-                {
-                    "sequential_number": 1,
-                    "timestamp": Decimal(file.timestamp) + Decimal(0.00001),
-                    "stroke_displacement": 9.0,
-                    "load01": 1.2,
-                    "load02": 2.3,
-                    "load03": 3.4,
-                    "load04": 4.5,
                 },
             ],
-            2,
-            Decimal(file.timestamp) + Decimal(0.00001) + Decimal(0.00001),
+            1,
+            Decimal(file.timestamp) + Decimal(0.00001),
         )
 
         assert actual == expected
