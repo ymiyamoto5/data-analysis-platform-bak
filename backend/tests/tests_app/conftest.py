@@ -351,6 +351,7 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=3,
                         filewrite_time=1,
+                        is_primary=False,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-02",
