@@ -198,7 +198,7 @@ class TestPredictorTask:
         )
 
         mocker.patch.object(
-            tasks_common,
+            common,
             "get_collect_status",
             return_value=common.COLLECT_STATUS.STOP.value,
         )

@@ -60,8 +60,31 @@
                   :items="gateways"
                   label="ゲートウェイID"
                   v-bind="readOnlyID"
+                  @input="checkPrimary"
                 >
                 </v-select>
+                <v-checkbox
+                  v-model="editedItem.is_primary"
+                  hide-details
+                  label="主要なハンドラー"
+                  :disabled="
+                    editedItem.gateway_id === 0 ||
+                      (primary !== '' && editedItem.handler_id !== primary)
+                  "
+                >
+                  <template v-slot:append>
+                    <v-tooltip bottom>
+                      <template v-slot:activator="{ on }">
+                        <v-icon v-on="on">
+                          mdi-help-circle-outline
+                        </v-icon>
+                      </template>
+                      <div>
+                        複数ハンドラー構成時の主要なハンドラーに設定します。これはゲートウェイごとに1つのハンドラーのみ設定可能です。
+                      </div>
+                    </v-tooltip>
+                  </template>
+                </v-checkbox>
               </v-form>
             </v-card-text>
 
@@ -95,8 +118,18 @@
         </v-dialog>
       </v-toolbar>
     </template>
+    <template v-slot:[`item.is_primary`]="{ item }">
+      {{ formatBool(item.is_primary) }}
+    </template>
     <template v-slot:[`item.actions`]="{ item }">
-      <v-icon small class="mr-2" @click="editItem(item)">
+      <v-icon
+        small
+        class="mr-2"
+        @click="
+          editItem(item)
+          checkPrimary()
+        "
+      >
         mdi-pencil
       </v-icon>
       <v-icon small @click="deleteItem(item)">
@@ -110,6 +143,7 @@
 import { createBaseApiClient } from '@/api/apiBase'
 const GATEWAYS_API_URL = '/api/v1/gateways/'
 const HANDLERS_API_URL = '/api/v1/handlers/'
+const PRIMARY_HANDLER_API_URL = '/api/v1/handlers/primary/'
 
 export default {
   data: () => ({
@@ -127,6 +161,7 @@ export default {
       { text: 'チャンネル数', value: 'sampling_ch_num' },
       { text: 'ファイル出力間隔(秒)', value: 'filewrite_time' },
       { text: 'ゲートウェイID', value: 'gateway_id' },
+      { text: '主要なハンドラー', value: 'is_primary' },
       { text: 'アクション', value: 'actions', sortable: false },
     ],
     handlers: [],
@@ -139,6 +174,7 @@ export default {
       sampling_ch_num: '',
       filewrite_time: '',
       gateway_id: 0,
+      is_primary: false,
     },
     defaultItem: {
       handler_id: '',
@@ -148,7 +184,9 @@ export default {
       sampling_ch_num: '',
       filewrite_time: '',
       gateway_id: 0,
+      is_primary: false,
     },
+    primary: '',
     gateways: [],
     // validation
     rules: {
@@ -240,6 +278,29 @@ export default {
         })
     },
 
+    // 主要なハンドラーのbool値を表示用にフォーマット
+    formatBool(bool) {
+      return bool ? 'YES' : 'NO'
+    },
+
+    // 主要なハンドラーが設定されているかを確認
+    checkPrimary: async function() {
+      const client = createBaseApiClient()
+      await client
+        .get(PRIMARY_HANDLER_API_URL + this.editedItem.gateway_id)
+        .then((res) => {
+          if (res.data === null) {
+            this.primary = ''
+            return
+          }
+          this.primary = res.data.handler_id
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
     // 新規作成 or 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
       this.editedIndex = this.handlers.indexOf(item)
@@ -265,6 +326,7 @@ export default {
           adc_serial_num: this.editedItem.adc_serial_num,
           sampling_ch_num: this.editedItem.sampling_ch_num,
           filewrite_time: this.editedItem.filewrite_time,
+          is_primary: this.editedItem.is_primary,
         }
         await client
           .put(url, body)
@@ -287,6 +349,7 @@ export default {
           sampling_frequency: this.editedItem.sampling_frequency,
           filewrite_time: this.editedItem.filewrite_time,
           gateway_id: this.editedItem.gateway_id,
+          is_primary: this.editedItem.is_primary,
         }
         await client
           .post(url, body)

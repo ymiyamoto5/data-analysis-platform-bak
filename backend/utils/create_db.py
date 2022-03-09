@@ -189,6 +189,7 @@ machine_02 = Machine(
                     sampling_frequency=100,
                     sampling_ch_num=3,
                     filewrite_time=1,
+                    is_primary=False,
                     sensors=[
                         Sensor(
                             machine_id="unittest-machine-02",

@@ -34,6 +34,20 @@ class CRUDHandler:
         return handler
 
     @staticmethod
+    def select_primary_by_gateway_id(db: Session, gateway_id: str) -> Handler:
+        handler: Handler = (
+            db.query(Handler)
+            .filter_by(gateway_id=gateway_id)
+            .filter_by(is_primary=True)
+            .options(
+                joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
+            )
+            .one_or_none()
+        )
+
+        return handler
+
+    @staticmethod
     def insert(db: Session, obj_in: handler.HandlerCreate) -> Handler:
         new_handler = Handler(
             handler_id=obj_in.handler_id,
@@ -43,6 +57,7 @@ class CRUDHandler:
             sampling_ch_num=0,
             filewrite_time=obj_in.filewrite_time,
             gateway_id=obj_in.gateway_id,
+            is_primary=obj_in.is_primary,
         )
 
         # Handlerを更新したことをGatewayに知らせるため、gateway_resultを0に設定

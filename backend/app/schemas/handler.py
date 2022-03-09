@@ -18,6 +18,7 @@ class Handler(HandlerBase):
     filewrite_time: int = Field(..., ge=1, le=360)
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     sensors: List[Sensor]
+    is_primary: bool
 
     class Config:
         orm_mode = True
@@ -30,6 +31,7 @@ class HandlerCreate(HandlerBase):
     sampling_frequency: int = Field(..., ge=1, le=100_000)
     filewrite_time: int = Field(..., ge=1, le=360)
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
+    is_primary: bool
 
 
 class HandlerUpdate(HandlerBase):
@@ -37,3 +39,4 @@ class HandlerUpdate(HandlerBase):
     adc_serial_num: Optional[str] = Field(max_length=255)
     sampling_frequency: Optional[int] = Field(ge=1, le=100_000)
     filewrite_time: Optional[int] = Field(ge=1, le=360)
+    is_primary: bool
