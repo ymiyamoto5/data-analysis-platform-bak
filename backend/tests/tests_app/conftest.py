@@ -22,8 +22,14 @@ from backend.app.api.deps import get_db
 from backend.app.db.session import Base
 from backend.app.main import app
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_event import \
+    DataCollectHistoryEvent
+from backend.app.models.data_collect_history_gateway import \
+    DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -85,10 +91,10 @@ def db():
     engine = create_engine(DB_URL, echo=True, connect_args={"check_same_thread": False})
 
     # NOTE: sqliteは既定で外部キー制約無効のため有効化する
-    def _fk_pragma_on_connect(dbapi_con, con_record):
-        dbapi_con.execute("pragma foreign_keys=ON")
+    # def _fk_pragma_on_connect(dbapi_con, con_record):
+    #     dbapi_con.execute("pragma foreign_keys=ON")
 
-    event.listen(engine, "connect", _fk_pragma_on_connect)
+    # event.listen(engine, "connect", _fk_pragma_on_connect)
 
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -116,7 +122,7 @@ def create_testdb(db):
     sensor_type_01 = SensorType(sensor_type_id="load", sensor_type_name="荷重")
     sensor_type_02 = SensorType(sensor_type_id="stroke_displacement", sensor_type_name="ストローク変位")
     sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
-    sensor_type_04 = SensorType(sensor_type_id="volt", sensor_type_name="ボルト")
+    sensor_type_04 = SensorType(sensor_type_id="bolt", sensor_type_name="ボルト")
     sensor_type_05 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
     db.add(sensor_type_01)
     db.add(sensor_type_02)
@@ -124,7 +130,7 @@ def create_testdb(db):
     db.add(sensor_type_04)
     db.add(sensor_type_05)
 
-    # TestMachine01
+    # 複数ハンドラーの機器
     test_machine_01 = Machine(
         machine_id="test-machine-01",
         machine_name="テスト機器01",
@@ -140,19 +146,21 @@ def create_testdb(db):
         model_version=None,
         gateways=[
             Gateway(
-                gateway_id="test-gw-01",
+                gateway_id="test-gateway-01",
                 sequence_number=1,
                 gateway_result=0,
                 status=common.STATUS.STOP.value,
                 log_level=5,
                 handlers=[
                     Handler(
-                        handler_id="test-handler-01",
+                        handler_id="test-handler-01-1",
                         handler_type="USB_1608HS",
                         adc_serial_num="01ED23FA",
                         sampling_frequency=100000,
-                        sampling_ch_num=5,
-                        filewrite_time=10,
+                        sampling_ch_num=3,
+                        filewrite_time=1,
+                        is_primary=True,
+                        is_cut_out_target=True,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-01",
@@ -170,8 +178,44 @@ def create_testdb(db):
                                 slope=1.0,
                                 intercept=0.0,
                             ),
+                            Sensor(
+                                machine_id="test-machine-01",
+                                sensor_id="load02",
+                                sensor_name="load02",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                            ),
                         ],
-                    )
+                    ),
+                    Handler(
+                        handler_id="test-handler-01-2",
+                        handler_type="USB_1608HS",
+                        adc_serial_num="01ED23FB",
+                        sampling_frequency=100000,
+                        sampling_ch_num=2,
+                        filewrite_time=1,
+                        is_primary=False,
+                        is_cut_out_target=True,
+                        sensors=[
+                            Sensor(
+                                machine_id="test-machine-01",
+                                sensor_id="load03",
+                                sensor_name="load03",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                            ),
+                            Sensor(
+                                machine_id="test-machine-01",
+                                sensor_id="load04",
+                                sensor_name="load04",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                            ),
+                        ],
+                    ),
                 ],
             )
         ],
@@ -186,10 +230,7 @@ def create_testdb(db):
         machine_type_id=1,
         started_at=test_machine_01_started_at + timedelta(hours=-9),
         ended_at=test_machine_01_started_at + timedelta(hours=-9) + timedelta(hours=1),
-        sampling_frequency=100000,
-        sampling_ch_num=5,
         processed_dir_path=os.path.join(DATA_DIR, "test-machine-01-20211111110000"),
-        sample_count=0,
         data_collect_history_events=[
             DataCollectHistoryEvent(
                 event_id=0,
@@ -212,26 +253,96 @@ def create_testdb(db):
                 occurred_at=test_machine_01_started_at + timedelta(hours=-9) + timedelta(minutes=121),
             ),
         ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
-                sensor_id="stroke_displacement",
-                sensor_name="ストローク変位",
-                sensor_type_id="stroke_displacement",
-                slope=1.0,
-                intercept=0.0,
-            ),
-            DataCollectHistoryDetail(
-                sensor_id="load01",
-                sensor_name="荷重01",
-                sensor_type_id="load",
-                slope=1.0,
-                intercept=0.0,
-            ),
+        data_collect_history_gateways=[
+            DataCollectHistoryGateway(
+                gateway_id="test-gateway-01",
+                log_level=5,
+                data_collect_history_handlers=[
+                    DataCollectHistoryHandler(
+                        data_collect_history_id=1,
+                        handler_id="test-handler-01-1",
+                        handler_type="USB_1608HS",
+                        adc_serial_num="01ED23FA",
+                        sampling_frequency=100000,
+                        sampling_ch_num=3,
+                        filewrite_time=1,
+                        is_primary=True,
+                        is_cut_out_target=True,
+                        data_collect_history_sensors=[
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="stroke_displacement",
+                                sensor_name="stroke_displacement",
+                                sensor_type_id="stroke_displacement",
+                                slope=1.0,
+                                intercept=0.0,
+                            ),
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="load01",
+                                sensor_name="load01",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="load02",
+                                sensor_name="load02",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                        ],
+                    ),
+                    DataCollectHistoryHandler(
+                        data_collect_history_id=1,
+                        handler_id="test-handler-01-2",
+                        handler_type="USB_1608HS",
+                        adc_serial_num="01ED23FB",
+                        sampling_frequency=100000,
+                        sampling_ch_num=2,
+                        filewrite_time=1,
+                        is_primary=False,
+                        is_cut_out_target=True,
+                        data_collect_history_sensors=[
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="load03",
+                                sensor_name="load03",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="load04",
+                                sensor_name="load04",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                        ],
+                    ),
+                ],
+            )
         ],
     )
     db.add(test_data_collect_history_01)
 
-    # TestMachine02
+    # 単一ハンドラー
     test_machine_02 = Machine(
         machine_id="test-machine-02",
         machine_name="テスト機器02",
@@ -239,7 +350,7 @@ def create_testdb(db):
         machine_type_id=2,
         gateways=[
             Gateway(
-                gateway_id="test-gw-02",
+                gateway_id="test-gateway-02",
                 sequence_number=1,
                 gateway_result=0,
                 status=common.STATUS.STOP.value,
@@ -252,6 +363,8 @@ def create_testdb(db):
                         sampling_frequency=100000,
                         sampling_ch_num=3,
                         filewrite_time=1,
+                        is_primary=True,
+                        is_cut_out_target=True,
                         sensors=[
                             Sensor(
                                 machine_id="test-machine-02",
@@ -277,16 +390,6 @@ def create_testdb(db):
                                 slope=1.0,
                                 intercept=0.0,
                             ),
-                        ],
-                    ),
-                    Handler(
-                        handler_id="test-handler-03",
-                        handler_type="USB_1608HS",
-                        adc_serial_num="00003333",
-                        sampling_frequency=100000,
-                        sampling_ch_num=2,
-                        filewrite_time=1,
-                        sensors=[
                             Sensor(
                                 machine_id="test-machine-02",
                                 sensor_id="load03",
@@ -319,10 +422,7 @@ def create_testdb(db):
         machine_type_id=1,
         started_at=test_machine_02_started_at + timedelta(hours=-9),
         ended_at=test_machine_02_started_at + timedelta(hours=-9) + timedelta(hours=1),
-        sampling_frequency=100000,
-        sampling_ch_num=5,
         processed_dir_path=os.path.join(DATA_DIR, "test-machine-02-20210709190000"),
-        sample_count=0,
         data_collect_history_events=[
             DataCollectHistoryEvent(
                 event_id=0,
@@ -345,218 +445,254 @@ def create_testdb(db):
                 occurred_at=test_machine_02_started_at + timedelta(hours=-9) + timedelta(minutes=121),
             ),
         ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
-                sensor_id="pulse",
-                sensor_name="パルス",
-                sensor_type_id="pulse",
-                slope=1.0,
-                intercept=0.0,
-            ),
-            DataCollectHistoryDetail(
-                sensor_id="load01",
-                sensor_name="荷重01",
-                sensor_type_id="load",
-                slope=1.0,
-                intercept=0.0,
-            ),
-            DataCollectHistoryDetail(
-                sensor_id="load02",
-                sensor_name="荷重02",
-                sensor_type_id="load",
-                slope=1.0,
-                intercept=0.0,
-            ),
-            DataCollectHistoryDetail(
-                sensor_id="load03",
-                sensor_name="荷重03",
-                sensor_type_id="load",
-                slope=1.0,
-                intercept=0.0,
-            ),
-            DataCollectHistoryDetail(
-                sensor_id="load04",
-                sensor_name="荷重04",
-                sensor_type_id="load",
-                slope=1.0,
-                intercept=0.0,
-            ),
-        ],
-    )
-    db.add(test_data_collect_history_02)
-
-    # TestMachine03
-    test_machine_03 = Machine(
-        machine_id="test-machine-03",
-        machine_name="テスト機器03",
-        collect_status=common.COLLECT_STATUS.RECORDED.value,
-        machine_type_id=1,
-        gateways=[
-            Gateway(
-                gateway_id="test-gw-03",
-                sequence_number=1,
-                gateway_result=0,
-                status=common.STATUS.STOP.value,
+        data_collect_history_gateways=[
+            DataCollectHistoryGateway(
+                gateway_id="test-gateway-02",
                 log_level=5,
-                handlers=[
-                    Handler(
-                        handler_id="test-handler-04",
+                data_collect_history_handlers=[
+                    DataCollectHistoryHandler(
+                        data_collect_history_id=1,
+                        handler_id="test-handler-02",
                         handler_type="USB_1608HS",
-                        adc_serial_num="00004444",
+                        adc_serial_num="01ED23FA",
                         sampling_frequency=100000,
-                        sampling_ch_num=2,
+                        sampling_ch_num=5,
                         filewrite_time=1,
-                        sensors=[
-                            Sensor(
-                                machine_id="test-machine-03",
+                        is_primary=True,
+                        is_cut_out_target=True,
+                        data_collect_history_sensors=[
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
                                 sensor_id="stroke_displacement",
                                 sensor_name="stroke_displacement",
                                 sensor_type_id="stroke_displacement",
                                 slope=1.0,
                                 intercept=0.0,
                             ),
-                            Sensor(
-                                machine_id="test-machine-03",
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
                                 sensor_id="load01",
-                                sensor_name="歪み",
+                                sensor_name="load01",
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="load02",
+                                sensor_name="load02",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="load03",
+                                sensor_name="load03",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="load04",
+                                sensor_name="load04",
+                                sensor_type_id="load",
+                                slope=1.0,
+                                intercept=0.0,
+                                start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                                max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                                break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
                             ),
                         ],
                     ),
                 ],
-            ),
-            Gateway(
-                gateway_id="test-gw-04",
-                sequence_number=1,
-                gateway_result=0,
-                status=common.STATUS.STOP.value,
-                log_level=5,
-                handlers=[
-                    Handler(
-                        handler_id="test-handler-05",
-                        handler_type="USB_1608HS",
-                        adc_serial_num="00005555",
-                        sampling_frequency=100000,
-                        sampling_ch_num=2,
-                        filewrite_time=1,
-                        sensors=[],
-                    ),
-                ],
-            ),
+            )
         ],
     )
-    db.add(test_machine_03)
+    db.add(test_data_collect_history_02)
 
-    test_machine_03_started_at_1 = datetime(2021, 8, 1, 9, 40, 30, 0)
+    # # TestMachine03
+    # test_machine_03 = Machine(
+    #     machine_id="test-machine-03",
+    #     machine_name="テスト機器03",
+    #     collect_status=common.COLLECT_STATUS.RECORDED.value,
+    #     machine_type_id=1,
+    #     gateways=[
+    #         Gateway(
+    #             gateway_id="test-gateway-03",
+    #             sequence_number=1,
+    #             gateway_result=0,
+    #             status=common.STATUS.STOP.value,
+    #             log_level=5,
+    #             handlers=[
+    #                 Handler(
+    #                     handler_id="test-handler-04",
+    #                     handler_type="USB_1608HS",
+    #                     adc_serial_num="00004444",
+    #                     sampling_frequency=100000,
+    #                     sampling_ch_num=2,
+    #                     filewrite_time=1,
+    #                     sensors=[
+    #                         Sensor(
+    #                             machine_id="test-machine-03",
+    #                             sensor_id="stroke_displacement",
+    #                             sensor_name="stroke_displacement",
+    #                             sensor_type_id="stroke_displacement",
+    #                             slope=1.0,
+    #                             intercept=0.0,
+    #                         ),
+    #                         Sensor(
+    #                             machine_id="test-machine-03",
+    #                             sensor_id="load01",
+    #                             sensor_name="歪み",
+    #                             sensor_type_id="load",
+    #                             slope=1.0,
+    #                             intercept=0.0,
+    #                         ),
+    #                     ],
+    #                 ),
+    #             ],
+    #         ),
+    #         Gateway(
+    #             gateway_id="test-gateway-04",
+    #             sequence_number=1,
+    #             gateway_result=0,
+    #             status=common.STATUS.STOP.value,
+    #             log_level=5,
+    #             handlers=[
+    #                 Handler(
+    #                     handler_id="test-handler-05",
+    #                     handler_type="USB_1608HS",
+    #                     adc_serial_num="00005555",
+    #                     sampling_frequency=100000,
+    #                     sampling_ch_num=2,
+    #                     filewrite_time=1,
+    #                     sensors=[],
+    #                 ),
+    #             ],
+    #         ),
+    #     ],
+    # )
+    # db.add(test_machine_03)
 
-    test_data_collect_history_03_1 = DataCollectHistory(
-        machine_id="test-machine-03",
-        machine_name="テスト機器03",
-        machine_type_id=1,
-        started_at=test_machine_03_started_at_1 + timedelta(hours=-9),
-        ended_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
-        sampling_frequency=100000,
-        sampling_ch_num=2,
-        processed_dir_path=os.path.join(DATA_DIR, "test-machine-03-20210801094030"),
-        sample_count=0,
-        data_collect_history_events=[
-            DataCollectHistoryEvent(
-                event_id=0,
-                event_name=common.COLLECT_STATUS.SETUP.value,
-                occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9),
-            ),
-            DataCollectHistoryEvent(
-                event_id=1,
-                event_name=common.COLLECT_STATUS.START.value,
-                occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9),
-            ),
-            DataCollectHistoryEvent(
-                event_id=2,
-                event_name=common.COLLECT_STATUS.STOP.value,
-                occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(minutes=120),
-            ),
-            DataCollectHistoryEvent(
-                event_id=3,
-                event_name=common.COLLECT_STATUS.RECORDED.value,
-                occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
-            ),
-        ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
-                sensor_id="stroke_displacement",
-                sensor_name="ストローク変位",
-                sensor_type_id="stroke_displacement",
-                slope=1.0,
-                intercept=0.0,
-            ),
-            DataCollectHistoryDetail(
-                sensor_id="load01",
-                sensor_name="歪み",
-                sensor_type_id="load",
-                slope=1.0,
-                intercept=0.0,
-            ),
-        ],
-    )
-    db.add(test_data_collect_history_03_1)
+    # test_machine_03_started_at_1 = datetime(2021, 8, 1, 9, 40, 30, 0)
 
-    test_machine_03_started_at_2 = datetime(2021, 10, 9, 15, 56, 26, 0)
+    # test_data_collect_history_03_1 = DataCollectHistory(
+    #     machine_id="test-machine-03",
+    #     machine_name="テスト機器03",
+    #     machine_type_id=1,
+    #     started_at=test_machine_03_started_at_1 + timedelta(hours=-9),
+    #     ended_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(hours=1),
+    #     sampling_frequency=100000,
+    #     sampling_ch_num=2,
+    #     processed_dir_path=os.path.join(DATA_DIR, "test-machine-03-20210801094030"),
+    #     sample_count=0,
+    #     data_collect_history_events=[
+    #         DataCollectHistoryEvent(
+    #             event_id=0,
+    #             event_name=common.COLLECT_STATUS.SETUP.value,
+    #             occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9),
+    #         ),
+    #         DataCollectHistoryEvent(
+    #             event_id=1,
+    #             event_name=common.COLLECT_STATUS.START.value,
+    #             occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9),
+    #         ),
+    #         DataCollectHistoryEvent(
+    #             event_id=2,
+    #             event_name=common.COLLECT_STATUS.STOP.value,
+    #             occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(minutes=120),
+    #         ),
+    #         DataCollectHistoryEvent(
+    #             event_id=3,
+    #             event_name=common.COLLECT_STATUS.RECORDED.value,
+    #             occurred_at=test_machine_03_started_at_1 + timedelta(hours=-9) + timedelta(minutes=121),
+    #         ),
+    #     ],
+    #     data_collect_history_sensors=[
+    #         DataCollectHistorySensor(
+    #             sensor_id="stroke_displacement",
+    #             sensor_name="ストローク変位",
+    #             sensor_type_id="stroke_displacement",
+    #             slope=1.0,
+    #             intercept=0.0,
+    #         ),
+    #         DataCollectHistorySensor(
+    #             sensor_id="load01",
+    #             sensor_name="歪み",
+    #             sensor_type_id="load",
+    #             slope=1.0,
+    #             intercept=0.0,
+    #         ),
+    #     ],
+    # )
+    # db.add(test_data_collect_history_03_1)
 
-    test_data_collect_history_03_2 = DataCollectHistory(
-        machine_id="test-machine-03",
-        machine_name="テスト機器03",
-        machine_type_id=1,
-        started_at=test_machine_03_started_at_2 + timedelta(hours=-9),
-        ended_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
-        sampling_frequency=100000,
-        sampling_ch_num=2,
-        processed_dir_path=os.path.join(DATA_DIR, "test-machine-03-20211009155626"),
-        sample_count=0,
-        data_collect_history_events=[
-            DataCollectHistoryEvent(
-                event_id=0,
-                event_name=common.COLLECT_STATUS.SETUP.value,
-                occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9),
-            ),
-            DataCollectHistoryEvent(
-                event_id=1,
-                event_name=common.COLLECT_STATUS.START.value,
-                occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9),
-            ),
-            DataCollectHistoryEvent(
-                event_id=2,
-                event_name=common.COLLECT_STATUS.STOP.value,
-                occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(minutes=120),
-            ),
-            DataCollectHistoryEvent(
-                event_id=3,
-                event_name=common.COLLECT_STATUS.RECORDED.value,
-                occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(minutes=121),
-            ),
-        ],
-        data_collect_history_details=[
-            DataCollectHistoryDetail(
-                sensor_id="stroke_displacement",
-                sensor_name="ストローク変位",
-                sensor_type_id="stroke_displacement",
-                slope=1.0,
-                intercept=0.0,
-            ),
-            DataCollectHistoryDetail(
-                sensor_id="load01",
-                sensor_name="歪み",
-                sensor_type_id="load",
-                slope=1.0,
-                intercept=0.0,
-            ),
-        ],
-    )
-    db.add(test_data_collect_history_03_2)
+    # test_machine_03_started_at_2 = datetime(2021, 10, 9, 15, 56, 26, 0)
+
+    # test_data_collect_history_03_2 = DataCollectHistory(
+    #     machine_id="test-machine-03",
+    #     machine_name="テスト機器03",
+    #     machine_type_id=1,
+    #     started_at=test_machine_03_started_at_2 + timedelta(hours=-9),
+    #     ended_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(hours=1),
+    #     sampling_frequency=100000,
+    #     sampling_ch_num=2,
+    #     processed_dir_path=os.path.join(DATA_DIR, "test-machine-03-20211009155626"),
+    #     sample_count=0,
+    #     data_collect_history_events=[
+    #         DataCollectHistoryEvent(
+    #             event_id=0,
+    #             event_name=common.COLLECT_STATUS.SETUP.value,
+    #             occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9),
+    #         ),
+    #         DataCollectHistoryEvent(
+    #             event_id=1,
+    #             event_name=common.COLLECT_STATUS.START.value,
+    #             occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9),
+    #         ),
+    #         DataCollectHistoryEvent(
+    #             event_id=2,
+    #             event_name=common.COLLECT_STATUS.STOP.value,
+    #             occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(minutes=120),
+    #         ),
+    #         DataCollectHistoryEvent(
+    #             event_id=3,
+    #             event_name=common.COLLECT_STATUS.RECORDED.value,
+    #             occurred_at=test_machine_03_started_at_2 + timedelta(hours=-9) + timedelta(minutes=121),
+    #         ),
+    #     ],
+    #     data_collect_history_sensors=[
+    #         DataCollectHistorySensor(
+    #             sensor_id="stroke_displacement",
+    #             sensor_name="ストローク変位",
+    #             sensor_type_id="stroke_displacement",
+    #             slope=1.0,
+    #             intercept=0.0,
+    #         ),
+    #         DataCollectHistorySensor(
+    #             sensor_id="load01",
+    #             sensor_name="歪み",
+    #             sensor_type_id="load",
+    #             slope=1.0,
+    #             intercept=0.0,
+    #         ),
+    #     ],
+    # )
+    # db.add(test_data_collect_history_03_2)
 
     # 子が存在しないデータの作成
-    test_machine_04 = Machine(
+    test_machine_no_gateway = Machine(
         machine_id="test-machine-04",
         machine_name="テスト機器04",
         collect_status=common.COLLECT_STATUS.RECORDED.value,
@@ -564,8 +700,8 @@ def create_testdb(db):
         gateways=[],
     )
 
-    test_gw_05 = Gateway(
-        gateway_id="test-gw-05",
+    test_gateway_no_handler = Gateway(
+        gateway_id="test-gateway-no-handler",
         sequence_number=1,
         gateway_result=0,
         status=common.STATUS.STOP.value,
@@ -574,8 +710,32 @@ def create_testdb(db):
         handlers=[],
     )
 
-    db.add(test_machine_04)
-    db.add(test_gw_05)
+    test_gw_no_sensor = Gateway(
+        gateway_id="test-gateway-no-sensor",
+        sequence_number=1,
+        gateway_result=0,
+        status=common.STATUS.STOP.value,
+        machine_id="test-machine-01",
+        log_level=5,
+        handlers=[
+            Handler(
+                gateway_id="test-gateway-no-sensor",
+                handler_id="test-handler-no-child",
+                handler_type="USB_1608HS",
+                adc_serial_num="01ED23FA",
+                sampling_frequency=100000,
+                sampling_ch_num=5,
+                filewrite_time=1,
+                is_primary=True,
+                is_cut_out_target=True,
+                sensors=[],
+            ),
+        ],
+    )
+
+    db.add(test_machine_no_gateway)
+    db.add(test_gateway_no_handler)
+    db.add(test_gw_no_sensor)
 
     db.commit()
 
@@ -587,7 +747,6 @@ class DatFiles:
     tmp_dat_2: pathlib.Path
     tmp_dat_3: pathlib.Path
     tmp_dat_4: pathlib.Path
-    tmp_dat_5: pathlib.Path
 
 
 @pytest.fixture
@@ -595,22 +754,25 @@ def dat_files(tmp_path):
     """datファイルのfixture"""
 
     machine_id: str = "test-machine-01"
+    gateway_id: str = "test-gateway-01"
+    handlers = ["test-handler-01-1", "test-handler-01-2"]
 
-    tmp_dat_1: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080058.620753.dat"
-    tmp_dat_2: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080059.620753.dat"
-    tmp_dat_3: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080100.620753.dat"
-    tmp_dat_4: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080101.620753.dat"
-    tmp_dat_5: pathlib.Path = tmp_path / f"{machine_id}_AD-00_20201216-080102.620753.dat"
+    tmp_dat_1: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[0]}_20201216-080058.620753_1.dat"
+    tmp_dat_2: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[0]}_20201216-080059.620753_2.dat"
+    tmp_dat_3: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[1]}_20201216-080100.620753_1.dat"
+    tmp_dat_4: pathlib.Path = tmp_path / f"{machine_id}_{gateway_id}_{handlers[1]}_20201216-080101.620753_2.dat"
 
-    binary = struct.pack("<ddddd", 10.0, 1.1, 2.2, 3.3, 4.4) + struct.pack("<ddddd", 9.0, 1.2, 2.3, 3.4, 4.5)
+    binary_1 = struct.pack("<ddd", 10.0, 1.1, 2.2)
+    binary_2 = struct.pack("<ddd", 9.0, 1.2, 2.3)
+    binary_3 = struct.pack("<dd", 3.3, 4.4)
+    binary_4 = struct.pack("<dd", 3.4, 4.5)
 
-    tmp_dat_1.write_bytes(binary)
-    tmp_dat_2.write_bytes(binary)
-    tmp_dat_3.write_bytes(binary)
-    tmp_dat_4.write_bytes(binary)
-    tmp_dat_5.write_bytes(binary)
+    tmp_dat_1.write_bytes(binary_1)
+    tmp_dat_2.write_bytes(binary_2)
+    tmp_dat_3.write_bytes(binary_3)
+    tmp_dat_4.write_bytes(binary_4)
 
-    dat_files = DatFiles(tmp_path, tmp_dat_1, tmp_dat_2, tmp_dat_3, tmp_dat_4, tmp_dat_5)
+    dat_files = DatFiles(tmp_path, tmp_dat_1, tmp_dat_2, tmp_dat_3, tmp_dat_4)
 
     yield dat_files
 

@@ -3,7 +3,6 @@ import shutil
 from datetime import datetime, timedelta
 
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.common import common
 from backend.common.common_logger import logger
 from backend.elastic_manager.elastic_manager import ElasticManager
 

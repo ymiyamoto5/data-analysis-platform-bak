@@ -1,11 +1,14 @@
 from typing import Optional
 
+from backend.common import common
 from pydantic import BaseModel, Field
 
 
-class DataCollectHistoryDetailBase(BaseModel):
+class DataCollectHistorySensorBase(BaseModel):
     data_collect_history_id: int
     sensor_id: str
+    handler_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
+    gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     sensor_name: str = Field(..., max_length=255)
     sensor_type_id: str = Field(..., max_length=255)
     slope: float
@@ -15,10 +18,10 @@ class DataCollectHistoryDetailBase(BaseModel):
     break_point_dsl: Optional[str] = None
 
 
-class DataCollectHistoryDetail(DataCollectHistoryDetailBase):
+class DataCollectHistorySensor(DataCollectHistorySensorBase):
     class Config:
         orm_mode = True
 
 
-class DataCollectHistoryDetailUpdate(DataCollectHistoryDetailBase):
+class DataCollectHistorySensorUpdate(DataCollectHistorySensorBase):
     pass

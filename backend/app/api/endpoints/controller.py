@@ -12,7 +12,8 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
@@ -210,6 +211,7 @@ def check(
     latest_predictor_task: CeleryTask = CRUDCeleryTask.select_latest_by_task_type(db, machine_id, "predictor")
 
     while True:
+        # gateway, handlerに関係なくすべてのdatファイルが捌けていること
         data_file_list: List[str] = glob.glob(os.path.join(data_dir, f"{machine_id}_*.dat"))
 
         if len(data_file_list) != 0:
@@ -273,20 +275,25 @@ def run_data_recorder(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
+    try:
+        latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="DB read error.")
+
     task_name = "backend.app.worker.tasks.data_recorder.data_recorder_task"
 
-    task = celery_app.send_task(task_name, (machine_id,))
+    for gateway in machine.gateways:
+        for handler in gateway.handlers:
+            task = celery_app.send_task(task_name, (machine_id, gateway.gateway_id, handler.handler_id))
+            logger.info(f"data_recorder started. task_id: {task.id}")
 
-    logger.info(f"data_recorder started. task_id: {task.id}")
-
-    # タスク情報を保持する
-    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
-
-    new_data_celery_task = CeleryTask(
-        task_id=task.id,
-        data_collect_history_id=latest_data_collect_history.id,
-        task_type="data_recoder",
-    )
+            # タスク情報を保持する
+            new_data_celery_task = CeleryTask(
+                task_id=task.id,
+                data_collect_history_id=latest_data_collect_history.id,
+                task_type="data_recoder",
+            )
 
     CRUDCeleryTask.insert(db, obj_in=new_data_celery_task)
 
@@ -307,9 +314,16 @@ def run_cut_out_shot(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+    try:
+        latest_data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+        cut_out_target_sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(
+            db, latest_data_collect_history.id
+        )
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="DB read error.")
 
-    sensors: List[DataCollectHistoryDetail] = latest_data_collect_history.data_collect_history_details
+    sensors: List[DataCollectHistorySensor] = cut_out_target_sensors
     sensor_type: str = common.get_cut_out_shot_sensor(sensors).sensor_type_id
 
     task_name = "backend.app.worker.tasks.cut_out_shot.auto_cut_out_shot_task"

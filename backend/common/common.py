@@ -9,25 +9,17 @@
 
 """
 
-from __future__ import annotations
-
 import json
 import multiprocessing
 import sys
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Final, List, Tuple, Union
+from typing import Final, List, Optional, Tuple, Union
 
-from backend.app.db.session import SessionLocal
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
-from backend.app.models.machine import Machine
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
 from pytz import timezone
-from sqlalchemy.orm.session import Session
-
-if TYPE_CHECKING:
-    from backend.app.crud.crud_machine import CRUDMachine
 
 # グローバル定数
 ELASTIC_MAX_DOC_SIZE: Final[int] = 10_000
@@ -93,27 +85,17 @@ def increment_sequence_number(sequence_number: int) -> int:
     return 1 if sequence_number >= INT_MAX else sequence_number + 1
 
 
-def get_cut_out_shot_sensor(sensors: Union[List[Sensor], List[DataCollectHistoryDetail]]) -> Union[Sensor, DataCollectHistoryDetail]:
+def get_cut_out_shot_sensor(
+    sensors: Union[List[Sensor], List[DataCollectHistorySensor]]
+) -> Optional[Union[Sensor, DataCollectHistorySensor]]:
     """ショット切り出し対象となるセンサーを特定する"""
-    cut_out_sensor: Union[List[Sensor], List[DataCollectHistoryDetail]] = [
+    cut_out_sensor: Union[List[Sensor], List[DataCollectHistorySensor]] = [
         s for s in sensors if s.sensor_type_id in CUT_OUT_SHOT_SENSOR_TYPES
     ]
 
     # 変位センサーは機器にただひとつのみ紐づいている前提
-    if len(cut_out_sensor) != 1:
+    if len(cut_out_sensor) > 1:
         logger.error(f"Only one displacement sensor is needed. num_of_displacement_sensor: {cut_out_sensor}")
         sys.exit(1)
 
-    return cut_out_sensor[0]
-
-
-def get_collect_status(machine_id) -> str:
-    """データ収集ステータスを取得する"""
-
-    # NOTE: DBセッションを使いまわすと更新データが得られないため、新しいセッション作成
-    db: Session = SessionLocal()
-    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
-    collect_status: str = machine.collect_status
-    db.close()
-
-    return collect_status
+    return None if len(cut_out_sensor) == 0 else cut_out_sensor[0]

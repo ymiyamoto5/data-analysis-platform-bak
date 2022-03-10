@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 from typing import List
 
 from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.schemas.data_collect_history import DataCollectHistoryUpdate
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
@@ -14,7 +17,9 @@ class CRUDDataCollectHistory:
         history: List[DataCollectHistory] = (
             db.query(DataCollectHistory)
             .order_by(desc(DataCollectHistory.started_at))
-            .options(joinedload(DataCollectHistory.machine), joinedload(DataCollectHistory.data_collect_history_details))
+            .options(
+                joinedload(DataCollectHistory.machine),
+            )
             .all()
         )
 
@@ -84,6 +89,50 @@ class CRUDDataCollectHistory:
         return history
 
     @staticmethod
+    def select_latest_by_machine_gateway_handler_id(
+        db: Session, machine_id: str, gateway_id: str, handler_id: str
+    ) -> DataCollectHistoryHandler:
+        history: DataCollectHistoryHandler = (
+            db.query(DataCollectHistoryHandler)
+            .filter(DataCollectHistoryHandler.handler_id == handler_id)
+            .join(DataCollectHistoryGateway)
+            .filter(DataCollectHistoryGateway.gateway_id == gateway_id)
+            .join(DataCollectHistory)
+            .filter(DataCollectHistory.machine_id == machine_id)
+            .order_by(desc(DataCollectHistory.started_at))
+            .first()
+        )
+
+        return history
+
+    @staticmethod
+    def select_cut_out_target_handlers_by_hisotry_id(db: Session, history_id: int) -> List[DataCollectHistoryHandler]:
+        cut_out_target_handlers: List[DataCollectHistoryHandler] = (
+            db.query(DataCollectHistoryHandler)
+            .join(DataCollectHistoryGateway)
+            .join(DataCollectHistory)
+            .filter(DataCollectHistory.id == history_id)
+            .filter(DataCollectHistoryHandler.is_cut_out_target)
+            .all()
+        )
+
+        return cut_out_target_handlers
+
+    @staticmethod
+    def select_cut_out_target_sensors_by_history_id(db: Session, history_id: int) -> List[DataCollectHistorySensor]:
+        cut_out_target_sensors: List[DataCollectHistorySensor] = (
+            db.query(DataCollectHistorySensor)
+            .join(DataCollectHistoryHandler)
+            .join(DataCollectHistoryGateway)
+            .join(DataCollectHistory)
+            .filter(DataCollectHistory.id == history_id)
+            .filter(DataCollectHistoryHandler.is_cut_out_target)
+            .all()
+        )
+
+        return cut_out_target_sensors
+
+    @staticmethod
     def update(db: Session, db_obj: DataCollectHistory, obj_in: DataCollectHistoryUpdate) -> DataCollectHistory:
 
         if isinstance(obj_in, dict):
@@ -93,11 +142,11 @@ class CRUDDataCollectHistory:
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
-            # NOTE: プロパティにList[DataCollectHistoryDetail]を直接代入するとエラーになるため、ループしてセット
-            if key == "data_collect_history_details":
+            # NOTE: プロパティにList[DataCollectHistorySensor]を直接代入するとエラーになるため、ループしてセット
+            if key == "data_collect_history_sensors":
                 for detail_number, detail in enumerate(value):
                     for k, v in detail.items():
-                        setattr(db_obj.data_collect_history_details[detail_number], k, v)
+                        setattr(db_obj.data_collect_history_sensors[detail_number], k, v)
             else:
                 setattr(db_obj, key, value)
 

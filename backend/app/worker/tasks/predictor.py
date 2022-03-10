@@ -65,7 +65,7 @@ def predictor_task(machine_id: str, debug_mode: bool = False):
         # 未予測ショットの取得
         unpredicted_shots_meta: List[dict] = fetch_unpredicted_shots_meta(meta_index)
         if not unpredicted_shots_meta:
-            collect_status = common.get_collect_status(machine_id)
+            collect_status = get_collect_status(machine_id)
             # COLLECT_STATUSがSTOPであればリトライカウントインクリメント
             if collect_status == common.COLLECT_STATUS.STOP.value:
                 retry_count += 1
@@ -194,3 +194,15 @@ def predict(machine: Machine, features_df: DataFrame, target_dir: str, shot_meta
             ElasticManager.update_doc(meta_index, shot_ids[0], {"predicted": True})
 
     return results
+
+
+def get_collect_status(machine_id) -> str:
+    """データ収集ステータスを取得する"""
+
+    # NOTE: DBセッションを使いまわすと更新データが得られないため、新しいセッション作成
+    db = SessionLocal()
+    machine: Machine = CRUDMachine.select_by_id(db, machine_id)
+    collect_status: str = machine.collect_status
+    db.close()
+
+    return collect_status

@@ -21,9 +21,9 @@ from backend.app.db.session import SessionLocal
 def main(machine_id: str):
     db = SessionLocal()
 
-    machine = CRUDMachine.select_by_id(db, machine_id)
     data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
-    sampling_ch_num = data_collect_history.sampling_ch_num
+    handlers = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(db, data_collect_history.id)
+    is_multi_handler = True if len(handlers) >= 2 else False
 
     # 元データ
     freq = 1  # 周波数
@@ -58,11 +58,20 @@ def main(machine_id: str):
     # plt.plot(x_sample, load04_sample, "o")
     # plt.savefig("tmp.png")
 
-    data_dir = os.environ["data_dir"]
-    gateway_id = machine.gateways[0].gateway_id
-    handler_id = machine.gateways[0].handlers[0].handler_id
+    if is_multi_handler:
+        simulate_multi_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample)
+    else:
+        simulate_single_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample)
 
-    for _ in range(100):
+    time.sleep(1)
+
+
+def simulate_single_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample):
+    data_dir = os.environ["data_dir"]
+    gateway_id = "unittest-gateway-02"
+    handler_id = "unittest-handler-02"
+
+    for file_number in range(100):
         binaries = b""
         for i in range(resampling):
             binary = struct.pack("<ddddd", displacement_sample[i], load01_sample[i], load02_sample[i], load03_sample[i], load04_sample[i])
@@ -70,7 +79,48 @@ def main(machine_id: str):
 
         utc_now = datetime.utcnow()
         now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}.dat"
+        file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}_{file_number}.dat"
+        file_path = os.path.join(data_dir, file_name)
+
+        # 文字列のバイナリファイルへの書き込み
+        with open(file_path, "wb") as f:
+            f.write(binaries)
+
+        print(f"dat file created: {file_path}")
+
+
+def simulate_multi_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample):
+    data_dir = os.environ["data_dir"]
+    gateway_id = "unittest-gateway-01"
+    handlers = ["unittest-handler-01-1", "unittest-handler-01-2"]
+
+    for file_number in range(100):
+        # handler[0]
+        binaries = b""
+        for i in range(resampling):
+            binary = struct.pack("<ddd", displacement_sample[i], load01_sample[i], load02_sample[i])
+            binaries += binary
+
+        utc_now = datetime.utcnow()
+        now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
+        file_name = f"{machine_id}_{gateway_id}_{handlers[0]}_{now_str}_{file_number}.dat"
+        file_path = os.path.join(data_dir, file_name)
+
+        # 文字列のバイナリファイルへの書き込み
+        with open(file_path, "wb") as f:
+            f.write(binaries)
+
+        print(f"dat file created: {file_path}")
+
+        # handler[1]
+        binaries = b""
+        for i in range(resampling):
+            binary = struct.pack("<dd", load03_sample[i], load04_sample[i])
+            binaries += binary
+
+        utc_now = datetime.utcnow()
+        now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
+        file_name = f"{machine_id}_{gateway_id}_{handlers[1]}_{now_str}_{file_number}.dat"
         file_path = os.path.join(data_dir, file_name)
 
         # 文字列のバイナリファイルへの書き込み
@@ -81,8 +131,6 @@ def main(machine_id: str):
 
         # debug
         # read_binary(binaries, sampling_ch_num)
-
-        time.sleep(1)
 
 
 def read_binary(binary, sampling_ch_num):
