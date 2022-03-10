@@ -6,8 +6,6 @@ from typing import Final
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.app.db.session import Base, SessionLocal, engine
-
-# from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
@@ -63,7 +61,7 @@ db.add(sensor_type_05)
 # ローカルテスト用（複数ハンドラー）
 machine_01 = Machine(
     machine_id="unittest-machine-01",
-    machine_name="ユニットテスト機器01",
+    machine_name="ユニットテスト機器(複数ハンドラー)",
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
     auto_cut_out_shot=False,
@@ -89,6 +87,8 @@ machine_01 = Machine(
                     sampling_frequency=100,
                     sampling_ch_num=3,
                     filewrite_time=1,
+                    is_primary=True,
+                    is_cut_out_target=True,
                     sensors=[
                         Sensor(
                             machine_id="unittest-machine-01",
@@ -129,6 +129,8 @@ machine_01 = Machine(
                     sampling_frequency=100,
                     sampling_ch_num=2,
                     filewrite_time=1,
+                    is_primary=False,
+                    is_cut_out_target=True,
                     sensors=[
                         Sensor(
                             machine_id="unittest-machine-01",
@@ -163,7 +165,7 @@ db.add(machine_01)
 # ローカルテスト用（単一ハンドラー）
 machine_02 = Machine(
     machine_id="unittest-machine-02",
-    machine_name="デモ用プレス機",
+    machine_name="ユニットテスト機器(単一ハンドラー)",
     collect_status=common.COLLECT_STATUS.RECORDED.value,
     machine_type_id=1,
     auto_cut_out_shot=False,
@@ -189,7 +191,8 @@ machine_02 = Machine(
                     sampling_frequency=100,
                     sampling_ch_num=3,
                     filewrite_time=1,
-                    is_primary=False,
+                    is_primary=True,
+                    is_cut_out_target=True,
                     sensors=[
                         Sensor(
                             machine_id="unittest-machine-02",
