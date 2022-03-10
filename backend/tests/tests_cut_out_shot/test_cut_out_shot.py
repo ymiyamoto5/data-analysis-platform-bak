@@ -26,18 +26,24 @@ from pandas.testing import assert_frame_equal
 
 
 class TestAutoCutOutShot:
-    def test_exec(self, stroke_displacement_target, pkl_files):
-        """自動ショット切り出し実行。実行できればOKとする。auto_cut_out_shotデバッグ時にも利用可"""
+    def test_auto_cut_out_shot_multi_handler(self, stroke_displacement_target, pkl_files_multi_handler):
+        """自動ショット切り出し実行。実行できればOKとする。"""
 
-        machine_id = "unittest-machine"
+        machine_id = "machine-01"
         shots_index: str = f"shots-{machine_id}-20201201103011-data"
         shots_meta_index: str = f"shots-{machine_id}-20201201103011-meta"
 
-        pkl_file_list = []
-        pkl_file_list.append(pkl_files.tmp_pkl_1._str)
-        pkl_file_list.append(pkl_files.tmp_pkl_2._str)
+        file_set_list = []
+        pkl_file_set_1 = []
+        pkl_file_set_1.append(pkl_files_multi_handler.tmp_pkl_1._str)
+        pkl_file_set_1.append(pkl_files_multi_handler.tmp_pkl_3._str)
+        file_set_list.append(pkl_file_set_1)
+        pkl_file_set_2 = []
+        pkl_file_set_2.append(pkl_files_multi_handler.tmp_pkl_2._str)
+        pkl_file_set_2.append(pkl_files_multi_handler.tmp_pkl_4._str)
+        file_set_list.append(pkl_file_set_2)
 
-        stroke_displacement_target.auto_cut_out_shot(pkl_file_list, shots_index, shots_meta_index)
+        stroke_displacement_target.auto_cut_out_shot(file_set_list, shots_index, shots_meta_index, debug_mode=True)
 
         ElasticManager.delete_index(shots_index)
         ElasticManager.delete_index(shots_meta_index)

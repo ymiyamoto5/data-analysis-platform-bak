@@ -44,7 +44,7 @@ class TestCreate:
         self.data = {
             "sensor_name": "test-create",
             "sensor_type_id": "load",
-            "handler_id": "test-handler-01",
+            "handler_id": "test-handler-01-1",
             "slope": 1.0,
             "intercept": 0.0,
         }
@@ -62,7 +62,7 @@ class TestCreate:
         data = {
             "sensor_name": "test-create",
             "sensor_type_id": "stroke_displacement",
-            "handler_id": "test-handler-01",
+            "handler_id": "test-handler-01-1",
             "slope": 1.0,
             "intercept": 0.0,
         }
@@ -87,7 +87,7 @@ class TestUpdate:
             "machine_id": "test-machine-01",
             "sensor_name": "test-update",
             "sensor_type_id": "load",
-            "handler_id": "test-handler-01",
+            "handler_id": "test-handler-01-1",
             "slope": 10,
             "intercept": 10,
         }

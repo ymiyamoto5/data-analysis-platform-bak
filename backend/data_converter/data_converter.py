@@ -17,7 +17,7 @@ class DataConverter:
         if sensor.sensor_type_id == "load":
             return lambda v: slope * v + intercept
 
-        elif sensor.sensor_type_id == "volt":
+        elif sensor.sensor_type_id == "bolt":
             return lambda v: slope * v + intercept
 
         elif sensor.sensor_type_id == "stroke_displacement":

@@ -15,21 +15,19 @@ import sys
 import traceback
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Callable, Dict, Final, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileManager
-from backend.utils.throughput_counter import throughput_counter
-
-# from celery.result import AsyncResult
 from celery import current_task
 from pandas.core.frame import DataFrame
 
@@ -42,6 +40,8 @@ class CutOutShot:
         self,
         cutter: Union[StrokeDisplacementCutter, PulseCutter],
         data_collect_history: DataCollectHistory,
+        handlers: Union[DataCollectHistoryHandler, List[DataCollectHistoryHandler]],
+        sensors: List[DataCollectHistorySensor],
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
         min_spm: int = 15,
@@ -55,8 +55,11 @@ class CutOutShot:
         self.__chunk_size: int = chunk_size
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
         self.__data_collect_history: DataCollectHistory = data_collect_history
-        self.__sensors: List[DataCollectHistoryDetail] = data_collect_history.data_collect_history_details
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * data_collect_history.sampling_frequency
+        self.__handlers: List[DataCollectHistoryHandler] = handlers
+        self.__sensors: List[DataCollectHistorySensor] = sensors
+        self.__max_samples_per_shot: int = (
+            int(60 / self.__min_spm) * handlers[0].sampling_frequency
+        )  # ショット切り出し対象ハンドラーのサンプリングレートは各ハンドラーで同値である前提
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
     # テスト用の公開プロパティ
@@ -227,10 +230,30 @@ class CutOutShot:
 
         return end_sequential_number
 
+    def _read_pickle_file(self, file_set: List[str]) -> DataFrame:
+        """pickleファイルを読み込みDataFrameとして返す。複数ADCの場合、ADC台数分のファイルを読んで1つのDataFrameにする。"""
+
+        if len(file_set) == 0:
+            raise Exception("Not exist file_set.")
+        # 単一ハンドラー
+        elif len(file_set) == 1:
+            rawdata_df: DataFrame = pd.read_pickle(file_set[0])
+        # 複数ハンドラー
+        else:
+            rawdata_df = pd.read_pickle(file_set[0])
+            for file in file_set[1:]:
+                df: DataFrame = pd.read_pickle(file)
+                rawdata_df = pd.merge(rawdata_df, df, on="sequential_number", how="outer", suffixes=["", "_right"]).drop(
+                    columns="timestamp_right"
+                )
+
+        return rawdata_df
+
     def cut_out_shot(
         self,
         start_sequential_number: Optional[int] = None,
         end_sequential_number: Optional[int] = None,
+        is_called_by_task: bool = False,
     ) -> None:
         """
         * ショット切り出し（スクリプト実行）
@@ -249,18 +272,10 @@ class CutOutShot:
 
         logger.info("Cut out shot start.")
 
-        # 取り込むpickleファイルのリストを取得
         data_dir: str = os.environ["data_dir"]
         rawdata_dir_path: str = os.path.join(data_dir, self.__rawdata_dir_name)
-
         if not os.path.exists(rawdata_dir_path):
             logger.error(f"Directory not found. {rawdata_dir_path}")
-            sys.exit(1)
-
-        pickle_files: List[str] = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{self.__machine_id}_*.pkl")
-
-        if len(pickle_files) == 0:
-            logger.error("pickle files not found.")
             sys.exit(1)
 
         # パラメータによる範囲フィルター設定
@@ -302,13 +317,15 @@ class CutOutShot:
         pause_events: List[DataCollectHistoryEvent] = [e for e in events if e.event_name == common.COLLECT_STATUS.PAUSE.value]
 
         procs: List[multiprocessing.context.Process] = []
-        processed_count: int = 0
 
-        NOW: Final[datetime] = datetime.now()
+        try:
+            files_list: List[List[str]] = FileManager.get_files_list(self.__machine_id, self.__handlers, rawdata_dir_path)
+        except Exception:
+            raise
 
         # main loop
-        for loop_count, pickle_file in enumerate(pickle_files):
-            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
+        for processed_count, file_set in enumerate(files_list):
+            rawdata_df: DataFrame = self._read_pickle_file(file_set)
 
             # パラメータで指定された対象範囲に含まれないデータを除外
             if has_target_interval:
@@ -321,14 +338,14 @@ class CutOutShot:
                 rawdata_df = self._exclude_non_target_interval(rawdata_df, start_sequential_number, end_sequential_number)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
+                logger.info(f"All data was excluded by non-target interval. {file_set}")
                 continue
 
             # 段取区間の除外
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by setup interval. {pickle_file}")
+                logger.info(f"All data was excluded by setup interval. {file_set}")
                 continue
 
             # 中断区間の除外
@@ -336,7 +353,7 @@ class CutOutShot:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by pause interval. {pickle_file}")
+                logger.info(f"All data was excluded by pause interval. {file_set}")
                 continue
 
             # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
@@ -346,14 +363,17 @@ class CutOutShot:
             # ショット切り出し
             self.cutter.cut_out_shot(rawdata_df)
 
-            # スループット表示
-            if loop_count != 0:
-                processed_count += len(rawdata_df)
-                throughput_counter(processed_count, NOW)
+            # 進捗率を計算して記録
+            if is_called_by_task:
+                progress = round(processed_count / len(files_list) * 100.0, 1)
+                current_task.update_state(
+                    state="PROGRESS",
+                    meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
+                )
 
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
-                logger.info(f"Shot is not detected in {pickle_file}")
+                logger.info(f"Shot is not detected in {file_set}")
                 continue
 
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
@@ -365,7 +385,7 @@ class CutOutShot:
             cut_out_df = self._exclude_over_sample(cut_out_df)
 
             if len(cut_out_df) == 0:
-                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
+                logger.info(f"Shot is not detected in {file_set} by over_sample_filter.")
                 continue
 
             # timestampをdatetimeに変換する
@@ -377,21 +397,27 @@ class CutOutShot:
             # Elasticsearchに格納するため、dictに戻す
             cut_out_targets = cut_out_df.to_dict(orient="records")
 
-            # 子プロセスのjoin
-            procs = self.__join_process(procs)
+            # NOTE: celeryからmultiprocess実行すると以下エラーになるため、シングルプロセス実行
+            # daemonic processes are not allowed to have children
+            if is_called_by_task:
+                ElasticManager.bulk_insert(cut_out_targets, shots_index)
+            else:
+                # 子プロセスのjoin
+                procs = self.__join_process(procs)
 
-            # Elasticsearchに出力
-            procs = ElasticManager.multi_process_bulk_lazy_join(
-                data=cut_out_targets,
-                index_to_import=shots_index,
-                num_of_process=self.__num_of_process,
-                chunk_size=self.__chunk_size,
-            )
+                # Elasticsearchに出力
+                procs = ElasticManager.multi_process_bulk_lazy_join(
+                    data=cut_out_targets,
+                    index_to_import=shots_index,
+                    num_of_process=self.__num_of_process,
+                    chunk_size=self.__chunk_size,
+                )
 
             cut_out_targets = []
 
-        # 全ファイル走査後、子プロセスが残っていればjoin
-        procs = self.__join_process(procs)
+        if not is_called_by_task:
+            # 全ファイル走査後、子プロセスが残っていればjoin
+            procs = self.__join_process(procs)
 
         if len(self.cutter.shots_summary) == 0:
             logger.info("Shot is not detected.")
@@ -408,35 +434,28 @@ class CutOutShot:
 
         logger.info("Cut out shot finished.")
 
-    def cut_out_shot_by_task(
+    def auto_cut_out_shot(
         self,
-        pickle_files: List[str],
+        file_set_list: List[List[str]],
         shots_index: str,
         shots_meta_index: str,
+        debug_mode: bool = False,
     ) -> None:
         """
-        * ショット切り出し画面のショット切り出し・自動ショット切り出し（celeryタスク実行）
-        * 物理変換 + 校正
-        * SPM計算
-        * Elasticsearchインデックスへの保存
-            * shots-yyyyMMddHHMMSS-data:切り出されたショットデータ
-            * shots-yyyyMMddHHMMSS-meta:ショットのメタデータ
-        * Celeryにタスクの進捗を記録
-
-        Args:
-            target_files: 処理対象となるファイルパスリスト
+        自動ショット切り出し（celeryタスク実行）
+        自動の場合は以下が異なる。
+        * 切り出し対象のファイルリストは呼び出し元から取得する
+        * Elasticsearchインデックスは呼び出し元で作成する
         """
 
-        all_files: int = len(pickle_files)
-        has_been_processed: int = 0
-        logger.info(f"Cut out shot start. number of pickle_files: {all_files}")
+        logger.info(f"Cut out shot start. number of pickle_files: {len(file_set_list)}")
 
         # main loop
-        for pickle_file in pickle_files:
-            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
+        for processed_count, file_set in enumerate(file_set_list):
+            rawdata_df: DataFrame = self._read_pickle_file(file_set)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
+                logger.info(f"All data was excluded by non-target interval. {file_set}")
                 continue
 
             # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
@@ -448,7 +467,7 @@ class CutOutShot:
 
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
-                logger.info(f"Shot is not detected in {pickle_file}")
+                logger.info(f"Shot is not detected in {file_set}")
                 continue
 
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
@@ -457,7 +476,7 @@ class CutOutShot:
             self.cutter.cut_out_targets = []
 
             if len(cut_out_df) == 0:
-                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
+                logger.info(f"Shot is not detected in {file_set} by over_sample_filter.")
                 continue
 
             # timestampをdatetimeに変換する
@@ -476,12 +495,12 @@ class CutOutShot:
             cut_out_targets = []
 
             # 進捗率を計算して記録
-            has_been_processed += 1
-            progress = round(has_been_processed / all_files * 100.0, 1)
-            current_task.update_state(
-                state="PROGRESS",
-                meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
-            )
+            progress = round(processed_count / len(file_set_list) * 100.0, 1)
+            if not debug_mode:
+                current_task.update_state(
+                    state="PROGRESS",
+                    meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
+                )
 
         if len(self.cutter.shots_summary) == 0:
             logger.info("Shot is not detected.")
@@ -493,23 +512,28 @@ class CutOutShot:
         # ショットメタデータをElasticsearchに出力
         self._export_shots_meta_to_es(shots_meta_index)
 
-        logger.info("Cut out shot finished.")
-
 
 if __name__ == "__main__":
     from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
-    machine_id: str = "machine-01"
-    target: str = "20210327141514"
+    machine_id = "unittest-machine-01"
+    target: str = "20220310105512"
     db = SessionLocal()
+    # TODO: ここは効率化する
     history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
+    cut_out_target_handlers: List[DataCollectHistoryHandler] = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(
+        db, history.id
+    )
+    cut_out_target_sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(
+        db, history.id
+    )
 
     cutter = StrokeDisplacementCutter(
-        start_stroke_displacement=47.0,
-        end_stroke_displacement=34.0,
-        margin=0.3,
-        sensors=history.data_collect_history_details,
+        start_stroke_displacement=1.8,
+        end_stroke_displacement=1.5,
+        margin=0.01,
+        sensors=cut_out_target_sensors,
     )
 
     cut_out_shot = CutOutShot(
@@ -517,7 +541,13 @@ if __name__ == "__main__":
         machine_id=machine_id,
         target=target,
         data_collect_history=history,
+        handlers=cut_out_target_handlers,
+        sensors=cut_out_target_sensors,
         min_spm=15,
     )
 
-    cut_out_shot.cut_out_shot()
+    try:
+        cut_out_shot.cut_out_shot()
+    except Exception:
+        logger.exception(traceback.format_exc())
+        sys.exit(1)

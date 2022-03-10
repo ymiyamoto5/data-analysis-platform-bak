@@ -30,7 +30,7 @@
 
                 <v-data-table
                   :headers="detailHeaders"
-                  :items="editedItem.data_collect_history_details"
+                  :items="editedItem.data_collect_history_sensors"
                 >
                   <template v-slot:[`item.slope`]="props">
                     <v-text-field
@@ -126,7 +126,7 @@ export default {
         ended_at: '',
         sampling_frequency: 0,
         sampling_ch_num: 0,
-        data_collect_history_details: [],
+        data_collect_history_sensors: [],
       },
       headers: [
         {
@@ -195,7 +195,7 @@ export default {
       ],
       defaultItem: {
         sampling_frequency: 0,
-        data_collect_history_details: [
+        data_collect_history_sensors: [
           {
             data_collect_history_id: -1,
             sensor_id: '',
@@ -283,7 +283,7 @@ export default {
       const client = createBaseApiClient()
 
       // 空文字の時nullに置き換え
-      this.editedItem.data_collect_history_details.map((obj) => {
+      this.editedItem.data_collect_history_sensors.map((obj) => {
         obj.slope = obj.slope === '' ? null : obj.slope
         obj.intercept = obj.intercept === '' ? null : obj.intercept
         return obj
@@ -292,8 +292,8 @@ export default {
       const url = DATA_COLLECT_HISTORY_API_URL + this.editedItem.id
       const body = {
         sampling_frequency: this.editedItem.sampling_frequency,
-        data_collect_history_details: this.editedItem
-          .data_collect_history_details,
+        data_collect_history_sensors: this.editedItem
+          .data_collect_history_sensors,
       }
       await client
         .put(url, body)

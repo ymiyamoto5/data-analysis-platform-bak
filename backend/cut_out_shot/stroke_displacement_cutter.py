@@ -1,6 +1,6 @@
 from typing import List
 
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common.common_logger import logger
 from pandas.core.frame import DataFrame
 
@@ -11,7 +11,7 @@ class StrokeDisplacementCutter:
         start_stroke_displacement: float,
         end_stroke_displacement: float,
         margin: float,
-        sensors: List[DataCollectHistoryDetail],
+        sensors: List[DataCollectHistorySensor],
     ):
         self.__start_stroke_displacement: float = start_stroke_displacement
         self.__end_stroke_displacement: float = end_stroke_displacement
@@ -21,16 +21,14 @@ class StrokeDisplacementCutter:
         self.__sequential_number_by_shot: int = 0
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
         self.__is_target_of_cut_out: bool = False  # ショットの内、切り出し対象かを判別する
-        self.__sensors: List[DataCollectHistoryDetail] = sensors
+        self.__sensors: List[DataCollectHistorySensor] = sensors
         self.cut_out_targets: List[dict] = []
         self.shots_summary: List[dict] = []
 
     def _detect_shot_start(self, stroke_displacement: float) -> bool:
         """ショット開始検知。ショットが未検出かつストローク変位値が終了しきい値以上開始しきい値以下の場合、ショット開始とみなす。"""
 
-        return (not self.__is_shot_section) and (
-            self.__end_stroke_displacement <= stroke_displacement <= self.__start_stroke_displacement
-        )
+        return (not self.__is_shot_section) and (self.__end_stroke_displacement <= stroke_displacement <= self.__start_stroke_displacement)
 
     def _detect_shot_end(self, stroke_displacement: float) -> bool:
         """ショット終了検知。ショットが検出されている状態かつストローク変位値が開始しきい値+マージンより大きい場合、ショット終了とみなす。
@@ -86,12 +84,8 @@ class StrokeDisplacementCutter:
 
             # 切り出し区間終了判定
             if self._detect_cut_out_end(rawdata.stroke_displacement):
-                logger.info(
-                    f"{self.__sequential_number_by_shot} samples cutted out in shot_number: {self.__shot_number}"
-                )
-                self.shots_summary[self.__shot_number - 1][
-                    "num_of_samples_in_cut_out"
-                ] = self.__sequential_number_by_shot
+                logger.info(f"{self.__sequential_number_by_shot} samples cutted out in shot_number: {self.__shot_number}")
+                self.shots_summary[self.__shot_number - 1]["num_of_samples_in_cut_out"] = self.__sequential_number_by_shot
                 self.__is_target_of_cut_out = False
 
             # 切り出し区間でなければ後続は何もしない

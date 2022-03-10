@@ -1,7 +1,9 @@
 from .celery_task import CeleryTask  # noqa
 from .data_collect_history import DataCollectHistory  # noqa
-from .data_collect_history_detail import DataCollectHistoryDetail  # noqa
 from .data_collect_history_event import DataCollectHistoryEvent  # noqa
+from .data_collect_history_gateway import DataCollectHistoryGateway  # noqa
+from .data_collect_history_handler import DataCollectHistoryHandler  # noqa
+from .data_collect_history_sensor import DataCollectHistorySensor  # noqa
 from .gateway import Gateway  # noqa
 from .handler import Handler  # noqa
 from .machine import Machine  # noqa

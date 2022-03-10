@@ -1,18 +1,18 @@
 from typing import List
 
-from backend.app.models.data_collect_history_detail import DataCollectHistoryDetail
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common.common_logger import logger
 from pandas.core.frame import DataFrame
 
 
 class PulseCutter:
-    def __init__(self, threshold: float, sensors: List[DataCollectHistoryDetail]):
+    def __init__(self, threshold: float, sensors: List[DataCollectHistorySensor]):
         self.__threshold = threshold
         self.__shot_number: int = 0
         self.__sequential_number: int = 0
         self.__sequential_number_by_shot: int = 0
         self.__is_shot_section: bool = False  # ショット内か否かを判別する
-        self.__sensors: List[DataCollectHistoryDetail] = sensors
+        self.__sensors: List[DataCollectHistorySensor] = sensors
         self.cut_out_targets: List[dict] = []
         self.shots_summary: List[dict] = []
 
@@ -62,12 +62,8 @@ class PulseCutter:
 
             # ショット区間終了検知
             if self._detect_pulse_shot_end(rawdata.pulse):
-                logger.info(
-                    f"{self.__sequential_number_by_shot} samples cutted out in shot_number: {self.__shot_number}"
-                )
-                self.shots_summary[self.__shot_number - 1][
-                    "num_of_samples_in_cut_out"
-                ] = self.__sequential_number_by_shot
+                logger.info(f"{self.__sequential_number_by_shot} samples cutted out in shot_number: {self.__shot_number}")
+                self.shots_summary[self.__shot_number - 1]["num_of_samples_in_cut_out"] = self.__sequential_number_by_shot
                 self.__is_shot_section = False
 
             # ショット未開始ならば後続は何もしない
