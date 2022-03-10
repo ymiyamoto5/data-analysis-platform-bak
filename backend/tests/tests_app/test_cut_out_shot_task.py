@@ -22,22 +22,42 @@ class TestGetTargetFiles:
 
         assert actual == expected
 
-    def test_normal_multi_handler(self):
+    def test_normal_two_handler(self):
         all_files = [
-            ["/mnt/datadrive/a_1.pkl", "/mnt/datadrive/a_2.pkl"],
-            ["/mnt/datadrive/b_1.pkl", "/mnt/datadrive/b_2.pkl"],
-            ["/mnt/datadrive/c_1.pkl", "/mnt/datadrive/c_2.pkl"],
-            ["/mnt/datadrive/d_1.pkl", "/mnt/datadrive/d_2.pkl"],
+            ["/mnt/datadrive/a_1.pkl", "/mnt/datadrive/b_1.pkl"],
+            ["/mnt/datadrive/a_2.pkl", "/mnt/datadrive/b_2.pkl"],
+            ["/mnt/datadrive/a_3.pkl", "/mnt/datadrive/b_3.pkl"],
+            ["/mnt/datadrive/a_4.pkl", "/mnt/datadrive/b_4.pkl"],
         ]
         has_been_processed = [
-            ["/mnt/datadrive/a_1.pkl", "/mnt/datadrive/a_2.pkl"],
-            ["/mnt/datadrive/b_1.pkl", "/mnt/datadrive/b_2.pkl"],
+            ["/mnt/datadrive/a_1.pkl", "/mnt/datadrive/b_1.pkl"],
+            ["/mnt/datadrive/a_2.pkl", "/mnt/datadrive/b_2.pkl"],
         ]
 
         actual = cut_out_shot.get_target_files(all_files, has_been_processed)
         expected = [
-            ["/mnt/datadrive/c_1.pkl", "/mnt/datadrive/c_2.pkl"],
-            ["/mnt/datadrive/d_1.pkl", "/mnt/datadrive/d_2.pkl"],
+            ["/mnt/datadrive/a_3.pkl", "/mnt/datadrive/b_3.pkl"],
+            ["/mnt/datadrive/a_4.pkl", "/mnt/datadrive/b_4.pkl"],
+        ]
+
+        assert actual == expected
+
+    def test_normal_three_handler(self):
+        all_files = [
+            ["/mnt/datadrive/a_1.pkl", "/mnt/datadrive/b_1.pkl", "/mnt/datadrive/c_1.pkl"],
+            ["/mnt/datadrive/a_2.pkl", "/mnt/datadrive/b_2.pkl", "/mnt/datadrive/c_2.pkl"],
+            ["/mnt/datadrive/a_3.pkl", "/mnt/datadrive/b_3.pkl", "/mnt/datadrive/c_3.pkl"],
+            ["/mnt/datadrive/a_4.pkl", "/mnt/datadrive/b_4.pkl", "/mnt/datadrive/c_4.pkl"],
+        ]
+        has_been_processed = [
+            ["/mnt/datadrive/a_2.pkl", "/mnt/datadrive/b_2.pkl", "/mnt/datadrive/c_2.pkl"],
+            ["/mnt/datadrive/a_4.pkl", "/mnt/datadrive/b_4.pkl", "/mnt/datadrive/c_4.pkl"],
+        ]
+
+        actual = cut_out_shot.get_target_files(all_files, has_been_processed)
+        expected = [
+            ["/mnt/datadrive/a_1.pkl", "/mnt/datadrive/b_1.pkl", "/mnt/datadrive/c_1.pkl"],
+            ["/mnt/datadrive/a_3.pkl", "/mnt/datadrive/b_3.pkl", "/mnt/datadrive/c_3.pkl"],
         ]
 
         assert actual == expected
