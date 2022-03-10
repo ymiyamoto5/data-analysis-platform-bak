@@ -148,7 +148,7 @@ class FileManager:
         try:
             file_set_list: List[List[str]] = FileManager.convert_to_file_set_list(pickle_files_by_handler)
         except Exception:
-            raise Exception("Number of files are not equal by handler.")
+            raise
         if not FileManager.check_file_index_numbers_are_equal(file_set_list, ".pkl"):
             raise Exception("File index numbers are not equal by handler.")
 

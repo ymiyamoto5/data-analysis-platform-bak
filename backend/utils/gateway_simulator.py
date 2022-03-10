@@ -68,8 +68,8 @@ def main(machine_id: str):
 
 def simulate_single_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample):
     data_dir = os.environ["data_dir"]
-    gateway_id = "gw-02"
-    handler_id = "handler-single"
+    gateway_id = "unittest-gateway-02"
+    handler_id = "unittest-handler-02"
 
     for file_number in range(100):
         binaries = b""
@@ -91,8 +91,8 @@ def simulate_single_handler(machine_id, resampling, displacement_sample, load01_
 
 def simulate_multi_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample):
     data_dir = os.environ["data_dir"]
-    gateway_id = "gw-01"
-    handlers = ["handler-01", "handler-02"]
+    gateway_id = "unittest-gateway-01"
+    handlers = ["unittest-handler-01-1", "unittest-handler-01-2"]
 
     for file_number in range(100):
         # handler[0]
