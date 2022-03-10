@@ -3,11 +3,10 @@ import glob
 import os
 import re
 from datetime import datetime
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 import pandas as pd
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
-from backend.common.common_logger import logger
 from pandas.core.frame import DataFrame
 
 
@@ -120,7 +119,6 @@ class FileManager:
 
         files: List[str] = glob.glob(os.path.join(dir_path, pattern))
         files.sort()
-
         return files
 
     @staticmethod
@@ -136,67 +134,44 @@ class FileManager:
         if len(all_pickle_files) == 0:
             return []
 
-        # ハンドラー毎のリストを取得
-        # [[ADC1_1, ADC1_2, ADC1_3, ...], [ADC2_1, ADC2_2, ADC2_3, ...], ...]
-        pickle_files_by_handler: List[List[str]] = []
+        # ハンドラー毎のリストを取得。要素はインデックス番号を持たせた辞書となる。
+        # [[{"index": 1, "file_path": "data/ADC1_1.pkl"}, {"index": 2, "file_path": "data/ADC1_2", ...],
+        #  [{"index": 1, "file_path": data/ADC2_1.pkl"}, {"index": 2, "file_path": "data/ADC2_2", ...], ...]
+        pickle_files_by_handler: List[List[Dict[str, Any]]] = []
         for handler in handlers:
             # handler.id == "ADC1" のとき ["ADC1_1", "ADC1_2", "ADC1_3", ...]
             pickle_files_in_handler: List[str] = [s for s in all_pickle_files if handler.handler_id in s]
-            pickle_files_by_handler.append(pickle_files_in_handler)
+            # インデックス番号リストを付与した辞書作成
+            file_index_dict_list: List[Dict[str, Any]] = []
+            for pickle_file in pickle_files_in_handler:
+                index: int = FileManager.get_file_index_number(pickle_file, ".pkl")
+                file_index_dict: Dict[str, Any] = {"index": index, "file_path": pickle_file}
+                file_index_dict_list.append(file_index_dict)
+            pickle_files_by_handler.append(file_index_dict_list)
 
-        # ファイルインデックス番号ごとのリストに変換
-        try:
-            file_set_list: List[List[str]] = FileManager.convert_to_file_set_list(pickle_files_by_handler)
-        except Exception:
-            raise
-        if not FileManager.check_file_index_numbers_are_equal(file_set_list, ".pkl"):
-            raise Exception("File index numbers are not equal by handler.")
+        # ファイルインデックス番号で突合し、インデックス毎のリストに変換
+        # [[ADC1_1, ADC2_1, ADC3_1, ...], [ADC1_2, ADC2_2, ADC3_2, ...], ...]
+        file_set_list: List[List[str]] = []
+        # 最初のハンドラーをベースにし、他のハンドラーと突合
+        # TODO: primaryハンドラーをベースにする
+        for base_file in pickle_files_by_handler[0]:
+            file_set: List[str] = [base_file["file_path"]]
+            # 2つめ以降のハンドラーについて、ベースとインデックス比較し、一致すれば突合OK
+            for handler_files in pickle_files_by_handler[1:]:
+                for compared_file in handler_files:
+                    if compared_file["index"] == base_file["index"]:
+                        file_set.append(compared_file["file_path"])
+                        break
+            file_set_list.append(file_set)
 
         return file_set_list
-
-    @staticmethod
-    def check_file_index_numbers_are_equal(files_list: List[List[str]], extension: str) -> bool:
-        """ファイル名サフィックスのインデックス番号をチェックし、ハンドラー毎に等しいことを確認する"""
-
-        for files in files_list:
-            for i, file_name in enumerate(files):
-                # インデックス番号取得
-                file_index_number: int = FileManager.get_file_index_number(file_name, extension)
-                if i == 0:
-                    compare_target: int = file_index_number
-                    continue
-                if file_index_number != compare_target:
-                    return False
-
-        return True
 
     @staticmethod
     def get_file_index_number(file_name: str, extension: str) -> int:
-        """ファイル名サフィックスのインデックス番号を取得する"""
+        """ファイル名サフィックスのインデックス番号を取得する。extensionはあらかじめファイル名から除去するために利用。"""
 
         file_name = file_name.replace(extension, "")
         return int(file_name.split("_")[-1])
-
-    @staticmethod
-    def convert_to_file_set_list(files_list: List[List[str]]) -> List[List[str]]:
-        """リストを以下のように変換し、ファイルセットを得る。リスト要素の数はすべて等しいことが前提。
-        [[ADC1_1, ADC1_2, ADC1_3, ...], [ADC2_1, ADC2_2, ADC2_3, ...], ...]
-        --> [[ADC1_1, ADC2_1, ADC3_1, ...], [ADC1_2, ADC2_2, ADC3_2, ...], ...]
-        """
-
-        try:
-            num_of_files: int = FileManager.get_num_of_files_unified_handler(files_list)
-            # logger.info(f"num_of_files: {num_of_files}")
-        except Exception:
-            raise
-
-        file_set_list = []
-        for file_number in range(num_of_files):
-            file_set = [x[file_number] for x in files_list]
-            file_set_list.append(file_set)
-        # logger.info(f"len(file_set_list): {len(file_set_list)}")
-
-        return file_set_list
 
     @staticmethod
     def get_files_list(machine_id, handlers: List[DataCollectHistoryHandler], rawdata_dir_path: str) -> List[List[str]]:

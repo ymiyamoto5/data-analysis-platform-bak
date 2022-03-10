@@ -20,12 +20,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import \
-    DataCollectHistoryEvent
-from backend.app.models.data_collect_history_handler import \
-    DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import \
-    DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -517,12 +514,11 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import \
-        CRUDDataCollectHistory  # noqa
+    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
-    machine_id = "machine-02"
-    target: str = "20220308143301"
+    machine_id = "unittest-machine-01"
+    target: str = "20220310105512"
     db = SessionLocal()
     # TODO: ここは効率化する
     history = CRUDDataCollectHistory.select_by_machine_id_started_at(db, machine_id, target)
