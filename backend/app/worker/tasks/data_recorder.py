@@ -1,6 +1,6 @@
 from backend.app.db.session import SessionLocal
-from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
+from backend.data_recorder.data_recorder import DataRecorder
 from celery import current_task
 from sqlalchemy.orm.session import Session
 
@@ -13,7 +13,7 @@ def data_recorder_task(self, machine_id: str, gateway_id: str, handler_id: str) 
 
     db: Session = SessionLocal()
 
-    DataRecorderService.record(db, machine_id, gateway_id, handler_id)
+    DataRecorder.record(db, machine_id, gateway_id, handler_id)
 
     db.close()
 
