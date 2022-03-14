@@ -16,10 +16,7 @@ class CRUDMachine:
             db.query(Machine)
             .options(
                 joinedload(Machine.machine_type),
-                joinedload(Machine.gateways)
-                .joinedload(Gateway.handlers)
-                .joinedload(Handler.sensors)
-                .joinedload(Sensor.sensor_type),
+                joinedload(Machine.gateways).joinedload(Gateway.handlers).joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
             )
             .all()
         )
@@ -32,10 +29,7 @@ class CRUDMachine:
             db.query(Machine)
             .options(
                 joinedload(Machine.machine_type),
-                joinedload(Machine.gateways)
-                .joinedload(Gateway.handlers)
-                .joinedload(Handler.sensors)
-                .joinedload(Sensor.sensor_type),
+                joinedload(Machine.gateways).joinedload(Gateway.handlers).joinedload(Handler.sensors).joinedload(Sensor.sensor_type),
             )
             .get(machine_id)
         )
@@ -79,33 +73,7 @@ class CRUDMachine:
         return db_obj
 
     @staticmethod
-    def fetch_handler_from_machine_id(db: Session, machine_id: str) -> Handler:
-        """DBからmachine_idをkeyにHandler情報を取得する。"""
-
-        machine: Machine = (
-            db.query(Machine)
-            .filter(Machine.machine_id == machine_id)
-            .join(Gateway, Machine.gateways)
-            .join(Handler, Gateway.handlers)
-            .one()
-        )
-
-        # NOTE: 1つ目のGW, 1つ目のHandlerを採用。複数GW, 複数Handlerには対応していない。
-        # NOTE: handlerがない場合はException
-        handler: Handler = machine.gateways[0].handlers[0]
-
-        return handler
-
-    @staticmethod
     def select_sensors_by_machine_id(db: Session, machine_id: str) -> List[Sensor]:
         sensors: List[Sensor] = db.query(Sensor).filter(Sensor.machine_id == machine_id).all()
 
         return sensors
-
-    @staticmethod
-    def select_machines_has_handler(db: Session) -> List[Machine]:
-        machines: List[Machine] = (
-            db.query(Machine).join(Gateway, Machine.gateways).join(Handler, Gateway.handlers).all()
-        )
-
-        return machines
