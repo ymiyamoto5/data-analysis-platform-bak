@@ -3,7 +3,7 @@ import os
 import time
 import traceback
 from datetime import datetime
-from typing import Final, List, Optional, Tuple
+from typing import Final, List, Optional, Tuple, Union
 
 from backend.app.api.deps import get_db
 from backend.app.crud.crud_celery_task import CRUDCeleryTask
@@ -15,6 +15,7 @@ from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.machine import Machine
+from backend.app.models.sensor import Sensor
 from backend.app.services.data_recorder_service import DataRecorderService
 from backend.app.worker.celery import celery_app
 from backend.common import common
@@ -324,7 +325,10 @@ def run_cut_out_shot(
         raise HTTPException(status_code=500, detail="DB read error.")
 
     sensors: List[DataCollectHistorySensor] = cut_out_target_sensors
-    sensor_type: str = common.get_cut_out_shot_sensor(sensors).sensor_type_id
+    cut_out_shot_sensor: Optional[Union[Sensor, DataCollectHistorySensor]] = common.get_cut_out_shot_sensor(sensors)
+    if cut_out_shot_sensor is None:
+        raise HTTPException(status_code=500, detail="切り出し基準となるセンサーがありません")
+    sensor_type: str = cut_out_shot_sensor.sensor_type_id
 
     task_name = "backend.app.worker.tasks.cut_out_shot.auto_cut_out_shot_task"
 
