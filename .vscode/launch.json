@@ -69,6 +69,17 @@
             // "preLaunchTask": "Sleepdelay"
         },
         {
+            "name": "gateway_simulator",
+            "type": "python",
+            "module": "backend.utils.gateway_simulator",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "args": [
+                "-m=unittest-machine-01"
+            ],
+        },
+        {
             "name": "FastAPI",
             "type": "python",
             "request": "launch",

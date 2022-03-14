@@ -2,138 +2,144 @@ import argparse
 import os
 import struct
 import sys
-import time
 from datetime import datetime
 from typing import Any, Dict, Final, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from scipy.interpolate import interp1d
 
 sys.path.append(os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + "/../../"))
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
-from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.db.session import SessionLocal
 
 
-def main(machine_id: str):
+def main(machine_id: str, show_fig: bool = False):
+    """バイナリデータを生成する。対象機器でデータ収集を開始後に実行すること"""
     db = SessionLocal()
 
-    data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
-    handlers = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(db, data_collect_history.id)
+    try:
+        data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
+        handlers = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(db, data_collect_history.id)
+        sensors = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(db, data_collect_history.id)
+    except Exception:
+        print("Read DB error.")
+
     is_multi_handler = True if len(handlers) >= 2 else False
 
     # 元データ
     freq = 1  # 周波数
-    orignal_sampling = 10000
-    x = np.linspace(0, 1, orignal_sampling)
-    displacement = np.cos(2 * np.pi * x * freq) + 1  # +1上に平行移動
-    # +1上に平行移動してノイズを足す
-    load01 = np.sin(2 * np.pi * x * freq) + 1 + np.random.randn(orignal_sampling) * 10 ** -2
-    load02 = np.sin(2 * np.pi * x * freq) + 1 + np.random.randn(orignal_sampling) * 10 ** -2
-    load03 = np.sin(2 * np.pi * x * freq) + 1 + np.random.randn(orignal_sampling) * 10 ** -2
-    load04 = np.sin(2 * np.pi * x * freq) + 1 + np.random.randn(orignal_sampling) * 10 ** -2
+    original = 10000
+    x = np.linspace(0, 1, original)
 
-    sampling_rate = 1 / 100  # 100Hz
-    resampling = int(orignal_sampling * sampling_rate)
+    y = {}
+    for sensor in sensors:
+        if sensor.sensor_id == "stroke_displacement":
+            y[sensor.sensor_id] = np.cos(2 * np.pi * x * freq) + 1  # cos波を+1上に平行移動
+        else:
+            y[sensor.sensor_id] = np.sin(2 * np.pi * x * freq) + 1 + np.random.randn(original) * 10 ** -2  # sin波を+1上に平行移動しノイズを追加
+
+    # 元データをサンプリング
+    sampling_rate = 100  # 100Hz
+    sampling_interval = 1 / sampling_rate
+    resampling = int(original * sampling_interval)
     x_sample = np.linspace(0, 1, resampling)
-    displacement_sample = np.cos(2 * np.pi * x_sample * freq) + 1
-    load01_sample = np.sin(2 * np.pi * x_sample * freq) + 1 + np.random.randn(resampling) * 10 ** -2
-    load02_sample = np.sin(2 * np.pi * x_sample * freq) + 1 + np.random.randn(resampling) * 10 ** -2
-    load03_sample = np.sin(2 * np.pi * x_sample * freq) + 1 + np.random.randn(resampling) * 10 ** -2
-    load04_sample = np.sin(2 * np.pi * x_sample * freq) + 1 + np.random.randn(resampling) * 10 ** -2
+    y_sample = {}
+    for k, v in y.items():
+        y_sample[k] = v[::resampling]
 
-    # plt.figure()
-    # plt.plot(x, displacement, alpha=0.5)
-    # plt.plot(x, load01, alpha=0.5)
-    # plt.plot(x, load02, alpha=0.5)
-    # plt.plot(x, load03, alpha=0.5)
-    # plt.plot(x, load04, alpha=0.5)
-    # plt.plot(x_sample, displacement_sample, "o")
-    # plt.plot(x_sample, load01_sample, "o")
-    # plt.plot(x_sample, load02_sample, "o")
-    # plt.plot(x_sample, load03_sample, "o")
-    # plt.plot(x_sample, load04_sample, "o")
-    # plt.savefig("tmp.png")
+    if show_fig:
+        save_fig(x, y, x_sample, y_sample)
 
     if is_multi_handler:
-        simulate_multi_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample)
+        simulate_multi_handler(machine_id, handlers, resampling, y_sample)
     else:
-        simulate_single_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample)
-
-    time.sleep(1)
+        simulate_single_handler(machine_id, handlers[0], resampling, y_sample)
 
 
-def simulate_single_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample):
+def save_fig(x, y, x_sample, y_sample):
+    """グラフ表示"""
+    plt.figure()
+    for v in y.values():
+        plt.plot(x, v, alpha=0.5)
+
+    for v in y_sample.values():
+        plt.plot(x_sample, v, "o")
+
+    plt.savefig("tmp.png")
+
+
+def output_file(machine_id, gateway_id, handler_id, file_number, binaries):
+    """バイナリファイル出力"""
     data_dir = os.environ["data_dir"]
-    gateway_id = "unittest-gateway-02"
-    handler_id = "unittest-handler-02"
+    utc_now = datetime.utcnow()
+    now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
+    file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}_{file_number}.dat"
+    file_path = os.path.join(data_dir, file_name)
+
+    # 文字列のバイナリファイルへの書き込み
+    with open(file_path, "wb") as f:
+        f.write(binaries)
+
+    print(f"dat file created: {file_path}")
+
+
+def simulate_single_handler(machine_id, handler, resampling, y_sample):
+    gateway_id = handler.data_collect_history_gateway.gateway_id
+    handler_id = handler.handler_id
 
     for file_number in range(100):
         binaries = b""
         for i in range(resampling):
-            binary = struct.pack("<ddddd", displacement_sample[i], load01_sample[i], load02_sample[i], load03_sample[i], load04_sample[i])
+            binary = struct.pack(
+                "<ddddd",
+                y_sample["stroke_displacement"][i],
+                y_sample["load01"][i],
+                y_sample["load02"][i],
+                y_sample["load03"][i],
+                y_sample["load04"][i],
+            )
             binaries += binary
 
-        utc_now = datetime.utcnow()
-        now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}_{file_number}.dat"
-        file_path = os.path.join(data_dir, file_name)
-
-        # 文字列のバイナリファイルへの書き込み
-        with open(file_path, "wb") as f:
-            f.write(binaries)
-
-        print(f"dat file created: {file_path}")
+        output_file(machine_id, gateway_id, handler_id, file_number, binaries)
 
 
-def simulate_multi_handler(machine_id, resampling, displacement_sample, load01_sample, load02_sample, load03_sample, load04_sample):
-    data_dir = os.environ["data_dir"]
-    gateway_id = "unittest-gateway-01"
-    handlers = ["unittest-handler-01-1", "unittest-handler-01-2"]
+def simulate_multi_handler(machine_id, handlers, resampling, y_sample):
+    gateway_id = handlers[0].data_collect_history_gateway.gateway_id
+    handler_ids = [x.handler_id for x in handlers]
 
     for file_number in range(100):
         # handler[0]
         binaries = b""
         for i in range(resampling):
-            binary = struct.pack("<ddd", displacement_sample[i], load01_sample[i], load02_sample[i])
+            binary = struct.pack(
+                "<ddd",
+                y_sample["stroke_displacement"][i],
+                y_sample["load01"][i],
+                y_sample["load02"][i],
+            )
             binaries += binary
 
-        utc_now = datetime.utcnow()
-        now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handlers[0]}_{now_str}_{file_number}.dat"
-        file_path = os.path.join(data_dir, file_name)
-
-        # 文字列のバイナリファイルへの書き込み
-        with open(file_path, "wb") as f:
-            f.write(binaries)
-
-        print(f"dat file created: {file_path}")
+        output_file(machine_id, gateway_id, handler_ids[0], file_number, binaries)
 
         # handler[1]
         binaries = b""
         for i in range(resampling):
-            binary = struct.pack("<dd", load03_sample[i], load04_sample[i])
+            binary = struct.pack(
+                "<dd",
+                y_sample["load03"][i],
+                y_sample["load04"][i],
+            )
             binaries += binary
 
-        utc_now = datetime.utcnow()
-        now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
-        file_name = f"{machine_id}_{gateway_id}_{handlers[1]}_{now_str}_{file_number}.dat"
-        file_path = os.path.join(data_dir, file_name)
-
-        # 文字列のバイナリファイルへの書き込み
-        with open(file_path, "wb") as f:
-            f.write(binaries)
-
-        print(f"dat file created: {file_path}")
+        output_file(machine_id, gateway_id, handler_ids[1], file_number, binaries)
 
         # debug
         # read_binary(binaries, sampling_ch_num)
 
 
 def read_binary(binary, sampling_ch_num):
+    """生成したバイナリファイルの読み込み（デバッグ用）"""
     BYTE_SIZE: Final[int] = 8
     SAMPLING_CH_NUM: Final[int] = sampling_ch_num
     ROW_BYTE_SIZE: Final[int] = BYTE_SIZE * SAMPLING_CH_NUM  # 8 byte * チャネル数
@@ -172,7 +178,9 @@ def read_binary(binary, sampling_ch_num):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--machine", help="set machine_id", required=True)
+    parser.add_argument("-s", "--show_fig", help="show figure(tmp.png)", action="store_true")
     args = parser.parse_args()
     machine_id: str = args.machine
+    show_fig: bool = args.show_fig
 
-    main(machine_id)
+    main(machine_id, show_fig)
