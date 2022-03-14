@@ -34,34 +34,6 @@ class TestRead:
 
         assert response.status_code == 500
 
-    def test_normal_db_select_machines_has_handler(self, client, init):
-        endpoint = f"{self.endpoint}/machines/has_handler"
-        response = client.get(endpoint)
-        actual_code = response.status_code
-
-        assert actual_code == 200
-
-    def test_db_select_machines_has_handler_failed(self, client, mocker, init):
-        endpoint = f"{self.endpoint}/machines/has_handler"
-        mocker.patch.object(CRUDMachine, "select_machines_has_handler", side_effect=Exception("some exception"))
-        response = client.get(endpoint)
-
-        assert response.status_code == 500
-
-    def test_normal_db_select_handler_from_machine_id(self, client, init):
-        endpoint = f"{self.endpoint}/{self.machine_id}/handler"
-        response = client.get(endpoint)
-        actual_code = response.status_code
-
-        assert actual_code == 200
-
-    def test_db_select_handler_from_machine_id_failed(self, client, init):
-        """handlerを持たないmachine_id"""
-        endpoint = f"{self.endpoint}/test-machine-04/handler"
-        response = client.get(endpoint)
-
-        assert response.status_code == 500
-
 
 class TestCreate:
     @pytest.fixture
