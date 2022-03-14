@@ -20,8 +20,8 @@ from backend.app.models.data_collect_history_event import DataCollectHistoryEven
 from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
-from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
+from backend.data_recorder.data_recorder import DataRecorder
 from backend.file_manager.file_manager import FileManager
 
 
@@ -156,7 +156,7 @@ class TestReadBinaryFiles:
         handler = dummy_data_collect_history.data_collect_history_gateways[0].data_collect_history_handlers[0]
         sensors = handler.data_collect_history_sensors
 
-        actual = DataRecorderService.read_binary_files(
+        actual = DataRecorder.read_binary_files(
             file=file,
             sequential_number=0,
             timestamp=Decimal(file.timestamp),
@@ -202,7 +202,7 @@ class TestRecord:
             shutil.rmtree(dir_path)
         os.mkdir(dir_path)
 
-        mocker.patch.object(DataRecorderService, "get_collect_status", return_value="setup")
+        mocker.patch.object(DataRecorder, "get_collect_status", return_value="setup")
 
-        # DataRecorderService.record(db, self.machine_id, self.gateway_id, self.handler_id)
-        DataRecorderService.record(db, self.machine_id, self.gateway_id, self.handler_id_2)
+        # DataRecorder.record(db, self.machine_id, self.gateway_id, self.handler_id)
+        DataRecorder.record(db, self.machine_id, self.gateway_id, self.handler_id_2)
