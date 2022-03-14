@@ -10,11 +10,12 @@
 """
 
 import argparse
+import glob
 import os
 import sys
 import traceback
 from decimal import Decimal
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import List
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
@@ -33,49 +34,59 @@ class DataRecorder:
         * 取り込むデータディレクトリはdataフォルダ配下に配置すること。
         """
 
-        files_info: List[FileInfo] = FileManager.create_files_info(target_dir, machine_id, "dat")
-
-        if len(files_info) == 0:
-            logger.info(f"No files in {target_dir}")
-            return
-
-        target_datetime_str: str = target_dir.split("-")[-1]
-
         try:
-            data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_started_at(
-                db, machine_id, target_datetime_str
+            data_collect_history: DataCollectHistory = CRUDDataCollectHistory.select_by_machine_id_target_dir(db, machine_id, target_dir)
+            sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(
+                db, data_collect_history.id
             )
         except Exception:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        if data_collect_history.data_collect_history_events[-1].event_name != common.COLLECT_STATUS.RECORDED.value:
-            logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
-            sys.exit(1)
+        target_dir_full_path: str = os.path.join(os.environ["data_dir"], f"{machine_id}-{target_dir}")
+        # 既存のpickleファイルは削除する
+        pickle_files: List[str] = glob.glob(os.path.join(target_dir_full_path, "*.pkl"))
+        if len(pickle_files):
+            while True:
+                choice = input("The pickle files already exist. Do you want to delete it? 'yes' or 'no' [y/N]: ").lower()
+                if choice in ["y", "yes"]:
+                    break
+                elif choice in ["n", "no"]:
+                    logger.info("実行をキャンセルしました")
+                    sys.exit(1)
+            for file in pickle_files:
+                os.remove(file)
 
-        sensors: List[DataCollectHistorySensor] = data_collect_history.data_collect_history_sensors
-        displacement_sensor_id: str = common.get_cut_out_shot_sensor(sensors).sensor_id
+        for gateway in data_collect_history.data_collect_history_gateways:
+            for handler in gateway.data_collect_history_handlers:
+                files_info: List[FileInfo] = FileManager.create_files_info(
+                    target_dir_full_path, machine_id, gateway.gateway_id, handler.handler_id, "dat"
+                )
 
-        # TODO: 並び順の保証
-        sensor_ids_other_than_displacement: List[str] = [
-            s.sensor_id for s in sensors if s.sensor_type_id not in common.CUT_OUT_SHOT_SENSOR_TYPES
-        ]
+                if len(files_info) == 0:
+                    logger.info(f"No files in {target_dir}")
+                    return
 
-        started_timestamp: float = data_collect_history.started_at.timestamp()
+                if data_collect_history.data_collect_history_events[-1].event_name != common.COLLECT_STATUS.RECORDED.value:
+                    logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
+                    sys.exit(1)
 
-        num_of_records: int = 0
+                started_timestamp: float = data_collect_history.started_at.timestamp()
+                num_of_records: int = 0
 
-        num_of_records = DataRecorderService.data_record(
-            data_collect_history,
-            files_info,
-            Decimal(started_timestamp),
-            num_of_records,
-            displacement_sensor_id,
-            sensor_ids_other_than_displacement,
-            is_manual=True,
-        )
+                num_of_records = DataRecorderService.data_record(
+                    handler,
+                    files_info,
+                    Decimal(started_timestamp),
+                    num_of_records,
+                    sensors=sensors,
+                    is_manual=True,
+                )
 
-        logger.info("manual import finished.")
+                logger.info(f"import finished: {handler.handler_id}")
+            logger.info(f"import finished: {gateway.gateway_id}")
+
+        logger.info(f"manual import finished: {machine_id}")
 
 
 if __name__ == "__main__":
@@ -87,13 +98,10 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    target_dir: str = os.path.join(os.environ["data_dir"], args.dir)
+    splitted_dir: str = args.dir.split("-")
+    machine_id: str = "-".join(splitted_dir[:-1])
+    target_dir: str = splitted_dir[-1]
 
-    if not os.path.isdir(target_dir):
-        logger.error(f"{target_dir} is not exists.")
-        sys.exit(1)
-
-    machine_id = "-".join(args.dir.split("-")[:-1])
     db: Session = SessionLocal()
     DataRecorder.manual_record(db, machine_id, target_dir)
     db.close()
