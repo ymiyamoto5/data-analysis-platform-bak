@@ -230,6 +230,7 @@ services:
       - '${IP}:15672:15672'
     networks:
       - docker_network
+    restart: always
     # logging:
     #   driver: 'fluentd'
     #   options:
@@ -242,6 +243,7 @@ services:
       - '${IP}:6379:6379'
     networks:
       - docker_network
+    restart: always
     # logging:
     #   driver: 'fluentd'
     #   options:
@@ -256,6 +258,7 @@ services:
       - ../backend:/backend
       - ${DATA_DRIVE}:/mnt/datadrive
     env_file: ${ENV_FILE}
+    restart: always
     # environment:
     #   - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
     #   - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -287,6 +290,7 @@ services:
       - worker
     networks:
       - docker_network
+    restart: always
 
 networks:
   docker_network:
