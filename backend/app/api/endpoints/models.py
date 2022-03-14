@@ -235,7 +235,7 @@ def predict_label(predict: model.Predict):
     insert_index = f"shots-{predict.machine_id}-{predict.target_dir}-predict"
     body = {"shot_number": predict.shot, "model": predict.model, "version": predict.version, **data, "label": result[0]}
 
-    ElasticManager.es.index(index=insert_index, body=body, refresh=True)
+    ElasticManager.es.index(index=insert_index, body=body, refresh=True)  # type: ignore
 
     return {"data": data, "label": result}
 
