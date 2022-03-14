@@ -54,8 +54,7 @@ class CRUDController:
                     sampling_frequency=handler.sampling_frequency,
                     sampling_ch_num=handler.sampling_ch_num,
                     filewrite_time=handler.filewrite_time,
-                    # TODO: 設定
-                    # is_primary=False,
+                    is_primary=handler.is_primary,
                     is_cut_out_target=True,
                 )
                 db.add(new_data_collect_history_handler)
