@@ -22,44 +22,69 @@
 
             <v-card-text>
               <v-form ref="form_group">
-                <v-text-field
-                  v-model="editedItem.sampling_frequency"
-                  :rules="[rules.required, rules.frequencyRange]"
-                  label="サンプリングレート"
-                ></v-text-field>
-
-                <v-data-table
-                  :headers="detailHeaders"
-                  :items="editedItem.data_collect_history_sensors"
+                <div
+                  v-for="(gateway,
+                  key) in editedItem.data_collect_history_gateways"
+                  :key="key"
+                  class="text-h5"
                 >
-                  <template v-slot:[`item.slope`]="props">
+                  {{ gateway.gateway_id }}
+                  <div
+                    v-for="(handler, _key) in editedItem
+                      .data_collect_history_gateways[key]
+                      .data_collect_history_handlers"
+                    :key="_key"
+                  >
+                    {{ handler.handler_id }}
+
                     <v-text-field
-                      v-model="props.item.slope"
-                      :rules="[rules.floatType]"
+                      v-model="
+                        editedItem.data_collect_history_gateways[key]
+                          .data_collect_history_handlers[_key]
+                          .sampling_frequency
+                      "
+                      :rules="[rules.required, rules.frequencyRange]"
+                      label="サンプリングレート"
                     ></v-text-field>
-                  </template>
-                  <template v-slot:[`item.intercept`]="props">
-                    <v-text-field
-                      v-model="props.item.intercept"
-                      :rules="[rules.floatType]"
-                    ></v-text-field>
-                  </template>
-                  <template v-slot:[`item.start_point_dsl`]="props">
-                    <v-text-field
-                      v-model="props.item.start_point_dsl"
-                    ></v-text-field>
-                  </template>
-                  <template v-slot:[`item.max_point_dsl`]="props">
-                    <v-text-field
-                      v-model="props.item.max_point_dsl"
-                    ></v-text-field>
-                  </template>
-                  <template v-slot:[`item.break_point_dsl`]="props">
-                    <v-text-field
-                      v-model="props.item.break_point_dsl"
-                    ></v-text-field>
-                  </template>
-                </v-data-table>
+
+                    <v-data-table
+                      :headers="detailHeaders"
+                      :items="
+                        editedItem.data_collect_history_gateways[key]
+                          .data_collect_history_handlers[_key]
+                          .data_collect_history_sensors
+                      "
+                    >
+                      <template v-slot:[`item.slope`]="props">
+                        <v-text-field
+                          v-model="props.item.slope"
+                          :rules="[rules.required, rules.floatType]"
+                        ></v-text-field>
+                      </template>
+                      <template v-slot:[`item.intercept`]="props">
+                        <v-text-field
+                          v-model="props.item.intercept"
+                          :rules="[rules.required, rules.floatType]"
+                        ></v-text-field>
+                      </template>
+                      <template v-slot:[`item.start_point_dsl`]="props">
+                        <v-text-field
+                          v-model="props.item.start_point_dsl"
+                        ></v-text-field>
+                      </template>
+                      <template v-slot:[`item.max_point_dsl`]="props">
+                        <v-text-field
+                          v-model="props.item.max_point_dsl"
+                        ></v-text-field>
+                      </template>
+                      <template v-slot:[`item.break_point_dsl`]="props">
+                        <v-text-field
+                          v-model="props.item.break_point_dsl"
+                        ></v-text-field>
+                      </template>
+                    </v-data-table>
+                  </div>
+                </div>
               </v-form>
             </v-card-text>
 
@@ -122,11 +147,44 @@ export default {
         id: -1,
         machine_id: '',
         machine_name: '',
+        machine_type_id: '',
         started_at: '',
         ended_at: '',
-        sampling_frequency: 0,
-        sampling_ch_num: 0,
-        data_collect_history_sensors: [],
+        processed_dir_path: '',
+        data_collect_history_gateways: [
+          {
+            data_collect_history_id: -1,
+            gateway_id: '',
+            log_level: -1,
+            data_collect_history_handlers: [
+              {
+                data_collect_history_id: -1,
+                gateway_id: '',
+                handler_id: '',
+                handler_type: '',
+                adc_serial_num: -1,
+                sampling_frequency: '',
+                sampling_ch_num: -1,
+                filewrite_time: '',
+                is_primary: false,
+                data_collect_history_sensors: [
+                  {
+                    data_collect_history_id: -1,
+                    handler_id: '',
+                    sensor_id: '',
+                    sensor_name: '',
+                    sensor_type_id: '',
+                    slope: '',
+                    intercept: '',
+                    start_point_dsl: '',
+                    max_point_dsl: '',
+                    break_point_dsl: '',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       },
       headers: [
         {
@@ -146,13 +204,17 @@ export default {
           text: '終了日時',
           value: 'ended_at',
         },
+        // TODO: primaryハンドラーの値に設定
         {
           text: 'サンプリングレート(Hz)',
-          value: 'sampling_frequency',
+          value:
+            'data_collect_history_gateways[0].data_collect_history_handlers[0].sampling_frequency',
         },
+        // TODO: primaryハンドラーの値に設定
         {
           text: 'チャネル数',
-          value: 'sampling_ch_num',
+          value:
+            'data_collect_history_gateways[0].data_collect_history_handlers[0].sampling_ch_num',
         },
         { text: 'アクション', value: 'actions', sortable: false },
       ],
@@ -194,25 +256,52 @@ export default {
         },
       ],
       defaultItem: {
-        sampling_frequency: 0,
-        data_collect_history_sensors: [
+        id: -1,
+        machine_id: '',
+        machine_name: '',
+        machine_type_id: '',
+        started_at: '',
+        ended_at: '',
+        processed_dir_path: '',
+        data_collect_history_gateways: [
           {
             data_collect_history_id: -1,
-            sensor_id: '',
-            sensor_name: '',
-            sensor_type_id: -1,
-            slope: null,
-            intercept: null,
-            start_point_dsl: '',
-            max_point_dsl: '',
-            break_point_dsl: '',
+            gateway_id: '',
+            log_level: -1,
+            data_collect_history_handlers: [
+              {
+                data_collect_history_id: -1,
+                gateway_id: '',
+                handler_id: '',
+                handler_type: '',
+                adc_serial_num: -1,
+                sampling_frequency: '',
+                sampling_ch_num: -1,
+                filewrite_time: '',
+                is_primary: false,
+                data_collect_history_sensors: [
+                  {
+                    data_collect_history_id: -1,
+                    handler_id: '',
+                    sensor_id: '',
+                    sensor_name: '',
+                    sensor_type_id: '',
+                    slope: '',
+                    intercept: '',
+                    start_point_dsl: '',
+                    max_point_dsl: '',
+                    break_point_dsl: '',
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
       search: '',
       history: [],
       rules: {
-        required: (value) => !!value || '必須です。',
+        required: (value) => !!value || value === 0 || '必須です。',
         floatType: (value) =>
           (value >= -10000.0 && value <= 10000.0) ||
           '-10000.0～10000.0のみ使用可能です。',
@@ -221,6 +310,7 @@ export default {
       },
     }
   },
+
   created: function() {
     this.fetchTableData()
   },
@@ -269,7 +359,7 @@ export default {
     // 編集ダイアログ表示。itemはテーブルで選択したレコードのオブジェクト。
     editItem(item) {
       this.editedIndex = this.history.indexOf(item)
-      this.editedItem = Object.assign({}, item)
+      this.editedItem = Object.assign({}, JSON.parse(JSON.stringify(item)))
       this.dialog = true
     },
 
@@ -282,18 +372,10 @@ export default {
 
       const client = createBaseApiClient()
 
-      // 空文字の時nullに置き換え
-      this.editedItem.data_collect_history_sensors.map((obj) => {
-        obj.slope = obj.slope === '' ? null : obj.slope
-        obj.intercept = obj.intercept === '' ? null : obj.intercept
-        return obj
-      })
-
       const url = DATA_COLLECT_HISTORY_API_URL + this.editedItem.id
       const body = {
-        sampling_frequency: this.editedItem.sampling_frequency,
-        data_collect_history_sensors: this.editedItem
-          .data_collect_history_sensors,
+        data_collect_history_gateways: this.editedItem
+          .data_collect_history_gateways,
       }
       await client
         .put(url, body)
