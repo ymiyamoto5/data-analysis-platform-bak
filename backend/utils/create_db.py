@@ -82,7 +82,7 @@ machine_01 = Machine(
             handlers=[
                 Handler(
                     handler_id="unittest-handler-01-1",
-                    handler_type="USB_1608HS",
+                    handler_type="USB_204",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
                     sampling_ch_num=3,
@@ -124,7 +124,7 @@ machine_01 = Machine(
                 ),
                 Handler(
                     handler_id="unittest-handler-01-2",
-                    handler_type="USB_1608HS",
+                    handler_type="USB_204",
                     adc_serial_num="00003333",
                     sampling_frequency=100,
                     sampling_ch_num=2,
