@@ -64,6 +64,13 @@
                 >
                 </v-select>
                 <v-checkbox
+                  v-model="editedItem.is_cut_out_target"
+                  hide-details
+                  label="ショット切り出し対象"
+                >
+                </v-checkbox>
+
+                <v-checkbox
                   v-model="editedItem.is_primary"
                   hide-details
                   label="主要なハンドラー"
@@ -161,6 +168,7 @@ export default {
       { text: 'チャンネル数', value: 'sampling_ch_num' },
       { text: 'ファイル出力間隔(秒)', value: 'filewrite_time' },
       { text: 'ゲートウェイID', value: 'gateway_id' },
+      { text: 'ショット切り出し対象', value: 'is_cut_out_target' },
       { text: '主要なハンドラー', value: 'is_primary' },
       { text: 'アクション', value: 'actions', sortable: false },
     ],
@@ -174,6 +182,7 @@ export default {
       sampling_ch_num: '',
       filewrite_time: '',
       gateway_id: 0,
+      is_cut_out_target: false,
       is_primary: false,
     },
     defaultItem: {
@@ -183,6 +192,7 @@ export default {
       sampling_frequency: '',
       sampling_ch_num: '',
       filewrite_time: '',
+      is_cut_out_target: false,
       gateway_id: 0,
       is_primary: false,
     },
@@ -326,6 +336,7 @@ export default {
           adc_serial_num: this.editedItem.adc_serial_num,
           sampling_ch_num: this.editedItem.sampling_ch_num,
           filewrite_time: this.editedItem.filewrite_time,
+          is_cut_out_target: this.editedItem.is_cut_out_target,
           is_primary: this.editedItem.is_primary,
         }
         await client
@@ -349,6 +360,7 @@ export default {
           sampling_frequency: this.editedItem.sampling_frequency,
           filewrite_time: this.editedItem.filewrite_time,
           gateway_id: this.editedItem.gateway_id,
+          is_cut_out_target: this.editedItem.is_cut_out_target,
           is_primary: this.editedItem.is_primary,
         }
         await client
