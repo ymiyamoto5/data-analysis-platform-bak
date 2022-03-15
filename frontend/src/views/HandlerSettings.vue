@@ -196,7 +196,7 @@ export default {
     },
     primary: '',
     gateways: [],
-    handlerTypes: ['USB_204HS', 'USB_1608HS'],
+    handlerTypes: ['USB_204', 'USB_1608HS'],
     // validation
     rules: {
       required: (value) => !!value || '必須です。',
