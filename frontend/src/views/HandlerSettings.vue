@@ -28,15 +28,13 @@
                   label="ハンドラーID"
                   v-bind="readOnlyID"
                 ></v-text-field>
-                <v-text-field
+                <v-select
                   v-model="editedItem.handler_type"
-                  :rules="[
-                    rules.required,
-                    rules.counter,
-                    rules.handlerTypePattern,
-                  ]"
+                  :rules="[rules.required]"
+                  :items="handlerTypes"
                   label="ハンドラータイプ"
-                ></v-text-field>
+                >
+                </v-select>
                 <v-text-field
                   v-model="editedItem.adc_serial_num"
                   :rules="[rules.required, rules.counter, rules.idPattern]"
@@ -198,6 +196,7 @@ export default {
     },
     primary: '',
     gateways: [],
+    handlerTypes: ['USB_204', 'USB_1608HS'],
     // validation
     rules: {
       required: (value) => !!value || '必須です。',
@@ -207,13 +206,6 @@ export default {
         return (
           pattern.test(value) ||
           '半角のアルファベット/数字/ハイフンのみ使用可能です。'
-        )
-      },
-      handlerTypePattern: (value) => {
-        const pattern = /^[0-9a-zA-Z-_]+$/
-        return (
-          pattern.test(value) ||
-          '半角のアルファベット/数字/ハイフン/アンダースコアのみ使用可能です。'
         )
       },
       frequencyRange: (value) =>
