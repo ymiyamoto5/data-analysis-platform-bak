@@ -24,7 +24,9 @@ class DataCollectHistoryGatewayCreate(DataCollectHistoryGatewayBase):
 
 
 class DataCollectHistoryGatewayUpdate(DataCollectHistoryGatewayBase):
+    gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
     log_level: int = Field(..., ge=1, le=5)
+    data_collect_history_handlers: List[DataCollectHistoryHandler]
 
 
 class DataCollectHistoryGatewayUpdateFromDataCollectHistoryGateway(DataCollectHistoryGatewayBase):
