@@ -32,6 +32,13 @@ INT_MAX: Final[int] = 2_147_483_647
 CSV_PATTERN: Final[str] = r"\.csv$"
 
 
+class Severity(Enum):
+    INFO = "INFO"
+    WARN = "WARN"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
 class STATUS(Enum):
     STOP = "stop"
     RUNNING = "running"
