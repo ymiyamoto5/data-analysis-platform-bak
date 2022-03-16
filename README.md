@@ -154,8 +154,8 @@ AWS_ACCESS_KEY_ID=minio-access-key
 AWS_SECRET_ACCESS_KEY=minio-secret-key
 data_dir=/mnt/datadrive/data
 elastic_url=elasticsearch:9200
-elastic_user=elastic
-elastic_password=P@ssw0rd
+elastic_user=<elastic user>
+elastic_password=<elastic password>
 mapping_rawdata_path=backend/mappings/mapping_rawdata.json
 setting_rawdata_path=backend/mappings/setting_rawdata.json
 setting_shots_path=backend/mappings/setting_shots.json
@@ -178,8 +178,8 @@ AWS_ACCESS_KEY_ID=minio-access-key
 AWS_SECRET_ACCESS_KEY=minio-secret-key
 data_dir=/mnt/datadrive/data
 elastic_url=${LOCAL_IP}:9200
-elastic_user=elastic
-elastic_password=P@ssw0rd
+elastic_user=<elastic user>
+elastic_password=<elastic password>
 mapping_rawdata_path=backend/mappings/mapping_rawdata.json
 setting_rawdata_path=backend/mappings/setting_rawdata.json
 setting_shots_path=backend/mappings/setting_shots.json
@@ -192,13 +192,12 @@ CELERY_RESULT_BACKEND=redis://${LOCAL_IP}/0
 - docker/.env
 
 ```
-# COMPOSE_PROJECT_NAMEの値にはハイフン、アンダースコア、および特殊文字を含めないこと
-COMPOSE_PROJECT_NAME=dataanalysisplatform
+COMPOSE_PROJECT_NAME=data-analysis-platform
 DATA_DIR=/mnt/datadrive/data
 DATA_DRIVE=/mnt/datadrive
 IP=<ローカルIP>
-ELASTIC_USERNAME=elastic
-ELASTIC_PASSWORD=P@ssw0rd
+ELASTIC_USERNAME=<elastic user>
+ELASTIC_PASSWORD=<elastic password>
 ENV_FILE=../.env
 ```
 
