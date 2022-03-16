@@ -135,6 +135,15 @@ class CRUDDataCollectHistory:
     @staticmethod
     def update(db: Session, db_obj: DataCollectHistory, obj_in: DataCollectHistoryUpdate) -> DataCollectHistory:
 
+        # [{"data_collect_history_gateways": [
+        #   {"gateway_id": "gateway", ..., "data_collect_history_handlers": [
+        #     {"handler_id": "handler", ... "data_collect_history_sensors": [
+        #       {"sensor_id": "load01", ...},...
+        #     ]},...
+        #   ]}...,
+        #  ]}...,
+        # ]}
+
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -142,7 +151,7 @@ class CRUDDataCollectHistory:
 
         # 更新対象のプロパティをセット
         for key, value in update_data.items():
-            # NOTE: プロパティにList[DataCollectHistorySensor]を直接代入するとエラーになるため、ループしてセット
+            # NOTE: プロパティにListを直接代入するとエラーになるため、List要素はループしてセット
             if key == "data_collect_history_gateways":
                 for gateway_number, gateway in enumerate(value):
                     for k, v in gateway.items():
