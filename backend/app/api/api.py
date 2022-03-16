@@ -10,6 +10,7 @@ from backend.app.api.endpoints import (
     machine_types,
     machines,
     models,
+    notification,
     sensor_types,
     sensors,
     tags,
@@ -36,3 +37,4 @@ api_router.include_router(features.router, prefix="/features", tags=["features"]
 api_router.include_router(models.router, prefix="/models", tags=["models"])
 api_router.include_router(csv_upload.router, prefix="/csv_upload", tags=["csv_upload"])
 api_router.include_router(celery_tasks.router, prefix="/celery_tasks", tags=["celery_tasks"])
+api_router.include_router(notification.router, prefix="/notification", tags=["notification"])
