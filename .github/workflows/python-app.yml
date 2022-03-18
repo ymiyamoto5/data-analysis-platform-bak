@@ -10,9 +10,6 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    env:
-      ELASTIC_USER: ${{ secrets.ELASTIC_USER }}
-      ELASTIC_PASSWORD: ${{ secrets.ELASTIC_PASSWORD }}
     strategy:
       fail-fast: false
       matrix:
@@ -20,6 +17,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Create Database Dir
+      run: |
+        mkdir -p database
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -37,6 +37,10 @@ jobs:
     - name: Test with pytest
       run: |
         poetry run pytest
+      env:
+        ELASTIC_USER: ${{ secrets.ELASTIC_USER }}
+        ELASTIC_PASSWORD: ${{ secrets.ELASTIC_PASSWORD }}
+        DATA_DIR: ${{ HOME }} + "/database"
     - name: Lint with flake8
       run: |
         poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
