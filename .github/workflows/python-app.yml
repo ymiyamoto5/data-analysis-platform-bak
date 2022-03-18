@@ -11,7 +11,8 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      API_KEY: ${{ secrets.ELASTIC_USER }}
+      ELASTIC_USER: ${{ secrets.ELASTIC_USER }}
+      ELASTIC_PASSWORD: ${{ secrets.ELASTIC_PASSWORD }}
     strategy:
       fail-fast: false
       matrix:
