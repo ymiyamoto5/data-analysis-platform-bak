@@ -71,7 +71,7 @@
                 <v-checkbox
                   v-model="editedItem.is_primary"
                   hide-details
-                  label="主要なハンドラー"
+                  label="プライマリーハンドラー"
                   :disabled="
                     editedItem.gateway_id === '' ||
                       (primary !== '' && editedItem.handler_id !== primary)
@@ -85,7 +85,7 @@
                         </v-icon>
                       </template>
                       <div>
-                        複数ハンドラー構成時の主要なハンドラーに設定します。これはゲートウェイごとに1つのハンドラーのみ設定可能です。
+                        複数ハンドラー構成時のプライマリーハンドラーに設定します。これはゲートウェイごとに1つのハンドラーのみ設定可能です。
                       </div>
                     </v-tooltip>
                   </template>
@@ -167,7 +167,7 @@ export default {
       { text: 'ファイル出力間隔(秒)', value: 'filewrite_time' },
       { text: 'ゲートウェイID', value: 'gateway_id' },
       { text: 'ショット切り出し対象', value: 'is_cut_out_target' },
-      { text: '主要なハンドラー', value: 'is_primary' },
+      { text: 'プライマリーハンドラー', value: 'is_primary' },
       { text: 'アクション', value: 'actions', sortable: false },
     ],
     handlers: [],
@@ -280,12 +280,12 @@ export default {
         })
     },
 
-    // 主要なハンドラーのbool値を表示用にフォーマット
+    // プライマリーハンドラーのbool値を表示用にフォーマット
     formatBool(bool) {
       return bool ? 'YES' : 'NO'
     },
 
-    // 主要なハンドラーが設定されているかを確認
+    // GWにプライマリーハンドラーが設定されているかを確認
     checkPrimary: async function() {
       const client = createBaseApiClient()
       await client
