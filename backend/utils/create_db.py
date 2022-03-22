@@ -52,11 +52,13 @@ sensor_type_02 = SensorType(sensor_type_id="stroke_displacement", sensor_type_na
 sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
 sensor_type_04 = SensorType(sensor_type_id="bolt", sensor_type_name="ボルト")
 sensor_type_05 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
+sensor_type_06 = SensorType(sensor_type_id="dummy", sensor_type_name="ダミー")
 db.add(sensor_type_01)
 db.add(sensor_type_02)
 db.add(sensor_type_03)
 db.add(sensor_type_04)
 db.add(sensor_type_05)
+db.add(sensor_type_06)
 
 # ローカルテスト用（複数ハンドラー）
 machine_01 = Machine(
@@ -127,7 +129,7 @@ machine_01 = Machine(
                     handler_type="USB_204",
                     adc_serial_num="00003333",
                     sampling_frequency=100,
-                    sampling_ch_num=2,
+                    sampling_ch_num=3,
                     filewrite_time=1,
                     is_primary=False,
                     is_cut_out_target=True,
@@ -153,6 +155,14 @@ machine_01 = Machine(
                             start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                             max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                             break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                        Sensor(
+                            machine_id="unittest-machine-01",
+                            sensor_id="dummy",
+                            sensor_name="dummy",
+                            sensor_type_id="dummy",
+                            slope=1.0,
+                            intercept=0.0,
                         ),
                     ],
                 ),
@@ -191,7 +201,7 @@ machine_02 = Machine(
                     sampling_frequency=100,
                     sampling_ch_num=3,
                     filewrite_time=1,
-                    is_primary=True,
+                    is_primary=False,
                     is_cut_out_target=True,
                     sensors=[
                         Sensor(
@@ -253,6 +263,118 @@ machine_02 = Machine(
     ],
 )
 db.add(machine_02)
+
+# 結合テスト用（複数ハンドラー）
+integ_test_machine = Machine(
+    machine_id="test-machine",
+    machine_name="結合テスト機器(複数ハンドラー)",
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
+    machine_type_id=1,
+    auto_cut_out_shot=False,
+    start_displacement=None,
+    end_displacement=None,
+    margin=None,
+    threshold=None,
+    auto_predict=False,
+    predict_model=None,
+    model_version=None,
+    gateways=[
+        Gateway(
+            gateway_id="test-GW",
+            sequence_number=1,
+            gateway_result=0,
+            status=common.STATUS.STOP.value,
+            log_level=5,
+            handlers=[
+                Handler(
+                    handler_id="test-handler-1",
+                    handler_type="USB_204",
+                    adc_serial_num="01ED23FA",
+                    sampling_frequency=1000,
+                    sampling_ch_num=3,
+                    filewrite_time=1,
+                    is_primary=True,
+                    is_cut_out_target=True,
+                    sensors=[
+                        Sensor(
+                            machine_id="test-machine",
+                            sensor_id="stroke_displacement",
+                            sensor_name="変位センサー",
+                            sensor_type_id="stroke_displacement",
+                            slope=1.0,
+                            intercept=0.0,
+                        ),
+                        Sensor(
+                            machine_id="test-machine",
+                            sensor_id="load01",
+                            sensor_name="荷重センサー01",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                        Sensor(
+                            machine_id="test-machine",
+                            sensor_id="load02",
+                            sensor_name="荷重センサー02",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                    ],
+                ),
+                Handler(
+                    handler_id="test-handler-2",
+                    handler_type="USB_204",
+                    adc_serial_num="01ED23FA",  # TODO: fix
+                    sampling_frequency=1000,
+                    sampling_ch_num=3,
+                    filewrite_time=1,
+                    is_primary=False,
+                    is_cut_out_target=True,
+                    sensors=[
+                        Sensor(
+                            machine_id="test-machine",
+                            sensor_id="load03",
+                            sensor_name="荷重センサー03",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                        Sensor(
+                            machine_id="test-machine",
+                            sensor_id="load04",
+                            sensor_name="荷重センサー04",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
+                            max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
+                            break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                        ),
+                        Sensor(
+                            machine_id="test-machine",
+                            sensor_id="dummy",
+                            sensor_name="ダミーセンサー",
+                            sensor_type_id="dummy",
+                            slope=1.0,
+                            intercept=0.0,
+                        ),
+                    ],
+                ),
+            ],
+        )
+    ],
+)
+db.add(integ_test_machine)
 
 # demo_started_at = datetime(2021, 7, 9, 19, 0, 0, 0)
 
