@@ -39,7 +39,7 @@ def fetch_handler(handler_id: str = Path(..., max_length=255, regex=common.ID_PA
 
 @router.get("/primary/{gateway_id}", response_model=handler.Handler)
 def fetch_primary_handler(gateway_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
-    """指定gatewayの主要なハンドラー情報を取得"""
+    """指定gatewayのプライマリーハンドラー情報を取得"""
 
     try:
         handler = CRUDHandler.select_primary_by_gateway_id(db, gateway_id)
