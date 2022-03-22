@@ -124,11 +124,13 @@ def create_testdb(db):
     sensor_type_03 = SensorType(sensor_type_id="pulse", sensor_type_name="パルス")
     sensor_type_04 = SensorType(sensor_type_id="bolt", sensor_type_name="ボルト")
     sensor_type_05 = SensorType(sensor_type_id="displacement", sensor_type_name="変位")
+    sensor_type_06 = SensorType(sensor_type_id="dummy", sensor_type_name="ダミー")
     db.add(sensor_type_01)
     db.add(sensor_type_02)
     db.add(sensor_type_03)
     db.add(sensor_type_04)
     db.add(sensor_type_05)
+    db.add(sensor_type_06)
 
     # 複数ハンドラーの機器
     test_machine_01 = Machine(
