@@ -67,13 +67,12 @@
                   label="ショット切り出し対象"
                 >
                 </v-checkbox>
-
                 <v-checkbox
                   v-model="editedItem.is_primary"
                   hide-details
                   label="主要なハンドラー"
                   :disabled="
-                    editedItem.gateway_id === 0 ||
+                    editedItem.gateway_id === '' ||
                       (primary !== '' && editedItem.handler_id !== primary)
                   "
                 >
@@ -179,7 +178,7 @@ export default {
       sampling_frequency: '',
       sampling_ch_num: '',
       filewrite_time: '',
-      gateway_id: 0,
+      gateway_id: '',
       is_cut_out_target: false,
       is_primary: false,
     },
@@ -191,7 +190,7 @@ export default {
       sampling_ch_num: '',
       filewrite_time: '',
       is_cut_out_target: false,
-      gateway_id: 0,
+      gateway_id: '',
       is_primary: false,
     },
     primary: '',
