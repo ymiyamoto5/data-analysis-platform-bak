@@ -67,6 +67,7 @@
                   label="ショット切り出し対象"
                 >
                 </v-checkbox>
+                <!-- GWにプライマリハンドラーが設定済みで、編集対象がそのハンドラーでない場合はdisable -->
                 <v-checkbox
                   v-model="editedItem.is_primary"
                   hide-details
