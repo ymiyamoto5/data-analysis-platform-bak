@@ -34,7 +34,9 @@ def main(machine_id: str, show_fig: bool = False):
 
     y = {}
     for sensor in sensors:
-        if sensor.sensor_id == "stroke_displacement":
+        if sensor.sensor_id == "dummy":
+            y[sensor.sensor_id] = np.array([0.0] * 10000)
+        elif sensor.sensor_id == "stroke_displacement":
             y[sensor.sensor_id] = np.cos(2 * np.pi * x * freq) + 1  # cos波を+1上に平行移動
         else:
             y[sensor.sensor_id] = np.sin(2 * np.pi * x * freq) + 1 + np.random.randn(original) * 10 ** -2  # sin波を+1上に平行移動しノイズを追加
@@ -126,9 +128,10 @@ def simulate_multi_handler(machine_id, handlers, resampling, y_sample):
         binaries = b""
         for i in range(resampling):
             binary = struct.pack(
-                "<dd",
+                "<ddd",
                 y_sample["load03"][i],
                 y_sample["load04"][i],
+                y_sample["dummy"][i],
             )
             binaries += binary
 
