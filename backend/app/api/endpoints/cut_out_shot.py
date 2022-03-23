@@ -1,9 +1,6 @@
 import json
-import time
-import traceback
-from typing import Any, Dict, Final, List, Optional
+from typing import Any, Dict, List, Optional
 
-import pandas as pd
 from backend.app.api.deps import get_db
 from backend.app.crud.crud_celery_task import CRUDCeleryTask
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
@@ -12,7 +9,6 @@ from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
-from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.schemas.cut_out_shot import CutOutShotCancel, CutOutShotPulse, CutOutShotStrokeDisplacement
 from backend.app.services.cut_out_shot_service import CutOutShotService
@@ -93,31 +89,29 @@ def fetch_shots(
         db, history.id
     )
 
-    # ハンドラーごとのファイルリスト作成
+    if len(cut_out_target_handlers) == 0:
+        raise HTTPException(status_code=500, detail="対象ハンドラーがありません")
+    if len(cut_out_target_handlers) == 1:
+        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
+    if len(cut_out_target_handlers) >= 2:
+        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+
+    # ハンドラーのファイルリスト作成
     try:
-        files_info_by_handler: List[List[FileInfo]] = FileManager.get_files_info_by_handler(
-            machine_id=machine_id, target_date_str=target_date_str, handlers=cut_out_target_handlers
+        files_info: List[FileInfo] = FileManager.get_files_info(
+            machine_id, handler.data_collect_history_gateway.gateway_id, handler.handler_id, target_date_str
         )
     except Exception:
         raise HTTPException(status_code=400, detail="対象ファイルがありません")
 
-    # リクエストされたファイルがファイル数を超えている場合
-    for files_info in files_info_by_handler:
-        if page > len(files_info) - 1:
-            raise HTTPException(status_code=400, detail="データがありません")
+    if page > len(files_info) - 1:
+        raise HTTPException(status_code=400, detail="データがありません")
 
-    # ハンドラー毎のファイル数が同数であることをチェック
-    try:
-        _ = FileManager.get_num_of_files_unified_handler(files_info_by_handler)
-    except Exception:
-        raise HTTPException(status_code=400, detail="ハンドラー間でファイル数が一致しません")
-
-    merged_df: DataFrame = CutOutShotService.merge_by_handler_df(files_info_by_handler, file_number=page)
+    df: DataFrame = CutOutShotService.fetch_df(files_info[page].file_path)
 
     # リサンプリング
-    # TODO: サンプリングレートはprimaryハンドラーの値を採用
-    sampling_frequency: int = cut_out_target_handlers[0].sampling_frequency
-    resampled_df: DataFrame = CutOutShotService.resample_df(merged_df, sampling_frequency)
+    sampling_frequency: int = handler.sampling_frequency
+    resampled_df: DataFrame = CutOutShotService.resample_df(df, sampling_frequency)
 
     # データ数が1,000件を超える場合は先頭1,000件のみ取得
     if len(resampled_df) > 1000:
