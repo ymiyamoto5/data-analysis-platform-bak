@@ -64,6 +64,7 @@ class TestCreate:
             "gateway_id": "test-gateway-01",
             "is_primary": True,
             "is_cut_out_target": True,
+            "is_multi": True,
         }
 
     def test_normal(self, client, init):
@@ -83,6 +84,7 @@ class TestCreate:
             "gateway_id": "test-gateway-01",
             "is_primary": True,
             "is_cut_out_target": True,
+            "is_multi": True,
         }
 
         response = client.post(self.endpoint, json=data)
@@ -267,6 +269,7 @@ class TestUpdate:
             "filewrite_time": 1,
             "is_primary": True,
             "is_cut_out_target": True,
+            "is_multi": True,
         }
 
     def test_normal(self, client, init):
