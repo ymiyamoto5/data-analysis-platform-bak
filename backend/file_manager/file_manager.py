@@ -42,7 +42,7 @@ class FileManager:
     @staticmethod
     def get_files_info(machine_id: str, gateway_id: str, handler_id: str, target_date_str: str) -> List[FileInfo]:
         target_dir = machine_id + "-" + target_date_str
-        data_dir: str = os.environ["data_dir"]
+        data_dir: str = os.environ["DataDir"]
         data_full_path: str = os.path.join(data_dir, target_dir)
 
         files_info: List[FileInfo] = FileManager.create_files_info(data_full_path, machine_id, gateway_id, handler_id, "pkl")

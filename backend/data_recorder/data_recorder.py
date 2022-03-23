@@ -47,7 +47,7 @@ class DataRecorder:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        target_dir_full_path: str = os.path.join(os.environ["data_dir"], f"{machine_id}-{target_dir}")
+        target_dir_full_path: str = os.path.join(os.environ["DataDir"], f"{machine_id}-{target_dir}")
         # 既存のpickleファイルは削除する
         pickle_files: List[str] = glob.glob(os.path.join(target_dir_full_path, "*.pkl"))
         if len(pickle_files):
@@ -114,7 +114,7 @@ class DataRecorder:
 
         num_of_records: int = 0
         INTERVAL: Final[int] = 1
-        data_dir: str = os.environ["data_dir"]
+        data_dir: str = os.environ["DataDir"]
 
         # データ収集が停止されるまで一定間隔で無限ループ実行。
         while True:

@@ -272,7 +272,7 @@ class CutOutShot:
 
         logger.info("Cut out shot start.")
 
-        data_dir: str = os.environ["data_dir"]
+        data_dir: str = os.environ["DataDir"]
         rawdata_dir_path: str = os.path.join(data_dir, self.__rawdata_dir_name)
         if not os.path.exists(rawdata_dir_path):
             logger.error(f"Directory not found. {rawdata_dir_path}")
@@ -290,12 +290,12 @@ class CutOutShot:
 
         shots_index: str = "shots-" + self.__rawdata_dir_name + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
-        setting_shots: str = os.environ["setting_shots_path"]
+        setting_shots: str = os.environ["SettingShotsPath"]
         ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
         shots_meta_index: str = "shots-" + self.__rawdata_dir_name + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
-        setting_shots_meta: str = os.environ["setting_shots_meta_path"]
+        setting_shots_meta: str = os.environ["SettingShotsMetaPath"]
         ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
         events: List[DataCollectHistoryEvent] = list(self.__data_collect_history.data_collect_history_events)
