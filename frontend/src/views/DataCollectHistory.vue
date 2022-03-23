@@ -164,7 +164,6 @@ export default {
                 handler_type: '',
                 adc_serial_num: -1,
                 sampling_frequency: '',
-                sampling_ch_num: -1,
                 filewrite_time: '',
                 is_primary: false,
                 data_collect_history_sensors: [
@@ -209,12 +208,6 @@ export default {
           text: 'サンプリングレート(Hz)',
           value:
             'data_collect_history_gateways[0].data_collect_history_handlers[0].sampling_frequency',
-        },
-        // TODO: primaryハンドラーの値に設定
-        {
-          text: 'チャネル数',
-          value:
-            'data_collect_history_gateways[0].data_collect_history_handlers[0].sampling_ch_num',
         },
         { text: 'アクション', value: 'actions', sortable: false },
       ],
@@ -276,7 +269,6 @@ export default {
                 handler_type: '',
                 adc_serial_num: -1,
                 sampling_frequency: '',
-                sampling_ch_num: -1,
                 filewrite_time: '',
                 is_primary: false,
                 data_collect_history_sensors: [
