@@ -91,6 +91,7 @@ machine_01 = Machine(
                     filewrite_time=1,
                     is_primary=True,
                     is_cut_out_target=True,
+                    is_multi=True,
                     sensors=[
                         Sensor(
                             machine_id="unittest-machine-01",
@@ -133,6 +134,7 @@ machine_01 = Machine(
                     filewrite_time=1,
                     is_primary=False,
                     is_cut_out_target=True,
+                    is_multi=True,
                     sensors=[
                         Sensor(
                             machine_id="unittest-machine-01",
@@ -203,6 +205,7 @@ machine_02 = Machine(
                     filewrite_time=1,
                     is_primary=False,
                     is_cut_out_target=True,
+                    is_multi=False,
                     sensors=[
                         Sensor(
                             machine_id="unittest-machine-02",
