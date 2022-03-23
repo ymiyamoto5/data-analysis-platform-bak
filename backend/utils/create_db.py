@@ -298,6 +298,7 @@ integ_test_machine = Machine(
                     filewrite_time=1,
                     is_primary=True,
                     is_cut_out_target=True,
+                    is_multi=True,
                     sensors=[
                         Sensor(
                             machine_id="test-machine",
@@ -340,6 +341,7 @@ integ_test_machine = Machine(
                     filewrite_time=1,
                     is_primary=False,
                     is_cut_out_target=True,
+                    is_multi=True,
                     sensors=[
                         Sensor(
                             machine_id="test-machine",
