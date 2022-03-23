@@ -139,54 +139,54 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 - .env
 
 ```
-http_proxy=http://proxy.unisys.co.jp:8080
-https_proxy=http://proxy.unisys.co.jp:8080
-NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
-no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
-SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
-DB_SQL_ECHO=0
-NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
-no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
-mlflow_server_uri=http://mlflow:5000
-mlflow_experiment_name=some
-MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-AWS_ACCESS_KEY_ID=minio-access-key
-AWS_SECRET_ACCESS_KEY=minio-secret-key
-data_dir=/mnt/datadrive/data
-elastic_url=elasticsearch:9200
-elastic_user=<elastic user>
-elastic_password=<elastic password>
-mapping_rawdata_path=backend/mappings/mapping_rawdata.json
-setting_rawdata_path=backend/mappings/setting_rawdata.json
-setting_shots_path=backend/mappings/setting_shots.json
-setting_shots_meta_path=backend/mappings/setting_shots_meta.json
-setting_resample_path=backend/mappings/setting_resample.json
-CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
-CELERY_RESULT_BACKEND=redis://redis/0
+HttpProxy=http://proxy.unisys.co.jp:8080
+HttpsProxy=http://proxy.unisys.co.jp:8080
+NoProxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
+NoProxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
+SqlalchemyDatabaseUri=sqlite:////mnt/datadrive/app.db
+DbSqlEcho=0
+NoProxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
+NoProxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
+MlflowServerUri=http://mlflow:5000
+MlflowExperimentName=some
+MlflowS3EndpointUrl=http://minio:9000
+AwsAccessKeyId=minio-access-key
+AwsSecretAccessKey=minio-secret-key
+DataDir=/mnt/datadrive/data
+ElasticUrl=elasticsearch:9200
+ElasticUser=<elastic user>
+ElasticPassword=<elastic password>
+MappingRawdataPath=backend/mappings/mapping_rawdata.json
+SettingRawdataPath=backend/mappings/setting_rawdata.json
+SettingShotsPath=backend/mappings/setting_shots.json
+SettingShotsMetaPath=backend/mappings/setting_shots_meta.json
+SettingResamplePath=backend/mappings/setting_resample.json
+CeleryBrokerUrl=pyamqp://guest:guest@rabbitmq:5672
+CeleryResultBackend=redis://redis/0
 ```
 
 .env.local
 
 ```
-LOCAL_IP=<ローカルIP>
-SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
-DB_SQL_ECHO=1
-mlflow_server_uri=http://${LOCAL_IP}:5000
-mlflow_experiment_name=some
-MLFLOW_S3_ENDPOINT_URL=http://${LOCAL_IP}:9000
-AWS_ACCESS_KEY_ID=minio-access-key
-AWS_SECRET_ACCESS_KEY=minio-secret-key
-data_dir=/mnt/datadrive/data
-elastic_url=${LOCAL_IP}:9200
-elastic_user=<elastic user>
-elastic_password=<elastic password>
-mapping_rawdata_path=backend/mappings/mapping_rawdata.json
-setting_rawdata_path=backend/mappings/setting_rawdata.json
-setting_shots_path=backend/mappings/setting_shots.json
-setting_shots_meta_path=backend/mappings/setting_shots_meta.json
-setting_resample_path=backend/mappings/setting_resample.json
-CELERY_BROKER_URL=pyamqp://guest:guest@${LOCAL_IP}:5672
-CELERY_RESULT_BACKEND=redis://${LOCAL_IP}/0
+LocalIp=<ローカルIP>
+SqlalchemyDatabaseUri=sqlite:////mnt/datadrive/app.db
+DbSqlEcho=1
+MlflowServerUri=http://${LocalIp}:5000
+MlflowExperimentName=some
+MlflowS3EndpointUrl=http://${LocalIp}:9000
+AwsAccessKeyId=minio-access-key
+AwsSecretAccessKey=minio-secret-key
+DataDir=/mnt/datadrive/data
+ElasticUrl=${LocalIp}:9200
+ElasticUser=<elastic user>
+ElasticPassword=<elastic password>
+MappingRawdataPath=backend/mappings/mapping_rawdata.json
+SettingRawdataPath=backend/mappings/setting_rawdata.json
+SettingShotsPath=backend/mappings/setting_shots.json
+SettingShotsMetaPath=backend/mappings/setting_shots_meta.json
+SettingResamplePath=backend/mappings/setting_resample.json
+CeleryBrokerUrl=pyamqp://guest:guest@${LocalIp}:5672
+CeleryResultBackend=redis://${LocalIp}/0
 ```
 
 - docker/.env

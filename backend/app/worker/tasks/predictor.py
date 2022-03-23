@@ -151,8 +151,8 @@ def feature_extract(machine: Machine, target_dir: str, shot_df: DataFrame) -> Se
 def predict(machine: Machine, features_df: DataFrame, target_dir: str, shot_metas: List[dict], meta_index: str) -> Optional[List[bool]]:
     """予測"""
 
-    mlflow_server_uri: str = os.environ["mlflow_server_uri"]
-    mlflow.set_tracking_uri(mlflow_server_uri)
+    MlflowServerUri: str = os.environ["MlflowServerUri"]
+    mlflow.set_tracking_uri(MlflowServerUri)
     # machineテーブルの参照
     # モデルとバージョンの取得
     model_name: str = machine.predict_model

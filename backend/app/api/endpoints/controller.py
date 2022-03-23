@@ -206,7 +206,7 @@ def check(
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
 
-    data_dir: str = os.environ["data_dir"]
+    data_dir: str = os.environ["DataDir"]
 
     latest_predictor_task: CeleryTask = CRUDCeleryTask.select_latest_by_task_type(db, machine_id, "predictor")
 
