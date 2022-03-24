@@ -111,34 +111,20 @@ def simulate_multi_handler(machine_id, handlers, resampling, y_sample):
     handler_ids = [x.handler_id for x in handlers]
 
     for file_number in range(100):
-        # handler[0]
         binaries = b""
         for i in range(resampling):
             binary = struct.pack(
-                "<ddd",
+                "<dddddd",
                 y_sample["stroke_displacement"][i],
                 y_sample["load01"][i],
                 y_sample["load02"][i],
-            )
-            binaries += binary
-
-        output_file(machine_id, gateway_id, handler_ids[0], file_number, binaries)
-
-        # handler[1]
-        binaries = b""
-        for i in range(resampling):
-            binary = struct.pack(
-                "<ddd",
                 y_sample["load03"][i],
                 y_sample["load04"][i],
                 y_sample["dummy"][i],
             )
             binaries += binary
 
-        output_file(machine_id, gateway_id, handler_ids[1], file_number, binaries)
-
-        # debug
-        # read_binary(binaries, sampling_ch_num)
+        output_file(machine_id, gateway_id, handler_ids[0], file_number, binaries)
 
 
 def read_binary(binary, sampling_ch_num):
