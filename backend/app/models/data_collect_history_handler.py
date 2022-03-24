@@ -34,5 +34,8 @@ class DataCollectHistoryHandler(Base):
 
     # One to Many
     data_collect_history_sensors = relationship(
-        "DataCollectHistorySensor", back_populates="data_collect_history_handler", cascade="all, delete"
+        "DataCollectHistorySensor",
+        back_populates="data_collect_history_handler",
+        cascade="all, delete",
+        order_by="DataCollectHistorySensor.sort_order",
     )
