@@ -9,10 +9,12 @@ from backend.app.api.deps import get_db
 from backend.app.crud.crud_celery_task import CRUDCeleryTask
 from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.crud.crud_handler import CRUDHandler
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
 from backend.app.models.sensor import Sensor
 from backend.app.services.data_recorder_service import DataRecorderService
@@ -62,6 +64,33 @@ def validation(machine: Machine, collect_status: str, status) -> Tuple[bool, Opt
     return True, None, 200
 
 
+def multi_handler_validation(handlers: List[Handler]) -> Tuple[bool, Optional[str], int]:
+    """複数handler構成のvalidation
+    * プライマリーハンドラーが1台のみ存在すること
+    * sampling_frequencyが一致していること
+    * sampling_ch_numが一致していること（物理的に数が一致しない場合、ダミーセンサーを登録）
+    * handler_typeが一致していること
+    """
+
+    if len([handler for handler in handlers if handler.is_primary]) != 1:
+        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        return False, message, 400
+
+    if not all(handler.sampling_frequency == handlers[0].sampling_frequency for handler in handlers):
+        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        return False, message, 400
+
+    if not all(handler.sampling_ch_num == handlers[0].sampling_ch_num for handler in handlers):
+        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        return False, message, 400
+
+    if not all(handler.handler_type == handlers[0].handler_type for handler in handlers):
+        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        return False, message, 400
+
+    return True, None, 200
+
+
 @router.post("/setup/{machine_id}")
 def setup(
     machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN),
@@ -77,6 +106,20 @@ def setup(
     is_valid, message, error_code = validation(machine, common.COLLECT_STATUS.RECORDED.value, common.STATUS.STOP.value)
     if not is_valid:
         raise HTTPException(status_code=error_code, detail=message)
+
+    # gateway毎にチェックが必要
+    for gateway in machine.gateways:
+        # 複数ハンドラー構成のハンドラー情報取得
+        handlers: List[Handler] = CRUDHandler.select_multi_handlers_by_gateway_id(db, gateway.gateway_id)
+
+        # handlersが空リストなら複数ハンドラー構成はないのでmulti_handler_validation不要
+        if not handlers:
+            continue
+
+        # multi_handler_validationを呼び出し、各種チェック
+        is_valid, message, error_code = multi_handler_validation(handlers)
+        if not is_valid:
+            raise HTTPException(status_code=error_code, detail=message)
 
     # 退避ディレクトリ作成
     processed_dir_path: str = DataRecorderService.get_processed_dir_path(machine_id=machine_id, started_at=utc_now)

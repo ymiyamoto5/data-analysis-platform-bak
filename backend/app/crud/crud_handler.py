@@ -48,6 +48,12 @@ class CRUDHandler:
         return handler
 
     @staticmethod
+    def select_multi_handlers_by_gateway_id(db: Session, gateway_id: str) -> List[Handler]:
+        handler: Handler = db.query(Handler).filter_by(gateway_id=gateway_id).filter_by(is_multi=True).all()
+
+        return handler
+
+    @staticmethod
     def insert(db: Session, obj_in: handler.HandlerCreate) -> Handler:
         new_handler = Handler(
             handler_id=obj_in.handler_id,
