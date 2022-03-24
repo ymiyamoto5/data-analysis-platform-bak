@@ -57,7 +57,9 @@ class CRUDHandler:
             sampling_ch_num=0,
             filewrite_time=obj_in.filewrite_time,
             gateway_id=obj_in.gateway_id,
+            is_cut_out_target=obj_in.is_cut_out_target,
             is_primary=obj_in.is_primary,
+            is_multi=obj_in.is_multi,
         )
 
         # Handlerを更新したことをGatewayに知らせるため、gateway_resultを0に設定

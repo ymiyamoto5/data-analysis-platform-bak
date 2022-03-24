@@ -16,6 +16,7 @@ class Handler(Base):
     gateway_id = Column(Integer, ForeignKey("gateways.gateway_id"), nullable=False)
     is_primary = Column(Boolean, nullable=False, default=False)
     is_cut_out_target = Column(Boolean, nullable=False, default=True)
+    is_multi = Column(Boolean, nullable=False, default=False)
 
     gateway = relationship("Gateway", back_populates="handlers")
     sensors = relationship("Sensor", back_populates="handler")
