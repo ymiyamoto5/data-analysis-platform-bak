@@ -67,13 +67,37 @@
                   label="ショット切り出し対象"
                 >
                 </v-checkbox>
+                <v-checkbox
+                  v-model="editedItem.is_multi"
+                  hide-details
+                  label="複数台構成"
+                  @change="resetPrimary"
+                >
+                  <template v-slot:append>
+                    <v-tooltip bottom>
+                      <template v-slot:activator="{ on }">
+                        <v-icon v-on="on">
+                          mdi-help-circle-outline
+                        </v-icon>
+                      </template>
+                      <div>
+                        ハンドラーを2台以上セットで構成する場合にチェックします。
+                        <br />
+                        セットとなるハンドラーのハンドラータイプ、サンプリングレート、ファイル出力間隔は同値である必要があります。
+                        <br />
+                        また、いずれかのハンドラーをプライマリハンドラーとして設定する必要があります。
+                      </div>
+                    </v-tooltip>
+                  </template>
+                </v-checkbox>
                 <!-- GWにプライマリハンドラーが設定済みで、編集対象がそのハンドラーでない場合はdisable -->
                 <v-checkbox
                   v-model="editedItem.is_primary"
                   hide-details
                   label="プライマリーハンドラー"
                   :disabled="
-                    editedItem.gateway_id === '' ||
+                    !editedItem.is_multi ||
+                      editedItem.gateway_id === '' ||
                       (primary !== '' && editedItem.handler_id !== primary)
                   "
                 >
@@ -123,8 +147,17 @@
         </v-dialog>
       </v-toolbar>
     </template>
+    <template v-slot:[`item.is_cut_out_target`]="{ item }">
+      <v-simple-checkbox
+        v-model="item.is_cut_out_target"
+        disabled
+      ></v-simple-checkbox>
+    </template>
+    <template v-slot:[`item.is_multi`]="{ item }">
+      <v-simple-checkbox v-model="item.is_multi" disabled></v-simple-checkbox>
+    </template>
     <template v-slot:[`item.is_primary`]="{ item }">
-      {{ formatBool(item.is_primary) }}
+      <v-simple-checkbox v-model="item.is_primary" disabled></v-simple-checkbox>
     </template>
     <template v-slot:[`item.actions`]="{ item }">
       <v-icon
@@ -166,8 +199,13 @@ export default {
       { text: 'チャンネル数', value: 'sampling_ch_num' },
       { text: 'ファイル出力間隔(秒)', value: 'filewrite_time' },
       { text: 'ゲートウェイID', value: 'gateway_id' },
-      { text: 'ショット切り出し対象', value: 'is_cut_out_target' },
-      { text: 'プライマリーハンドラー', value: 'is_primary' },
+      {
+        text: 'ショット切り出し対象',
+        align: 'center',
+        value: 'is_cut_out_target',
+      },
+      { text: '複数台構成', align: 'center', value: 'is_multi' },
+      { text: 'プライマリーハンドラー', align: 'center', value: 'is_primary' },
       { text: 'アクション', value: 'actions', sortable: false },
     ],
     handlers: [],
@@ -181,6 +219,7 @@ export default {
       filewrite_time: '',
       gateway_id: '',
       is_cut_out_target: false,
+      is_multi: false,
       is_primary: false,
     },
     defaultItem: {
@@ -190,8 +229,9 @@ export default {
       sampling_frequency: '',
       sampling_ch_num: '',
       filewrite_time: '',
-      is_cut_out_target: false,
       gateway_id: '',
+      is_cut_out_target: false,
+      is_multi: false,
       is_primary: false,
     },
     primary: '',
@@ -280,11 +320,6 @@ export default {
         })
     },
 
-    // プライマリーハンドラーのbool値を表示用にフォーマット
-    formatBool(bool) {
-      return bool ? 'YES' : 'NO'
-    },
-
     // GWにプライマリーハンドラーが設定されているかを確認
     checkPrimary: async function() {
       const client = createBaseApiClient()
@@ -329,6 +364,7 @@ export default {
           sampling_ch_num: this.editedItem.sampling_ch_num,
           filewrite_time: this.editedItem.filewrite_time,
           is_cut_out_target: this.editedItem.is_cut_out_target,
+          is_multi: this.editedItem.is_multi,
           is_primary: this.editedItem.is_primary,
         }
         await client
@@ -353,6 +389,7 @@ export default {
           filewrite_time: this.editedItem.filewrite_time,
           gateway_id: this.editedItem.gateway_id,
           is_cut_out_target: this.editedItem.is_cut_out_target,
+          is_multi: this.editedItem.is_multi,
           is_primary: this.editedItem.is_primary,
         }
         await client
@@ -365,6 +402,13 @@ export default {
             console.log(e.response.data.detail)
             this.errorSnackbar(e.response)
           })
+      }
+    },
+
+    // 複数台構成がfalseになったとき、主要なハンドラーを未設定の状態にする
+    resetPrimary: async function() {
+      if (!this.editedItem.is_multi) {
+        this.editedItem.is_primary = false
       }
     },
 
