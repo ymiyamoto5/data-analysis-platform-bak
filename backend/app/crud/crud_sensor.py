@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Union
 
 from backend.app.crud.crud_handler import CRUDHandler
+from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -38,7 +39,13 @@ class CRUDSensor:
 
     @staticmethod
     def insert(db: Session, obj_in: sensor.SensorCreate) -> Sensor:
+        """センサー登録
+        NOTE: センサー数やセンサーID付与処理はトランザクションになっておらず、同時実行されると不具合が発生する。
+        """
+
         machine: Machine = CRUDSensor.fetch_machine_by_handler_id(db, obj_in.handler_id)
+        sensors: List[Sensor] = CRUDMachine.select_sensors_by_machine_id(db, machine.machine_id)
+        num_of_sensors: int = len(sensors)
 
         # NOTE: ストローク変位センサー、パルスセンサーはサフィックス番号を付けない
         if obj_in.sensor_type_id in common.CUT_OUT_SHOT_SENSOR_TYPES:
@@ -76,6 +83,7 @@ class CRUDSensor:
             handler_id=obj_in.handler_id,
             slope=obj_in.slope,
             intercept=obj_in.intercept,
+            sort_order=num_of_sensors,  # 並び順は登録順とする
         )
 
         # handlerのセンサー数を更新する
