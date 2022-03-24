@@ -18,6 +18,7 @@ class DataCollectHistorySensor(Base):
     start_point_dsl = Column(Text)
     max_point_dsl = Column(Text)
     break_point_dsl = Column(Text)
+    sort_order = Column(Integer, nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
