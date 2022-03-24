@@ -20,6 +20,7 @@ from backend.app.models.data_collect_history_event import DataCollectHistoryEven
 from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.services.data_recorder_service import DataRecorderService
 from backend.common import common
 from backend.data_recorder.data_recorder import DataRecorder
 from backend.file_manager.file_manager import FileManager
@@ -186,13 +187,15 @@ class TestRecord:
     def init(self) -> None:
         self.machine_id: str = "test-machine-01"
         self.gateway_id: str = "test-gateway-01"
-        self.handler_id: str = "test-handler-01"
-        self.handler_id_2: str = "test-handler-02"
+        self.handler_id_01_1: str = "test-handler-01-1"
+        self.handler_id_01_2: str = "test-handler-01-2"
+        self.handler_id_02: str = "test-handler-02"
 
     @pytest.mark.skip(reason="ジョブ実行のみ（デバッグ用）")
     def test_exec(self, db, init, mocker):
         """ジョブ実行のみ（デバッグ用）
-        通常はコメントアウト
+        通常はスキップ。実行時はskip行をコメントアウトすること。
+        なお、実行すると無限ループになるため注意。
         """
 
         data_dir = os.environ["data_dir"]
@@ -202,7 +205,7 @@ class TestRecord:
             shutil.rmtree(dir_path)
         os.mkdir(dir_path)
 
-        mocker.patch.object(DataRecorder, "get_collect_status", return_value="setup")
+        mocker.patch.object(DataRecorderService, "get_collect_status", return_value="setup")
 
-        # DataRecorder.record(db, self.machine_id, self.gateway_id, self.handler_id)
-        DataRecorder.record(db, self.machine_id, self.gateway_id, self.handler_id_2)
+        DataRecorder.record(db, self.machine_id, self.gateway_id, self.handler_id_01_1)
+        # DataRecorder.record(db, self.machine_id, self.gateway_id, self.handler_id_2)

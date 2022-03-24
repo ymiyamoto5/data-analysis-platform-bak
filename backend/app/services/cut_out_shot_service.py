@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 from typing import List, Union
 
@@ -7,7 +6,6 @@ from backend.app.models.data_collect_history_sensor import DataCollectHistorySen
 from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
-from backend.file_manager.file_manager import FileInfo, FileManager
 from pandas.core.frame import DataFrame
 
 
@@ -53,18 +51,3 @@ class CutOutShotService:
             df.loc[:, sensor.sensor_id] = df[sensor.sensor_id].map(func)
 
         return df
-
-    @staticmethod
-    def merge_by_handler_df(files_info_by_handler: List[List[FileInfo]], file_number: int) -> DataFrame:
-        """指定ファイル番号のファイルをハンドラーごとに読み、マージしたDataFrameを返す。"""
-
-        merged_df = pd.DataFrame()
-        for i, files_info in enumerate(files_info_by_handler):
-            target_file = files_info[file_number].file_path
-            df: DataFrame = CutOutShotService.fetch_df(target_file)
-            if i == 0:
-                merged_df = df.copy()
-                continue
-            merged_df = pd.merge(merged_df, df, on="sequential_number", suffixes=["", "_right"]).drop(columns="timestamp_right")
-
-        return merged_df

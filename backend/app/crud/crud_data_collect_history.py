@@ -75,6 +75,20 @@ class CRUDDataCollectHistory:
         return history
 
     @staticmethod
+    def select_multi_handler_sensors_by_history_id(db: Session, history_id: int) -> List[DataCollectHistorySensor]:
+        """複数ハンドラー構成のハンドラーに紐づくセンサーリストを取得する"""
+
+        sensors: List[DataCollectHistorySensor] = (
+            db.query(DataCollectHistorySensor)
+            .filter_by(data_collect_history_id=history_id)
+            .join(DataCollectHistoryHandler)
+            .filter(DataCollectHistoryHandler.is_multi)
+            .all()
+        )
+
+        return sensors
+
+    @staticmethod
     def select_latest_by_machine_id(db: Session, machine_id: str) -> DataCollectHistory:
         history: DataCollectHistory = (
             db.query(DataCollectHistory)

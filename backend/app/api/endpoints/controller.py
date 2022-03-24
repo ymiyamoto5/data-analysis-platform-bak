@@ -285,6 +285,9 @@ def run_data_recorder(
 
     for gateway in machine.gateways:
         for handler in gateway.handlers:
+            # 複数ハンドラーでプライマリーハンドラーでないものは生データが生成されないため記録する必要がない。
+            if handler.is_multi and not handler.is_primary:
+                continue
             task = celery_app.send_task(task_name, (machine_id, gateway.gateway_id, handler.handler_id))
             logger.info(f"data_recorder started. task_id: {task.id}")
 
