@@ -20,10 +20,10 @@ from sklearn.model_selection import train_test_split  # type: ignore
 router = APIRouter()
 docker_client = docker.DockerClient(base_url="unix://run/docker.sock")
 
-mlflow_server_uri = os.environ["mlflow_server_uri"]
-mlflow_experiment_name = os.environ["mlflow_experiment_name"]
+MLFLOW_SERVER_URI = os.environ["MLFLOW_SERVER_URI"]
+MLFLOW_EXPERIMENT_NAME = os.environ["MLFLOW_EXPERIMENT_NAME"]
 
-mlflow.set_tracking_uri(mlflow_server_uri)
+mlflow.set_tracking_uri(MLFLOW_SERVER_URI)
 mlflow.sklearn.autolog()
 
 # TODO: 対応アルゴリズムの取得自動化
@@ -91,7 +91,7 @@ def fetch_versions(model: str):
 @router.post("/")
 def create(create_model: model.CreateModel):
     """モデルの作成"""
-    mlflow.set_experiment(mlflow_experiment_name)
+    mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
 
     feature = features.fetch_feature(machine_id=create_model.machine_id, target_dir=create_model.target_dir)
     X = pd.DataFrame(feature["data"])
@@ -143,10 +143,10 @@ def create_container(create_container: model.CreateContainer):
     saved_path = model_classifier_service.save()
 
     buildarg = {}
-    if os.getenv("http_proxy") or os.getenv("HTTP_PROXY"):
-        buildarg["http_proxy"] = os.getenv("http_proxy")
-    if os.getenv("https_proxy") or os.getenv("HTTPS_PROXY"):
-        buildarg["https_proxy"] = os.getenv("https_proxy")
+    if os.getenv("HTTP_PROXY") or os.getenv("HTTP_PROXY"):
+        buildarg["HTTP_PROXY"] = os.getenv("HTTP_PROXY")
+    if os.getenv("HTTPS_PROXY") or os.getenv("HTTPS_PROXY"):
+        buildarg["HTTPS_PROXY"] = os.getenv("HTTPS_PROXY")
     docker_client.images.build(path=saved_path, tag=create_container.tag_name.lower(), rm=True, buildargs=buildarg)
     # yatai_client = get_yatai_client()
     # yatai_client.repository.delete(prune=True)

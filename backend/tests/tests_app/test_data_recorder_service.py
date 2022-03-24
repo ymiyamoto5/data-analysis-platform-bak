@@ -198,7 +198,7 @@ class TestRecord:
         なお、実行すると無限ループになるため注意。
         """
 
-        data_dir = os.environ["data_dir"]
+        data_dir = os.environ["DATA_DIR"]
         dir_path = os.path.join(data_dir, self.machine_id + "-20211111110000")
 
         if os.path.exists(dir_path):

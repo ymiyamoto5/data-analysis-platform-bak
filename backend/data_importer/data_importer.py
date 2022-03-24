@@ -69,7 +69,7 @@ class DataImporter:
     def _get_target_date_dir(self, target: str) -> str:
         """ファイル出力先のパスを取得する"""
 
-        data_dir: str = os.environ["data_dir"]
+        data_dir: str = os.environ["DATA_DIR"]
         file_dir: str = os.path.join(data_dir, target)
 
         return file_dir
@@ -188,13 +188,13 @@ class DataImporter:
         # TODO: メソッド化
         shots_index: str = "shots-" + target + "-data"
         ElasticManager.delete_exists_index(index=shots_index)
-        setting_shots: str = os.environ["setting_shots_path"]
+        setting_shots: str = os.environ["SETTING_SHOTS_PATH"]
         ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
         # TODO: メソッド化
         shots_meta_index: str = "shots-" + target + "-meta"
         ElasticManager.delete_exists_index(index=shots_meta_index)
-        setting_shots_meta: str = os.environ["setting_shots_meta_path"]
+        setting_shots_meta: str = os.environ["SETTING_SHOTS_META_PATH"]
         ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
         file_dir = self._get_target_date_dir(target)
