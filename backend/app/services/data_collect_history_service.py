@@ -23,7 +23,7 @@ class DataCollectHistoryService:
     def delete_data_directory(target: str):
         """対象となるデータディレクトリを削除"""
 
-        data_dir: str = os.environ["DataDir"]
+        data_dir: str = os.environ["DATA_DIR"]
         data_full_path: str = os.path.join(data_dir, target)
 
         if os.path.exists(data_full_path):

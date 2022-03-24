@@ -71,7 +71,7 @@ def save_fig(x, y, x_sample, y_sample):
 
 def output_file(machine_id, gateway_id, handler_id, file_number, binaries):
     """バイナリファイル出力"""
-    data_dir = os.environ["DataDir"]
+    data_dir = os.environ["DATA_DIR"]
     utc_now = datetime.utcnow()
     now_str = datetime.strftime(utc_now, "%Y%m%d_%H%M%S.%f")
     file_name = f"{machine_id}_{gateway_id}_{handler_id}_{now_str}_{file_number}.dat"

@@ -19,9 +19,9 @@ from backend.common import common
 from backend.common.common_logger import logger
 from elasticsearch import Elasticsearch, exceptions, helpers
 
-ELASTIC_URL: Final[str] = os.environ["ElasticUrl"]
-ELASTIC_USER: Final[str] = os.environ["ElasticUser"]
-ELASTIC_PASSWORD: Final[str] = os.environ["ElasticPassword"]
+ELASTIC_URL: Final[str] = os.environ["ELASTIC_URL"]
+ELASTIC_USER: Final[str] = os.environ["ELASTIC_USER"]
+ELASTIC_PASSWORD: Final[str] = os.environ["ELASTIC_PASSWORD"]
 
 
 class ElasticManager:

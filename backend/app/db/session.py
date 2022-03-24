@@ -5,8 +5,8 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URI: Final[str] = os.environ["SqlalchemyDatabaseUri"]
-DB_SQL_ECHO: Final[str] = os.environ["DbSqlEcho"]
+SQLALCHEMY_DATABASE_URI: Final[str] = os.environ["SQLALCHEMY_DATABASE_URI"]
+DB_SQL_ECHO: Final[str] = os.environ["DB_SQL_ECHO"]
 
 # NOTE: check_same_thread: False is needed only for SQLite. It's not needed for other databases.
 # https://fastapi.tiangolo.com/ja/tutorial/sql-databases/
