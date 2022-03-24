@@ -467,6 +467,7 @@ def create_data_collect_history():
                         filewrite_time=1,
                         is_primary=True,
                         is_cut_out_target=True,
+                        is_multi=True,
                         data_collect_history_sensors=[
                             DataCollectHistorySensor(
                                 sensor_id="stroke_displacement",
@@ -501,6 +502,7 @@ def create_data_collect_history():
                         filewrite_time=1,
                         is_primary=False,
                         is_cut_out_target=True,
+                        is_multi=True,
                         data_collect_history_sensors=[
                             DataCollectHistorySensor(
                                 sensor_id="load03",
