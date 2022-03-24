@@ -24,7 +24,7 @@ from sqlalchemy import event
 env_file = ".env.local"
 load_dotenv(env_file)
 
-DATA_DIR: Final[str] = os.environ["DataDir"]
+DATA_DIR: Final[str] = os.environ["DATA_DIR"]
 
 
 # NOTE: 外部キー制約無効化

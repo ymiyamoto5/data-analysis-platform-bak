@@ -38,7 +38,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
-DATA_DIR: Final[str] = os.environ["DataDir"]
+DATA_DIR: Final[str] = os.environ["DATA_DIR"]
 DB_URL = "sqlite:////mnt/datadrive/temp.db"
 
 

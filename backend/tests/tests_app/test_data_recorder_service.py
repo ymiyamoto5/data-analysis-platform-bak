@@ -195,7 +195,7 @@ class TestRecord:
         通常はコメントアウト
         """
 
-        data_dir = os.environ["DataDir"]
+        data_dir = os.environ["DATA_DIR"]
         dir_path = os.path.join(data_dir, self.machine_id + "-20211111110000")
 
         if os.path.exists(dir_path):
