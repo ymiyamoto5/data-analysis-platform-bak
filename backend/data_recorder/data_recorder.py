@@ -106,7 +106,21 @@ class DataRecorder:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        sensors: List[DataCollectHistorySensor] = latest_data_collect_history_handler.data_collect_history_sensors
+        if latest_data_collect_history_handler is None:
+            logger.error("No target in data_collect_history.")
+            sys.exit(1)
+
+        # 複数ハンドラー構成の時、そのハンドラーセットに紐づくすべてのセンサーを対象にする
+        if latest_data_collect_history_handler.is_multi:
+            try:
+                sensors: List[DataCollectHistorySensor] = CRUDDataCollectHistory.select_multi_handler_sensors_by_history_id(
+                    db, latest_data_collect_history_handler.data_collect_history_id
+                )
+            except Exception:
+                logger.exception(traceback.format_exc())
+                sys.exit(1)
+        else:
+            sensors = latest_data_collect_history_handler.data_collect_history_sensors
 
         started_timestamp: float = (
             latest_data_collect_history_handler.data_collect_history_gateway.data_collect_history.started_at.timestamp()
