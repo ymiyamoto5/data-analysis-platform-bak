@@ -1,5 +1,5 @@
 from backend.app.db.session import Base
-from sqlalchemy import Column, Float, ForeignKey, String, Text
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 
@@ -17,6 +17,9 @@ class Sensor(Base):
     start_point_dsl = Column(Text)
     max_point_dsl = Column(Text)
     break_point_dsl = Column(Text)
+    sort_order = Column(Integer, nullable=False)
+
+    __table_args__ = (UniqueConstraint("machine_id", "sort_order"), {})  # type: ignore
 
     # NOTE: SensorとHandlerはMany to One
     handler = relationship("Handler", back_populates="sensors")
