@@ -55,7 +55,8 @@ class CRUDController:
                     sampling_ch_num=handler.sampling_ch_num,
                     filewrite_time=handler.filewrite_time,
                     is_primary=handler.is_primary,
-                    is_cut_out_target=True,
+                    is_cut_out_target=handler.is_cut_out_target,
+                    is_multi=handler.is_multi,
                 )
                 db.add(new_data_collect_history_handler)
                 db.flush()
