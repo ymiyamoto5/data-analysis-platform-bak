@@ -216,11 +216,11 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
 def create_shots_index_set(shots_index: str, shots_meta_index: str) -> None:
     """Elasticsearchインデックスを作成する"""
     ElasticManager.delete_exists_index(index=shots_index)
-    setting_shots: str = os.environ["setting_shots_path"]
+    setting_shots: str = os.environ["SETTING_SHOTS_PATH"]
     ElasticManager.create_index(index=shots_index, setting_file=setting_shots)
 
     ElasticManager.delete_exists_index(index=shots_meta_index)
-    setting_shots_meta: str = os.environ["setting_shots_meta_path"]
+    setting_shots_meta: str = os.environ["SETTING_SHOTS_META_PATH"]
     ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
 
 

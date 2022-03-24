@@ -47,7 +47,7 @@ if __name__ == "__main__":
     resample_df = resampling(shots_df, 100, exclude_shots)
     # converted_df = convert_timestamp(resample_df)
 
-    setting: str = os.environ["setting_resample_path"]
+    setting: str = os.environ["SETTING_RESAMPLE_PATH"]
 
     df_to_els(resample_df, resample_index, mapping=None, setting=setting)
 

@@ -18,7 +18,7 @@ class DataRecorderService:
 
         dir_name: str = machine_id + "-" + datetime_suffix
 
-        processed_dir_path: str = os.path.join(os.environ["data_dir"], dir_name)
+        processed_dir_path: str = os.path.join(os.environ["DATA_DIR"], dir_name)
 
         if os.path.isdir(processed_dir_path):
             logger.debug(f"{processed_dir_path} is already exists")
