@@ -1,46 +1,50 @@
-# name: Python package
+name: Python package
 
-# on:
-#   push:
-#     branches: [master]
-#   pull_request:
-#     branches: [master]
+on:
+  # push:
+  #   branches: [master]
+  # pull_request:
+  #   branches: [master]
+  push:
+    branches: [dummy]
+  pull_request:
+    branches: [dummy]
 
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     strategy:
-#       fail-fast: false
-#       matrix:
-#         python-version: ['3.8.12']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8.12']
 
-#     steps:
-#       - uses: actions/checkout@v2
-#       - name: Create Database Dir
-#         run: |
-#           mkdir -p database
-#       - name: Set up Python ${{ matrix.python-version }}
-#         uses: actions/setup-python@v2
-#         with:
-#           python-version: ${{ matrix.python-version }}
-#       - name: Install poetry
-#         run: |
-#           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-#           echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-#       - name: Poetry Version
-#         run: |
-#           poetry --version
-#       - name: Poetry Install Dependencies
-#         run: |
-#           poetry install --no-interaction
-#       - name: Test with pytest
-#         run: |
-#           poetry run pytest
-#         env:
-#           ELASTIC_USER: ${{ secrets.ELASTIC_USER }}
-#           ELASTIC_PASSWORD: ${{ secrets.ELASTIC_PASSWORD }}
-#           DATA_DIR: ${HOME} + "/data"
-#       - name: Lint with flake8
-#         run: |
-#           poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-#           poetry run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=140 --statistics
+    steps:
+      - uses: actions/checkout@v2
+      - name: Create Database Dir
+        run: |
+          mkdir -p database
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install poetry
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+          echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+      - name: Poetry Version
+        run: |
+          poetry --version
+      - name: Poetry Install Dependencies
+        run: |
+          poetry install --no-interaction
+      - name: Test with pytest
+        run: |
+          poetry run pytest
+        env:
+          ELASTIC_USER: ${{ secrets.ELASTIC_USER }}
+          ELASTIC_PASSWORD: ${{ secrets.ELASTIC_PASSWORD }}
+          DATA_DIR: ${HOME} + "/data"
+      - name: Lint with flake8
+        run: |
+          poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          poetry run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=140 --statistics
