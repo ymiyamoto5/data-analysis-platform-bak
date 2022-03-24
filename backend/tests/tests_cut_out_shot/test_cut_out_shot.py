@@ -20,35 +20,35 @@ from backend.app.models.data_collect_history_event import DataCollectHistoryEven
 from backend.common import common
 from backend.cut_out_shot.stroke_displacement_cutter import StrokeDisplacementCutter
 from backend.data_converter.data_converter import DataConverter
-from backend.elastic_manager.elastic_manager import ElasticManager
+
+# from backend.elastic_manager.elastic_manager import ElasticManager
 from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
 
+# class TestAutoCutOutShot:
+# def test_auto_cut_out_shot_multi_handler(self, stroke_displacement_target, pkl_files_multi_handler):
+#     """自動ショット切り出し実行。実行できればOKとする。"""
 
-class TestAutoCutOutShot:
-    def test_auto_cut_out_shot_multi_handler(self, stroke_displacement_target, pkl_files_multi_handler):
-        """自動ショット切り出し実行。実行できればOKとする。"""
+#     machine_id = "machine-01"
+#     shots_index: str = f"shots-{machine_id}-20201201103011-data"
+#     shots_meta_index: str = f"shots-{machine_id}-20201201103011-meta"
 
-        machine_id = "machine-01"
-        shots_index: str = f"shots-{machine_id}-20201201103011-data"
-        shots_meta_index: str = f"shots-{machine_id}-20201201103011-meta"
+#     file_set_list = []
+#     pkl_file_set_1 = []
+#     pkl_file_set_1.append(pkl_files_multi_handler.tmp_pkl_1._str)
+#     pkl_file_set_1.append(pkl_files_multi_handler.tmp_pkl_3._str)
+#     file_set_list.append(pkl_file_set_1)
+#     pkl_file_set_2 = []
+#     pkl_file_set_2.append(pkl_files_multi_handler.tmp_pkl_2._str)
+#     pkl_file_set_2.append(pkl_files_multi_handler.tmp_pkl_4._str)
+#     file_set_list.append(pkl_file_set_2)
 
-        file_set_list = []
-        pkl_file_set_1 = []
-        pkl_file_set_1.append(pkl_files_multi_handler.tmp_pkl_1._str)
-        pkl_file_set_1.append(pkl_files_multi_handler.tmp_pkl_3._str)
-        file_set_list.append(pkl_file_set_1)
-        pkl_file_set_2 = []
-        pkl_file_set_2.append(pkl_files_multi_handler.tmp_pkl_2._str)
-        pkl_file_set_2.append(pkl_files_multi_handler.tmp_pkl_4._str)
-        file_set_list.append(pkl_file_set_2)
+#     stroke_displacement_target.auto_cut_out_shot(file_set_list, shots_index, shots_meta_index, debug_mode=True)
 
-        stroke_displacement_target.auto_cut_out_shot(file_set_list, shots_index, shots_meta_index, debug_mode=True)
+#     ElasticManager.delete_index(shots_index)
+#     ElasticManager.delete_index(shots_meta_index)
 
-        ElasticManager.delete_index(shots_index)
-        ElasticManager.delete_index(shots_meta_index)
-
-        assert True
+#     assert True
 
 
 class TestExcludeSetupInterval:
