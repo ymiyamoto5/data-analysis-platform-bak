@@ -40,6 +40,15 @@ class TestSetup:
 
         assert response.status_code == 500
 
+    def test_multi_handler_validation_error(self, client, mocker, init):
+        """multi_handler_validation関数で何らかのエラーが発生した場合を想定"""
+
+        mocker.patch.object(controller, "multi_handler_validation", return_value=(False, "Some error occurred.", 400))
+
+        response = client.post(self.endpoint)
+
+        assert response.status_code == 400
+
     def test_db_update_failed(self, client, mocker, init):
         """DBアップデート失敗"""
 
