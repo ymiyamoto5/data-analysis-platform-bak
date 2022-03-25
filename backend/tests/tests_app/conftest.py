@@ -37,6 +37,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import StaticPool
 
 DATA_DIR: Final[str] = os.environ["DATA_DIR"]
 DB_URL = os.environ["SQLALCHEMY_DATABASE_URI"]
@@ -48,7 +49,7 @@ def client():
 
     client = TestClient(app)
 
-    engine = create_engine(DB_URL, echo=True, connect_args={"check_same_thread": False})
+    engine = create_engine(DB_URL, echo=True, connect_args={"check_same_thread": False}, poolclass=StaticPool)
 
     # NOTE: sqliteは既定で外部キー制約無効のため有効化する
     def _fk_pragma_on_connect(dbapi_con, con_record):
@@ -84,7 +85,7 @@ def client():
 def db():
     """DBのみのfixture"""
 
-    engine = create_engine(DB_URL, echo=True, connect_args={"check_same_thread": False})
+    engine = create_engine(DB_URL, echo=True, connect_args={"check_same_thread": False}, poolclass=StaticPool)
 
     # NOTE: sqliteは既定で外部キー制約無効のため有効化する
     # def _fk_pragma_on_connect(dbapi_con, con_record):
