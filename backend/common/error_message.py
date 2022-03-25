@@ -20,7 +20,10 @@ class ErrorTypes(Enum):
     COLLECT_STATUS_ERROR = "収集ステータスが正しくありません"
     GW_RESULT_ERROR = "ゲートウェイエラーです"
     CUT_OUT_SHOT_ERROR = "ショット切り出しに失敗しました"
-    MULTI_HANDLER_ERROR = "複数ハンドラー構成が正しくありません"
+    PRIMARY_HANDLER_ERROR = "プライマリハンドラーが正しくありません"
+    SAMPLING_FREQUENCY_ERROR = "サンプリングレートが正しくありません"
+    SAMPLING_CH_NUM_ERROR = "チャンネル数が正しくありません"
+    HANDLER_TYPE_ERROR = "ハンドラータイプが正しくありません"
 
 
 class ErrorMessage:
@@ -60,5 +63,11 @@ class ErrorMessage:
             return f"{ErrorTypes.GW_RESULT_ERROR.value}: {target}"
         if error_type == ErrorTypes.CUT_OUT_SHOT_ERROR:
             return f"{ErrorTypes.CUT_OUT_SHOT_ERROR.value}: {target}"
-        if error_type == ErrorTypes.MULTI_HANDLER_ERROR:
-            return f"{ErrorTypes.MULTI_HANDLER_ERROR.value}"
+        if error_type == ErrorTypes.PRIMARY_HANDLER_ERROR:
+            return f"{ErrorTypes.PRIMARY_HANDLER_ERROR.value}"
+        if error_type == ErrorTypes.SAMPLING_FREQUENCY_ERROR:
+            return f"{ErrorTypes.SAMPLING_FREQUENCY_ERROR.value}"
+        if error_type == ErrorTypes.SAMPLING_CH_NUM_ERROR:
+            return f"{ErrorTypes.SAMPLING_CH_NUM_ERROR.value}"
+        if error_type == ErrorTypes.HANDLER_TYPE_ERROR:
+            return f"{ErrorTypes.HANDLER_TYPE_ERROR.value}"

@@ -73,19 +73,19 @@ def multi_handler_validation(handlers: List[Handler]) -> Tuple[bool, Optional[st
     """
 
     if len([handler for handler in handlers if handler.is_primary]) != 1:
-        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        message = ErrorMessage.generate_message(ErrorTypes.PRIMARY_HANDLER_ERROR)
         return False, message, 400
 
     if not all(handler.sampling_frequency == handlers[0].sampling_frequency for handler in handlers):
-        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        message = ErrorMessage.generate_message(ErrorTypes.SAMPLING_FREQUENCY_ERROR)
         return False, message, 400
 
     if not all(handler.sampling_ch_num == handlers[0].sampling_ch_num for handler in handlers):
-        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        message = ErrorMessage.generate_message(ErrorTypes.SAMPLING_CH_NUM_ERROR)
         return False, message, 400
 
     if not all(handler.handler_type == handlers[0].handler_type for handler in handlers):
-        message = ErrorMessage.generate_message(ErrorTypes.MULTI_HANDLER_ERROR)
+        message = ErrorMessage.generate_message(ErrorTypes.HANDLER_TYPE_ERROR)
         return False, message, 400
 
     return True, None, 200
