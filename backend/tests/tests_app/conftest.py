@@ -57,7 +57,7 @@ def client():
 
     event.listen(engine, "connect", _fk_pragma_on_connect)
 
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
     # テスト用DBを初期化（関数ごとにリセット）
     Base.metadata.drop_all(bind=engine)
@@ -93,7 +93,7 @@ def db():
 
     # event.listen(engine, "connect", _fk_pragma_on_connect)
 
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
     # テスト用DBを初期化（関数ごとにリセット）
     Base.metadata.drop_all(bind=engine)
