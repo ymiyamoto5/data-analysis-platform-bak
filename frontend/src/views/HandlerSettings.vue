@@ -361,7 +361,7 @@ export default {
         body = {
           handler_type: this.editedItem.handler_type,
           adc_serial_num: this.editedItem.adc_serial_num,
-          sampling_ch_num: this.editedItem.sampling_ch_num,
+          sampling_frequency: this.editedItem.sampling_frequency,
           filewrite_time: this.editedItem.filewrite_time,
           is_cut_out_target: this.editedItem.is_cut_out_target,
           is_multi: this.editedItem.is_multi,
