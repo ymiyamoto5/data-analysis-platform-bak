@@ -39,7 +39,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
 DATA_DIR: Final[str] = os.environ["DATA_DIR"]
-DB_URL = "sqlite:////mnt/datadrive/temp.db"
+DB_URL = os.environ["SQLALCHEMY_DATABASE_URI"]
 
 
 @pytest.fixture
