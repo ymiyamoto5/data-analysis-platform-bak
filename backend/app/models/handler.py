@@ -19,4 +19,4 @@ class Handler(Base):
     is_multi = Column(Boolean, nullable=False, default=False)
 
     gateway = relationship("Gateway", back_populates="handlers")
-    sensors = relationship("Sensor", back_populates="handler")
+    sensors = relationship("Sensor", back_populates="handler", order_by="Sensor.sort_order")

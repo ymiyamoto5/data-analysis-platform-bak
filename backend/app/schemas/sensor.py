@@ -21,6 +21,7 @@ class Sensor(SensorBase):
     start_point_dsl: Optional[str] = None
     max_point_dsl: Optional[str] = None
     break_point_dsl: Optional[str] = None
+    sort_order: int
 
     class Config:
         orm_mode = True
