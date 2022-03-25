@@ -74,6 +74,7 @@ class CRUDController:
                         start_point_dsl=sensor.start_point_dsl,
                         max_point_dsl=sensor.max_point_dsl,
                         break_point_dsl=sensor.break_point_dsl,
+                        sort_order=sensor.sort_order,
                     )
                     db.add(new_data_collect_history_sensor)
                     db.flush()

@@ -1,5 +1,6 @@
 import pytest
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
+from backend.app.services.data_collect_history_service import DataCollectHistoryService
 
 
 class TestRead:
@@ -104,8 +105,10 @@ class TestDelete:
         self.data_collect_history_id = 1
         self.endpoint = "/api/v1/data_collect_histories"
 
-    def test_normal(self, client, init):
+    def test_normal(self, client, mocker, init):
         """子が存在するdata_collect_history_id"""
+        mocker.patch.object(DataCollectHistoryService, "delete_elastic_index")
+
         endpoint = f"{self.endpoint}/{self.data_collect_history_id}"
         response = client.delete(endpoint)
 

@@ -1,3 +1,5 @@
+import os
+
 from backend.app.api.api import api_router
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -7,9 +9,10 @@ from starlette.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="backend/app/dist/static"), name="static")
-
-templates = Jinja2Templates(directory="backend/app/dist/")
+mode: str = os.getenv("MODE", "PROD")
+if mode == "PROD":
+    app.mount("/static", StaticFiles(directory="backend/app/dist/static"), name="static")
+    templates = Jinja2Templates(directory="backend/app/dist/")
 
 # Set all CORS enabled origins
 app.add_middleware(
