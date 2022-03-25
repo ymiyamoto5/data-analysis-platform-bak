@@ -20,10 +20,10 @@ class ErrorTypes(Enum):
     COLLECT_STATUS_ERROR = "収集ステータスが正しくありません"
     GW_RESULT_ERROR = "ゲートウェイエラーです"
     CUT_OUT_SHOT_ERROR = "ショット切り出しに失敗しました"
-    PRIMARY_HANDLER_ERROR = "プライマリハンドラーが正しくありません"
-    SAMPLING_FREQUENCY_ERROR = "サンプリングレートが正しくありません"
-    SAMPLING_CH_NUM_ERROR = "チャンネル数が正しくありません"
-    HANDLER_TYPE_ERROR = "ハンドラータイプが正しくありません"
+    PRIMARY_HANDLER_ERROR = "複数ハンドラー構成ではプライマリハンドラーが1つのみ指定されている必要があります"
+    SAMPLING_FREQUENCY_ERROR = "複数ハンドラー構成でサンプリングレートが一致していません"
+    SAMPLING_CH_NUM_ERROR = "複数ハンドラー構成でセンサー数が一致していません"
+    HANDLER_TYPE_ERROR = "複数ハンドラー構成でハンドラータイプが一致していません"
 
 
 class ErrorMessage:
