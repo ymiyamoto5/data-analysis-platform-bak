@@ -93,12 +93,3 @@ class FileManager:
         files: List[str] = glob.glob(os.path.join(dir_path, pattern))
         files.sort()
         return files
-
-    @staticmethod
-    def get_files_list(machine_id, handlers: List[DataCollectHistoryHandler], rawdata_dir_path: str) -> List[List[str]]:
-        """ショット切り出し対象ファイルリストを返す。"""
-
-        files: List[str] = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{machine_id}_*.pkl")
-        files_list: List[List[str]] = [[x] for x in files]
-
-        return files_list
