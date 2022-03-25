@@ -27,4 +27,4 @@ class Machine(Base):
     # NOTE: MachineとDataCollectHistoryはOne to Many
     data_collect_histories = relationship("DataCollectHistory", back_populates="machine", cascade="all, delete")
     # NOTE: MachineとSensorはOne to Many
-    sensors = relationship("Sensor", back_populates="machine")
+    sensors = relationship("Sensor", back_populates="machine", order_by="Sensor.sort_order")

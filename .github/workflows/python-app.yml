@@ -1,10 +1,14 @@
 name: Python package
 
 on:
+  # push:
+  #   branches: [master]
+  # pull_request:
+  #   branches: [master]
   push:
-    branches: [master]
+    branches: [dummy]
   pull_request:
-    branches: [master]
+    branches: [dummy]
 
 jobs:
   build:

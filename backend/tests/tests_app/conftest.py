@@ -39,7 +39,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
 DATA_DIR: Final[str] = os.environ["DATA_DIR"]
-DB_URL = "sqlite:////mnt/datadrive/temp.db"
+DB_URL = os.environ["SQLALCHEMY_DATABASE_URI"]
 
 
 @pytest.fixture
@@ -168,6 +168,7 @@ def create_testdb(db):
                                 sensor_type_id="stroke_displacement",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=0,
                             ),
                             Sensor(
                                 machine_id="test-machine-01",
@@ -176,6 +177,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=1,
                             ),
                             Sensor(
                                 machine_id="test-machine-01",
@@ -184,6 +186,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=2,
                             ),
                         ],
                     ),
@@ -192,7 +195,7 @@ def create_testdb(db):
                         handler_type="USB_1608HS",
                         adc_serial_num="01ED23FB",
                         sampling_frequency=100000,
-                        sampling_ch_num=2,
+                        sampling_ch_num=3,
                         filewrite_time=1,
                         is_primary=False,
                         is_cut_out_target=True,
@@ -205,6 +208,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=3,
                             ),
                             Sensor(
                                 machine_id="test-machine-01",
@@ -213,6 +217,16 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=4,
+                            ),
+                            Sensor(
+                                machine_id="test-machine-01",
+                                sensor_id="dummy01",
+                                sensor_name="dummy01",
+                                sensor_type_id="dummy",
+                                slope=1.0,
+                                intercept=0.0,
+                                sort_order=5,
                             ),
                         ],
                     ),
@@ -277,6 +291,7 @@ def create_testdb(db):
                                 sensor_type_id="stroke_displacement",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=0,
                             ),
                             DataCollectHistorySensor(
                                 data_collect_history_id=1,
@@ -285,6 +300,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=1,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
@@ -296,6 +312,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=2,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
@@ -308,7 +325,7 @@ def create_testdb(db):
                         handler_type="USB_1608HS",
                         adc_serial_num="01ED23FB",
                         sampling_frequency=100000,
-                        sampling_ch_num=2,
+                        sampling_ch_num=3,
                         filewrite_time=1,
                         is_primary=False,
                         is_cut_out_target=True,
@@ -321,6 +338,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=3,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
@@ -332,9 +350,19 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=4,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
+                            ),
+                            DataCollectHistorySensor(
+                                data_collect_history_id=1,
+                                sensor_id="dummy01",
+                                sensor_name="dummy01",
+                                sensor_type_id="dummy",
+                                slope=1.0,
+                                intercept=0.0,
+                                sort_order=5,
                             ),
                         ],
                     ),
@@ -376,6 +404,7 @@ def create_testdb(db):
                                 sensor_type_id="pulse",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=0,
                             ),
                             Sensor(
                                 machine_id="test-machine-02",
@@ -384,6 +413,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=1,
                             ),
                             Sensor(
                                 machine_id="test-machine-02",
@@ -392,6 +422,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=2,
                             ),
                             Sensor(
                                 machine_id="test-machine-02",
@@ -400,6 +431,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=3,
                             ),
                             Sensor(
                                 machine_id="test-machine-02",
@@ -408,6 +440,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=4,
                             ),
                         ],
                     ),
@@ -472,6 +505,7 @@ def create_testdb(db):
                                 sensor_type_id="stroke_displacement",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=0,
                             ),
                             DataCollectHistorySensor(
                                 data_collect_history_id=1,
@@ -480,6 +514,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=1,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
@@ -491,6 +526,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=2,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
@@ -502,6 +538,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=3,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
@@ -513,6 +550,7 @@ def create_testdb(db):
                                 sensor_type_id="load",
                                 slope=1.0,
                                 intercept=0.0,
+                                sort_order=4,
                                 start_point_dsl=r"ROLLING_WINDOW = 9;HORIZONTAL_LIMIT = [1104.874008786576, 1172.3325853073954];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(ACC);",
                                 max_point_dsl=r"ROLLING_WINDOW = 19;HORIZONTAL_LIMIT = [1264.4156514760432, 1465.621588396266];VERTICAL_LIMIT = [None, None];TARGET = IDXMIN(DST);",
                                 break_point_dsl=r"ROLLING_WINDOW = 1;HORIZONTAL_LIMIT = [IDXMAX(VCT)-20, IDXMAX(VCT)];VERTICAL_LIMIT = [None, None];TARGET = IDXMAX(ACC);",
