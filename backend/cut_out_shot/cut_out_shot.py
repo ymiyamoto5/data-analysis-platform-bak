@@ -20,9 +20,12 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
-from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import \
+    DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -230,25 +233,6 @@ class CutOutShot:
 
         return end_sequential_number
 
-    def _read_pickle_file(self, file_set: List[str]) -> DataFrame:
-        """pickleファイルを読み込みDataFrameとして返す。複数ADCの場合、ADC台数分のファイルを読んで1つのDataFrameにする。"""
-
-        if len(file_set) == 0:
-            raise Exception("Not exist file_set.")
-        # 単一ハンドラー
-        elif len(file_set) == 1:
-            rawdata_df: DataFrame = pd.read_pickle(file_set[0])
-        # 複数ハンドラー
-        else:
-            rawdata_df = pd.read_pickle(file_set[0])
-            for file in file_set[1:]:
-                df: DataFrame = pd.read_pickle(file)
-                rawdata_df = pd.merge(rawdata_df, df, on="sequential_number", how="outer", suffixes=["", "_right"]).drop(
-                    columns="timestamp_right"
-                )
-
-        return rawdata_df
-
     def cut_out_shot(
         self,
         start_sequential_number: Optional[int] = None,
@@ -318,14 +302,11 @@ class CutOutShot:
 
         procs: List[multiprocessing.context.Process] = []
 
-        try:
-            files_list: List[List[str]] = FileManager.get_files_list(self.__machine_id, self.__handlers, rawdata_dir_path)
-        except Exception:
-            raise
+        pickle_files: List[str] = FileManager.get_files(dir_path=rawdata_dir_path, pattern=f"{self.__machine_id}_*.pkl")
 
         # main loop
-        for processed_count, file_set in enumerate(files_list):
-            rawdata_df: DataFrame = self._read_pickle_file(file_set)
+        for processed_count, pickle_file in enumerate(pickle_files):
+            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
 
             # パラメータで指定された対象範囲に含まれないデータを除外
             if has_target_interval:
@@ -338,14 +319,14 @@ class CutOutShot:
                 rawdata_df = self._exclude_non_target_interval(rawdata_df, start_sequential_number, end_sequential_number)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by non-target interval. {file_set}")
+                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
                 continue
 
             # 段取区間の除外
             rawdata_df = self._exclude_setup_interval(rawdata_df, collect_start_time)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by setup interval. {file_set}")
+                logger.info(f"All data was excluded by setup interval. {pickle_file}")
                 continue
 
             # 中断区間の除外
@@ -353,7 +334,7 @@ class CutOutShot:
                 rawdata_df = self._exclude_pause_interval(rawdata_df, pause_events)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by pause interval. {file_set}")
+                logger.info(f"All data was excluded by pause interval. {pickle_file}")
                 continue
 
             # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
@@ -365,7 +346,7 @@ class CutOutShot:
 
             # 進捗率を計算して記録
             if is_called_by_task:
-                progress = round(processed_count / len(files_list) * 100.0, 1)
+                progress = round(processed_count / len(pickle_files) * 100.0, 1)
                 current_task.update_state(
                     state="PROGRESS",
                     meta={"message": f"cut_out_shot processing. machine_id: {self.__machine_id}", "progress": progress},
@@ -373,7 +354,7 @@ class CutOutShot:
 
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
-                logger.info(f"Shot is not detected in {file_set}")
+                logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
@@ -385,7 +366,7 @@ class CutOutShot:
             cut_out_df = self._exclude_over_sample(cut_out_df)
 
             if len(cut_out_df) == 0:
-                logger.info(f"Shot is not detected in {file_set} by over_sample_filter.")
+                logger.info(f"Shot is not detected in {pickle_file } by over_sample_filter.")
                 continue
 
             # timestampをdatetimeに変換する
@@ -436,7 +417,7 @@ class CutOutShot:
 
     def auto_cut_out_shot(
         self,
-        file_set_list: List[List[str]],
+        pickle_files: List[str],
         shots_index: str,
         shots_meta_index: str,
         debug_mode: bool = False,
@@ -448,14 +429,14 @@ class CutOutShot:
         * Elasticsearchインデックスは呼び出し元で作成する
         """
 
-        logger.info(f"Cut out shot start. number of pickle_files: {len(file_set_list)}")
+        logger.info(f"Cut out shot start. number of pickle_files: {len(pickle_files)}")
 
         # main loop
-        for processed_count, file_set in enumerate(file_set_list):
-            rawdata_df: DataFrame = self._read_pickle_file(file_set)
+        for processed_count, pickle_file in enumerate(pickle_files):
+            rawdata_df: DataFrame = pd.read_pickle(pickle_file)
 
             if len(rawdata_df) == 0:
-                logger.info(f"All data was excluded by non-target interval. {file_set}")
+                logger.info(f"All data was excluded by non-target interval. {pickle_file}")
                 continue
 
             # NOTE: 変換式適用.パフォーマンス的にはストローク変位値のみ変換し、切り出し後に荷重値を変換したほうがよい。
@@ -467,7 +448,7 @@ class CutOutShot:
 
             # ショットがなければ以降の処理はスキップ
             if len(self.cutter.cut_out_targets) == 0:
-                logger.info(f"Shot is not detected in {file_set}")
+                logger.info(f"Shot is not detected in {pickle_file}")
                 continue
 
             # NOTE: 以下処理のため一時的にDataFrameに変換している。
@@ -476,7 +457,7 @@ class CutOutShot:
             self.cutter.cut_out_targets = []
 
             if len(cut_out_df) == 0:
-                logger.info(f"Shot is not detected in {file_set} by over_sample_filter.")
+                logger.info(f"Shot is not detected in {pickle_file} by over_sample_filter.")
                 continue
 
             # timestampをdatetimeに変換する
@@ -495,7 +476,7 @@ class CutOutShot:
             cut_out_targets = []
 
             # 進捗率を計算して記録
-            progress = round(processed_count / len(file_set_list) * 100.0, 1)
+            progress = round(processed_count / len(pickle_files) * 100.0, 1)
             if not debug_mode:
                 current_task.update_state(
                     state="PROGRESS",
@@ -514,7 +495,8 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
+    from backend.app.crud.crud_data_collect_history import \
+        CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
     machine_id = "unittest-machine-01"
