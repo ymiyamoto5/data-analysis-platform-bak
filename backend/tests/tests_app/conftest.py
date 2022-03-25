@@ -44,7 +44,7 @@ DB_URL = os.environ["SQLALCHEMY_DATABASE_URI"]
 
 @pytest.fixture
 def client():
-    """APIのクライアントのfixture。DBはtemp.dbとして用意する。"""
+    """APIのクライアントのfixture。DBは物理ファイルとして用意する。"""
 
     client = TestClient(app)
 
