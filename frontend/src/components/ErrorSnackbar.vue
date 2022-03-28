@@ -7,7 +7,7 @@
       color="error"
     >
       <h3>{{ $store.state.errorHeader }}</h3>
-      {{ $store.state.errorMsg }}
+      <div class="errorMsg">{{ $store.state.errorMsg }}</div>
       <template v-slot:action="{ attrs }">
         <v-btn
           color="white"
@@ -23,3 +23,10 @@
 </template>
 
 <script></script>
+
+<style scoped>
+.errorMsg {
+  white-space: pre-line;
+  word-wrap: break-word;
+}
+</style>

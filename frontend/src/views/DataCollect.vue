@@ -161,6 +161,7 @@ import { createBaseApiClient } from '@/api/apiBase'
 
 const MACHINES_API_URL = '/api/v1/machines/'
 const CONTROLLER_API_URL = '/api/v1/controller/'
+const NOTIFICATION_API_URL = '/api/v1/notification/'
 const SETUP_API_URL = CONTROLLER_API_URL + 'setup/'
 const RUN_DATA_RECORDER_API_URL = CONTROLLER_API_URL + 'run-data-recorder/'
 const RUN_CUT_OUT_SHOT_API_URL = CONTROLLER_API_URL + 'run-cut-out-shot/'
@@ -211,6 +212,7 @@ export default {
       search: '',
       snackbar: false,
       snackbarMessage: '',
+      intervalId: '',
     }
   },
   created: function() {
@@ -255,6 +257,37 @@ export default {
         .then(() => {
           this.runDataRecorder(machine_id)
           this.fetchTableData()
+          // NOTE: setIntervalでthisのコンテキストが変わってしまうため、thatに退避（もっと良い方法があるかも）
+          const that = this
+          // 5秒置きにGWの最新エラーをチェックし、取得したらダイアログを表示
+          that.intervalId = setInterval(async function() {
+            const pollingClinet = createBaseApiClient()
+            await pollingClinet
+              .get(NOTIFICATION_API_URL + machine_id + '/latest-error')
+              .then((res) => {
+                if (res.data !== null) {
+                  const errorDetail = {
+                    statusText: '以下の機器でエラーを検知しました。',
+                    data: {
+                      detail:
+                        '機器:' +
+                        machine_id +
+                        '\nゲートウェイ:' +
+                        res.data.gateway_id +
+                        '\nエラーメッセージ:' +
+                        res.data.message,
+                    },
+                  }
+                  that.errorSnackbar(errorDetail)
+                  clearInterval(that.intervalId)
+                }
+              })
+              .catch((e) => {
+                that.running = false
+                console.log(e.response.data.detail)
+                that.errorSnackbar(e.response)
+              })
+          }, 5000)
         })
         .catch((e) => {
           console.log(e.response.data.detail)
@@ -313,6 +346,7 @@ export default {
       this.confirmDialog('停止してもよいですか？', this.stop, machine_id)
     },
     stop: async function(machine_id) {
+      clearInterval(this.intervalId)
       const client = createBaseApiClient()
       await client
         .post(STOP_API_URL + machine_id)
@@ -368,6 +402,7 @@ export default {
       this.confirmDialog('初期化してもよいですか？', this.reset, machine_id)
     },
     reset: async function(machine_id) {
+      clearInterval(this.intervalId)
       const client = createBaseApiClient()
       await client
         .post(RESET_API_URL + machine_id)
