@@ -9,6 +9,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ./pyproject.toml ./poetry.lock /app/
+COPY ./alembic.ini ./prestart.sh /app/
+# NOTE: ディレクトリコピーはコピー先にディレクトリ名まで含める必要がある
+COPY ./alembic /app/alembic
 
 RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | POETRY_HOME=/app/poetry python - \
     && cd /usr/local/bin \
