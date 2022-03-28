@@ -20,8 +20,7 @@ class CRUDGatewayEvent:
         event: GatewayEvent = (
             db.query(GatewayEvent)
             .filter(GatewayEvent.gateway_id.in_(id_list))
-            # .filter(or_(GatewayEvent.severity == common.Severity.ERROR, GatewayEvent.severity == common.Severity.CRITICAL))
-            .filter(or_(GatewayEvent.severity == "ERROR", GatewayEvent.severity == "CRITICAL"))
+            .filter(or_(GatewayEvent.severity == common.Severity.ERROR, GatewayEvent.severity == common.Severity.CRITICAL))
             .filter(GatewayEvent.timestamp > started_at)
             .order_by(desc(GatewayEvent.timestamp))
             .first()

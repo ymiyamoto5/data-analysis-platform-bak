@@ -6,8 +6,7 @@ from pydantic import BaseModel, Field
 
 class NotificationBase(BaseModel):
     gateway_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
-    # severity: common.Severity = Field(...)
-    severity: str = Field(...)
+    severity: common.Severity = Field(...)
     message: str = Field(..., max_length=8096)
 
 
