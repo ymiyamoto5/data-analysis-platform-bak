@@ -31,7 +31,7 @@ def fetch_gateway_events(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
 
-@router.get("/notification/{machine_id}/latest-error", response_model=notification.Notification)
+@router.get("/{machine_id}/latest-error", response_model=notification.Notification)
 def fetch_latest_gateway_error(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN), db: Session = Depends(get_db)):
     """特定GWの最新のエラーを返す"""
 
