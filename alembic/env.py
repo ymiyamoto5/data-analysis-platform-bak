@@ -1,15 +1,25 @@
 import os
 import sys
-
-# backendディレクトリのパスを通す
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../"))
 from logging.config import fileConfig
 
-from backend.app.db.session import Base
-from backend.common import common
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context  # type: ignore
+from alembic import context
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+from backend.app.db.session import Base
+from backend.app.models.celery_task import CeleryTask  # noqa
+from backend.app.models.data_collect_history import DataCollectHistory  # noqa
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent  # noqa
+from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway  # noqa
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler  # noqa
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor  # noqa
+from backend.app.models.gateway import Gateway  # noqa
+from backend.app.models.handler import Handler  # noqa
+from backend.app.models.machine import Machine  # noqa
+from backend.app.models.machine_type import MachineType  # noqa
+from backend.app.models.sensor import Sensor  # noqa
+from backend.app.models.sensor_type import SensorType  # noqa
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -17,7 +27,7 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-fileConfig(config.config_file_name)  # type: ignore
+fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -45,6 +55,7 @@ def run_migrations_offline():
     """
     # url = config.get_main_option("sqlalchemy.url")
     url = os.environ["SQLALCHEMY_DATABASE_URI"]
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -65,6 +76,7 @@ def run_migrations_online():
     """
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = os.environ["SQLALCHEMY_DATABASE_URI"]
+
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
