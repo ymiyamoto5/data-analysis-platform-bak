@@ -44,7 +44,7 @@ def stroke_displacement_target():
     instance = CutOutShot(
         cutter=cutter,
         data_collect_history=data_collect_history,
-        handlers=data_collect_history.data_collect_history_gateways[0].data_collect_history_handlers,
+        sampling_frequency=data_collect_history.data_collect_history_gateways[0].data_collect_history_handlers[0].sampling_frequency,
         sensors=sensors,
         machine_id=machine_id,
         target=target_date_str,
