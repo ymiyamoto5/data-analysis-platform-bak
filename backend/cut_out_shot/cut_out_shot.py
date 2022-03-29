@@ -43,7 +43,7 @@ class CutOutShot:
         self,
         cutter: Union[StrokeDisplacementCutter, PulseCutter],
         data_collect_history: DataCollectHistory,
-        handlers: Union[DataCollectHistoryHandler, List[DataCollectHistoryHandler]],
+        sampling_frequency: float,
         sensors: List[DataCollectHistorySensor],
         machine_id: str,
         target: str,  # yyyyMMddhhmmss文字列
@@ -58,11 +58,8 @@ class CutOutShot:
         self.__chunk_size: int = chunk_size
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
         self.__data_collect_history: DataCollectHistory = data_collect_history
-        self.__handlers: List[DataCollectHistoryHandler] = handlers
         self.__sensors: List[DataCollectHistorySensor] = sensors
-        self.__max_samples_per_shot: int = (
-            int(60 / self.__min_spm) * handlers[0].sampling_frequency
-        )  # ショット切り出し対象ハンドラーのサンプリングレートは各ハンドラーで同値である前提
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * sampling_frequency
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
     # テスト用の公開プロパティ
@@ -511,6 +508,15 @@ if __name__ == "__main__":
         db, history.id
     )
 
+    if len(cut_out_target_handlers) == 0:
+        logger.error("")
+        db.close()
+        sys.exit(1)
+    elif len(cut_out_target_handlers) == 1:
+        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
+    else:
+        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+
     cutter = StrokeDisplacementCutter(
         start_stroke_displacement=1.8,
         end_stroke_displacement=1.5,
@@ -523,7 +529,7 @@ if __name__ == "__main__":
         machine_id=machine_id,
         target=target,
         data_collect_history=history,
-        handlers=cut_out_target_handlers,
+        sampling_frequency=handler.sampling_frequency,
         sensors=cut_out_target_sensors,
         min_spm=15,
     )
