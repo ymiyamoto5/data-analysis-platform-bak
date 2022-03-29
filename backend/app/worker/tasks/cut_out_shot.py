@@ -3,7 +3,6 @@ import os
 import sys
 import time
 import traceback
-from inspect import trace
 from typing import Final, List, Union
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
@@ -155,7 +154,7 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
     )
 
     INTERVAL: Final[int] = 5
-    has_been_processed: List[List[str]] = []  # 処理済みファイルパスリスト
+    has_been_processed: List[str] = []  # 処理済みファイルパスリスト
     retry_count: int = 0
     MAX_RETRY_COUNT: Final[int] = 3
     loop_count: int = 0
@@ -172,7 +171,7 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
         # 退避ディレクトリに存在するすべてのpklファイルパスリスト
         try:
             # logger.info(f"history.processed_dir_path: {history.processed_dir_path}")
-            files_list: List[List[str]] = FileManager.get_files_list(machine_id, cut_out_target_handlers, history.processed_dir_path)
+            files: List[str] = FileManager.get_files(dir_path=history.processed_dir_path, pattern=f"{machine_id}_*.pkl")
         except Exception:
             logger.error(traceback.format_exc())
             retry_count += 1
@@ -180,13 +179,11 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
 
         retry_count = 0
 
-        if len(files_list) == 0:
+        if len(files) == 0:
             continue
 
-        # logger.info(f"len(files_list): {len(files_list)}, len(files_list[0]): {len(files_list[0])}")
-
         # ループ毎の処理対象。未処理のもののみ対象とする。
-        target_files: List[List[str]] = get_target_files(files_list, has_been_processed)
+        target_files: List[str] = [x for x in files if x not in has_been_processed]
 
         # NOTE: 毎度DBにアクセスするのは非効率なため、対象ファイルが存在しないときのみDBから収集ステータスを確認し、停止判断を行う。
         if len(target_files) == 0:
@@ -222,19 +219,6 @@ def create_shots_index_set(shots_index: str, shots_meta_index: str) -> None:
     ElasticManager.delete_exists_index(index=shots_meta_index)
     setting_shots_meta: str = os.environ["SETTING_SHOTS_META_PATH"]
     ElasticManager.create_index(index=shots_meta_index, setting_file=setting_shots_meta)
-
-
-def get_target_files(all_files: List[List[str]], has_been_processed: List[List[str]]) -> List[List[str]]:
-    """all_files（全ファイル）のうち、has_been_processed（処理済み）を除外したリストを返す"""
-
-    target_files: List[List[str]] = []
-
-    # ハンドラーごとのリスト、つまり[[ADC1_1.dat, ADC2_1.dat, ...], [ADC1_2.dat, ADC2_2.dat, ...]] になっている
-    for handlers_file in all_files:
-        if handlers_file not in has_been_processed:
-            target_files.append(handlers_file)
-
-    return target_files
 
 
 def get_collect_status(machine_id) -> str:
