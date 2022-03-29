@@ -5,6 +5,7 @@ from .data_collect_history_gateway import DataCollectHistoryGateway  # noqa
 from .data_collect_history_handler import DataCollectHistoryHandler  # noqa
 from .data_collect_history_sensor import DataCollectHistorySensor  # noqa
 from .gateway import Gateway  # noqa
+from .gateway_event import GatewayEvent  # noqa
 from .handler import Handler  # noqa
 from .machine import Machine  # noqa
 from .machine_type import MachineType  # noqa
