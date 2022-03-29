@@ -375,12 +375,13 @@ sudo apt install sqlite3
 ### create db (local)
 
 ```
-python -m backend.utils.create_db
+alembic -c backend/alembic.ini upgrade head
+python -m backend.utils.create_dummy_data
 ```
 
 ### create db (docker)
 
 ```
 docker-compose exec webap /bin/bash
-python -m backend.utils.create_db
+python -m backend.utils.create_dummy_data
 ```
