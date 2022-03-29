@@ -183,6 +183,8 @@ export default {
       this.targetDateStr = ''
       this.cutOutSensor = ''
       this.fetchTargetDir()
+      this.maxStrokeDisplacement = 0
+      this.minStrokeDisplacement = 0
       this.page = 0
       this.maxPage = 0
       this.displayPrevPage = false
