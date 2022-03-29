@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from backend.common import common
 from pydantic import BaseModel, Field
 
@@ -9,6 +11,9 @@ class NotificationBase(BaseModel):
 
 
 class Notification(NotificationBase):
+    id: int
+    timestamp: datetime
+
     class Config:
         orm_mode = True
 

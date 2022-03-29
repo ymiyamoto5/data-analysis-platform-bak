@@ -32,7 +32,7 @@ INT_MAX: Final[int] = 2_147_483_647
 CSV_PATTERN: Final[str] = r"\.csv$"
 
 
-class Severity(Enum):
+class Severity(str, Enum):
     INFO = "INFO"
     WARN = "WARN"
     ERROR = "ERROR"

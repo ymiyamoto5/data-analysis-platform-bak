@@ -15,6 +15,7 @@ from backend.app.models.data_collect_history_gateway import DataCollectHistoryGa
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler  # noqa
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor  # noqa
 from backend.app.models.gateway import Gateway  # noqa
+from backend.app.models.gateway_event import GatewayEvent  # noqa
 from backend.app.models.handler import Handler  # noqa
 from backend.app.models.machine import Machine  # noqa
 from backend.app.models.machine_type import MachineType  # noqa
