@@ -44,7 +44,7 @@ def fetch_latest_gateway_error(machine_id: str = Path(..., max_length=255, regex
     started_at: datetime = history.started_at
 
     try:
-        event: GatewayEvent = CRUDGatewayEvent.select_latest_error_by_machine_id(db, gateway_id_list, started_at)
+        event: GatewayEvent = CRUDGatewayEvent.select_latest_error_by_gateway_ids(db, gateway_id_list, started_at)
         return event
     except Exception:
         logger.error(traceback.format_exc())
