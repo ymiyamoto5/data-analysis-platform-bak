@@ -24,9 +24,16 @@ vue@2.6.14
 
 ### backend
 
+python 3.8.12  
+fastapi 0.68.2
+
 #### analyzer
 
 分析ロジックの適用を行う。
+
+##### alembic
+
+データベースマイグレーションツール。 models の変更内容を自動検出して、更新内容を管理、反映する。
 
 #### app
 
@@ -38,10 +45,6 @@ Web アプリケーション
 - モデル作成、管理
 - 管理画面
 - 関連リンク
-
-##### app.alembic
-
-データベースマイグレーションツール。 models の変更内容を自動検出して、更新内容を管理、反映する。
 
 ##### app.api
 
@@ -74,7 +77,7 @@ API エンドポイントからロジック部を分離したもの。複雑な�
 
 #### cut_out_shot
 
-ショット切り出し処理を行う。実行方法は Web アプリケーションからの実行と Juypter からの実行の 2 通りがある（Web アプリケーションに一本化する可能性あり）。
+ショット切り出し処理を行う。
 
 #### data_converter
 
@@ -90,7 +93,7 @@ Elasticsearch に格納されたデータを読み取り、DataFrame として�
 
 #### data_recorder
 
-収集したバイナリデータを中間ファイル(.pkl ファイル)に保存する。本モジュールは systemd に登録する。また、本モジュールは同じく systemd に登録した data_recorder.timer より毎分起動される。（Docker コンテナー化により実行方式が変更になる可能性あり。）
+収集したバイナリデータを中間ファイル(.pkl ファイル)に保存する。本モジュールは celery タスクとして実行される。手動実行も可能。
 
 #### elastic_manager
 
@@ -118,7 +121,7 @@ Elasticsearch のインデックスマッピング。フィールドの型等を
 
 ### docker
 
-docker コンテナーのファイル群。
+docker コンテナー関連のファイル群。Dockerfile 等々。
 
 ### notebooks
 
@@ -230,7 +233,7 @@ mypy による型チェックのルール設定。主に除外設定を行う。
 ## git clone
 
 ```
-git clone http://dev2.sphinx.uniadex.co.jp/ymiyamoto5/data-analysis-platform.git
+git clone https://github.com/ual-technologycenter/data-analysis-platform.git
 ```
 
 ## git setup
@@ -265,44 +268,36 @@ yarn install
 sudo timedatectl set-timezone Asia/Tokyo
 ```
 
-### logging
-
-```
-cd /var
-sudo chmod 777 log
-```
-
-### venv
-
-```
-sudo apt install python3.8-venv
-cd ~/data-analysis-platform
-python3 -m venv venv
-```
-
 ### bashrc
 
 ```
 nano ~/.bashrc
--->
+```
+
+--> 以下を追記
+
+```
 PATH="$PATH:$HOME/.local/bin/"
 export HTTP_PROXY="http://proxy.unisys.co.jp:8080/"
 export HTTPS_PROXY="http://proxy.unisys.co.jp:8080/"
 export http_proxy="http://proxy.unisys.co.jp:8080"
 export https_proxy="http://proxy.unisys.co.jp:8080"
-source venv/bin/activate
--->
+source .venv/bin/activate
+```
+
+--> 以下を実行
+
+```
 source ~/.bashrc
 ```
 
-### pip
+### poetry
 
 ```
-cd backend
-pip install -r requirements.txt
+poetry install
 ```
 
-## Docker Container 起動
+## Docker
 
 ### Docker install
 
@@ -331,10 +326,13 @@ cd /etc/systemd/system/
 sudo mkdir docker.service.d
 cd docker.service.d
 sudo nano override.conf
--->
+```
+
+--> 以下を記述
+
+```
 [Service]
 Environment = 'http_proxy=http://proxy.unisys.co.jp:8080' 'https_proxy=http://proxy.unisys.co.jp:8080'
--->
 ```
 
 ### Docker 再起動/ステータス確認
@@ -366,12 +364,6 @@ cd ~/data-analysis-platform/docker
 docker-compose up -d --build
 ```
 
-### 起動中のコンテナー確認
-
-```
-docker ps
-```
-
 ## DB setup
 
 ### SQLite3 install
@@ -380,34 +372,15 @@ docker ps
 sudo apt install sqlite3
 ```
 
-### create db
+### create db (local)
 
 ```
 python -m backend.utils.create_db
 ```
 
-## デバッグ
+### create db (docker)
 
-### Current File
-
-エディタで開いているファイルをスクリプト実行する場合に選択。
-
-### パッケージ
-
-analyzer などのパッケージをデバッグする場合は、それに応じたものを選択。
-
-### Jest
-
-frontend テストを実行する場合に選択。（frontend テストは未実装）
-
-### FastAPI
-
-FastAPI 単体をデバッグする場合に選択。
-
-### Full-stack
-
-frontend と FastAPI を連携する場合に選択。
-
-### data_recorder with FastAPI
-
-data_recorder はバックエンドにリクエストするため、FastAPI とともに起動する。
+```
+docker-compose exec webap /bin/bash
+python -m backend.utils.create_db
+```
