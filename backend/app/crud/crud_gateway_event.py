@@ -16,7 +16,7 @@ class CRUDGatewayEvent:
         return event
 
     @staticmethod
-    def select_latest_error_by_machine_id(db: Session, id_list: List[str], started_at: datetime) -> GatewayEvent:
+    def select_latest_error_by_gateway_ids(db: Session, id_list: List[str], started_at: datetime) -> GatewayEvent:
         event: GatewayEvent = (
             db.query(GatewayEvent)
             .filter(GatewayEvent.gateway_id.in_(id_list))
