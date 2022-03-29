@@ -6,7 +6,7 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.app.db.session import Base
 from backend.app.models.celery_task import CeleryTask  # noqa
 from backend.app.models.data_collect_history import DataCollectHistory  # noqa
