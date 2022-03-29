@@ -213,6 +213,7 @@ export default {
       snackbar: false,
       snackbarMessage: '',
       intervalId: '',
+      eventId: 0,
     }
   },
   created: function() {
@@ -266,20 +267,22 @@ export default {
               .get(NOTIFICATION_API_URL + machine_id + '/latest-error')
               .then((res) => {
                 if (res.data !== null) {
-                  const errorDetail = {
-                    statusText: '以下の機器でエラーを検知しました。',
-                    data: {
-                      detail:
-                        '機器:' +
-                        machine_id +
-                        '\nゲートウェイ:' +
-                        res.data.gateway_id +
-                        '\nエラーメッセージ:' +
-                        res.data.message,
-                    },
+                  if (res.data.id > that.eventId) {
+                    that.eventId = res.data.id
+                    const errorDetail = {
+                      statusText: '以下の機器でエラーを検知しました。',
+                      data: {
+                        detail:
+                          '機器:' +
+                          machine_id +
+                          '\nゲートウェイ:' +
+                          res.data.gateway_id +
+                          '\nエラーメッセージ:' +
+                          res.data.message,
+                      },
+                    }
+                    that.errorSnackbar(errorDetail)
                   }
-                  that.errorSnackbar(errorDetail)
-                  clearInterval(that.intervalId)
                 }
               })
               .catch((e) => {
