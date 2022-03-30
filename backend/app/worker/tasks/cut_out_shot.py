@@ -72,15 +72,25 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str, debug_mode: bool
             sensors=cut_out_target_sensors,
         )
 
+    if len(cut_out_target_handlers) == 0:
+        logger.error("")
+        db.close()
+        sys.exit(1)
+    elif len(cut_out_target_handlers) == 1:
+        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
+    else:
+        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+
     # 切り出し処理
     cut_out_shot = CutOutShot(
         cutter=cutter,
         machine_id=machine_id,
         target=target_date_str,
         data_collect_history=history,
-        handlers=cut_out_target_handlers,
+        sampling_frequency=handler.sampling_frequency,
         sensors=cut_out_target_sensors,
     )
+
     try:
         cut_out_shot.cut_out_shot(is_called_by_task=True)
     except Exception:
@@ -124,6 +134,15 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
         db.close()
         sys.exit(1)
 
+    if len(cut_out_target_handlers) == 0:
+        logger.error("")
+        db.close()
+        sys.exit(1)
+    elif len(cut_out_target_handlers) == 1:
+        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
+    else:
+        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+
     target_date_str: str = history.processed_dir_path.split("-")[-1]
 
     shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
@@ -147,7 +166,7 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
     cut_out_shot: CutOutShot = CutOutShot(
         cutter=cutter,
         data_collect_history=history,
-        handlers=cut_out_target_handlers,
+        sampling_frequency=handler.sampling_frequency,
         sensors=cut_out_target_sensors,
         machine_id=machine_id,
         target=target_date_str,
