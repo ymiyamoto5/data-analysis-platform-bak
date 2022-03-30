@@ -7,10 +7,6 @@ on:
       - 'feature**'
   pull_request:
     branches: [master]
-  # push:
-  #   branches: [dummy]
-  # pull_request:
-  #   branches: [dummy]
 
 jobs:
   build:
