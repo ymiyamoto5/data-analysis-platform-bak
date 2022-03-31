@@ -16,6 +16,7 @@ from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
 from backend.app.worker.celery import celery_app
 from backend.common import common
+from git import Object
 
 
 class TestSetup:
@@ -66,8 +67,7 @@ class TestRunAutoDataRecorder:
     def init(self):
         self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/run-data-recorder/{self.machine_id}"
-        self.id = "test-task-id"
-        self.info = "test-task-info"
+        self.task = type("Dummy", (object,), {"id": "test-task-id", "info": "test-task-info"})
 
     def test_normal(self, client, mocker, init):
         # TODO: task_idやステータスの確認を追加し、インテグレーションテストにする
@@ -75,7 +75,7 @@ class TestRunAutoDataRecorder:
 
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
 
-        mocker.patch.object(celery_app, "send_task", return_value=self)
+        mocker.patch.object(celery_app, "send_task", return_value=self.task)
 
         response = client.post(self.endpoint)
 
