@@ -460,7 +460,7 @@ def create_data_collect_history():
                     DataCollectHistoryHandler(
                         data_collect_history_id=1,
                         handler_id="handler-01",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="999999",
                         sampling_frequency=100000,
                         sampling_ch_num=3,
@@ -495,7 +495,7 @@ def create_data_collect_history():
                     DataCollectHistoryHandler(
                         data_collect_history_id=1,
                         handler_id="handler-02",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="999990",
                         sampling_frequency=100000,
                         sampling_ch_num=2,

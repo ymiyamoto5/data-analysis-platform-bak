@@ -12,12 +12,14 @@ from typing import Final
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from backend.app.db.session import Base, SessionLocal, engine
+from backend.app.models.celery_task import CeleryTask  # noqa
 from backend.app.models.data_collect_history import DataCollectHistory
 from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
 from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.gateway import Gateway
+from backend.app.models.gateway_event import GatewayEvent  # noqa
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
 from backend.app.models.machine_type import MachineType
@@ -90,7 +92,7 @@ machine_01 = Machine(
             handlers=[
                 Handler(
                     handler_id="unittest-handler-01-1",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
                     sampling_ch_num=3,
@@ -136,7 +138,7 @@ machine_01 = Machine(
                 ),
                 Handler(
                     handler_id="unittest-handler-01-2",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="00003333",
                     sampling_frequency=100,
                     sampling_ch_num=3,
@@ -210,7 +212,7 @@ machine_02 = Machine(
             handlers=[
                 Handler(
                     handler_id="unittest-handler-02",
-                    handler_type="USB_1608HS",
+                    handler_type="USB-1608HS",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
                     sampling_ch_num=3,
@@ -308,7 +310,7 @@ integ_test_machine = Machine(
             handlers=[
                 Handler(
                     handler_id="test-handler-1",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="01ED23FA",
                     sampling_frequency=1000,
                     sampling_ch_num=3,
@@ -354,7 +356,7 @@ integ_test_machine = Machine(
                 ),
                 Handler(
                     handler_id="test-handler-2",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="01E42EF8",
                     sampling_frequency=1000,
                     sampling_ch_num=3,
@@ -443,7 +445,7 @@ db.add(integ_test_machine)
 #                 DataCollectHistoryHandler(
 #                     data_collect_history_id=1,
 #                     handler_id="handler-01",
-#                     handler_type="USB_1608HS",
+#                     handler_type="USB-1608HS",
 #                     adc_serial_num="00002222",
 #                     sampling_frequency=100,
 #                     sampling_ch_num=3,
@@ -485,7 +487,7 @@ db.add(integ_test_machine)
 #                 DataCollectHistoryHandler(
 #                     data_collect_history_id=1,
 #                     handler_id="handler-02",
-#                     handler_type="USB_1608HS",
+#                     handler_type="USB-1608HS",
 #                     adc_serial_num="00003333",
 #                     sampling_frequency=100,
 #                     sampling_ch_num=2,
@@ -545,7 +547,7 @@ db.add(integ_test_machine)
 #             handlers=[
 #                 Handler(
 #                     handler_id="handler-j",
-#                     handler_type="USB_1608HS",
+#                     handler_type="USB-1608HS",
 #                     adc_serial_num="00002222",
 #                     sampling_frequency=100000,
 #                     sampling_ch_num=2,

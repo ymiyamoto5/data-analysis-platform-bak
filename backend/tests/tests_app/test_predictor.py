@@ -63,7 +63,7 @@ class TestPredictorTask:
                     handlers=[
                         Handler(
                             handler_id="handler-01",
-                            handler_type="USB_1608HS",
+                            handler_type="USB-1608HS",
                             adc_serial_num="01ED23FA",
                             sampling_frequency=100000,
                             sampling_ch_num=5,
