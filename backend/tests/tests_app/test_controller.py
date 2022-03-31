@@ -67,6 +67,8 @@ class TestRunAutoDataRecorder:
     def init(self):
         self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/run-data-recorder/{self.machine_id}"
+        self.id = "test-task-id"
+        self.info = "test-task-info"
 
     def test_normal(self, client, mocker, init):
         # TODO: task_idやステータスの確認を追加し、インテグレーションテストにする
@@ -74,7 +76,7 @@ class TestRunAutoDataRecorder:
 
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
 
-        mocker.patch.object(celery_app, "send_task", return_value=AsyncResult("test-task-id"))
+        mocker.patch.object(celery_app, "send_task", return_value=self)
 
         response = client.post(self.endpoint)
 
