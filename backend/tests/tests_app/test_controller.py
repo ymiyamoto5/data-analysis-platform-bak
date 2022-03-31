@@ -16,7 +16,6 @@ from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
 from backend.app.worker.celery import celery_app
 from backend.common import common
-from celery.result import AsyncResult
 
 
 class TestSetup:
