@@ -355,7 +355,7 @@ integ_test_machine = Machine(
                 Handler(
                     handler_id="test-handler-2",
                     handler_type="USB_204",
-                    adc_serial_num="01ED23FA",  # TODO: fix
+                    adc_serial_num="01E42EF8",
                     sampling_frequency=1000,
                     sampling_ch_num=3,
                     filewrite_time=1,

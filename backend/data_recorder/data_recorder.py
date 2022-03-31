@@ -215,7 +215,6 @@ class DataRecorder:
         displacement_sensor: Optional[DataCollectHistorySensor] = common.get_cut_out_shot_sensor(sensors)
         displacement_sensor_id: Optional[str] = displacement_sensor.sensor_id if displacement_sensor is not None else None
 
-        # TODO: 並び順の保証
         sensor_ids_other_than_displacement: List[str] = [
             s.sensor_id for s in sensors if s.sensor_type_id not in common.CUT_OUT_SHOT_SENSOR_TYPES
         ]
