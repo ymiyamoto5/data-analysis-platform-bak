@@ -66,6 +66,7 @@ class TestRunAutoDataRecorder:
         self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/run-data-recorder/{self.machine_id}"
 
+    @pytest.mark.skip
     def test_normal(self, client, mocker, init):
         # TODO: task_idやステータスの確認を追加し、インテグレーションテストにする
         # https://testdriven.io/blog/fastapi-and-celery/#tests
@@ -276,6 +277,7 @@ class TestReset:
         common.COLLECT_STATUS.RECORDED.value,
     ]
 
+    @pytest.mark.skip
     @pytest.mark.parametrize("data", test_collect_status_data)
     def test_normal(self, client, mocker, init, data):
         mocker.patch.object(
