@@ -49,7 +49,7 @@ def config_file(tmp_path):
         "Log_Level": 5,
         "ADC_0": {
             "handler_id": "AD-00",
-            "handler_type": "USB_1608HS",
+            "handler_type": "USB-1608HS",
             "ADC_SerialNum": "01234567",
             "sampling_frequency": 100000,
             "sampling_chnum": 5,

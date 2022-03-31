@@ -82,7 +82,7 @@ class TestReadBinaryFiles:
                         DataCollectHistoryHandler(
                             data_collect_history_id=1,
                             handler_id="test-handler-01-1",
-                            handler_type="USB_1608HS",
+                            handler_type="USB-1608HS",
                             adc_serial_num="00002222",
                             sampling_frequency=100000,
                             sampling_ch_num=3,
@@ -123,7 +123,7 @@ class TestReadBinaryFiles:
                         DataCollectHistoryHandler(
                             data_collect_history_id=1,
                             handler_id="test-handler-01-2",
-                            handler_type="USB_1608HS",
+                            handler_type="USB-1608HS",
                             adc_serial_num="00003333",
                             sampling_frequency=100000,
                             sampling_ch_num=2,
