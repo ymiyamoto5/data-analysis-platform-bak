@@ -1,18 +1,20 @@
 name: Python package
 
 on:
-  # push:
-  #   branches: [master]
-  # pull_request:
-  #   branches: [master]
   push:
-    branches: [dummy]
+    branches:
+      - master
+      - 'feature**'
   pull_request:
-    branches: [dummy]
+    branches: [master]
+  # push:
+  #   branches: [dummy]
+  # pull_request:
+  #   branches: [dummy]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -20,9 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Create Database Dir
-        run: |
-          mkdir -p database
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -39,6 +38,7 @@ jobs:
           poetry install --no-interaction
       - name: Test with pytest
         run: |
+          sudo chmod -R 777 /mnt
           poetry run pytest
         env:
           ELASTIC_USER: ${{ secrets.ELASTIC_USER }}

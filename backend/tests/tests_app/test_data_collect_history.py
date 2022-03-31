@@ -1,6 +1,7 @@
 import pytest
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
-from backend.app.services.data_collect_history_service import DataCollectHistoryService
+from backend.app.services.data_collect_history_service import \
+    DataCollectHistoryService
 
 
 class TestRead:
