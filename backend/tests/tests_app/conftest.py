@@ -22,10 +22,14 @@ from backend.app.api.deps import get_db
 from backend.app.db.session import Base
 from backend.app.main import app
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
-from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
-from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import \
+    DataCollectHistoryEvent
+from backend.app.models.data_collect_history_gateway import \
+    DataCollectHistoryGateway
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.app.models.gateway import Gateway
 from backend.app.models.handler import Handler
 from backend.app.models.machine import Machine
@@ -153,7 +157,7 @@ def create_testdb(db):
                 handlers=[
                     Handler(
                         handler_id="test-handler-01-1",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="01ED23FA",
                         sampling_frequency=100000,
                         sampling_ch_num=3,
@@ -193,7 +197,7 @@ def create_testdb(db):
                     ),
                     Handler(
                         handler_id="test-handler-01-2",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="01ED23FB",
                         sampling_frequency=100000,
                         sampling_ch_num=3,
@@ -276,7 +280,7 @@ def create_testdb(db):
                     DataCollectHistoryHandler(
                         data_collect_history_id=1,
                         handler_id="test-handler-01-1",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="01ED23FA",
                         sampling_frequency=100000,
                         sampling_ch_num=3,
@@ -323,7 +327,7 @@ def create_testdb(db):
                     DataCollectHistoryHandler(
                         data_collect_history_id=1,
                         handler_id="test-handler-01-2",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="01ED23FB",
                         sampling_frequency=100000,
                         sampling_ch_num=3,
@@ -389,7 +393,7 @@ def create_testdb(db):
                 handlers=[
                     Handler(
                         handler_id="test-handler-02",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="00002222",
                         sampling_frequency=100000,
                         sampling_ch_num=3,
@@ -490,7 +494,7 @@ def create_testdb(db):
                     DataCollectHistoryHandler(
                         data_collect_history_id=1,
                         handler_id="test-handler-02",
-                        handler_type="USB_1608HS",
+                        handler_type="USB-1608HS",
                         adc_serial_num="01ED23FA",
                         sampling_frequency=100000,
                         sampling_ch_num=5,
@@ -580,7 +584,7 @@ def create_testdb(db):
     #             handlers=[
     #                 Handler(
     #                     handler_id="test-handler-04",
-    #                     handler_type="USB_1608HS",
+    #                     handler_type="USB-1608HS",
     #                     adc_serial_num="00004444",
     #                     sampling_frequency=100000,
     #                     sampling_ch_num=2,
@@ -615,7 +619,7 @@ def create_testdb(db):
     #             handlers=[
     #                 Handler(
     #                     handler_id="test-handler-05",
-    #                     handler_type="USB_1608HS",
+    #                     handler_type="USB-1608HS",
     #                     adc_serial_num="00005555",
     #                     sampling_frequency=100000,
     #                     sampling_ch_num=2,
@@ -764,7 +768,7 @@ def create_testdb(db):
             Handler(
                 gateway_id="test-gateway-no-sensor",
                 handler_id="test-handler-no-child",
-                handler_type="USB_1608HS",
+                handler_type="USB-1608HS",
                 adc_serial_num="01ED23FA",
                 sampling_frequency=100000,
                 sampling_ch_num=5,

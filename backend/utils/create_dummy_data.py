@@ -74,7 +74,7 @@ machine_01 = Machine(
             handlers=[
                 Handler(
                     handler_id="unittest-handler-01-1",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
                     sampling_ch_num=3,
@@ -120,7 +120,7 @@ machine_01 = Machine(
                 ),
                 Handler(
                     handler_id="unittest-handler-01-2",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="00003333",
                     sampling_frequency=100,
                     sampling_ch_num=3,
@@ -194,7 +194,7 @@ machine_02 = Machine(
             handlers=[
                 Handler(
                     handler_id="unittest-handler-02",
-                    handler_type="USB_1608HS",
+                    handler_type="USB-1608HS",
                     adc_serial_num="00002222",
                     sampling_frequency=100,
                     sampling_ch_num=3,
@@ -292,7 +292,7 @@ integ_test_machine = Machine(
             handlers=[
                 Handler(
                     handler_id="test-handler-1",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="01ED23FA",
                     sampling_frequency=1000,
                     sampling_ch_num=3,
@@ -338,7 +338,7 @@ integ_test_machine = Machine(
                 ),
                 Handler(
                     handler_id="test-handler-2",
-                    handler_type="USB_204",
+                    handler_type="USB-204",
                     adc_serial_num="01E42EF8",
                     sampling_frequency=1000,
                     sampling_ch_num=3,
