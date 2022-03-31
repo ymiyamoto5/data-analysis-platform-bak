@@ -14,7 +14,9 @@ from backend.app.api.endpoints import controller
 from backend.app.crud.crud_controller import CRUDController
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.machine import Machine
+from backend.app.worker.celery import celery_app
 from backend.common import common
+from celery.result import AsyncResult
 
 
 class TestSetup:
@@ -66,12 +68,13 @@ class TestRunAutoDataRecorder:
         self.machine_id = "test-machine-01"
         self.endpoint = f"/api/v1/controller/run-data-recorder/{self.machine_id}"
 
-    @pytest.mark.skip
     def test_normal(self, client, mocker, init):
         # TODO: task_idやステータスの確認を追加し、インテグレーションテストにする
         # https://testdriven.io/blog/fastapi-and-celery/#tests
 
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
+
+        mocker.patch.object(celery_app, "send_task", return_value=AsyncResult("test-task-id"))
 
         response = client.post(self.endpoint)
 
@@ -277,7 +280,6 @@ class TestReset:
         common.COLLECT_STATUS.RECORDED.value,
     ]
 
-    @pytest.mark.skip
     @pytest.mark.parametrize("data", test_collect_status_data)
     def test_normal(self, client, mocker, init, data):
         mocker.patch.object(
@@ -288,6 +290,8 @@ class TestReset:
                 collect_status=data,
             ),
         )
+
+        mocker.patch.object(celery_app, "control")
 
         response = client.post(self.endpoint)
 
