@@ -6,7 +6,6 @@ DB再作成スクリプト。alembic適用前環境で利用していたスク�
 
 import os
 import sys
-from datetime import datetime, timedelta
 from typing import Final
 
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
