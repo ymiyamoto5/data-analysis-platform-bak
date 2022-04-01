@@ -2,15 +2,13 @@ import pytest
 from backend.app.crud.crud_sensor import CRUDSensor
 
 
-class TestData:
-    machine_id_data = ["test-machine-01", "test-machine-02"]
-
-
 class TestRead:
     @pytest.fixture
     def init(self):
         self.endpoint = "/api/v1/sensors"
         self.sensor_id = "load01"
+
+    machine_id_data = ["test-machine-01", "test-machine-02"]
 
     def test_normal_db_select_all(self, client, init):
         response = client.get(self.endpoint)
@@ -24,7 +22,7 @@ class TestRead:
 
         assert response.status_code == 500
 
-    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    @pytest.mark.parametrize("machine_id", machine_id_data)
     def test_normal_db_select_by_id(self, client, init, machine_id):
         endpoint = f"{self.endpoint}/{self.sensor_id}?machine_id={machine_id}"
         response = client.get(endpoint)
@@ -32,7 +30,7 @@ class TestRead:
 
         assert actual_code == 200
 
-    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    @pytest.mark.parametrize("machine_id", machine_id_data)
     def test_db_select_by_id_failed(self, client, mocker, init, machine_id):
         endpoint = f"{self.endpoint}/{self.sensor_id}?machine_id={machine_id}"
         mocker.patch.object(CRUDSensor, "select_by_id", side_effect=Exception("some exception"))
