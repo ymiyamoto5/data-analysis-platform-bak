@@ -73,7 +73,6 @@ class TestRunAutoDataRecorder:
         # https://testdriven.io/blog/fastapi-and-celery/#tests
 
         mocker.patch.object(controller, "validation", return_value=(True, None, 200))
-
         mocker.patch.object(celery_app, "send_task", return_value=self.task)
 
         response = client.post(self.endpoint)
