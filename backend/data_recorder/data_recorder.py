@@ -22,6 +22,7 @@ from typing import Any, Dict, Final, List, Optional, Tuple
 
 from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.models.data_collect_history import DataCollectHistory
+from backend.app.models.data_collect_history_gateway import DataCollectHistoryGateway
 from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.services.data_recorder_service import DataRecorderService
@@ -48,6 +49,16 @@ class DataRecorder:
             sys.exit(1)
 
         target_dir_full_path: str = os.path.join(os.environ["DATA_DIR"], f"{machine_id}-{target_dir}")
+        files_info: List[FileInfo] = FileManager.create_files_info_by_machine_id(target_dir_full_path, machine_id, "dat")
+
+        if len(files_info) == 0:
+            logger.info(f"No files in {target_dir}")
+            return
+
+        if data_collect_history.data_collect_history_events[-1].event_name != common.COLLECT_STATUS.RECORDED.value:
+            logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
+            sys.exit(1)
+
         # 既存のpickleファイルは削除する
         pickle_files: List[str] = glob.glob(os.path.join(target_dir_full_path, "*.pkl"))
         if len(pickle_files):
@@ -63,17 +74,9 @@ class DataRecorder:
 
         for gateway in data_collect_history.data_collect_history_gateways:
             for handler in gateway.data_collect_history_handlers:
-                files_info: List[FileInfo] = FileManager.create_files_info(
-                    target_dir_full_path, machine_id, gateway.gateway_id, handler.handler_id, "dat"
-                )
-
-                if len(files_info) == 0:
-                    logger.info(f"No files in {target_dir}")
-                    return
-
-                if data_collect_history.data_collect_history_events[-1].event_name != common.COLLECT_STATUS.RECORDED.value:
-                    logger.error(f"Latest event should be '{common.COLLECT_STATUS.RECORDED.value}'.")
-                    sys.exit(1)
+                # 複数台構成でプライマリーでないものは記録対象外
+                if handler.is_multi and not handler.is_primary:
+                    continue
 
                 started_timestamp: float = data_collect_history.started_at.timestamp()
                 num_of_records: int = 0
@@ -87,8 +90,8 @@ class DataRecorder:
                     is_manual=True,
                 )
 
-                logger.info(f"import finished: {handler.handler_id}")
-            logger.info(f"import finished: {gateway.gateway_id}")
+                logger.info(f"handler: {handler.handler_id} was recorded.")
+            logger.info(f"gateway: {gateway.gateway_id} was recorded.")
 
         logger.info(f"manual import finished: {machine_id}")
 
