@@ -2,12 +2,15 @@ import pytest
 from backend.app.crud.crud_handler import CRUDHandler
 
 
+class TestData:
+    gateway_id_data = ["test-gateway-01", "test-gateway-02"]
+    handler_id_data = ["test-handler-01-1", "test-handler-01-2", "test-handler-02"]
+
+
 class TestRead:
     @pytest.fixture
     def init(self):
         self.endpoint = "/api/v1/handlers"
-        self.handler_id = "test-handler-01"
-        self.gateway_id = "test-gw-01"
 
     def test_normal_db_select_all(self, client, init):
         response = client.get(self.endpoint)
@@ -21,29 +24,33 @@ class TestRead:
 
         assert response.status_code == 500
 
-    def test_normal_db_select_by_id(self, client, init):
-        endpoint = f"{self.endpoint}/{self.handler_id}"
+    @pytest.mark.parametrize("handler_id", TestData.handler_id_data)
+    def test_normal_db_select_by_id(self, client, init, handler_id):
+        endpoint = f"{self.endpoint}/{handler_id}"
         response = client.get(endpoint)
         actual_code = response.status_code
 
         assert actual_code == 200
 
-    def test_db_select_by_id_failed(self, client, mocker, init):
-        endpoint = f"{self.endpoint}/{self.handler_id}"
+    @pytest.mark.parametrize("handler_id", TestData.handler_id_data)
+    def test_db_select_by_id_failed(self, client, mocker, init, handler_id):
+        endpoint = f"{self.endpoint}/{handler_id}"
         mocker.patch.object(CRUDHandler, "select_by_id", side_effect=Exception("some exception"))
         response = client.get(endpoint)
 
         assert response.status_code == 500
 
-    def test_normal_db_select_primary_by_gateway_id(self, client, init):
-        endpoint = f"{self.endpoint}/primary/{self.gateway_id}"
+    @pytest.mark.parametrize("gateway_id", TestData.gateway_id_data)
+    def test_normal_db_select_primary_by_gateway_id(self, client, init, gateway_id):
+        endpoint = f"{self.endpoint}/primary/{gateway_id}"
         response = client.get(endpoint)
         actual_code = response.status_code
 
         assert actual_code == 200
 
-    def test_db_select_primary_by_gateway_id_failed(self, client, mocker, init):
-        endpoint = f"{self.endpoint}/primary/{self.gateway_id}"
+    @pytest.mark.parametrize("gateway_id", TestData.gateway_id_data)
+    def test_db_select_primary_by_gateway_id_failed(self, client, mocker, init, gateway_id):
+        endpoint = f"{self.endpoint}/primary/{gateway_id}"
         mocker.patch.object(CRUDHandler, "select_primary_by_gateway_id", side_effect=Exception("some exception"))
         response = client.get(endpoint)
 
@@ -55,7 +62,9 @@ class TestCreate:
     def init(self):
         # NOTE: 末尾スラッシュがないと307 redirectになってしまう。
         self.endpoint = "/api/v1/handlers/"
-        self.data = {
+
+    test_create_data = [
+        {
             "handler_id": "Test-Handler-001",
             "handler_type": "test-create",
             "adc_serial_num": "12345678",
@@ -65,31 +74,79 @@ class TestCreate:
             "is_primary": True,
             "is_cut_out_target": True,
             "is_multi": True,
-        }
-
-    def test_normal(self, client, init):
-
-        response = client.post(self.endpoint, json=self.data)
-
-        assert response.status_code == 200
-
-    def test_not_unique_handler_id(self, client, init):
-        """重複しているhandler_id"""
-        data = {
-            "handler_id": "test-handler-01-1",
+        },
+        {
+            "handler_id": "Test-Handler-002",
             "handler_type": "test-create",
             "adc_serial_num": "12345678",
             "sampling_frequency": 1,
             "filewrite_time": 1,
-            "gateway_id": "test-gateway-01",
+            "gateway_id": "test-gateway-02",
             "is_primary": True,
             "is_cut_out_target": True,
             "is_multi": True,
-        }
+        },
+    ]
+
+    @pytest.mark.parametrize("data", test_create_data)
+    def test_normal(self, client, init, data):
 
         response = client.post(self.endpoint, json=data)
 
-        assert response.status_code == 400
+        assert response.status_code == 200
+
+    test_not_unique_data = [
+        (
+            {
+                "handler_id": "test-handler-01-1",
+                "handler_type": "test-create",
+                "adc_serial_num": "12345678",
+                "sampling_frequency": 1,
+                "filewrite_time": 1,
+                "gateway_id": "test-gateway-01",
+                "is_primary": True,
+                "is_cut_out_target": True,
+                "is_multi": True,
+            },
+            400,
+        ),
+        (
+            {
+                "handler_id": "test-handler-01-2",
+                "handler_type": "test-create",
+                "adc_serial_num": "12345678",
+                "sampling_frequency": 1,
+                "filewrite_time": 1,
+                "gateway_id": "test-gateway-01",
+                "is_primary": True,
+                "is_cut_out_target": True,
+                "is_multi": True,
+            },
+            400,
+        ),
+        (
+            {
+                "handler_id": "test-handler-02",
+                "handler_type": "test-create",
+                "adc_serial_num": "12345678",
+                "sampling_frequency": 1,
+                "filewrite_time": 1,
+                "gateway_id": "test-gateway-02",
+                "is_primary": True,
+                "is_cut_out_target": True,
+                "is_multi": True,
+            },
+            400,
+        ),
+    ]
+
+    @pytest.mark.parametrize("data, expected_code", test_not_unique_data)
+    def test_not_unique_handler_id(self, client, init, data, expected_code):
+        """重複しているhandler_id"""
+
+        response = client.post(self.endpoint, json=data)
+
+        assert response.status_code == expected_code
 
     # test_invalid_data = [
     #     # invalid handler_id
@@ -250,9 +307,10 @@ class TestCreate:
 
     #     assert actual_code == expected_code
 
-    def test_insert_failed(self, client, mocker, init):
+    @pytest.mark.parametrize("data", test_create_data)
+    def test_insert_failed(self, client, mocker, init, data):
         mocker.patch.object(CRUDHandler, "insert", side_effect=Exception("some exception"))
-        response = client.post(self.endpoint, json=self.data)
+        response = client.post(self.endpoint, json=data)
 
         assert response.status_code == 500
 
@@ -260,7 +318,6 @@ class TestCreate:
 class TestUpdate:
     @pytest.fixture
     def init(self):
-        self.handler_id = "test-handler-01-1"
         self.endpoint = "/api/v1/handlers"
         self.data = {
             "handler_type": "test-update",
@@ -272,8 +329,9 @@ class TestUpdate:
             "is_multi": True,
         }
 
-    def test_normal(self, client, init):
-        endpoint = f"{self.endpoint}/{self.handler_id}"
+    @pytest.mark.parametrize("handler_id", TestData.handler_id_data)
+    def test_normal(self, client, init, handler_id):
+        endpoint = f"{self.endpoint}/{handler_id}"
         response = client.put(endpoint, json=self.data)
 
         assert response.status_code == 200
@@ -366,8 +424,9 @@ class TestUpdate:
 
     #     assert actual_code == expected_code
 
-    def test_update_failed(self, client, mocker, init):
-        endpoint = f"{self.endpoint}/{self.handler_id}"
+    @pytest.mark.parametrize("handler_id", TestData.handler_id_data)
+    def test_update_failed(self, client, mocker, init, handler_id):
+        endpoint = f"{self.endpoint}/{handler_id}"
         mocker.patch.object(CRUDHandler, "update", side_effect=Exception("some exception"))
         response = client.put(endpoint, json=self.data)
 
@@ -392,9 +451,10 @@ class TestDelete:
 
         assert response.status_code == 404
 
-    def test_foreign_key_error(self, client, init):
+    @pytest.mark.parametrize("handler_id", TestData.handler_id_data)
+    def test_foreign_key_error(self, client, init, handler_id):
         """子が存在するhandler_id"""
-        endpoint = f"{self.endpoint}/test-handler-01-1"
+        endpoint = f"{self.endpoint}/{handler_id}"
         response = client.delete(endpoint)
 
         assert response.status_code == 500
