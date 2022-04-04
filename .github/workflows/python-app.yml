@@ -47,4 +47,4 @@ jobs:
           poetry run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=140 --statistics
       - name: Check with mypy
         run: |
-        poetry run mypy backend
+          poetry run mypy backend
