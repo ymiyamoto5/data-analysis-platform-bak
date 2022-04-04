@@ -20,12 +20,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import \
-    DataCollectHistoryEvent
-from backend.app.models.data_collect_history_handler import \
-    DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import \
-    DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -492,8 +489,7 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import \
-        CRUDDataCollectHistory  # noqa
+    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
     machine_id = "unittest-machine-01"
@@ -512,10 +508,8 @@ if __name__ == "__main__":
         logger.error("")
         db.close()
         sys.exit(1)
-    elif len(cut_out_target_handlers) == 1:
-        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
     else:
-        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+        handler = common.get_main_handler(cut_out_target_handlers)
 
     cutter = StrokeDisplacementCutter(
         start_stroke_displacement=1.8,
