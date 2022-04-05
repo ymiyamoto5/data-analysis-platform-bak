@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from backend.app.api.deps import get_db
 from backend.app.crud.crud_celery_task import CRUDCeleryTask
@@ -134,42 +134,24 @@ def fetch_shots(
     return {"data": data, "fileCount": len(files_info)}
 
 
-@router.post("/stroke_displacement")
-def cut_out_shot_stroke_displacement(cut_out_shot_in: CutOutShotStrokeDisplacement, db: Session = Depends(get_db)):
-    """ストローク変位値でのショット切り出しタスクを登録"""
+@router.post("/")
+def cut_out_shot(cut_out_shot_in: Union[CutOutShotStrokeDisplacement, CutOutShotPulse], db: Session = Depends(get_db)):
+    """ストローク変位値またはパルスでのショット切り出しタスクを登録"""
 
     cut_out_shot_json = json.dumps(cut_out_shot_in.__dict__)
 
     task_name = "backend.app.worker.tasks.cut_out_shot.cut_out_shot_task"
 
-    task = celery_app.send_task(
-        task_name,
-        (
-            cut_out_shot_json,
-            common.CUT_OUT_SHOT_SENSOR_TYPES[0],
-        ),
-    )
-
-    logger.info(f"cut_out_shot started. task_id: {task.id}")
-
-    save_task_info(cut_out_shot_in.machine_id, cut_out_shot_in.target_date_str, task.id, db)
-
-    return {"task_id": task.id, "task_info": task.info}
-
-
-@router.post("/pulse")
-def cut_out_shot_pulse(cut_out_shot_in: CutOutShotPulse, db: Session = Depends(get_db)):
-    """パルスでのショット切り出しタスクを登録"""
-
-    cut_out_shot_json = json.dumps(cut_out_shot_in.__dict__)
-
-    task_name = "backend.app.worker.tasks.cut_out_shot.cut_out_shot_task"
+    if type(cut_out_shot_in) is CutOutShotStrokeDisplacement:
+        sensor_type: str = common.CUT_OUT_SHOT_SENSOR_TYPES[0]
+    else:
+        sensor_type = common.CUT_OUT_SHOT_SENSOR_TYPES[1]
 
     task = celery_app.send_task(
         task_name,
         (
             cut_out_shot_json,
-            common.CUT_OUT_SHOT_SENSOR_TYPES[1],
+            sensor_type,
         ),
     )
 
