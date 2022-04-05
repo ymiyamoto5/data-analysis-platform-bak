@@ -2,11 +2,14 @@ import pytest
 from backend.app.crud.crud_machine import CRUDMachine
 
 
+class TestData:
+    machine_id_data = ["test-machine-01", "test-machine-02"]
+
+
 class TestRead:
     @pytest.fixture
     def init(self):
         self.endpoint = "/api/v1/machines"
-        self.machine_id = "test-machine-01"
 
     def test_normal_db_select_all(self, client, init):
         response = client.get(self.endpoint)
@@ -20,15 +23,17 @@ class TestRead:
 
         assert response.status_code == 500
 
-    def test_normal_db_select_by_id(self, client, init):
-        endpoint = f"{self.endpoint}/{self.machine_id}"
+    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    def test_normal_db_select_by_id(self, client, init, machine_id):
+        endpoint = f"{self.endpoint}/{machine_id}"
         response = client.get(endpoint)
         actual_code = response.status_code
 
         assert actual_code == 200
 
-    def test_db_select_by_id_failed(self, client, mocker, init):
-        endpoint = f"{self.endpoint}/{self.machine_id}"
+    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    def test_db_select_by_id_failed(self, client, mocker, init, machine_id):
+        endpoint = f"{self.endpoint}/{machine_id}"
         mocker.patch.object(CRUDMachine, "select_by_id", side_effect=Exception("some exception"))
         response = client.get(endpoint)
 
@@ -52,10 +57,11 @@ class TestCreate:
 
         assert response.status_code == 200
 
-    def test_not_unique_machine_id(self, client, init):
+    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    def test_not_unique_machine_id(self, client, init, machine_id):
         """重複しているmachine_id"""
         data = {
-            "machine_id": "test-machine-01",
+            "machine_id": f"{machine_id}",
             "machine_name": "Test-Press",
             "machine_type_id": 1,
         }
@@ -126,15 +132,15 @@ class TestCreate:
 class TestUpdate:
     @pytest.fixture
     def init(self):
-        self.machine_id = "test-machine-01"
         self.endpoint = "/api/v1/machines"
         self.data = {
             "machine_name": "test-update",
             "machine_type_id": 2,
         }
 
-    def test_normal(self, client, init):
-        endpoint = f"{self.endpoint}/{self.machine_id}"
+    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    def test_normal(self, client, init, machine_id):
+        endpoint = f"{self.endpoint}/{machine_id}"
         response = client.put(endpoint, json=self.data)
 
         assert response.status_code == 200
@@ -146,8 +152,9 @@ class TestUpdate:
 
         assert response.status_code == 404
 
-    def test_update_failed(self, client, mocker, init):
-        endpoint = f"{self.endpoint}/{self.machine_id}"
+    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    def test_update_failed(self, client, mocker, init, machine_id):
+        endpoint = f"{self.endpoint}/{machine_id}"
         mocker.patch.object(CRUDMachine, "update", side_effect=Exception("some exception"))
         response = client.put(endpoint, json=self.data)
 
@@ -172,9 +179,10 @@ class TestDelete:
 
         assert response.status_code == 404
 
-    def test_foreign_key_error(self, client, init):
+    @pytest.mark.parametrize("machine_id", TestData.machine_id_data)
+    def test_foreign_key_error(self, client, init, machine_id):
         """子が存在するmachine_id"""
-        endpoint = f"{self.endpoint}/test-machine-01"
+        endpoint = f"{self.endpoint}/{machine_id}"
         response = client.delete(endpoint)
 
         assert response.status_code == 500
