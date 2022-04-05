@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Final, List, Optional, Tuple, Union
 
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
 from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.app.models.sensor import Sensor
 from backend.common.common_logger import logger
@@ -106,3 +107,14 @@ def get_cut_out_shot_sensor(
         sys.exit(1)
 
     return None if len(cut_out_sensor) == 0 else cut_out_sensor[0]
+
+
+def get_main_handler(handlers: List[DataCollectHistoryHandler]) -> DataCollectHistoryHandler:
+    """代表ハンドラーを選択する"""
+
+    if len(handlers) == 1:
+        handler: DataCollectHistoryHandler = handlers[0]
+    else:
+        handler = [x for x in handlers if x.is_primary][0]
+
+    return handler
