@@ -118,13 +118,11 @@ import ThresholdSlider from '@/components/CutOutShot/ThresholdSlider.vue'
 import MarginTextField from '@/components/CutOutShot/MarginTextField.vue'
 
 const TARGET_DIR_API_URL = '/api/v1/cut_out_shot/target_dir'
+const CUT_OUT_SHOT_API_URL = '/api/v1/cut_out_shot/'
 const CUT_OUT_SENSOR_FROM_HISTORY_API_URL =
   '/api/v1/cut_out_shot/cut_out_sensor_from_history'
-const CUT_OUT_SHOT_DISPLACEMENT_API_URL =
-  '/api/v1/cut_out_shot/stroke_displacement'
-const CUT_OUT_SHOT_PULSE_API_URL = '/api/v1/cut_out_shot/pulse'
 const CUT_OUT_SHOT_CANCEL_API_URL = '/api/v1/cut_out_shot/cancel'
-const CUT_OUT_SHOT_TASK = '/api/v1/celery_tasks/'
+const CUT_OUT_SHOT_TASK_API_URL = '/api/v1/celery_tasks/'
 
 export default {
   components: {
@@ -252,10 +250,8 @@ export default {
     start: async function() {
       this.running = true
 
-      let url = ''
       let postData = {}
       if (this.cutOutSensor === 'stroke_displacement') {
-        url = CUT_OUT_SHOT_DISPLACEMENT_API_URL
         postData = {
           machine_id: this.machineId,
           start_stroke_displacement: this.startStrokeDisplacement,
@@ -264,7 +260,6 @@ export default {
           margin: this.margin,
         }
       } else if (this.cutOutSensor === 'pulse') {
-        url = CUT_OUT_SHOT_PULSE_API_URL
         postData = {
           machine_id: this.machineId,
           threshold: this.threshold,
@@ -274,7 +269,7 @@ export default {
 
       const client = createBaseApiClient()
       await client
-        .post(url, postData)
+        .post(CUT_OUT_SHOT_API_URL, postData)
         .then((res) => {
           // NOTE: setIntervalでthisのコンテキストが変わってしまうため、thatに退避（もっと良い方法があるかも）
           const that = this
@@ -282,7 +277,7 @@ export default {
           const intervalId = setInterval(async function() {
             const pollingClinet = createBaseApiClient()
             await pollingClinet
-              .get(CUT_OUT_SHOT_TASK + res.data.task_id)
+              .get(CUT_OUT_SHOT_TASK_API_URL + res.data.task_id)
               .then((res) => {
                 const taskStatus = res.data.status
                 console.log(taskStatus)
