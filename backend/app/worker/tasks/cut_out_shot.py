@@ -76,10 +76,8 @@ def cut_out_shot_task(cut_out_shot_json: str, sensor_type: str, debug_mode: bool
         logger.error("")
         db.close()
         sys.exit(1)
-    elif len(cut_out_target_handlers) == 1:
-        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
     else:
-        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+        handler = common.get_main_handler(cut_out_target_handlers)
 
     # 切り出し処理
     cut_out_shot = CutOutShot(
@@ -138,10 +136,8 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
         logger.error("")
         db.close()
         sys.exit(1)
-    elif len(cut_out_target_handlers) == 1:
-        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
     else:
-        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+        handler = common.get_main_handler(cut_out_target_handlers)
 
     target_date_str: str = history.processed_dir_path.split("-")[-1]
 

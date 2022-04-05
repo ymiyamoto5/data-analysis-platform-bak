@@ -7,10 +7,14 @@ from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory
 from backend.app.crud.crud_machine import CRUDMachine
 from backend.app.models.celery_task import CeleryTask
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
+from backend.app.models.data_collect_history_handler import \
+    DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import \
+    DataCollectHistorySensor
 from backend.app.models.sensor import Sensor
-from backend.app.schemas.cut_out_shot import CutOutShotCancel, CutOutShotPulse, CutOutShotStrokeDisplacement
+from backend.app.schemas.cut_out_shot import (CutOutShotCancel,
+                                              CutOutShotPulse,
+                                              CutOutShotStrokeDisplacement)
 from backend.app.services.cut_out_shot_service import CutOutShotService
 from backend.app.worker.celery import celery_app
 from backend.common import common
@@ -91,10 +95,8 @@ def fetch_shots(
 
     if len(cut_out_target_handlers) == 0:
         raise HTTPException(status_code=500, detail="対象ハンドラーがありません")
-    if len(cut_out_target_handlers) == 1:
-        handler: DataCollectHistoryHandler = cut_out_target_handlers[0]
-    if len(cut_out_target_handlers) >= 2:
-        handler = [x for x in cut_out_target_handlers if x.is_primary][0]
+    else:
+        handler = common.get_main_handler(cut_out_target_handlers)
 
     # ハンドラーのファイルリスト作成
     try:
