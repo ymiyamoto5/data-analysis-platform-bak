@@ -5,10 +5,6 @@ services:
     build:
       context: ..
       dockerfile: docker/frontend.dockerfile
-      # environmentはimage build時には使えないためargsで設定。https://qiita.com/koyayashi/items/3380a82ce854bc378c6e
-      args:
-        - http_proxy=http://proxy.unisys.co.jp:8080
-        - https_proxy=http://proxy.unisys.co.jp:8080
     env_file: ${ENV_FILE}
     volumes:
       - ../backend:/app/backend
