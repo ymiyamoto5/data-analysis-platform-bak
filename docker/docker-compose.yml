@@ -64,14 +64,27 @@ services:
     build:
       context: ..
       dockerfile: docker/jupyter.dockerfile
+      args:
+        - USERNAME=${USER}
+        - UID=${UID}
+        - GID=${GID}
+    working_dir: '/home/${USER}/work'
+    user: '${UID}:${GID}'
+    # user: root
+    # environment:
+    #   GRANT_SUDO: 'yes'
+    #   NB_USER: ${USER}
+    #   NB_UID: ${UID}
+    #   NB_GID: ${GID}
+    #   CHOWN_HOME: 'yes'
+    #   CHOWN_EXTRA_OPTS: '-R'
     env_file: ${ENV_FILE}
     restart: always
     ports:
       - '${IP}:8888:8888/tcp'
-    working_dir: '/home/jovyan/work'
     volumes:
-      - ../notebooks:/home/jovyan/work
-      - ../backend:/home/jovyan/backend
+      - ../notebooks:/home/${USER}/work
+      - ../backend:/home/${USER}/backend
       - ${DATA_DRIVE}:/mnt/datadrive
     command: start-notebook.sh --NotebookApp.token=''
     networks:
@@ -158,12 +171,17 @@ services:
     build:
       context: .
       dockerfile: mlflow.dockerfile
+      args:
+        - USERNAME=${USER}
+        - UID=${UID}
+        - GID=${GID}
     volumes:
       - mlflow:/mlflow
     ports:
       - ${IP}:5000:5000
     depends_on:
       - minio
+    user: '${UID}:${GID}'
     environment:
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
       AWS_ACCESS_KEY_ID: minio-access-key
@@ -254,9 +272,14 @@ services:
     build:
       context: ..
       dockerfile: docker/celery.dockerfile
+      args:
+        - USERNAME=${USER}
+        - UID=${UID}
+        - GID=${GID}
     volumes:
       - ../backend:/backend
       - ${DATA_DRIVE}:/mnt/datadrive
+    user: '${UID}:${GID}'
     env_file: ${ENV_FILE}
     restart: always
     # environment:
