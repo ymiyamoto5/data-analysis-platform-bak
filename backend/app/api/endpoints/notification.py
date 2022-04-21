@@ -1,5 +1,5 @@
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 from backend.app.api.deps import get_db
@@ -67,7 +67,21 @@ def create(notification_in: notification.NotificationCreate, db: Session = Depen
 
 
 @router.delete("/", response_model=notification.Notification)
-def delete(target_date_str: str = Query(...), db: Session = Depends(get_db)):
+def delete_more_than_N_days_old(target_days: int = Query(...), db: Session = Depends(get_db)):
+    """指定したN日前までのレコードを削除"""
+
+    target_date: datetime = datetime.utcnow() - timedelta(days=target_days)
+
+    try:
+        event = CRUDGatewayEvent.delete(db, target_date=target_date)
+        return event
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL))
+
+
+@router.delete("/before-timestamp", response_model=notification.Notification)
+def delete_before_specify_timestamp(target_date_str: str = Query(...), db: Session = Depends(get_db)):
     """指定した日付前までのレコードを削除"""
 
     target_date: datetime = datetime.strptime(target_date_str, "%Y/%m/%d %H:%M:%S")
