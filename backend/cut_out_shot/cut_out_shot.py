@@ -20,12 +20,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 from backend.app.models.data_collect_history import DataCollectHistory
-from backend.app.models.data_collect_history_event import \
-    DataCollectHistoryEvent
-from backend.app.models.data_collect_history_handler import \
-    DataCollectHistoryHandler
-from backend.app.models.data_collect_history_sensor import \
-    DataCollectHistorySensor
+from backend.app.models.data_collect_history_event import DataCollectHistoryEvent
+from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.app.models.data_collect_history_sensor import DataCollectHistorySensor
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.data_converter.data_converter import DataConverter
@@ -59,7 +56,7 @@ class CutOutShot:
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
         self.__data_collect_history: DataCollectHistory = data_collect_history
         self.__sensors: List[DataCollectHistorySensor] = sensors
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * sampling_frequency
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm * sampling_frequency)
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
     # テスト用の公開プロパティ
@@ -492,8 +489,7 @@ class CutOutShot:
 
 
 if __name__ == "__main__":
-    from backend.app.crud.crud_data_collect_history import \
-        CRUDDataCollectHistory  # noqa
+    from backend.app.crud.crud_data_collect_history import CRUDDataCollectHistory  # noqa
     from backend.app.db.session import SessionLocal  # noqa
 
     machine_id = "unittest-machine-01"
