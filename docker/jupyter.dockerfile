@@ -20,7 +20,7 @@ RUN groupadd -g $GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
-COPY --chown=$USERNAME:$USERNAME ./pyproject.toml ./poetry.lock /home/rfujimoto3/
+COPY --chown=$USERNAME:$USERNAME ./pyproject.toml ./poetry.lock /home/$USERNAME/
 
 RUN mkdir /home/$USERNAME/poetry \
     && chown $USERNAME:$USERNAME /home/$USERNAME/poetry \
