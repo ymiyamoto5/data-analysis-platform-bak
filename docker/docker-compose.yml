@@ -72,7 +72,7 @@ services:
     volumes:
       - ../notebooks:/home/jovyan/work
       - ../backend:/home/jovyan/backend
-      - ${DATA_DRIVE}:/mnt/datadrive
+      - ${DATA_DRIVE}:${DATA_DRIVE}
     command: start-notebook.sh --NotebookApp.token=''
     networks:
       - docker_network
@@ -93,7 +93,7 @@ services:
     ports:
       - '${IP}:80:80/tcp'
     volumes:
-      - ${DATA_DRIVE}:/mnt/datadrive
+      - ${DATA_DRIVE}:${DATA_DRIVE}
       - /run:/run
       - ../backend:/app/backend
     depends_on:
@@ -256,7 +256,7 @@ services:
       dockerfile: docker/celery.dockerfile
     volumes:
       - ../backend:/backend
-      - ${DATA_DRIVE}:/mnt/datadrive
+      - ${DATA_DRIVE}:${DATA_DRIVE}
     env_file: ${ENV_FILE}
     restart: always
     # environment:
