@@ -40,3 +40,9 @@ class CRUDGatewayEvent:
         db.commit()
         db.refresh(new_gateway_event)
         return new_gateway_event
+
+    @staticmethod
+    def delete(db: Session, target_date: datetime) -> None:
+        db.query(GatewayEvent).filter(GatewayEvent.timestamp < target_date).delete()
+        db.commit()
+        return
