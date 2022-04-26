@@ -56,7 +56,7 @@ class CutOutShot:
         self.__shots_meta_df: DataFrame = pd.DataFrame(columns=("timestamp", "shot_number", "spm", "num_of_samples_in_cut_out"))
         self.__data_collect_history: DataCollectHistory = data_collect_history
         self.__sensors: List[DataCollectHistorySensor] = sensors
-        self.__max_samples_per_shot: int = int(60 / self.__min_spm) * sampling_frequency
+        self.__max_samples_per_shot: int = int(60 / self.__min_spm * sampling_frequency)
         self.cutter: Union[StrokeDisplacementCutter, PulseCutter] = cutter
 
     # テスト用の公開プロパティ
