@@ -1,5 +1,5 @@
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 from backend.app.api.deps import get_db
@@ -13,7 +13,7 @@ from backend.app.schemas import notification
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -64,3 +64,31 @@ def create(notification_in: notification.NotificationCreate, db: Session = Depen
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.CREATE_FAIL))
 
     return
+
+
+@router.delete("/", response_model=notification.Notification)
+def delete_more_than_N_days_old(target_days: int = Query(...), db: Session = Depends(get_db)):
+    """指定したN日前までのレコードを削除"""
+
+    target_date: datetime = datetime.utcnow() - timedelta(days=target_days)
+
+    try:
+        event = CRUDGatewayEvent.delete(db, target_date=target_date)
+        return event
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL))
+
+
+@router.delete("/before-timestamp", response_model=notification.Notification)
+def delete_before_specify_timestamp(target_date_str: str = Query(...), db: Session = Depends(get_db)):
+    """指定した日付前までのレコードを削除"""
+
+    target_date: datetime = datetime.strptime(target_date_str, "%Y/%m/%d %H:%M:%S")
+
+    try:
+        event = CRUDGatewayEvent.delete(db, target_date=target_date)
+        return event
+    except Exception:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.DELETE_FAIL))
