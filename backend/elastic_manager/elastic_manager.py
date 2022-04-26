@@ -33,7 +33,10 @@ class ElasticManager:
     def show_indices(cls, index: str = "*") -> pd.DataFrame:
         """インデックス一覧のDataFrameを返す"""
 
-        _indices = cls.es.cat.indices(index=index, v=True, h=["index", "docs.count", "store.size"], bytes="kb").splitlines()
+        indices = cls.es.cat.indices(index=index, v=True, h=["index", "docs.count", "store.size"], bytes="kb")
+
+        if isinstance(indices, str):
+            _indices: List[str] = indices.splitlines()
 
         indices_list = [x.split() for x in _indices]
 
@@ -44,7 +47,11 @@ class ElasticManager:
     def get_latest_index(cls, index) -> Optional[str]:
         """引数で指定したindexに一致する最新のインデックス名を返す"""
 
-        _indices: List[str] = cls.es.cat.indices(index=index, s="index", h="index").splitlines()
+        indices = cls.es.cat.indices(index=index, s="index", h="index")
+
+        if isinstance(indices, str):
+            _indices: List[str] = indices.splitlines()
+
         if len(_indices) == 0:
             logger.error("Index not found.")
             return None
@@ -216,7 +223,7 @@ class ElasticManager:
             return False
 
         try:
-            cls.es.index(index=index, body=query, refresh=True)
+            cls.es.index(index=index, document=query, refresh=True)
             return True
 
         except exceptions.RequestError as e:
