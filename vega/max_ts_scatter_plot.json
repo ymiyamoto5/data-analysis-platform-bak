@@ -46,6 +46,10 @@
     }
     transform: [
       {
+        calculate: datum._source.shot_number
+        as: shot_number
+      }
+      {
         calculate: datum._source.experiment_id
         as: experiment_id
       }
@@ -71,9 +75,7 @@
       }
     ]
     mark: {
-      type: "point"
-        // color: blue
-      opacity: 0.7
+      type: point
     }
     params: [
       {
@@ -110,7 +112,8 @@
         }
         type: quantitative
         axis: {
-          minExtent: 30 // title: null
+          minExtent: 30
+          // title: null
         }
       }
       color: {
@@ -120,6 +123,11 @@
           type: nominal
         }
         value: grey
+      }
+      opacity: {
+        field: shot_number
+        type: quantitative
+        legend: null
       }
     }
   }
