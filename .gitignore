@@ -51,3 +51,5 @@ Untitled.ipynb
 tmp.png
 app.db
 app.db-journal
+.env.dev
+docker-compose.override.yml
