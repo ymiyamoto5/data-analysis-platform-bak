@@ -41,18 +41,24 @@
   ]
   data: [
     {
-      name: start-point
+      name: start-point-by-index
       url: {
         %context%: true
         %timefield%: timestamp
-        index: shots-*-start-point
+        index: shots-*-features
         body: {
           _source: [
-            sequential_number
-            sequential_number_by_shot
+            experiment_id
+            timestamp
             shot_number
-            load
-            value
+            start_load01_index
+            start_load01_value
+            start_load02_index
+            start_load02_value
+            start_load03_index
+            start_load03_value
+            start_load04_index
+            start_load04_value
           ]
           sort: [
             {
@@ -61,7 +67,7 @@
               }
             }
           ]
-          size: 4
+          size: 100
         }
       }
       format: {
@@ -70,13 +76,8 @@
       transform: [
         {
           type: formula
-          expr: datum._source.sequential_number
-          as: sequential_number
-        }
-        {
-          type: formula
-          expr: datum._source.sequential_number_by_shot
-          as: sequential_number_by_shot
+          expr: datum._source.experiment_id
+          as: experiment_id
         }
         {
           type: formula
@@ -85,29 +86,223 @@
         }
         {
           type: formula
-          expr: datum._source.load
-          as: load
+          expr: datum._source.start_load01_index
+          as: load01_index
         }
         {
           type: formula
-          expr: datum._source.value
-          as: load_value
+          expr: datum._source.start_load01_value
+          as: load01
+        }
+        {
+          type: formula
+          expr: datum._source.start_load02_index
+          as: load02_index
+        }
+        {
+          type: formula
+          expr: datum._source.start_load02_value
+          as: load02
+        }
+        {
+          type: formula
+          expr: datum._source.start_load03_index
+          as: load03_index
+        }
+        {
+          type: formula
+          expr: datum._source.start_load03_value
+          as: load03
+        }
+        {
+          type: formula
+          expr: datum._source.start_load04_index
+          as: load04_index
+        }
+        {
+          type: formula
+          expr: datum._source.start_load04_value
+          as: load04
+        }
+        {
+          type: fold
+          fields: [
+            load01
+            load02
+            load03
+            load04
+          ]
+          as: [
+            load
+            load_value
+          ]
+        }
+        {
+          type: fold
+          fields: [
+            load01_index
+            load02_index
+            load03_index
+            load04_index
+          ]
+          as: [
+            _load
+            load_index
+          ]
+        }
+      ]
+    }
+    {
+      name: start-point
+      source: start-point-by-index
+      transform: [
+        {
+          type: filter
+          expr: datum.load + "_index" == datum._load
+        }
+      ]
+    }
+    {
+      name: max-point-by-index
+      url: {
+        %context%: true
+        %timefield%: timestamp
+        index: shots-*-features
+        body: {
+          _source: [
+            experiment_id
+            timestamp
+            shot_number
+            max_load01_index
+            max_load01_value
+            max_load02_index
+            max_load02_value
+            max_load03_index
+            max_load03_value
+            max_load04_index
+            max_load04_value
+          ]
+          sort: [
+            {
+              shot_number: {
+                order: asc
+              }
+            }
+          ]
+          size: 100
+        }
+      }
+      format: {
+        property: hits.hits
+      }
+      transform: [
+        {
+          type: formula
+          expr: datum._source.experiment_id
+          as: experiment_id
+        }
+        {
+          type: formula
+          expr: datum._source.shot_number
+          as: shot_number
+        }
+        {
+          type: formula
+          expr: datum._source.max_load01_index
+          as: load01_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load01_value
+          as: load01
+        }
+        {
+          type: formula
+          expr: datum._source.max_load02_index
+          as: load02_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load02_value
+          as: load02
+        }
+        {
+          type: formula
+          expr: datum._source.max_load03_index
+          as: load03_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load03_value
+          as: load03
+        }
+        {
+          type: formula
+          expr: datum._source.max_load04_index
+          as: load04_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load04_value
+          as: load04
+        }
+        {
+          type: fold
+          fields: [
+            load01
+            load02
+            load03
+            load04
+          ]
+          as: [
+            load
+            load_value
+          ]
+        }
+        {
+          type: fold
+          fields: [
+            load01_index
+            load02_index
+            load03_index
+            load04_index
+          ]
+          as: [
+            _load
+            load_index
+          ]
         }
       ]
     }
     {
       name: max-point
+      source: max-point-by-index
+      transform: [
+        {
+          type: filter
+          expr: datum.load + "_index" == datum._load
+        }
+      ]
+    }
+    {
+      name: break-point-by-index
       url: {
         %context%: true
         %timefield%: timestamp
-        index: shots-*-max-point
+        index: shots-*-features
         body: {
           _source: [
-            sequential_number
-            sequential_number_by_shot
+            experiment_id
+            timestamp
             shot_number
-            load
-            value
+            break_load01_index
+            break_load01_value
+            break_load02_index
+            break_load02_value
+            break_load03_index
+            break_load03_value
+            break_load04_index
+            break_load04_value
           ]
           sort: [
             {
@@ -116,7 +311,7 @@
               }
             }
           ]
-          size: 4
+          size: 100
         }
       }
       format: {
@@ -125,13 +320,8 @@
       transform: [
         {
           type: formula
-          expr: datum._source.sequential_number
-          as: sequential_number
-        }
-        {
-          type: formula
-          expr: datum._source.sequential_number_by_shot
-          as: sequential_number_by_shot
+          expr: datum._source.experiment_id
+          as: experiment_id
         }
         {
           type: formula
@@ -140,68 +330,79 @@
         }
         {
           type: formula
-          expr: datum._source.load
-          as: load
+          expr: datum._source.break_load01_index
+          as: load01_index
         }
         {
           type: formula
-          expr: datum._source.value
-          as: load_value
+          expr: datum._source.break_load01_value
+          as: load01
+        }
+        {
+          type: formula
+          expr: datum._source.break_load02_index
+          as: load02_index
+        }
+        {
+          type: formula
+          expr: datum._source.break_load02_value
+          as: load02
+        }
+        {
+          type: formula
+          expr: datum._source.break_load03_index
+          as: load03_index
+        }
+        {
+          type: formula
+          expr: datum._source.break_load03_value
+          as: load03
+        }
+        {
+          type: formula
+          expr: datum._source.break_load04_index
+          as: load04_index
+        }
+        {
+          type: formula
+          expr: datum._source.break_load04_value
+          as: load04
+        }
+        {
+          type: fold
+          fields: [
+            load01
+            load02
+            load03
+            load04
+          ]
+          as: [
+            load
+            load_value
+          ]
+        }
+        {
+          type: fold
+          fields: [
+            load01_index
+            load02_index
+            load03_index
+            load04_index
+          ]
+          as: [
+            _load
+            load_index
+          ]
         }
       ]
     }
     {
       name: break-point
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-break-point
-        body: {
-          _source: [
-            sequential_number
-            sequential_number_by_shot
-            shot_number
-            load
-            value
-          ]
-          sort: [
-            {
-              shot_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 4
-        }
-      }
-      format: {
-        property: hits.hits
-      }
+      source: break-point-by-index
       transform: [
         {
-          type: formula
-          expr: datum._source.sequential_number
-          as: sequential_number
-        }
-        {
-          type: formula
-          expr: datum._source.sequential_number_by_shot
-          as: sequential_number_by_shot
-        }
-        {
-          type: formula
-          expr: datum._source.shot_number
-          as: shot_number
-        }
-        {
-          type: formula
-          expr: datum._source.load
-          as: load
-        }
-        {
-          type: formula
-          expr: datum._source.value
-          as: load_value
+          type: filter
+          expr: datum.load + "_index" == datum._load
         }
       ]
     }
@@ -504,7 +705,7 @@
             update: {
               x: {
                 scale: x
-                field: sequential_number
+                field: load_index
               }
               y: {
                 scale: y
@@ -566,7 +767,7 @@
             update: {
               x: {
                 scale: x
-                field: sequential_number
+                field: load_index
               }
               y: {
                 scale: y
@@ -628,7 +829,7 @@
             update: {
               x: {
                 scale: x
-                field: sequential_number
+                field: load_index
               }
               y: {
                 scale: y
