@@ -15,7 +15,7 @@
       name: analysis
       url: {
         %context%: true
-          // %timefield%: timestamp
+        // %timefield%: timestamp
         index: shots-*-analysis
         body: {
           _source: [
@@ -76,6 +76,7 @@
     ]
     mark: {
       type: point
+      opacity: 0.5
     }
     params: [
       {
@@ -117,17 +118,20 @@
         }
       }
       color: {
-        condition: {
-          param: brush
-          field: experiment_id
-          type: nominal
-        }
-        value: grey
-      }
-      opacity: {
         field: shot_number
         type: quantitative
-        legend: null
+        scale: {
+          range: [
+            white
+            red
+            purple
+            black
+          ]
+        }
+        title: shot_number
+      }
+      size: {
+        value: 10
       }
     }
   }
