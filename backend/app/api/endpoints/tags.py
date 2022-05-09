@@ -15,10 +15,19 @@ router = APIRouter()
 def fetch_tags():
     """タグリストを返す"""
 
+    tags_index: str = "tags"
+
+    if not ElasticManager.exists_index(index=tags_index):
+        ElasticManager.create_index(tags_index)
+        return []
+
+    if ElasticManager.count(tags_index) == 0:
+        return []
+
     query = {"sort": {"occurred_at": {"order": "desc"}}}
 
     try:
-        tags = ElasticManager.get_docs_with_id("tags", query=query)
+        tags = ElasticManager.get_docs_with_id(tags_index, query=query)
         return tags
     except Exception:
         logger.error(traceback.format_exc())
