@@ -30,7 +30,7 @@ services:
         hard: -1
     restart: always
     volumes:
-      - ${DATA_DIR}:/usr/share/elasticsearch/data
+      - elastic:/usr/share/elasticsearch/data
     networks:
       - docker_network
     # logging:
@@ -92,6 +92,7 @@ services:
     volumes:
       - ${DATA_DRIVE}:${DATA_DRIVE}
       - /run:/run
+      - sqlite:/app/db
       - ../backend:/app/backend
     depends_on:
       - elasticsearch
@@ -241,6 +242,7 @@ services:
       dockerfile: docker/celery.dockerfile
     volumes:
       - ../backend:/backend
+      - sqlite:/app/db
       - ${DATA_DRIVE}:${DATA_DRIVE}
     env_file: ${ENV_FILE}
     restart: always
@@ -282,3 +284,5 @@ networks:
 volumes:
   mlflow:
   minio1:
+  elastic:
+  sqlite:
