@@ -127,20 +127,44 @@ docker コンテナー関連のファイル群。Dockerfile 等々。
 
 jupyter notebook のファイル群。分析ロジック適用は jupyter notebook から行う。
 
-### .env, .env.local
+### .env.prod, .env.dev, .env.local
 
 本システム共通で利用する環境変数。git 管理外のため、各自のローカルで管理すること。また、このファイルに変更を行った場合は他の開発者にアナウンスし、共有すること。なお、環境変数の設定値はプロジェクトごとに異なる値を設定する。
 
-- .env: Docker コンテナーで利用する環境変数を定義
-- .env.local: ローカルデバッグ時に利用する環境変数を定義
-- docker/.env: docker-compose の本番デプロイ時で利用する環境変数
+- .env.prod: 本番用 Docker コンテナーで利用する環境変数を定義
+- .env.dev: 開発用 Docker コンテナーで利用する環境変数を定義
+- .env.local: ローカルデバッグ時に利用する環境変数を定義(.vscode/settings.json でこのファイルを使用するよう指定している)
+- docker/.env.prod: docker-compose の本番デプロイ時で利用する環境変数
 - docker/.env.dev: docker-compose の開発時で利用する環境変数
 - frontend/.env.production: フロントエンドの本番ビルド時（yarn build）で利用する環境変数
 - frontend/.env.development: フロントエンドの開発サーバー（yarn serve）で利用する環境変数
 
 サンプル
 
-- .env
+- .env.prod
+
+```
+SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
+DB_SQL_ECHO=0
+NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
+no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
+MLFLOW_SERVER_URI=http://mlflow:5000
+MLFLOW_EXPERIMENT_NAME=some
+MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+AWS_ACCESS_KEY_ID=minio-access-key
+AWS_SECRET_ACCESS_KEY=minio-secret-key
+DATA_DIR=/mnt/datadrive/data
+ELASTIC_URL=elasticsearch:9200
+ELASTIC_USER=<elastic user>
+ELASTIC_PASSWORD=<elastic password>
+MAPPING_RAWDATA_PATH=backend/mappings/mapping_rawdata.json
+SETTING_RAWDATA_PATH=backend/mappings/setting_rawdata.json
+SETTING_SHOTS_PATH=backend/mappings/setting_shots.json
+SETTING_SHOTS_META_PATH=backend/mappings/setting_shots_meta.json
+SETTING_RESAMPLE_PATH=backend/mappings/setting_resample.json
+CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
+CELERY_RESULT_BACKEND=redis://redis/0
+```
 
 ```
 HTTP_PROXY=http://proxy.unisys.co.jp:8080
@@ -193,9 +217,10 @@ CELERY_BROKER_URL=pyamqp://guest:guest@${LOCAL_IP}:5672
 CELERY_RESULT_BACKEND=redis://${LOCAL_IP}/0
 ```
 
-- docker/.env
+- docker/.env.prod
 
 ```
+COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
 COMPOSE_PROJECT_NAME=data-analysis-platform
 DATA_DIR=/mnt/datadrive/data
 DATA_DRIVE=/mnt/datadrive
@@ -208,6 +233,7 @@ ENV_FILE=../.env
 - docker/.env.dev
 
 ```
+COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml
 COMPOSE_PROJECT_NAME=data-analysis-platform
 DATA_DIR=/mnt/datadrive/data
 DATA_DRIVE=/mnt/datadrive
@@ -380,14 +406,14 @@ sudo chmod -R 777 /mnt
 
 ```
 cd ~/data-analysis-platform/docker
-docker-compose up -d
+docker-compose --env-file .env.prod up -d
 ```
 
 ### コンテナー image リビルドして起動
 
 ```
 cd ~/data-analysis-platform/docker
-docker-compose up -d --build
+docker-compose --env-file .env.prod up -d --build
 ```
 
 ## DB setup
@@ -408,6 +434,6 @@ python -m backend.utils.create_dummy_data
 ### create db (docker)
 
 ```
-docker-compose exec webap /bin/bash
+docker-compose --env-file .env.dev exec webap /bin/bash
 python -m backend.utils.create_dummy_data
 ```
