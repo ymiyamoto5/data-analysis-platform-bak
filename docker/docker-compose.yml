@@ -74,8 +74,8 @@ services:
     env_file: ${ENV_FILE}
     restart: always
     volumes:
-      - ../notebooks:/home/jovyan/work
-      - ../backend:/home/jovyan/backend
+      - ../notebooks:/home/${USER}/work
+      - ../backend:/home/${USER}/backend
       - ${DATA_DRIVE}:${DATA_DRIVE}
     command: start-notebook.sh --NotebookApp.token=''
     networks:
@@ -160,10 +160,15 @@ services:
     build:
       context: .
       dockerfile: mlflow.dockerfile
+      args:
+        - USERNAME=${USER}
+        - UID=${UID}
+        - GID=${GID}
     volumes:
       - mlflow:/mlflow
     depends_on:
       - minio
+    user: '${UID}:${GID}'
     environment:
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
       AWS_ACCESS_KEY_ID: minio-access-key
