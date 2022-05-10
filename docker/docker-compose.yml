@@ -1,7 +1,7 @@
 # 本番デプロイ時は以下コマンドを実行してください。
-# docker-compose --env-file ./.env.prod up -d
+# docker-compose --env-file .env.prod up -d
 # 開発デプロイ時は以下コマンドを実行してください。
-# docker-compose --env-file ./.env.dev up -d
+# docker-compose --env-file .env.dev up -d
 
 version: '3.3'
 
