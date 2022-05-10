@@ -54,3 +54,4 @@ app.db-journal
 .env.dev
 .env.prod
 docker-compose.override.yml
+docker/copy_dist_dir.sh
