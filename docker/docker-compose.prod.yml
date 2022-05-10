@@ -12,6 +12,8 @@ services:
     ports:
       - '${IP}:8888:8888/tcp'
   webap:
+    volumes:
+      - sqlite:/app/db
     ports:
       - '${IP}:80:80/tcp'
   mlflow:
@@ -33,3 +35,7 @@ services:
   flower:
     ports:
       - ${IP}:5555:5555
+  worker:
+    volumes:
+      - sqlite:/app/db
+
