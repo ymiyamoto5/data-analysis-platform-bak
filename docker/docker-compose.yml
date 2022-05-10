@@ -65,9 +65,14 @@ services:
     build:
       context: ..
       dockerfile: docker/jupyter.dockerfile
+      args:
+        - USERNAME=${USER}
+        - UID=${UID}
+        - GID=${GID}
+    working_dir: '/home/${USER}/work'
+    user: '${UID}:${GID}'
     env_file: ${ENV_FILE}
     restart: always
-    working_dir: '/home/jovyan/work'
     volumes:
       - ../notebooks:/home/jovyan/work
       - ../backend:/home/jovyan/backend
