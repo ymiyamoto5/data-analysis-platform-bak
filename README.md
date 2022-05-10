@@ -133,7 +133,8 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 
 - .env: Docker コンテナーで利用する環境変数を定義
 - .env.local: ローカルデバッグ時に利用する環境変数を定義
-- docker/.env: docker-compose で利用する環境変数
+- docker/.env: docker-compose の本番デプロイ時で利用する環境変数
+- docker/.env.dev: docker-compose の開発時で利用する環境変数
 - frontend/.env.production: フロントエンドの本番ビルド時（yarn build）で利用する環境変数
 - frontend/.env.development: フロントエンドの開発サーバー（yarn serve）で利用する環境変数
 
@@ -202,6 +203,31 @@ IP=<ローカルIP>
 ELASTIC_USERNAME=<elastic user>
 ELASTIC_PASSWORD=<elastic password>
 ENV_FILE=../.env
+```
+
+- docker/.env.dev
+
+```
+COMPOSE_PROJECT_NAME=data-analysis-platform
+DATA_DIR=/mnt/datadrive/data
+DATA_DRIVE=/mnt/datadrive
+IP=<ローカルIP>
+ELASTIC_USERNAME=<elastic user>
+ELASTIC_PASSWORD=<elastic password>
+ENV_FILE=../.env
+ELASTICSEARCH_PORT=<デフォルトポート番号（9200）+ X>
+KIBANA_PORT=<デフォルトポート番号（5601）+ X>
+NOTEBOOK_PORT=<デフォルトポート番号（8888）+ X>
+WEBAP_PORT=<デフォルトポート番号（80）+ X>
+MLFLOW_PORT=<デフォルトポート番号（5000）+ X>
+MINIO_PORT_1=<デフォルトポート番号（9000）+ X>
+MINIO_PORT_2=<デフォルトポート番号（9011）+ X>
+RABBITMQ_PORT_1=<デフォルトポート番号（4369）+ X>
+RABBITMQ_PORT_2=<デフォルトポート番号（5672）+ X>
+RABBITMQ_PORT_3=<デフォルトポート番号（25672）+ X>
+RABBITMQ_PORT_4=<デフォルトポート番号（15672）+ X>
+REDIS_PORT=<デフォルトポート番号（6379）+ X>
+FLOWER_PORT=<デフォルトポート番号（5555）+ X>
 ```
 
 - frontend/.env.production
