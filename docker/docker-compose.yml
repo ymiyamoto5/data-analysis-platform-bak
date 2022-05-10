@@ -1,3 +1,6 @@
+# 本番デプロイ時は以下コマンドを実行してください。
+# docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
 version: '3.3'
 
 services:
@@ -24,8 +27,6 @@ services:
         soft: -1
         hard: -1
     restart: always
-    ports:
-      - '${IP}:9200:9200/tcp'
     volumes:
       - ${DATA_DIR}:/usr/share/elasticsearch/data
     networks:
@@ -47,8 +48,6 @@ services:
       I18N_LOCALE: 'ja-JP'
     env_file: ${ENV_FILE}
     restart: always
-    ports:
-      - '${IP}:5601:5601/tcp'
     depends_on:
       - elasticsearch
     networks:
@@ -66,8 +65,6 @@ services:
       dockerfile: docker/jupyter.dockerfile
     env_file: ${ENV_FILE}
     restart: always
-    ports:
-      - '${IP}:8888:8888/tcp'
     working_dir: '/home/jovyan/work'
     volumes:
       - ../notebooks:/home/jovyan/work
@@ -90,8 +87,6 @@ services:
       MODULE_NAME: 'backend.app.main'
     env_file: ${ENV_FILE}
     restart: always
-    ports:
-      - '${IP}:80:80/tcp'
     volumes:
       - ${DATA_DRIVE}:${DATA_DRIVE}
       - /run:/run
@@ -160,8 +155,6 @@ services:
       dockerfile: mlflow.dockerfile
     volumes:
       - mlflow:/mlflow
-    ports:
-      - ${IP}:5000:5000
     depends_on:
       - minio
     environment:
@@ -180,9 +173,6 @@ services:
     #     fluentd-async-connect: 'true'
   minio:
     image: minio/minio
-    ports:
-      - ${IP}:9000:9000
-      - ${IP}:9001:9001
     restart: always
     volumes:
       - minio1:/export
@@ -223,11 +213,6 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
-    ports:
-      - '${IP}:4369:4369'
-      - '${IP}:5672:5672'
-      - '${IP}:25672:25672'
-      - '${IP}:15672:15672'
     networks:
       - docker_network
     restart: always
@@ -239,8 +224,6 @@ services:
     #     fluentd-async-connect: 'true'
   redis:
     image: redis:latest
-    ports:
-      - '${IP}:6379:6379'
     networks:
       - docker_network
     restart: always
@@ -283,8 +266,6 @@ services:
       # - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
       - FLOWER_PORT=5555
     env_file: ${ENV_FILE}
-    ports:
-      - ${IP}:5555:5555
     depends_on:
       - rabbitmq
       - worker

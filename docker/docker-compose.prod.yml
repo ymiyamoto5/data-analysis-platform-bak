@@ -1,0 +1,34 @@
+version: '3.3'
+
+services:
+  elasticsearch:
+    ports:
+      - '${IP}:9200:9200/tcp'
+  kibana:
+    ports:
+      - '${IP}:5601:5601/tcp'
+  notebook:
+    ports:
+      - '${IP}:8888:8888/tcp'
+  webap:
+    ports:
+      - '${IP}:80:80/tcp'
+  mlflow:
+    ports:
+      - ${IP}:5000:5000
+  minio:
+    ports:
+      - ${IP}:9000:9000
+      - ${IP}:9001:9001
+  rabbitmq:
+    ports:
+      - '${IP}:4369:4369'
+      - '${IP}:5672:5672'
+      - '${IP}:25672:25672'
+      - '${IP}:15672:15672'
+  redis:
+    ports:
+      - '${IP}:6379:6379'
+  flower:
+    ports:
+      - ${IP}:5555:5555
