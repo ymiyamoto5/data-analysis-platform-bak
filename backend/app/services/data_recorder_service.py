@@ -24,7 +24,6 @@ class DataRecorderService:
             logger.debug(f"{processed_dir_path} is already exists")
         else:
             os.makedirs(processed_dir_path)
-            os.chmod(processed_dir_path, 0o777)
             logger.info(f"{processed_dir_path} created.")
 
         return processed_dir_path
