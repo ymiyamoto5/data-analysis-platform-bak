@@ -70,14 +70,6 @@ services:
         - GID=${GID}
     working_dir: '/home/${USER}/work'
     user: '${UID}:${GID}'
-    # user: root
-    # environment:
-    #   GRANT_SUDO: 'yes'
-    #   NB_USER: ${USER}
-    #   NB_UID: ${UID}
-    #   NB_GID: ${GID}
-    #   CHOWN_HOME: 'yes'
-    #   CHOWN_EXTRA_OPTS: '-R'
     env_file: ${ENV_FILE}
     restart: always
     ports:
@@ -272,14 +264,9 @@ services:
     build:
       context: ..
       dockerfile: docker/celery.dockerfile
-      args:
-        - USERNAME=${USER}
-        - UID=${UID}
-        - GID=${GID}
     volumes:
       - ../backend:/backend
       - ${DATA_DRIVE}:/mnt/datadrive
-    user: '${UID}:${GID}'
     env_file: ${ENV_FILE}
     restart: always
     # environment:
