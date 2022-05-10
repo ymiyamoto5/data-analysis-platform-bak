@@ -9,8 +9,8 @@
         "ms-toolsai.jupyter",
         "esbenp.prettier-vscode",
         "ms-python.python",
-        "humao.rest-client",
         "octref.vetur",
-        "msjsdiag.debugger-for-chrome"
+        "msjsdiag.debugger-for-chrome",
+        "github.vscode-pull-request-github"
     ]
 }
