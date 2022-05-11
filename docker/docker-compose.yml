@@ -14,7 +14,12 @@ services:
     volumes:
       - ../backend:/app/backend
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
+    build:
+      context: ..
+      dockerfile: docker/elasticsearch.dockerfile
+      args:
+        - UID=${UID}
+        - GID=${GID}      
     environment:
       - discovery.type=single-node
       - cluster.name=docker-cluster
@@ -30,16 +35,9 @@ services:
         hard: -1
     restart: always
     volumes:
-      # - ${DATA_DRIVE}:/usr/share/elasticsearch/data
-      - ${DATA_DRIVE}:${DATA_DRIVE}
+      - ${DATA_DRIVE}:/usr/share/elasticsearch/data
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   kibana:
     image: docker.elastic.co/kibana/kibana:7.14.0
     environment:
