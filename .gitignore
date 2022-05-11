@@ -49,8 +49,6 @@ notebooks/DSL適用.ipynb
 Untitled.ipynb
 .VSCodeCounter
 tmp.png
-app.db
-app.db-journal
 .env.dev
 .env.prod
 docker-compose.override.yml
