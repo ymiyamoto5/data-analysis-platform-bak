@@ -30,7 +30,8 @@ services:
         hard: -1
     restart: always
     volumes:
-      - elastic:/usr/share/elasticsearch/data
+      # - ${DATA_DRIVE}:/usr/share/elasticsearch/data
+      - ${DATA_DRIVE}:${DATA_DRIVE}
     networks:
       - docker_network
     # logging:
@@ -292,4 +293,3 @@ networks:
 volumes:
   mlflow:
   minio1:
-  elastic:
