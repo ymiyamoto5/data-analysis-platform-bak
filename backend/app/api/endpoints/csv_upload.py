@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from platform import machine
 from typing import List
 
 from backend.common import common
@@ -35,4 +36,4 @@ def upload(
             shutil.copyfileobj(file.file, f)
 
     dr = DataReader()
-    dr.read_loadstroke_files(upload_dir_path)
+    dr.read_loadstroke_files(upload_dir_path, machine_id)
