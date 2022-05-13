@@ -159,8 +159,8 @@ class DataReader:
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
-    def read_loadstroke_files(self, dir_path: str, file_name: str):
-        """指定ディレクトリの全loadstroke-*.csvファイルを読み込み・加工する"""
+    def read_loadstroke_file(self, dir_path: str, file_name: str):
+        """指定ディレクトリのショットデータのcsvファイルからheader情報を読み込み・加工・出力する"""
 
         # ファイルの情報を取得
         parts: List[str] = re.findall(r"\d+", file_name)
