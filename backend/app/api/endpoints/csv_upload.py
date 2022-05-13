@@ -5,6 +5,7 @@ from typing import List
 
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
+from backend.data_reader.data_reader import DataReader
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 router = APIRouter()
@@ -32,3 +33,6 @@ def upload(
             raise HTTPException(status_code=400, detail=f"{file.filename}の拡張子がCSVではありません")
         with open(os.path.join(upload_dir_path, file.filename), "wb+") as f:
             shutil.copyfileobj(file.file, f)
+
+    dr = DataReader()
+    dr.read_loadstroke_files(upload_dir_path)
