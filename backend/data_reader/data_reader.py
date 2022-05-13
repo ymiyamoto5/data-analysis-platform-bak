@@ -10,7 +10,9 @@
 """
 
 import glob
+import os
 import re
+from datetime import datetime
 from typing import List, Optional
 
 import pandas as pd
@@ -157,8 +159,15 @@ class DataReader:
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
-    def read_loadstroke_files(self, path: str, file_info: FileInfo):
+    def read_loadstroke_files(self, dir_path: str, file_name: str):
         """指定ディレクトリの全loadstroke-*.csvファイルを読み込み・加工する"""
+
+        # ファイルの情報を取得
+        parts: List[str] = re.findall(r"\d+", file_name)
+        timestamp_str: str = parts[0] + "000000"
+        timestamp: float = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f").timestamp()
+
+        file_info: FileInfo = FileInfo(os.path.join(dir_path, file_name), timestamp)
 
         df: DataFrame = pd.read_csv(file_info.file_path, header=None, names=None, encoding="shift-jis")
 
@@ -175,7 +184,7 @@ class DataReader:
 
         # pickleファイルに出力
         data_list: List[dict] = loadstroke_df.to_dict(orient="records")
-        FileManager.export_to_pickle(data_list, file_info, path)
+        FileManager.export_to_pickle(data_list, file_info, dir_path)
 
         # Elasticsearchに出力
         index_name = re.split(r"/|\.", file_info.file_path)[-2]
