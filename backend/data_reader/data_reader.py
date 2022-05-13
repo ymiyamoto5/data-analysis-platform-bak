@@ -11,7 +11,6 @@
 
 import glob
 import re
-from platform import machine
 from typing import List, Optional
 
 import pandas as pd
@@ -158,32 +157,29 @@ class DataReader:
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
-    def read_loadstroke_files(self, path: str, machine_id: str):
+    def read_loadstroke_files(self, path: str, file_info: FileInfo):
         """指定ディレクトリの全loadstroke-*.csvファイルを読み込み・加工する"""
-        files = sorted(glob.glob(path + "/loadstroke_*.csv"))
-        files_info: List[FileInfo] = FileManager.create_files_info_by_machine_id(path, "loadstroke_" + machine_id, "csv")
 
-        for file, file_info in zip(files, files_info):
-            df: DataFrame = pd.read_csv(file, header=None, names=None, encoding="shift-jis")
+        df: DataFrame = pd.read_csv(file_info.file_path, header=None, names=None, encoding="shift-jis")
 
-            # csvのheader情報を取得
-            begin_header: int = int(df[df[0] == "#BeginHeader"].reset_index().loc[0, 1]) - 1
-            data_num: int = int(df[df[0] == "データ数"].reset_index().loc[0, 1]) - 1
+        # csvのheader情報を取得
+        begin_header: int = int(df[df[0] == "#BeginHeader"].reset_index().loc[0, 1]) - 1
+        data_num: int = int(df[df[0] == "データ数"].reset_index().loc[0, 1]) - 1
 
-            # 取込範囲のDataFrameを取得
-            loadstroke_df: DataFrame = pd.read_csv(
-                file, header=0, names=None, encoding="shift-jis", skiprows=begin_header, nrows=data_num
-            ).dropna(how="all", axis=1)
+        # 取込範囲のDataFrameを取得
+        loadstroke_df: DataFrame = pd.read_csv(
+            file_info.file_path, header=0, names=None, encoding="shift-jis", skiprows=begin_header, nrows=data_num
+        ).dropna(how="all", axis=1)
 
-            # TODO: 必要な加工を施す（時刻処理や物理変換等が必要な想定。後ほど仕様検討）
+        # TODO: 必要な加工を施す（時刻処理や物理変換等が必要な想定。後ほど仕様検討）
 
-            # pickleファイルに出力
-            data_list: List[dict] = loadstroke_df.to_dict(orient="records")
-            FileManager.export_to_pickle(data_list, file_info, path)
+        # pickleファイルに出力
+        data_list: List[dict] = loadstroke_df.to_dict(orient="records")
+        FileManager.export_to_pickle(data_list, file_info, path)
 
-            # Elasticsearchに出力
-            index_name = re.split(r"/|\.", file)[-2]
-            ElasticManager.df_to_els(df=loadstroke_df, index=index_name)
+        # Elasticsearchに出力
+        index_name = re.split(r"/|\.", file_info.file_path)[-2]
+        ElasticManager.df_to_els(df=loadstroke_df, index=index_name)
 
 
 if __name__ == "__main__":

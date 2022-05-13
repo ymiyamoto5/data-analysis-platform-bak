@@ -77,11 +77,7 @@ class FileManager:
 
         parts: List[str] = re.findall(r"\d+", filename)
         # NOTE: ファイル名の形式決め打ち実装なので注意
-        # loadstroke_{machine_id}_{YYYYmmddHHMMSS}_{shot_number}.csvに対応するように暫定的に追記
-        if len(parts) == 2:
-            timestamp_str: str = parts[0] + "000000"
-        else:
-            timestamp_str = parts[-4] + parts[-3] + parts[-2]
+        timestamp_str = parts[-4] + parts[-3] + parts[-2]
         timestamp: float = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f").timestamp()
 
         return timestamp
