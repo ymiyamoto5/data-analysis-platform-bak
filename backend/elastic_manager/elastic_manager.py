@@ -18,6 +18,7 @@ import pandas as pd
 from backend.common import common
 from backend.common.common_logger import logger
 from elasticsearch import Elasticsearch, exceptions, helpers
+from pandas.core.frame import DataFrame
 
 ELASTIC_URL: Final[str] = os.environ["ELASTIC_URL"]
 ELASTIC_USER: Final[str] = os.environ["ELASTIC_USER"]
@@ -389,6 +390,20 @@ class ElasticManager:
         data: List[dict] = [x["_source"] for x in data_gen]
 
         return data
+
+    @classmethod
+    def df_to_els(cls, df: DataFrame, index: str, mapping: str = None, setting: str = None) -> None:
+        """DataFrameをList[dict]に変換し、指定したindex名でElasticsearchに登録する"""
+
+        if cls.exists_index(index):
+            cls.delete_index(index)
+        cls.create_index(index=index, mapping_file=mapping, setting_file=setting)
+
+        data_list: List[dict] = df.to_dict(orient="records")
+
+        cls.bulk_insert(data_list, index)
+
+        logger.info(f"{index} created.")
 
 
 if __name__ == "__main__":

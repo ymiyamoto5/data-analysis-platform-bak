@@ -4,7 +4,7 @@ from typing import Tuple
 
 from backend.common import common
 from backend.data_reader.data_reader import DataReader
-from backend.utils.df_to_els import df_to_els  # type: ignore
+from backend.elastic_manager.elastic_manager import ElasticManager
 from pandas.core.frame import DataFrame
 
 
@@ -49,6 +49,6 @@ if __name__ == "__main__":
 
     setting: str = os.environ["SETTING_RESAMPLE_PATH"]
 
-    df_to_els(resample_df, resample_index, mapping=None, setting=setting)
+    ElasticManager.df_to_els(df=resample_df, index=resample_index, mapping=None, setting=setting)
 
     print("resampling end")

@@ -10,12 +10,15 @@
 """
 
 import glob
+import re
 from typing import List, Optional
 
 import pandas as pd
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.elastic_manager.elastic_manager import ElasticManager
+
+# from backend.file_manager.file_manager import FileManager
 from pandas.core.frame import DataFrame
 
 
@@ -154,6 +157,33 @@ class DataReader:
 
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
+
+    def read_loadstroke_files(self, path: str):
+        """指定ディレクトリの全loadstroke-*.csvファイルを読み込み・加工する"""
+        files = sorted(glob.glob(path + "/loadstroke_*.csv"))
+
+        for file in files:
+            df: DataFrame = pd.read_csv(file, header=None, names=None, encoding="shift-jis")
+
+            # csvのheader情報を取得
+            begin_header: int = int(df[df[0] == "#BeginHeader"].reset_index().loc[0, 1]) - 1
+            data_num: int = int(df[df[0] == "データ数"].reset_index().loc[0, 1]) - 1
+
+            # 取込範囲のDataFrameを取得
+            loadstroke_df: DataFrame = pd.read_csv(
+                file, header=0, names=None, encoding="shift-jis", skiprows=begin_header, nrows=data_num
+            ).dropna(how="all", axis=1)
+
+            # TODO: 必要な加工を施す（時刻処理や物理変換等が必要な想定。後ほど仕様検討）
+
+            # TODO: pickleファイルに出力
+            # with open(os.path.join(path, file)) as f:
+            #     FileManager.export_to_pickle(loadstroke_df, f, path)
+
+            index_name = re.split(r"/|\.", file)[-2]
+            ElasticManager.df_to_els(df=loadstroke_df, index=index_name)
+
+            return loadstroke_df
 
 
 if __name__ == "__main__":
