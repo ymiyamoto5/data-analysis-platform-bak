@@ -159,7 +159,7 @@ class DataReader:
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
-    def read_shots_file(self, dir_path: str, file_name: str):
+    def read_shots_file(self, dir_path: str, file_name: str, machine_id: str):
         """指定ディレクトリのショットデータのcsvファイルからheader情報を読み込み・加工・出力する"""
 
         # ファイルの情報を取得
@@ -180,7 +180,11 @@ class DataReader:
             file_info.file_path, header=0, names=None, encoding="shift-jis", skiprows=begin_header, nrows=data_num
         ).dropna(how="all", axis=1)
 
-        # TODO: 必要な加工を施す（時刻処理や物理変換等が必要な想定。後ほど仕様検討）
+        # indexフィールドに必要なデータを追加
+        shots_df["shot_number"] = int(re.sub(r"^0+", "", parts[1]))
+        shots_df["sequential_number_by_shot"] = pd.RangeIndex(0, len(shots_df), 1)
+        shots_df["machine_id"] = machine_id
+        shots_df["experiment_id"] = parts[0]
 
         # pickleファイルに出力
         data_list: List[dict] = shots_df.to_dict(orient="records")
