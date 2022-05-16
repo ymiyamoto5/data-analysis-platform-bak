@@ -395,9 +395,8 @@ class ElasticManager:
     def df_to_els(cls, df: DataFrame, index: str, mapping: str = None, setting: str = None) -> None:
         """DataFrameをList[dict]に変換し、指定したindex名でElasticsearchに登録する"""
 
-        if cls.exists_index(index):
-            cls.delete_index(index)
-        cls.create_index(index=index, mapping_file=mapping, setting_file=setting)
+        if not cls.exists_index(index):
+            cls.create_index(index=index, mapping_file=mapping, setting_file=setting)
 
         data_list: List[dict] = df.to_dict(orient="records")
 
