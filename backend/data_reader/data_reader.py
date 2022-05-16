@@ -20,6 +20,7 @@ from backend.common import common
 from backend.common.common_logger import logger
 from backend.elastic_manager.elastic_manager import ElasticManager
 from backend.file_manager.file_manager import FileInfo, FileManager
+from dateutil import tz
 from pandas.core.frame import DataFrame
 
 
@@ -185,6 +186,12 @@ class DataReader:
         shots_df["sequential_number_by_shot"] = pd.RangeIndex(0, len(shots_df), 1)
         shots_df["machine_id"] = machine_id
         shots_df["experiment_id"] = parts[0]
+        shots_df["timestamp"] = (
+            shots_df["#EndHeader"]
+            .str.cat(shots_df["日時(μs)"].astype(str), sep=".")
+            .apply(lambda x: datetime.strptime(x, "%Y/%m/%d %H:%M:%S.%f").astimezone(tz.gettz("UTC")))
+            .dt.tz_localize(None)
+        )
 
         # pickleファイルに出力
         data_list: List[dict] = shots_df.to_dict(orient="records")
