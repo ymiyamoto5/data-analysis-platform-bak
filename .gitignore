@@ -53,3 +53,4 @@ tmp.png
 .env.prod
 docker-compose.override.yml
 docker/copy_dist_dir.sh
+.vscode/launch.json
