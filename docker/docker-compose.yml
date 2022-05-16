@@ -76,7 +76,7 @@ services:
       - ../notebooks:/home/${USER}/work
       - ../backend:/home/${USER}/backend
       - ${DATA_DRIVE}:${DATA_DRIVE}
-    command: start-notebook.sh --NotebookApp.token=''
+    command: start-notebook.sh --NotebookApp.token=${JUPYTER_PASSWORD}
     networks:
       - docker_network
     # logging:
