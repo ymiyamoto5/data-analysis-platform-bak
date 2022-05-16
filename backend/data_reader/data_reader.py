@@ -159,7 +159,7 @@ class DataReader:
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
-    def read_loadstroke_file(self, dir_path: str, file_name: str):
+    def read_shots_file(self, dir_path: str, file_name: str):
         """指定ディレクトリのショットデータのcsvファイルからheader情報を読み込み・加工・出力する"""
 
         # ファイルの情報を取得
@@ -176,19 +176,19 @@ class DataReader:
         data_num: int = int(df[df[0] == "データ数"].reset_index().loc[0, 1]) - 1
 
         # 取込範囲のDataFrameを取得
-        loadstroke_df: DataFrame = pd.read_csv(
+        shots_df: DataFrame = pd.read_csv(
             file_info.file_path, header=0, names=None, encoding="shift-jis", skiprows=begin_header, nrows=data_num
         ).dropna(how="all", axis=1)
 
         # TODO: 必要な加工を施す（時刻処理や物理変換等が必要な想定。後ほど仕様検討）
 
         # pickleファイルに出力
-        data_list: List[dict] = loadstroke_df.to_dict(orient="records")
+        data_list: List[dict] = shots_df.to_dict(orient="records")
         FileManager.export_to_pickle(data_list, file_info, dir_path)
 
-        # Elasticsearchに出力
-        index_name = re.split(r"/|\.", file_info.file_path)[-2]
-        ElasticManager.df_to_els(df=loadstroke_df, index=index_name)
+        # shots-{machine_id}-{yyyyMMddhhmmss}-data としてElasticsearchに出力
+        index_name = re.sub(r"\d{5}$", "data", re.split(r"\.", file_name)[0].replace("_", "-"))
+        ElasticManager.df_to_els(df=shots_df, index=index_name)
 
 
 if __name__ == "__main__":

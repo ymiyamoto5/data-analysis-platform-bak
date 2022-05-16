@@ -31,12 +31,19 @@ def upload(
     for file in files:
         file_path: str = os.path.join(dir_path, file.filename)
 
+        # 既にファイルがアップロード済みの場合はスキップ
+        if os.path.isfile(file_path):
+            logger.debug(f"{file_path} is already exists")
+            continue
+
         if re.search(common.CSV_PATTERN, file.filename) is None:
             raise HTTPException(status_code=400, detail=f"{file.filename}の拡張子がCSVではありません")
+
         with open(file_path, "wb+") as f:
             shutil.copyfileobj(file.file, f)
+            logger.info(f"{file_path} uploaded.")
 
         # ショットデータの場合はheader範囲の読み取り・加工
-        if re.match(r"loadstroke", file.filename) is not None:
+        if re.match(r"shots", file.filename) is not None:
             dr = DataReader()
-            dr.read_loadstroke_file(dir_path, file.filename)
+            dr.read_shots_file(dir_path, file.filename)
