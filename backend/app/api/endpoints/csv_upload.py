@@ -46,4 +46,4 @@ def upload(
         # ショットデータの場合はheader範囲の読み取り・加工
         if re.match(r"shots", file.filename) is not None:
             dr = DataReader()
-            dr.read_shots_file(dir_path, file.filename)
+            dr.read_shots_file(dir_path, file.filename, machine_id)
