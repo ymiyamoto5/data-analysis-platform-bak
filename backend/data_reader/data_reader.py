@@ -164,8 +164,8 @@ class DataReader:
         """指定ディレクトリのショットデータのcsvファイルからheader情報を読み込み・加工・出力する"""
 
         # ファイルの情報を取得
-        parts: List[str] = re.findall(r"\d+", file_name)
-        timestamp_str: str = parts[0] + "000000"
+        experiment_id, shot_number = re.findall(r"\d+", file_name.replace(machine_id, ""))
+        timestamp_str: str = experiment_id + "000000"
         timestamp: float = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f").timestamp()
 
         file_info: FileInfo = FileInfo(os.path.join(dir_path, file_name), timestamp)
@@ -173,19 +173,19 @@ class DataReader:
         df: DataFrame = pd.read_csv(file_info.file_path, header=None, names=None, encoding="shift-jis")
 
         # csvのheader情報を取得
-        begin_header: int = int(df[df[0] == "#BeginHeader"].reset_index().loc[0, 1]) - 1
-        data_num: int = int(df[df[0] == "データ数"].reset_index().loc[0, 1]) - 1
+        begin_header = int(df[df[0] == "#BeginHeader"].iloc[0, 1])
+        data_num = int(df[df[0] == "データ数"].iloc[0, 1])
 
         # 取込範囲のDataFrameを取得
         shots_df: DataFrame = pd.read_csv(
-            file_info.file_path, header=0, names=None, encoding="shift-jis", skiprows=begin_header, nrows=data_num
+            file_info.file_path, header=0, names=None, encoding="shift-jis", skiprows=begin_header - 1, nrows=data_num - 1
         ).dropna(how="all", axis=1)
 
         # indexフィールドに必要なデータを追加
-        shots_df["shot_number"] = int(re.sub(r"^0+", "", parts[1]))
+        shots_df["shot_number"] = int(re.sub(r"^0+", "", shot_number))
         shots_df["sequential_number_by_shot"] = pd.RangeIndex(0, len(shots_df), 1)
         shots_df["machine_id"] = machine_id
-        shots_df["experiment_id"] = parts[0]
+        shots_df["experiment_id"] = experiment_id
         shots_df["timestamp"] = (
             shots_df["#EndHeader"]
             .str.cat(shots_df["日時(μs)"].astype(str), sep=".")

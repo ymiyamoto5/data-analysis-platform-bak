@@ -1,10 +1,12 @@
 import os
 import re
 import shutil
+import traceback
 from typing import List
 
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
+from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.data_reader.data_reader import DataReader
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
@@ -45,5 +47,9 @@ def upload(
 
         # ショットデータの場合はheader範囲の読み取り・加工
         if re.match(r"shots", file.filename) is not None:
-            dr = DataReader()
-            dr.read_shots_file(dir_path, file.filename, machine_id)
+            try:
+                dr = DataReader()
+                dr.read_shots_file(dir_path, file.filename, machine_id)
+            except Exception:
+                logger.error(traceback.format_exc())
+                raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.UPLOAD_FAIL, file.filename))
