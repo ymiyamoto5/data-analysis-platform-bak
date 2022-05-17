@@ -48,7 +48,7 @@ class DataRecorder:
             logger.exception(traceback.format_exc())
             sys.exit(1)
 
-        target_dir_full_path: str = os.path.join(os.environ["DATA_DIR"], f"{machine_id}-{target_dir}")
+        target_dir_full_path: str = os.path.join(os.environ["DATA_DIR"], f"{machine_id}_{target_dir}")
         files_info: List[FileInfo] = FileManager.create_files_info_by_machine_id(target_dir_full_path, machine_id, "dat")
 
         if len(files_info) == 0:
@@ -275,9 +275,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
-    splitted_dir: str = args.dir.split("-")
-    machine_id: str = "-".join(splitted_dir[:-1])
-    target_dir: str = splitted_dir[-1]
+    machine_id, target_dir = args.dir.split("_")
 
     db: Session = SessionLocal()
     DataRecorder.manual_record(db, machine_id, target_dir)
