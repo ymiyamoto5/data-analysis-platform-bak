@@ -270,7 +270,7 @@ if __name__ == "__main__":
     # ダミーデータ
     machine_id = "machine-01"
     target_date = "20210709190000"
-    target = machine_id + "-" + target_date
+    target = machine_id + "_" + target_date
     start_time = datetime(2021, 7, 9, 19, 0, 0)
 
     target_file_path = "/mnt/datadrive/data/press_senario.npy"
