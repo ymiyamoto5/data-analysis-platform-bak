@@ -215,7 +215,7 @@ if __name__ == "__main__":
 
     machine_id = "machine-01"
 
-    target = machine_id + "-" "20210327141514"
+    target = machine_id + "_" "20210327141514"
     shots_data_index = "shots-" + target + "-data"
     shots_meta_index = "shots-" + target + "-meta"
 

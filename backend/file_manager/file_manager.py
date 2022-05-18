@@ -59,7 +59,7 @@ class FileManager:
 
     @staticmethod
     def get_files_info(machine_id: str, gateway_id: str, handler_id: str, target_date_str: str) -> List[FileInfo]:
-        target_dir = machine_id + "-" + target_date_str
+        target_dir = machine_id + "_" + target_date_str
         data_dir: str = os.environ["DATA_DIR"]
         data_full_path: str = os.path.join(data_dir, target_dir)
 

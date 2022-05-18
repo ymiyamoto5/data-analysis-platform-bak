@@ -19,7 +19,7 @@ def upload(
 ):
     """csvファイルのアップロード"""
 
-    dir_name: str = machine_id + "-" + str(date_time)
+    dir_name: str = machine_id + "_" + str(date_time)
     dir_path: str = os.path.join(os.environ["DATA_DIR"], dir_name)
 
     # アップロード用のディレクトリを作成

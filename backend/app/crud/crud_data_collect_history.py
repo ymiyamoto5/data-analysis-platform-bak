@@ -66,7 +66,7 @@ class CRUDDataCollectHistory:
     def select_by_machine_id_target_dir(db: Session, machine_id: str, target_dir: str) -> DataCollectHistory:
         """退避ディレクトリパスに含まれる日時から特定した履歴を取得する"""
 
-        processed_dir_path: str = os.path.join(os.environ["DATA_DIR"], f"{machine_id}-{target_dir}")
+        processed_dir_path: str = os.path.join(os.environ["DATA_DIR"], f"{machine_id}_{target_dir}")
 
         history: DataCollectHistory = (
             db.query(DataCollectHistory).filter_by(machine_id=machine_id).filter_by(processed_dir_path=processed_dir_path).one()

@@ -15,7 +15,7 @@ class DataCollectHistoryService:
         # UTCのDatetimeからJSTのYYYYMMDDhhmmss文字列に変換
         jst_started_at: datetime = history.started_at + timedelta(hours=9)
         target_date_str: str = datetime.strftime(jst_started_at, "%Y%m%d%H%M%S")
-        target: str = history.machine_id + "-" + target_date_str
+        target: str = history.machine_id + "_" + target_date_str
 
         return target
 

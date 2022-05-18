@@ -139,7 +139,7 @@ def auto_cut_out_shot_task(machine_id: str, sensor_type: str, debug_mode: bool =
     else:
         handler = common.get_main_handler(cut_out_target_handlers)
 
-    target_date_str: str = history.processed_dir_path.split("-")[-1]
+    target_date_str: str = history.processed_dir_path.split("_")[-1]
 
     shots_index: str = f"shots-{machine_id}-{target_date_str}-data"
     shots_meta_index: str = f"shots-{machine_id}-{target_date_str}-meta"
