@@ -7,7 +7,6 @@ from typing import List
 from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
-from backend.data_reader.data_reader import DataReader
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 router = APIRouter()
@@ -41,15 +40,10 @@ def upload(
         if re.search(common.CSV_PATTERN, file.filename) is None:
             raise HTTPException(status_code=400, detail=f"{file.filename}の拡張子がCSVではありません")
 
-        with open(file_path, "wb+") as f:
-            shutil.copyfileobj(file.file, f)
-            logger.info(f"{file_path} uploaded.")
-
-        # ショットデータの場合はheader範囲の読み取り・加工
-        if re.match(r"shots", file.filename) is not None:
-            try:
-                dr = DataReader()
-                dr.read_shots_file(dir_path, file.filename, machine_id)
-            except Exception:
-                logger.error(traceback.format_exc())
-                raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.UPLOAD_FAIL, file.filename))
+        try:
+            with open(file_path, "wb+") as f:
+                shutil.copyfileobj(file.file, f)
+                logger.info(f"{file_path} uploaded.")
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.UPLOAD_FAIL, file.filename))
