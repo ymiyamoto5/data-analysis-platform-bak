@@ -10,12 +10,16 @@
 """
 
 import glob
-from typing import List, Optional
+import os
+import re
+from datetime import datetime
+from typing import List, Optional, Tuple
 
 import pandas as pd
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.elastic_manager.elastic_manager import ElasticManager
+from dateutil import tz
 from pandas.core.frame import DataFrame
 
 
@@ -154,6 +158,37 @@ class DataReader:
 
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
+
+    def get_ids(self, dir_path: str) -> Tuple[str, str]:
+        """指定したディレクトリから機器IDと実験IDを取得"""
+        machine_id, experiment_id = dir_path.strip("/").split("/")[-1].split("_")
+        return machine_id, experiment_id
+
+    def get_files(self, dir_path: str, prefix: str) -> List[str]:
+        """指定したディレクトリ配下にある特定プレフィックスのcsvファイルを取得"""
+        files: List[str] = sorted(glob.glob(os.path.join(dir_path, f"{prefix}*.csv")))
+        return files
+
+    def add_shot_number(self, shots_df: DataFrame, file_path: str) -> DataFrame:
+        """indexフィールドにショット番号を追加"""
+        shot_number: int = int(re.sub(r"^0+", "", re.findall(r"\d+", os.path.basename(file_path))[0]))
+        shots_df["shot_number"] = shot_number
+        return shots_df
+
+    def add_sequential_number_by_shot(self, shots_df: DataFrame) -> DataFrame:
+        """indexフィールドにシーケンシャル番号を追加"""
+        shots_df["sequential_number_by_shot"] = pd.RangeIndex(0, len(shots_df), 1)
+        return shots_df
+
+    def add_timestamp(self, shots_df) -> DataFrame:
+        """indexフィールドに時刻を追加"""
+        shots_df["timestamp"] = (
+            shots_df["#EndHeader"]
+            .str.cat(shots_df["日時(μs)"].astype(str), sep=".")
+            .apply(lambda x: datetime.strptime(x, "%Y/%m/%d %H:%M:%S.%f").astimezone(tz.gettz("UTC")))
+            .dt.tz_localize(None)
+        )
+        return shots_df
 
 
 if __name__ == "__main__":

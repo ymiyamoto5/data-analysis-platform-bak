@@ -7,7 +7,7 @@ import pandas as pd
 # backend配下のモジュールをimportするために、プロジェクト直下へのpathを通す
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
-from backend.utils.df_to_els import df_to_els
+from backend.elastic_manager.elastic_manager import ElasticManager
 
 
 def create_events_index(prefix: str, start_datetime_jst: datetime, hours=1, is_recorded: bool = True) -> None:
@@ -35,7 +35,7 @@ def create_events_index(prefix: str, start_datetime_jst: datetime, hours=1, is_r
 
     df = pd.DataFrame(events)
 
-    df_to_els(df, index)
+    ElasticManager.df_to_els(df=df, index=index)
 
     print("finished.")
 

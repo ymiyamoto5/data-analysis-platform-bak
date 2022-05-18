@@ -231,7 +231,7 @@ export default {
       const client = createBaseApiClient()
       let form = new FormData()
       form.append('machine_id', this.machineId)
-      form.append('datetime', this.formatCollectDatetime)
+      form.append('date_time', this.formatCollectDatetime)
       this.files.map((file) => {
         form.append('files', file)
       })
