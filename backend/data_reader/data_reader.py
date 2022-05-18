@@ -169,26 +169,26 @@ class DataReader:
         files: List[str] = sorted(glob.glob(os.path.join(dir_path, f"{prefix}*.csv")))
         return files
 
-    def add_shot_number(self, shots_df: DataFrame, file_path: str) -> DataFrame:
+    def add_shot_number(self, shot_df: DataFrame, file_path: str) -> DataFrame:
         """indexフィールドにショット番号を追加"""
         shot_number: int = int(re.sub(r"^0+", "", re.findall(r"\d+", os.path.basename(file_path))[0]))
-        shots_df["shot_number"] = shot_number
-        return shots_df
+        shot_df["shot_number"] = shot_number
+        return shot_df
 
-    def add_sequential_number_by_shot(self, shots_df: DataFrame) -> DataFrame:
+    def add_sequential_number_by_shot(self, shot_df: DataFrame) -> DataFrame:
         """indexフィールドにシーケンシャル番号を追加"""
-        shots_df["sequential_number_by_shot"] = pd.RangeIndex(0, len(shots_df), 1)
-        return shots_df
+        shot_df["sequential_number_by_shot"] = pd.RangeIndex(0, len(shot_df), 1)
+        return shot_df
 
-    def add_timestamp(self, shots_df) -> DataFrame:
+    def add_timestamp(self, shot_df) -> DataFrame:
         """indexフィールドに時刻を追加"""
-        shots_df["timestamp"] = (
-            shots_df["#EndHeader"]
-            .str.cat(shots_df["日時(μs)"].astype(str), sep=".")
+        shot_df["timestamp"] = (
+            shot_df["#EndHeader"]
+            .str.cat(shot_df["日時(μs)"].astype(str), sep=".")
             .apply(lambda x: datetime.strptime(x, "%Y/%m/%d %H:%M:%S.%f").astimezone(tz.gettz("UTC")))
             .dt.tz_localize(None)
         )
-        return shots_df
+        return shot_df
 
 
 if __name__ == "__main__":
