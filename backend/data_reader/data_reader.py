@@ -13,13 +13,12 @@ import glob
 import os
 import re
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas as pd
 from backend.common import common
 from backend.common.common_logger import logger
 from backend.elastic_manager.elastic_manager import ElasticManager
-from backend.file_manager.file_manager import FileInfo, FileManager
 from dateutil import tz
 from pandas.core.frame import DataFrame
 
@@ -160,46 +159,36 @@ class DataReader:
         df = pd.concat(df_lists, axis=0, ignore_index=True)
         return df
 
-    def read_shots_file(self, dir_path: str, file_name: str, machine_id: str):
-        """指定ディレクトリのショットデータのcsvファイルからheader情報を読み込み・加工・出力する"""
+    def get_ids(self, dir_path: str) -> Tuple[str, str]:
+        """指定したディレクトリから機器IDと実験IDを取得"""
+        machine_id, experiment_id = dir_path.strip("/").split("/")[-1].split("_")
+        return machine_id, experiment_id
 
-        # ファイルの情報を取得
-        experiment_id, shot_number = re.findall(r"\d+", file_name.replace(machine_id, ""))
-        timestamp_str: str = experiment_id + "000000"
-        timestamp: float = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S%f").timestamp()
+    def get_files(self, dir_path: str, prefix: str) -> List[str]:
+        """指定したディレクトリ配下にある特定プレフィックスのcsvファイルを取得"""
+        files: List[str] = sorted(glob.glob(os.path.join(dir_path, f"{prefix}*.csv")))
+        return files
 
-        file_info: FileInfo = FileInfo(os.path.join(dir_path, file_name), timestamp)
+    def add_shot_number(self, shots_df: DataFrame, file_path: str) -> DataFrame:
+        """indexフィールドにショット番号を追加"""
+        shot_number: int = int(re.sub(r"^0+", "", re.findall(r"\d+", os.path.basename(file_path))[0]))
+        shots_df["shot_number"] = shot_number
+        return shots_df
 
-        df: DataFrame = pd.read_csv(file_info.file_path, header=None, names=None, encoding="shift-jis")
-
-        # csvのheader情報を取得
-        begin_header = int(df[df[0] == "#BeginHeader"].iloc[0, 1])
-        data_num = int(df[df[0] == "データ数"].iloc[0, 1])
-
-        # 取込範囲のDataFrameを取得
-        shots_df: DataFrame = pd.read_csv(
-            file_info.file_path, header=0, names=None, encoding="shift-jis", skiprows=begin_header - 1, nrows=data_num - 1
-        ).dropna(how="all", axis=1)
-
-        # indexフィールドに必要なデータを追加
-        shots_df["shot_number"] = int(re.sub(r"^0+", "", shot_number))
+    def add_sequential_number_by_shot(self, shots_df: DataFrame) -> DataFrame:
+        """indexフィールドにシーケンシャル番号を追加"""
         shots_df["sequential_number_by_shot"] = pd.RangeIndex(0, len(shots_df), 1)
-        shots_df["machine_id"] = machine_id
-        shots_df["experiment_id"] = experiment_id
+        return shots_df
+
+    def add_timestamp(self, shots_df) -> DataFrame:
+        """indexフィールドに時刻を追加"""
         shots_df["timestamp"] = (
             shots_df["#EndHeader"]
             .str.cat(shots_df["日時(μs)"].astype(str), sep=".")
             .apply(lambda x: datetime.strptime(x, "%Y/%m/%d %H:%M:%S.%f").astimezone(tz.gettz("UTC")))
             .dt.tz_localize(None)
         )
-
-        # pickleファイルに出力
-        data_list: List[dict] = shots_df.to_dict(orient="records")
-        FileManager.export_to_pickle(data_list, file_info, dir_path)
-
-        # shots-{machine_id}-{yyyyMMddhhmmss}-data としてElasticsearchに出力
-        index_name = re.sub(r"\d{5}$", "data", re.split(r"\.", file_name)[0].replace("_", "-"))
-        ElasticManager.df_to_els(df=shots_df, index=index_name)
+        return shots_df
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List
 
 import pandas as pd
-from backend.app.models.data_collect_history_handler import DataCollectHistoryHandler
+from backend.common.common_logger import uvicorn_logger as logger
 from pandas.core.frame import DataFrame
 
 
@@ -96,13 +96,22 @@ class FileManager:
 
     @staticmethod
     def export_to_pickle(samples: List[dict], file: FileInfo, processed_dir_path: str) -> None:
-        """pickleファイルに出力する"""
+        """サンプリングデータをpickleファイルに出力する"""
 
         df: DataFrame = pd.DataFrame(samples)
 
         pickle_filename: str = os.path.splitext(os.path.basename(file.file_path))[0]
         pickle_filepath: str = os.path.join(processed_dir_path, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
+
+    @staticmethod
+    def df_to_pickle(df: DataFrame, file: str, dir_path: str) -> None:
+        """DataFrameをpickleファイルに出力する"""
+
+        pickle_filename: str = os.path.splitext(os.path.basename(file))[0]
+        pickle_filepath: str = os.path.join(dir_path, pickle_filename) + ".pkl"
+        df.to_pickle(pickle_filepath)
+        logger.info(f"{dir_path} exported to {pickle_filepath}.")
 
     @staticmethod
     def get_files(dir_path: str, pattern: str) -> List[str]:
