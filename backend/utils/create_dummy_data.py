@@ -388,6 +388,74 @@ integ_test_machine = Machine(
 )
 db.add(integ_test_machine)
 
+# CSV取り込み用（単一ハンドラー）
+test_csv_machine_01 = Machine(
+    machine_id="test-csv-machine-01",
+    machine_name="CSV取込テスト用",
+    collect_status=common.COLLECT_STATUS.RECORDED.value,
+    machine_type_id=1,
+    auto_cut_out_shot=False,
+    start_displacement=None,
+    end_displacement=None,
+    margin=None,
+    threshold=None,
+    auto_predict=False,
+    predict_model=None,
+    model_version=None,
+    gateways=[
+        Gateway(
+            gateway_id="test-csv-gateway-01",
+            sequence_number=1,
+            gateway_result=0,
+            status=common.STATUS.STOP.value,
+            log_level=5,
+            handlers=[
+                Handler(
+                    handler_id="test-csv-handler-01",
+                    handler_type="USB-1608HS",
+                    adc_serial_num="99999999",
+                    sampling_frequency=100000,
+                    sampling_ch_num=3,
+                    filewrite_time=1,
+                    is_primary=False,
+                    is_cut_out_target=True,
+                    is_multi=False,
+                    sensors=[
+                        Sensor(
+                            machine_id="test-csv-machine-01",
+                            sensor_id="stroke_displacement",
+                            sensor_name="ストローク変位",
+                            sensor_type_id="stroke_displacement",
+                            slope=1.0,
+                            intercept=0.0,
+                            sort_order=0,
+                        ),
+                        Sensor(
+                            machine_id="test-csv-machine-01",
+                            sensor_id="load01",
+                            sensor_name="プレス荷重",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            sort_order=1,
+                        ),
+                        Sensor(
+                            machine_id="test-csv-machine-01",
+                            sensor_id="load02",
+                            sensor_name="ブレークスルー荷重",
+                            sensor_type_id="load",
+                            slope=1.0,
+                            intercept=0.0,
+                            sort_order=2,
+                        ),
+                    ],
+                ),
+            ],
+        )
+    ],
+)
+db.add(test_csv_machine_01)
+
 db.commit()
 
 [print(vars(x)) for x in db.query(MachineType).all()]  # type: ignore
