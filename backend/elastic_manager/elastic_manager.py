@@ -404,6 +404,12 @@ class ElasticManager:
 
         logger.info(f"{index} created.")
 
+    @classmethod
+    def get_index_name(cls, machine_id: str, experiment_id: str, suffix: str) -> str:
+        """index名を取得"""
+        index_name: str = f"shots-{machine_id}-{experiment_id}-{suffix}"
+        return index_name
+
 
 if __name__ == "__main__":
     pass
