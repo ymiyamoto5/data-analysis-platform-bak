@@ -24,6 +24,7 @@ class ErrorTypes(Enum):
     SAMPLING_FREQUENCY_ERROR = "複数ハンドラー構成でサンプリングレートが一致していません"
     SAMPLING_CH_NUM_ERROR = "複数ハンドラー構成でセンサー数が一致していません"
     HANDLER_TYPE_ERROR = "複数ハンドラー構成でハンドラータイプが一致していません"
+    UPLOAD_FAIL = "アップロードに失敗しました"
 
 
 class ErrorMessage:
@@ -71,3 +72,5 @@ class ErrorMessage:
             return f"{ErrorTypes.SAMPLING_CH_NUM_ERROR.value}"
         if error_type == ErrorTypes.HANDLER_TYPE_ERROR:
             return f"{ErrorTypes.HANDLER_TYPE_ERROR.value}"
+        if error_type == ErrorTypes.UPLOAD_FAIL:
+            return f"{ErrorTypes.UPLOAD_FAIL.value}: {target}"
