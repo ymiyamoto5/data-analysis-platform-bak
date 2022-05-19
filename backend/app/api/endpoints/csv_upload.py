@@ -32,11 +32,6 @@ def upload(
     for file in files:
         file_path: str = os.path.join(dir_path, file.filename)
 
-        # 既にファイルがアップロード済みの場合はスキップ
-        if os.path.isfile(file_path):
-            logger.debug(f"{file_path} is already exists")
-            continue
-
         if re.search(common.CSV_PATTERN, file.filename) is None:
             raise HTTPException(status_code=400, detail=f"{file.filename}の拡張子がCSVではありません")
 
