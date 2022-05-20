@@ -11,7 +11,7 @@ from backend.app.services.bento_service import ModelClassifier
 from backend.app.worker.celery import celery_app
 from backend.elastic_manager.elastic_manager import ElasticManager
 from docker.errors import APIError  # type: ignore
-from fastapi import APIRouter, HTTPException, exceptions
+from fastapi import APIRouter, HTTPException
 from mlflow.tracking import MlflowClient  # type: ignore
 from sklearn.covariance import EllipticEnvelope  # type: ignore
 from sklearn.linear_model import LogisticRegression  # type: ignore

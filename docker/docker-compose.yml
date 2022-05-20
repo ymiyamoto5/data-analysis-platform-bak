@@ -53,12 +53,6 @@ services:
       - elasticsearch
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   notebook:
     image: build_jupyter/base-notebook
     build:
@@ -79,18 +73,18 @@ services:
     command: start-notebook.sh --NotebookApp.token=${JUPYTER_PASSWORD}
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   webap:
     build:
       context: ..
       dockerfile: docker/webap.dockerfile
+      args:
+        - USERNAME=${USER}
+        - UID=${UID}
+        - GID=${GID}
+        - DOCKER_GID=${DOCKER_GID}
     environment:
       MODULE_NAME: 'backend.app.main'
+    user: '${UID}:${DOCKER_GID}'
     env_file: ${ENV_FILE}
     restart: always
     volumes:
@@ -99,33 +93,30 @@ services:
       - ../backend:/app/backend
     depends_on:
       - elasticsearch
-      # - fluentd
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
-  # fluentd:
-  #   image: build_fluent/fluentd:v1.14.1
-  #   build:
-  #     context: .
-  #     dockerfile: fluentd.dockerfile
-  #   restart: always
-  #   command: >
-  #     /usr/bin/fluentd -c /fluentd/etc/fluent.conf -v
-  #   ports:
-  #     - '24224:24224'
-  #     - '24224:24224/udp'
-  #   volumes:
-  #     - ${DATA_DRIVE}/fluentd/log:/fluentd/log
-  #     - ./fluent.conf:/fluentd/etc/fluent.conf:ro
-  #   networks:
-  #     - docker_network
-  #   depends_on:
-  #     - elasticsearch
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/celery.dockerfile
+      args:
+        - USERNAME=${USER}
+        - UID=${UID}
+        - GID=${GID}
+        - DOCKER_GID=${DOCKER_GID}
+    volumes:
+      - ../backend:/backend
+      - ${DATA_DRIVE}:${DATA_DRIVE}
+    user: '${UID}:${DOCKER_GID}'
+    env_file: ${ENV_FILE}
+    restart: always
+    command: celery -A backend.app.worker worker -l info -c 4
+    depends_on:
+      - webap
+      - rabbitmq
+      - redis
+    networks:
+      - docker_network
   metricbeat:
     image: build_docker.elastic.co/beats/metricbeat:7.14.0
     build:
@@ -149,12 +140,6 @@ services:
       - elasticsearch
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   mlflow:
     build:
       context: .
@@ -176,12 +161,6 @@ services:
     restart: always
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   minio:
     image: minio/minio
     restart: always
@@ -194,12 +173,6 @@ services:
     command: server /export --console-address :9001
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   defaultbucket:
     image: minio/mc
     depends_on:
@@ -213,12 +186,6 @@ services:
       "
     networks:
       - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   rabbitmq:
     image: rabbitmq:3-management
     environment:
@@ -227,49 +194,11 @@ services:
     networks:
       - docker_network
     restart: always
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   redis:
     image: redis:latest
     networks:
       - docker_network
     restart: always
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
-  worker:
-    build:
-      context: ..
-      dockerfile: docker/celery.dockerfile
-    volumes:
-      - ../backend:/backend
-      - ${DATA_DRIVE}:${DATA_DRIVE}
-    env_file: ${ENV_FILE}
-    restart: always
-    # environment:
-    #   - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
-    #   - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    # command: celery -A backend.app.worker worker -l info -c 4 --uid=nobody --gid=nogroup
-    command: celery -A backend.app.worker worker -l info -c 4
-    depends_on:
-      - webap
-      - rabbitmq
-      - redis
-    networks:
-      - docker_network
-    # logging:
-    #   driver: 'fluentd'
-    #   options:
-    #     fluentd-address: '0.0.0.0:24224'
-    #     tag: 'docker.{{.Name}}'
-    #     fluentd-async-connect: 'true'
   flower:
     image: mher/flower
     environment:
