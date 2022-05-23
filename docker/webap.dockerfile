@@ -1,5 +1,16 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
-# FROM python:3.8.12-slim-buster
+FROM node:16.1 as frontend-builder
+
+WORKDIR /app
+
+# NOTE: package.jsonとyarn.lockのみ先にCOPYしてinstall。これによりパッケージ追加がない限りキャッシュを利用できる。
+COPY frontend/package.json frontend/yarn.lock ./
+RUN yarn install
+
+COPY frontend .
+RUN yarn build
+
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8 as fastapi
+COPY --from=frontend-builder /app/dist /app/dist
 
 ARG USERNAME
 ARG UID
