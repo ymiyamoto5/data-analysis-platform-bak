@@ -52,16 +52,16 @@ services:
       context: ..
       dockerfile: docker/jupyter.dockerfile
       args:
-        - USERNAME=${USER}
+        - USERNAME=${USERNAME}
         - UID=${UID}
         - GID=${GID}
-    working_dir: '/home/${USER}/work'
+    working_dir: '/home/${USERNAME}/work'
     user: '${UID}:${GID}'
     env_file: ${ENV_FILE}
     restart: always
     volumes:
-      - ../notebooks:/home/${USER}/work
-      - ../backend:/home/${USER}/backend
+      - ../notebooks:/home/${USERNAME}/work
+      - ../backend:/home/${USERNAME}/backend
       - ${DATA_DRIVE}:${DATA_DRIVE}
     command: start-notebook.sh --NotebookApp.token=${JUPYTER_PASSWORD}
     networks:
@@ -71,7 +71,7 @@ services:
       context: ..
       dockerfile: docker/webap.dockerfile
       args:
-        - USERNAME=${USER}
+        - USERNAME=${USERNAME}
         - UID=${UID}
         - GID=${GID}
         - DOCKER_GID=${DOCKER_GID}
@@ -93,7 +93,7 @@ services:
       context: ..
       dockerfile: docker/celery.dockerfile
       args:
-        - USERNAME=${USER}
+        - USERNAME=${USERNAME}
         - UID=${UID}
         - GID=${GID}
         - DOCKER_GID=${DOCKER_GID}
@@ -138,7 +138,7 @@ services:
       context: .
       dockerfile: mlflow.dockerfile
       args:
-        - USERNAME=${USER}
+        - USERNAME=${USERNAME}
         - UID=${UID}
         - GID=${GID}
     volumes:
