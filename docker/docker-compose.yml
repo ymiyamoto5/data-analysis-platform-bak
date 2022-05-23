@@ -6,13 +6,6 @@
 version: '3.3'
 
 services:
-  buildfrontend:
-    build:
-      context: ..
-      dockerfile: docker/frontend.dockerfile
-    env_file: ${ENV_FILE}
-    volumes:
-      - ../backend:/app/backend
   elasticsearch:
     build:
       context: ..
