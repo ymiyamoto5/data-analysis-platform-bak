@@ -111,7 +111,6 @@ class FileManager:
         pickle_filename: str = os.path.splitext(os.path.basename(file))[0]
         pickle_filepath: str = os.path.join(dir_path, pickle_filename) + ".pkl"
         df.to_pickle(pickle_filepath)
-        logger.debug(f"{dir_path} exported to {pickle_filepath}.")
 
     @staticmethod
     def get_files(dir_path: str, pattern: str) -> List[str]:
