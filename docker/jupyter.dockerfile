@@ -13,7 +13,9 @@ RUN apt-get update -y && \
     && apt-get -y clean \
     && rm -rf /var/lib/apt/lists/*
 
+# UIDが1000の場合、jovyanの1000とコンフリクトするため、jovyanには適当なUID（8888）を割り当てておく
 RUN groupadd -g $GID $USERNAME \
+    && usermod -u 8888 jovyan \
     && useradd -m -g $GID -u $UID $USERNAME \
     && apt-get update \
     && apt-get install -y sudo \
