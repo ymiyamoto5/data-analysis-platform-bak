@@ -41,372 +41,6 @@
   ]
   data: [
     {
-      name: start-point-by-index
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-features
-        body: {
-          _source: [
-            experiment_id
-            timestamp
-            shot_number
-            start_load01_index
-            start_load01_value
-            start_load02_index
-            start_load02_value
-            start_load03_index
-            start_load03_value
-            start_load04_index
-            start_load04_value
-          ]
-          sort: [
-            {
-              shot_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 100
-        }
-      }
-      format: {
-        property: hits.hits
-      }
-      transform: [
-        {
-          type: formula
-          expr: datum._source.experiment_id
-          as: experiment_id
-        }
-        {
-          type: formula
-          expr: datum._source.shot_number
-          as: shot_number
-        }
-        {
-          type: formula
-          expr: datum._source.start_load01_index
-          as: load01_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load01_value
-          as: load01
-        }
-        {
-          type: formula
-          expr: datum._source.start_load02_index
-          as: load02_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load02_value
-          as: load02
-        }
-        {
-          type: formula
-          expr: datum._source.start_load03_index
-          as: load03_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load03_value
-          as: load03
-        }
-        {
-          type: formula
-          expr: datum._source.start_load04_index
-          as: load04_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load04_value
-          as: load04
-        }
-        {
-          type: fold
-          fields: [
-            load01
-            load02
-            load03
-            load04
-          ]
-          as: [
-            load
-            load_value
-          ]
-        }
-        {
-          type: fold
-          fields: [
-            load01_index
-            load02_index
-            load03_index
-            load04_index
-          ]
-          as: [
-            _load
-            load_index
-          ]
-        }
-      ]
-    }
-    {
-      name: start-point
-      source: start-point-by-index
-      transform: [
-        {
-          type: filter
-          expr: datum.load + "_index" == datum._load
-        }
-      ]
-    }
-    {
-      name: max-point-by-index
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-features
-        body: {
-          _source: [
-            experiment_id
-            timestamp
-            shot_number
-            max_load01_index
-            max_load01_value
-            max_load02_index
-            max_load02_value
-            max_load03_index
-            max_load03_value
-            max_load04_index
-            max_load04_value
-          ]
-          sort: [
-            {
-              shot_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 100
-        }
-      }
-      format: {
-        property: hits.hits
-      }
-      transform: [
-        {
-          type: formula
-          expr: datum._source.experiment_id
-          as: experiment_id
-        }
-        {
-          type: formula
-          expr: datum._source.shot_number
-          as: shot_number
-        }
-        {
-          type: formula
-          expr: datum._source.max_load01_index
-          as: load01_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load01_value
-          as: load01
-        }
-        {
-          type: formula
-          expr: datum._source.max_load02_index
-          as: load02_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load02_value
-          as: load02
-        }
-        {
-          type: formula
-          expr: datum._source.max_load03_index
-          as: load03_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load03_value
-          as: load03
-        }
-        {
-          type: formula
-          expr: datum._source.max_load04_index
-          as: load04_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load04_value
-          as: load04
-        }
-        {
-          type: fold
-          fields: [
-            load01
-            load02
-            load03
-            load04
-          ]
-          as: [
-            load
-            load_value
-          ]
-        }
-        {
-          type: fold
-          fields: [
-            load01_index
-            load02_index
-            load03_index
-            load04_index
-          ]
-          as: [
-            _load
-            load_index
-          ]
-        }
-      ]
-    }
-    {
-      name: max-point
-      source: max-point-by-index
-      transform: [
-        {
-          type: filter
-          expr: datum.load + "_index" == datum._load
-        }
-      ]
-    }
-    {
-      name: break-point-by-index
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-features
-        body: {
-          _source: [
-            experiment_id
-            timestamp
-            shot_number
-            break_load01_index
-            break_load01_value
-            break_load02_index
-            break_load02_value
-            break_load03_index
-            break_load03_value
-            break_load04_index
-            break_load04_value
-          ]
-          sort: [
-            {
-              shot_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 100
-        }
-      }
-      format: {
-        property: hits.hits
-      }
-      transform: [
-        {
-          type: formula
-          expr: datum._source.experiment_id
-          as: experiment_id
-        }
-        {
-          type: formula
-          expr: datum._source.shot_number
-          as: shot_number
-        }
-        {
-          type: formula
-          expr: datum._source.break_load01_index
-          as: load01_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load01_value
-          as: load01
-        }
-        {
-          type: formula
-          expr: datum._source.break_load02_index
-          as: load02_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load02_value
-          as: load02
-        }
-        {
-          type: formula
-          expr: datum._source.break_load03_index
-          as: load03_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load03_value
-          as: load03
-        }
-        {
-          type: formula
-          expr: datum._source.break_load04_index
-          as: load04_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load04_value
-          as: load04
-        }
-        {
-          type: fold
-          fields: [
-            load01
-            load02
-            load03
-            load04
-          ]
-          as: [
-            load
-            load_value
-          ]
-        }
-        {
-          type: fold
-          fields: [
-            load01_index
-            load02_index
-            load03_index
-            load04_index
-          ]
-          as: [
-            _load
-            load_index
-          ]
-        }
-      ]
-    }
-    {
-      name: break-point
-      source: break-point-by-index
-      transform: [
-        {
-          type: filter
-          expr: datum.load + "_index" == datum._load
-        }
-      ]
-    }
-    {
       name: shots
       url: {
         %context%: true
@@ -498,6 +132,262 @@
       ]
     }
     {
+      name: features
+      url: {
+        %context%: true
+        %timefield%: timestamp
+        index: shots-*-analysis
+        body: {
+          _source: [
+            shot_number
+            experiment_id
+            timestamp
+            start_load01_index
+            start_load02_index
+            start_load03_index
+            start_load04_index
+            max_load01_index
+            max_load02_index
+            max_load03_index
+            max_load04_index
+            break_load01_index
+            break_load02_index
+            break_load03_index
+            break_load04_index
+            break_load01_value
+            break_load02_value
+            break_load03_value
+            break_load04_value
+            start_load01_value
+            start_load02_value
+            start_load03_value
+            start_load04_value
+            max_load01_value
+            max_load02_value
+            max_load03_value
+            max_load04_value
+            break_load01_value
+            break_load02_value
+            break_load03_value
+            break_load04_value
+          ]
+          sort: [
+            {
+              shot_number: {
+                order: asc
+              }
+            }
+          ]
+          size: 100
+        }
+      }
+      format: {
+        property: hits.hits
+      }
+      transform: [
+        {
+          type: formula
+          expr: datum._source.experiment_id
+          as: experiment_id
+        }
+        {
+          type: formula
+          expr: datum._source.shot_number
+          as: shot_number
+        }
+        {
+          type: formula
+          expr: datum._source.start_load01_index
+          as: start_load01_index
+        }
+        {
+          type: formula
+          expr: datum._source.start_load02_index
+          as: start_load02_index
+        }
+        {
+          type: formula
+          expr: datum._source.start_load03_index
+          as: start_load03_index
+        }
+        {
+          type: formula
+          expr: datum._source.start_load04_index
+          as: start_load04_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load01_index
+          as: max_load01_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load02_index
+          as: max_load02_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load03_index
+          as: max_load03_index
+        }
+        {
+          type: formula
+          expr: datum._source.max_load04_index
+          as: max_load04_index
+        }
+        {
+          type: formula
+          expr: datum._source.break_load01_index
+          as: break_load01_index
+        }
+        {
+          type: formula
+          expr: datum._source.break_load02_index
+          as: break_load02_index
+        }
+        {
+          type: formula
+          expr: datum._source.break_load03_index
+          as: break_load03_index
+        }
+        {
+          type: formula
+          expr: datum._source.break_load04_index
+          as: break_load04_index
+        }
+        {
+          type: formula
+          expr: datum._source.start_load01_value
+          as: start_load01_value
+        }
+        {
+          type: formula
+          expr: datum._source.start_load02_value
+          as: start_load02_value
+        }
+        {
+          type: formula
+          expr: datum._source.start_load03_value
+          as: start_load03_value
+        }
+        {
+          type: formula
+          expr: datum._source.start_load04_value
+          as: start_load04_value
+        }
+        {
+          type: formula
+          expr: datum._source.max_load01_value
+          as: max_load01_value
+        }
+        {
+          type: formula
+          expr: datum._source.max_load02_value
+          as: max_load02_value
+        }
+        {
+          type: formula
+          expr: datum._source.max_load03_value
+          as: max_load03_value
+        }
+        {
+          type: formula
+          expr: datum._source.max_load04_value
+          as: max_load04_value
+        }
+        {
+          type: formula
+          expr: datum._source.break_load01_value
+          as: break_load01_value
+        }
+        {
+          type: formula
+          expr: datum._source.break_load02_value
+          as: break_load02_value
+        }
+        {
+          type: formula
+          expr: datum._source.break_load03_value
+          as: break_load03_value
+        }
+        {
+          type: formula
+          expr: datum._source.break_load04_value
+          as: break_load04_value
+        }
+        {
+          type: fold
+          fields: [
+            start_load01_index
+            start_load02_index
+            start_load03_index
+            start_load04_index
+            max_load01_index
+            max_load02_index
+            max_load03_index
+            max_load04_index
+            break_load01_index
+            break_load02_index
+            break_load03_index
+            break_load04_index
+          ]
+          as: [
+            type_load_index
+            index
+          ]
+        }
+        {
+          type: formula
+          expr: split(datum.type_load_index, '_')[0]
+          as: type
+        }
+        {
+          type: formula
+          expr: split(datum.type_load_index, '_')[1]
+          as: load
+        }
+        {
+          type: fold
+          fields: [
+            start_load01_value
+            start_load02_value
+            start_load03_value
+            start_load04_value
+            max_load01_value
+            max_load02_value
+            max_load03_value
+            max_load04_value
+            break_load01_value
+            break_load02_value
+            break_load03_value
+            break_load04_value
+          ]
+          as: [
+            type_load_value
+            value
+          ]
+        }
+        {
+          type: formula
+          expr: split(datum.type_load_value, '_')[0]
+          as: _type
+        }
+        {
+          type: formula
+          expr: split(datum.type_load_value, '_')[1]
+          as: _load
+        }
+        {
+          type: filter
+          expr: datum.load == datum._load
+        }
+        {
+          type: filter
+          expr: datum.type == datum._type
+        }
+      ]
+    }
+    {
       name: selected
       on: [
         {
@@ -567,6 +457,7 @@
       scale: x
       grid: true
       title: sequential_number
+      offset: 20
     }
     {
       orient: top
@@ -636,7 +527,7 @@
       type: group
       from: {
         facet: {
-          name: series
+          name: shot
           data: shots
           groupby: load
         }
@@ -645,7 +536,7 @@
         {
           type: line
           from: {
-            data: series
+            data: shot
           }
           encode: {
             update: {
@@ -690,193 +581,7 @@
       type: group
       from: {
         facet: {
-          name: start-points
-          data: start-point
-          groupby: load
-        }
-      }
-      marks: [
-        {
-          type: symbol
-          from: {
-            data: start-points
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: load_index
-              }
-              y: {
-                scale: y
-                field: load_value
-              }
-              size: {
-                value: 80
-              }
-              opacity: [
-                {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  value: 0.7
-                }
-                {
-                  value: 0.15
-                }
-              ]
-              stroke: [
-                {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  scale: color
-                  field: load
-                }
-                {
-                  value: "#ccc"
-                }
-              ]
-              fill: {
-                scale: color
-                field: load
-              }
-              tooltip: {
-                signal: "{'load': datum.load, 'value': datum.load_value}"
-              }
-            }
-          }
-        }
-      ]
-    }
-    {
-      type: group
-      from: {
-        facet: {
-          name: max-points
-          data: max-point
-          groupby: load
-        }
-      }
-      marks: [
-        {
-          type: symbol
-          style: [
-            point
-          ]
-          from: {
-            data: max-points
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: load_index
-              }
-              y: {
-                scale: y
-                field: load_value
-              }
-              shape: {
-                value: triangle-down
-              }
-              size: {
-                value: 80
-              }
-              opacity: [
-                {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  value: 0.7
-                }
-                {
-                  value: 0.15
-                }
-              ]
-              stroke: [
-                {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  scale: color
-                  field: load
-                }
-                {
-                  value: "#ccc"
-                }
-              ]
-              fill: {
-                scale: color
-                field: load
-              }
-              tooltip: {
-                signal: "{'load': datum.load, 'value': datum.load_value}"
-              }
-            }
-          }
-        }
-      ]
-    }
-    {
-      type: group
-      from: {
-        facet: {
-          name: break-points
-          data: break-point
-          groupby: load
-        }
-      }
-      marks: [
-        {
-          type: symbol
-          from: {
-            data: break-points
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: load_index
-              }
-              y: {
-                scale: y
-                field: load_value
-              }
-              shape: {
-                value: diamond
-              }
-              size: {
-                value: 80
-              }
-              opacity: [
-                {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  value: 0.7
-                }
-                {
-                  value: 0.15
-                }
-              ]
-              stroke: [
-                {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  scale: color
-                  field: load
-                }
-                {
-                  value: "#ccc"
-                }
-              ]
-              fill: {
-                scale: color
-                field: load
-              }
-              tooltip: {
-                signal: "{'load': datum.load, 'value': datum.load_value}"
-              }
-            }
-          }
-        }
-      ]
-    }
-    {
-      type: group
-      from: {
-        facet: {
-          name: series
+          name: filter
           data: shots_by_filter
           groupby: shot_number
         }
@@ -885,7 +590,7 @@
         {
           type: rule
           from: {
-            data: series
+            data: filter
           }
           encode: {
             update: {
@@ -908,22 +613,10 @@
             }
           }
         }
-      ]
-    }
-    {
-      type: group
-      from: {
-        facet: {
-          name: series
-          data: shots_by_filter
-          groupby: shot_number
-        }
-      }
-      marks: [
         {
           type: text
           from: {
-            data: series
+            data: filter
           }
           encode: {
             update: {
@@ -940,6 +633,120 @@
               text: {
                 field: shot_number
               }
+            }
+          }
+        }
+      ]
+    }
+    {
+      type: group
+      from: {
+        facet: {
+          name: feature
+          data: features
+          groupby: load
+        }
+      }
+      marks: [
+        {
+          type: rule
+          from: {
+            data: feature
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: index
+              }
+              y: {
+                value: 0
+              }
+              y2: {
+                value: 260
+              }
+              stroke: {
+                scale: color
+                field: load
+              }
+              fill: {
+                scale: color
+                field: load
+              }
+              opacity: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  value: 0.7
+                }
+                {
+                  value: 0.0
+                }
+              ]
+            }
+          }
+        }
+        {
+          type: symbol
+          from: {
+            data: feature
+          }
+          encode: {
+            update: {
+              x: {
+                scale: x
+                field: index
+              }
+              y: {
+                value: 270
+              }
+              size: [
+                {
+                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
+                  value: 80
+                }
+                {
+                  value: 0
+                }
+              ]
+              shape: [
+                {
+                  test: datum.type == 'start'
+                  value: circle
+                }
+                {
+                  test: datum.type == 'max'
+                  value: triangle-down
+                }
+                {
+                  test: datum.type == 'break'
+                  value: diamond
+                }
+              ]
+              stroke: {
+                scale: color
+                field: load
+              }
+              fill: {
+                scale: color
+                field: load
+              }
+              opacity: {
+                value: 0.7
+              }
+              tooltip: [
+                {
+                  test: datum.type == 'start'
+                  signal: "{'開始点': datum.index, '　値　': datum.value}"
+                }
+                {
+                  test: datum.type == 'max'
+                  signal: "{'最大点': datum.index, '　値　': datum.value}"
+                }
+                {
+                  test: datum.type == 'break'
+                  signal: "{'破断点': datum.index, '　値　': datum.value}"
+                }
+              ]
             }
           }
         }
