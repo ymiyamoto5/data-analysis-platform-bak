@@ -205,6 +205,13 @@ services:
     networks:
       - docker_network
     restart: always
+  gollum:
+    image: gollumwiki/gollum:master
+    command: --allow-uploads
+    volumes:
+      - ../wiki:/wiki
+    networks:
+      - docker_network
 
 networks:
   docker_network:
