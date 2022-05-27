@@ -212,6 +212,7 @@ services:
       - ../wiki:/wiki
     networks:
       - docker_network
+    restart: always
 
 networks:
   docker_network:
