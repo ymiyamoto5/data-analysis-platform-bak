@@ -1,138 +1,79 @@
 {
-  $schema: https://vega.github.io/schema/vega-lite/v5.json
-  repeat: {
-    row: [
-      ys
-    ]
-    column: [
-      start_value
-    ]
-  }
-  spec: {
-    width: 300
-    height: 300
-    data: {
-      name: analysis
-      url: {
-        %context%: true
-        // %timefield%: timestamp
-        index: shots-*-analysis
-        body: {
-          _source: [
-            experiment_id
-            shot_number
-            ys
-            ts
-            start_index
-            start_value
-            max_index
-            max_value
-            break_index
-            break_value
-          ]
-          sort: [
-            {
-              shot_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 8000
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "repeat": {"row": ["ys"], "column": ["start_value"]},
+  "spec": {
+    "width": 300,
+    "height": 300,
+    "data": {
+      "name": "analysis",
+      "url": {
+        "%context%": true,
+        "index": "shots-*-analysis",
+        "body": {
+          "_source": [
+            "experiment_id",
+            "shot_number",
+            "ys",
+            "ts",
+            "start_index",
+            "start_value",
+            "max_index",
+            "max_value",
+            "break_index",
+            "break_value"
+          ],
+          "sort": [{"shot_number": {"order": "asc"}}],
+          "size": 8000
         }
-      }
-      format: {
-        property: hits.hits
-      }
-    }
-    transform: [
+      },
+      "format": {"property": "hits.hits"}
+    },
+    "transform": [
+      {"calculate": "datum._source.shot_number", "as": "shot_number"},
+      {"calculate": "datum._source.experiment_id", "as": "experiment_id"},
+      {"calculate": "datum._source.ys", "as": "ys"},
+      {"calculate": "datum._source.ts", "as": "ts"},
+      {"calculate": "datum._source.start_value", "as": "start_value"},
+      {"calculate": "datum._source.max_value", "as": "max_value"},
+      {"calculate": "datum._source.break_value", "as": "break_value"}
+    ],
+    "mark": {"type": "point", "opacity": 0.5},
+    "params": [
       {
-        calculate: datum._source.shot_number
-        as: shot_number
-      }
-      {
-        calculate: datum._source.experiment_id
-        as: experiment_id
-      }
-      {
-        calculate: datum._source.ys
-        as: ys
-      }
-      {
-        calculate: datum._source.ts
-        as: ts
-      }
-      {
-        calculate: datum._source.start_value
-        as: start_value
-      }
-      {
-        calculate: datum._source.max_value
-        as: max_value
-      }
-      {
-        calculate: datum._source.break_value
-        as: break_value
-      }
-    ]
-    mark: {
-      type: point
-      opacity: 0.5
-    }
-    params: [
-      {
-        name: brush
-        select: {
-          type: interval
-          resolve: union
-          on: "[mousedown[event.shiftKey], window:mouseup] > window:mousemove!"
-          translate: "[mousedown[event.shiftKey], window:mouseup] > window:mousemove!"
-          zoom: wheel![event.shiftKey]
+        "name": "brush",
+        "select": {
+          "type": "interval",
+          "resolve": "union",
+          "on": "[mousedown[event.shiftKey], window:mouseup] > window:mousemove!",
+          "translate": "[mousedown[event.shiftKey], window:mouseup] > window:mousemove!",
+          "zoom": "wheel![event.shiftKey]"
         }
-      }
+      },
       {
-        name: grid
-        select: {
-          type: interval
-          resolve: global
-          translate: "[mousedown[!event.shiftKey], window:mouseup] > window:mousemove!"
-          zoom: wheel![!event.shiftKey]
-        }
-        bind: scales
+        "name": "grid",
+        "select": {
+          "type": "interval",
+          "resolve": "global",
+          "translate": "[mousedown[!event.shiftKey], window:mouseup] > window:mousemove!",
+          "zoom": "wheel![!event.shiftKey]"
+        },
+        "bind": "scales"
       }
-    ]
-    encoding: {
-      x: {
-        field: {
-          repeat: column
-        }
-        type: quantitative
-      }
-      y: {
-        field: {
-          repeat: row
-        }
-        type: quantitative
-        axis: {
-          minExtent: 30
-          // title: null
-        }
-      }
-      color: {
-        field: shot_number
-        type: quantitative
-        scale: {
-          range: [
-            white
-            red
-            purple
-            black
-          ]
-        }
-        title: shot_number
-      }
-      size: {
-        value: 10
-      }
+    ],
+    "encoding": {
+      "x": {"field": {"repeat": "column"}, "type": "quantitative"},
+      "y": {
+        "field": {"repeat": "row"},
+        "type": "quantitative",
+        "axis": {"minExtent": 30}
+      },
+      "color": {
+        "field": "shot_number",
+        "type": "quantitative",
+        "scale": {"range": ["white", "red", "purple", "black"]},
+        "title": "shot_number"
+      },
+      "size": {"value": 10}
     }
   }
 }

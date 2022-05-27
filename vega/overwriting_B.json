@@ -1,328 +1,175 @@
 {
-  $schema: https://vega.github.io/schema/vega/v5.json
-  description: A basic line chart example.
-  width: 600
-  height: 300
-  autosize: none
-  padding: 45
-  signals: [
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "A basic line chart example.",
+  "width": 600,
+  "height": 300,
+  "autosize": "none",
+  "padding": 45,
+  "signals": [
     {
-      name: loads_shotB
-      value: load01
-      bind: {
-        input: select
-        name: loads
-        options: [
-          load01
-          load02
-          load03
-          load04
-        ]
+      "name": "loads_shotB",
+      "value": "load01",
+      "bind": {
+        "input": "select",
+        "name": "loads",
+        "options": ["load01", "load02", "load03", "load04"]
       }
-    }
+    },
     {
-      name: shotB_start
-      value: 991
-      bind: {
-        input: range
-        min: 1
-        max: 1000
-        step: 1
-      }
-    }
+      "name": "shotB_start",
+      "value": 991,
+      "bind": {"input": "range", "min": 1, "max": 1000, "step": 1}
+    },
     {
-      name: shotB_end
-      value: 1000
-      bind: {
-        input: range
-        min: 1
-        max: 1000
-        step: 1
-      }
+      "name": "shotB_end",
+      "value": 1000,
+      "bind": {"input": "range", "min": 1, "max": 1000, "step": 1}
     }
-  ]
-  data: [
+  ],
+  "data": [
     {
-      name: shots
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-data
-        body: {
-          aggs: {
-            sequential_number_histogram: {
-              composite: {
-                size: 30000
-                sources: [
+      "name": "shots",
+      "url": {
+        "%context%": true,
+        "%timefield%": "timestamp",
+        "index": "shots-*-data",
+        "body": {
+          "aggs": {
+            "sequential_number_histogram": {
+              "composite": {
+                "size": 30000,
+                "sources": [
+                  {"shot_number_agg": {"terms": {"field": "shot_number"}}},
                   {
-                    shot_number_agg: {
-                      terms: {
-                        field: shot_number
-                      }
-                    }
-                  }
-                  {
-                    histogram_agg: {
-                      histogram: {
-                        field: sequential_number
-                        interval: 10
+                    "histogram_agg": {
+                      "histogram": {
+                        "field": "sequential_number",
+                        "interval": 10
                       }
                     }
                   }
                 ]
-              }
-              aggs: {
-                sequential_number_av: {
-                  avg: {
-                    field: sequential_number
-                  }
-                }
-                sequential_number_by_shot_av: {
-                  avg: {
-                    field: sequential_number_by_shot
-                  }
-                }
-                shot_number_av: {
-                  avg: {
-                    field: shot_number
-                  }
-                }
-                load01_av: {
-                  avg: {
-                    field: load01
-                  }
-                }
-                load02_av: {
-                  avg: {
-                    field: load02
-                  }
-                }
-                load03_av: {
-                  avg: {
-                    field: load03
-                  }
-                }
-                load04_av: {
-                  avg: {
-                    field: load04
-                  }
-                }
+              },
+              "aggs": {
+                "sequential_number_av": {"avg": {"field": "sequential_number"}},
+                "sequential_number_by_shot_av": {
+                  "avg": {"field": "sequential_number_by_shot"}
+                },
+                "shot_number_av": {"avg": {"field": "shot_number"}},
+                "load01_av": {"avg": {"field": "load01"}},
+                "load02_av": {"avg": {"field": "load02"}},
+                "load03_av": {"avg": {"field": "load03"}},
+                "load04_av": {"avg": {"field": "load04"}}
               }
             }
-          }
-          size: 0
+          },
+          "size": 0
         }
-      }
-      format: {
-        property: aggregations.sequential_number_histogram.buckets
-      }
-      transform: [
+      },
+      "format": {
+        "property": "aggregations.sequential_number_histogram.buckets"
+      },
+      "transform": [
         {
-          type: formula
-          expr: datum.sequential_number_av.value
-          as: sequential_number
-        }
+          "type": "formula",
+          "expr": "datum.sequential_number_av.value",
+          "as": "sequential_number"
+        },
         {
-          type: formula
-          expr: datum.sequential_number_by_shot_av.value
-          as: sequential_number_by_shot
-        }
+          "type": "formula",
+          "expr": "datum.sequential_number_by_shot_av.value",
+          "as": "sequential_number_by_shot"
+        },
         {
-          type: formula
-          expr: datum.shot_number_av.value
-          as: shot_number
-        }
+          "type": "formula",
+          "expr": "datum.shot_number_av.value",
+          "as": "shot_number"
+        },
+        {"type": "formula", "expr": "datum.load01_av.value", "as": "load01"},
+        {"type": "formula", "expr": "datum.load02_av.value", "as": "load02"},
+        {"type": "formula", "expr": "datum.load03_av.value", "as": "load03"},
+        {"type": "formula", "expr": "datum.load04_av.value", "as": "load04"},
         {
-          type: formula
-          expr: datum.load01_av.value
-          as: load01
-        }
-        {
-          type: formula
-          expr: datum.load02_av.value
-          as: load02
-        }
-        {
-          type: formula
-          expr: datum.load03_av.value
-          as: load03
-        }
-        {
-          type: formula
-          expr: datum.load04_av.value
-          as: load04
-        }
-        {
-          type: fold
-          fields: [
-            load01
-            load02
-            load03
-            load04
-          ]
-          as: [
-            load
-            load-value
-          ]
+          "type": "fold",
+          "fields": ["load01", "load02", "load03", "load04"],
+          "as": ["load", "load-value"]
         }
       ]
-    }
+    },
     {
-      name: table_B
-      source: shots
-      transform: [
+      "name": "table_B",
+      "source": "shots",
+      "transform": [
         {
-          type: filter
-          expr: datum.shot_number >= shotB_start && datum.shot_number <= shotB_end
-        }
+          "type": "filter",
+          "expr": "datum.shot_number >= shotB_start && datum.shot_number <= shotB_end"
+        },
+        {"type": "filter", "expr": "datum.load == loads_shotB"}
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "linear",
+      "range": "width",
+      "domain": {"data": "shots", "field": "sequential_number_by_shot"}
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "range": "height",
+      "nice": true,
+      "zero": true,
+      "domain": {"data": "shots", "field": "load-value"}
+    },
+    {
+      "name": "colorB",
+      "type": "ordinal",
+      "range": ["#ff8c00"],
+      "domain": {"data": "shots", "field": "shot_number"}
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "range": ["#ff8c00"],
+      "domain": ["shotB"]
+    }
+  ],
+  "axes": [
+    {
+      "orient": "bottom",
+      "scale": "x",
+      "grid": true,
+      "title": "sequential_number_by_shot"
+    },
+    {"orient": "left", "scale": "y", "grid": true, "title": "load"}
+  ],
+  "legends": [
+    {"orient": "top-right", "fill": "color", "offset": 0, "zindex": 1}
+  ],
+  "marks": [
+    {
+      "type": "group",
+      "from": {
+        "facet": {"name": "series", "data": "table_B", "groupby": "shot_number"}
+      },
+      "marks": [
         {
-          type: filter
-          expr: datum.load == loads_shotB
-        }
-      ]
-    }
-  ]
-  scales: [
-    {
-      name: x
-      type: linear
-      range: width
-      domain: {
-        data: shots
-        field: sequential_number_by_shot
-      }
-    }
-    {
-      name: y
-      type: linear
-      range: height
-      nice: true
-      zero: true
-      domain: {
-        data: shots
-        field: load-value
-      }
-    }
-    {
-      name: colorB
-      type: ordinal
-      range: [
-        "#d5855a"
-      ]
-      domain: {
-        data: shots
-        field: shot_number
-      }
-    }
-    {
-      name: color
-      type: ordinal
-      range: [
-        "#d5855a"
-      ]
-      domain: [
-        shotB
-      ]
-    }
-  ]
-  axes: [
-    {
-      orient: bottom
-      scale: x
-      grid: true
-      title: sequential_number_by_shot
-    }
-    {
-      orient: left
-      scale: y
-      grid: true
-      title: load
-    }
-  ]
-  legends: [
-    {
-      orient: top-right
-      fill: color
-      offset: 0
-      zindex: 1
-    }
-  ]
-  marks: [
-    {
-      type: group
-      from: {
-        facet: {
-          name: series
-          data: table_B
-          groupby: shot_number
-        }
-      }
-      marks: [
-        {
-          type: line
-          from: {
-            data: series
-          }
-          encode: {
-            enter: {
-              x: {
-                scale: x
-                field: sequential_number_by_shot
-              }
-              y: {
-                scale: y
-                field: load-value
-              }
-              stroke: {
-                scale: colorB
-                field: shot_number
-              }
-              strokeWidth: {
-                value: 2
-              }
-              strokeOpacity: {
-                value: 0.2
-              }
+          "type": "line",
+          "from": {"data": "series"},
+          "encode": {
+            "enter": {
+              "x": {"scale": "x", "field": "sequential_number_by_shot"},
+              "y": {"scale": "y", "field": "load-value"},
+              "stroke": {"scale": "colorB", "field": "shot_number"},
+              "strokeWidth": {"value": 2},
+              "strokeOpacity": {"value": 0.2}
             }
           }
         }
-        // {
-        //   type: symbol
-        //   from: {
-        //     data: series
-        //   }
-        //   encode: {
-        //     enter: {
-        //       x: {
-        //         scale: x
-        //         field: sequential_number_by_shot
-        //       }
-        //       y: {
-        //         scale: y
-        //         field: load-value
-        //       }
-        //       stroke: {
-        //         scale: colorB
-        //         field: shot_number
-        //       }
-        //       strokeWidth: {
-        //         value: 1
-        //       }
-        //       size: {
-        //         value: 10
-        //       }
-        //       tooltip: {
-        //         signal: "{ショット番号: datum.shot_number}"
-        //       }
-        //     }
-        //   }
-        // }        
       ]
     }
-  ]
-  config: { 
-    kibana: {
-      hideWarnings: true
-    }
-  }
+  ],
+  "config": {"kibana": {"hideWarnings": true}}
 }
