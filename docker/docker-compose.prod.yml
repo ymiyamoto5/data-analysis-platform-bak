@@ -33,3 +33,6 @@ services:
   flower:
     ports:
       - ${IP}:5555:5555
+  gollum:
+    ports:
+      - ${IP}:4567:4567
