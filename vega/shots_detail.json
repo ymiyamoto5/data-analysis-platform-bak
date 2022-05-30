@@ -1,746 +1,558 @@
 {
-  $schema: https://vega.github.io/schema/vega/v5.json
-  width: 900
-  height: 400
-  autosize: none
-  padding: 70
-  signals: [
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "width": 900,
+  "height": 400,
+  "autosize": "none",
+  "padding": 70,
+  "signals": [
     {
-      name: clear
-      value: true
-      on: [
+      "name": "clear",
+      "value": true,
+      "on": [
+        {"events": "mouseup[!event.item]", "update": "true", "force": true}
+      ]
+    },
+    {
+      "name": "shift",
+      "value": false,
+      "on": [
         {
-          events: mouseup[!event.item]
-          update: "true"
-          force: true
+          "events": "@legendSymbol:click, @legendLabel:click",
+          "update": "event.shiftKey",
+          "force": true
+        }
+      ]
+    },
+    {
+      "name": "clicked",
+      "value": null,
+      "on": [
+        {
+          "events": "@legendSymbol:click, @legendLabel:click",
+          "update": "{value: datum.value}",
+          "force": true
         }
       ]
     }
+  ],
+  "data": [
     {
-      name: shift
-      value: false
-      on: [
+      "name": "shots",
+      "url": {
+        "%context%": true,
+        "%timefield%": "timestamp",
+        "index": "shots-*-data",
+        "body": {
+          "_source": [
+            "sequential_number",
+            "sequential_number_by_shot",
+            "shot_number",
+            "load01",
+            "load02",
+            "load03",
+            "load04",
+            "timestamp"
+          ],
+          "sort": [{"sequential_number": {"order": "asc"}}],
+          "size": 10000
+        }
+      },
+      "format": {"property": "hits.hits"},
+      "transform": [
         {
-          events: @legendSymbol:click, @legendLabel:click
-          update: event.shiftKey
-          force: true
+          "type": "formula",
+          "expr": "datum._source.sequential_number",
+          "as": "sequential_number"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.sequential_number_by_shot",
+          "as": "sequential_number_by_shot"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.shot_number",
+          "as": "shot_number"
+        },
+        {"type": "formula", "expr": "datum._source.load01", "as": "load01"},
+        {"type": "formula", "expr": "datum._source.load02", "as": "load02"},
+        {"type": "formula", "expr": "datum._source.load03", "as": "load03"},
+        {"type": "formula", "expr": "datum._source.load04", "as": "load04"},
+        {
+          "type": "fold",
+          "fields": ["load01", "load02", "load03", "load04"],
+          "as": ["load", "load_value"]
         }
       ]
-    }
+    },
     {
-      name: clicked
-      value: null
-      on: [
+      "name": "shots_by_filter",
+      "source": "shots",
+      "transform": [
         {
-          events: @legendSymbol:click, @legendLabel:click
-          update: "{value: datum.value}"
-          force: true
+          "type": "filter",
+          "expr": "datum.sequential_number_by_shot == 0 && datum.load == \"load01\""
         }
       ]
-    }
-  ]
-  data: [
+    },
     {
-      name: shots
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-data
-        body: {
-          _source: [
-            sequential_number
-            sequential_number_by_shot
-            shot_number
-            load01
-            load02
-            load03
-            load04
-            timestamp
-          ]
-          sort: [
-            {
-              sequential_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 10000
+      "name": "features",
+      "url": {
+        "%context%": true,
+        "%timefield%": "timestamp",
+        "index": "shots-*-analysis",
+        "body": {
+          "_source": [
+            "shot_number",
+            "experiment_id",
+            "timestamp",
+            "start_load01_index",
+            "start_load02_index",
+            "start_load03_index",
+            "start_load04_index",
+            "max_load01_index",
+            "max_load02_index",
+            "max_load03_index",
+            "max_load04_index",
+            "break_load01_index",
+            "break_load02_index",
+            "break_load03_index",
+            "break_load04_index",
+            "start_load01_value",
+            "start_load02_value",
+            "start_load03_value",
+            "start_load04_value",
+            "max_load01_value",
+            "max_load02_value",
+            "max_load03_value",
+            "max_load04_value",
+            "break_load01_value",
+            "break_load02_value",
+            "break_load03_value",
+            "break_load04_value"
+          ],
+          "sort": [{"shot_number": {"order": "asc"}}],
+          "size": 100
         }
-      }
-      format: {
-        property: hits.hits
-      }
-      transform: [
+      },
+      "format": {"property": "hits.hits"},
+      "transform": [
         {
-          type: formula
-          expr: datum._source.sequential_number
-          as: sequential_number
-        }
+          "type": "formula",
+          "expr": "datum._source.experiment_id",
+          "as": "experiment_id"
+        },
         {
-          type: formula
-          expr: datum._source.sequential_number_by_shot
-          as: sequential_number_by_shot
-        }
+          "type": "formula",
+          "expr": "datum._source.shot_number",
+          "as": "shot_number"
+        },
         {
-          type: formula
-          expr: datum._source.shot_number
-          as: shot_number
-        }
+          "type": "formula",
+          "expr": "datum._source.start_load01_index",
+          "as": "start_load01_index"
+        },
         {
-          type: formula
-          expr: datum._source.load01
-          as: load01
-        }
+          "type": "formula",
+          "expr": "datum._source.start_load02_index",
+          "as": "start_load02_index"
+        },
         {
-          type: formula
-          expr: datum._source.load02
-          as: load02
-        }
+          "type": "formula",
+          "expr": "datum._source.start_load03_index",
+          "as": "start_load03_index"
+        },
         {
-          type: formula
-          expr: datum._source.load03
-          as: load03
-        }
+          "type": "formula",
+          "expr": "datum._source.start_load04_index",
+          "as": "start_load04_index"
+        },
         {
-          type: formula
-          expr: datum._source.load04
-          as: load04
-        }
+          "type": "formula",
+          "expr": "datum._source.max_load01_index",
+          "as": "max_load01_index"
+        },
         {
-          type: fold
-          fields: [
-            load01
-            load02
-            load03
-            load04
-          ]
-          as: [
-            load
-            load_value
-          ]
-        }
+          "type": "formula",
+          "expr": "datum._source.max_load02_index",
+          "as": "max_load02_index"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.max_load03_index",
+          "as": "max_load03_index"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.max_load04_index",
+          "as": "max_load04_index"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load01_index",
+          "as": "break_load01_index"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load02_index",
+          "as": "break_load02_index"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load03_index",
+          "as": "break_load03_index"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load04_index",
+          "as": "break_load04_index"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.start_load01_value",
+          "as": "start_load01_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.start_load02_value",
+          "as": "start_load02_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.start_load03_value",
+          "as": "start_load03_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.start_load04_value",
+          "as": "start_load04_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.max_load01_value",
+          "as": "max_load01_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.max_load02_value",
+          "as": "max_load02_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.max_load03_value",
+          "as": "max_load03_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.max_load04_value",
+          "as": "max_load04_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load01_value",
+          "as": "break_load01_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load02_value",
+          "as": "break_load02_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load03_value",
+          "as": "break_load03_value"
+        },
+        {
+          "type": "formula",
+          "expr": "datum._source.break_load04_value",
+          "as": "break_load04_value"
+        },
+        {
+          "type": "fold",
+          "fields": [
+            "start_load01_index",
+            "start_load02_index",
+            "start_load03_index",
+            "start_load04_index",
+            "max_load01_index",
+            "max_load02_index",
+            "max_load03_index",
+            "max_load04_index",
+            "break_load01_index",
+            "break_load02_index",
+            "break_load03_index",
+            "break_load04_index"
+          ],
+          "as": ["type_load_index", "index"]
+        },
+        {
+          "type": "formula",
+          "expr": "split(datum.type_load_index, '_')[0]",
+          "as": "type"
+        },
+        {
+          "type": "formula",
+          "expr": "split(datum.type_load_index, '_')[1]",
+          "as": "load"
+        },
+        {
+          "type": "fold",
+          "fields": [
+            "start_load01_value",
+            "start_load02_value",
+            "start_load03_value",
+            "start_load04_value",
+            "max_load01_value",
+            "max_load02_value",
+            "max_load03_value",
+            "max_load04_value",
+            "break_load01_value",
+            "break_load02_value",
+            "break_load03_value",
+            "break_load04_value"
+          ],
+          "as": ["type_load_value", "value"]
+        },
+        {
+          "type": "formula",
+          "expr": "split(datum.type_load_value, '_')[0]",
+          "as": "_type"
+        },
+        {
+          "type": "formula",
+          "expr": "split(datum.type_load_value, '_')[1]",
+          "as": "_load"
+        },
+        {"type": "filter", "expr": "datum.load == datum._load"},
+        {"type": "filter", "expr": "datum.type == datum._type"}
+      ]
+    },
+    {
+      "name": "selected",
+      "on": [
+        {"trigger": "clear", "remove": true},
+        {"trigger": "!shift", "remove": true},
+        {"trigger": "!shift && clicked", "insert": "clicked"},
+        {"trigger": "shift && clicked", "toggle": "clicked"}
       ]
     }
+  ],
+  "scales": [
     {
-      name: shots_by_filter
-      source: shots
-      transform: [
-        {
-          type: filter
-          expr: datum.sequential_number_by_shot == 0 && datum.load == "load01"
-        }
-      ]
+      "name": "x",
+      "type": "linear",
+      "range": "width",
+      "zero": false,
+      "domain": {"data": "shots", "field": "sequential_number"}
+    },
+    {
+      "name": "x2",
+      "type": "linear",
+      "range": "width",
+      "zero": false,
+      "domain": {"data": "shots", "field": "shot_number"}
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "range": "height",
+      "nice": true,
+      "zero": true,
+      "domain": {"data": "shots", "field": "load_value"}
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "range": "category",
+      "domain": {"data": "shots", "field": "load"}
     }
+  ],
+  "axes": [
     {
-      name: features
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-analysis
-        body: {
-          _source: [
-            shot_number
-            experiment_id
-            timestamp
-            start_load01_index
-            start_load02_index
-            start_load03_index
-            start_load04_index
-            max_load01_index
-            max_load02_index
-            max_load03_index
-            max_load04_index
-            break_load01_index
-            break_load02_index
-            break_load03_index
-            break_load04_index
-            start_load01_value
-            start_load02_value
-            start_load03_value
-            start_load04_value
-            max_load01_value
-            max_load02_value
-            max_load03_value
-            max_load04_value
-            break_load01_value
-            break_load02_value
-            break_load03_value
-            break_load04_value
-          ]
-          sort: [
-            {
-              shot_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 100
-        }
-      }
-      format: {
-        property: hits.hits
-      }
-      transform: [
-        {
-          type: formula
-          expr: datum._source.experiment_id
-          as: experiment_id
-        }
-        {
-          type: formula
-          expr: datum._source.shot_number
-          as: shot_number
-        }
-        {
-          type: formula
-          expr: datum._source.start_load01_index
-          as: start_load01_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load02_index
-          as: start_load02_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load03_index
-          as: start_load03_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load04_index
-          as: start_load04_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load01_index
-          as: max_load01_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load02_index
-          as: max_load02_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load03_index
-          as: max_load03_index
-        }
-        {
-          type: formula
-          expr: datum._source.max_load04_index
-          as: max_load04_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load01_index
-          as: break_load01_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load02_index
-          as: break_load02_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load03_index
-          as: break_load03_index
-        }
-        {
-          type: formula
-          expr: datum._source.break_load04_index
-          as: break_load04_index
-        }
-        {
-          type: formula
-          expr: datum._source.start_load01_value
-          as: start_load01_value
-        }
-        {
-          type: formula
-          expr: datum._source.start_load02_value
-          as: start_load02_value
-        }
-        {
-          type: formula
-          expr: datum._source.start_load03_value
-          as: start_load03_value
-        }
-        {
-          type: formula
-          expr: datum._source.start_load04_value
-          as: start_load04_value
-        }
-        {
-          type: formula
-          expr: datum._source.max_load01_value
-          as: max_load01_value
-        }
-        {
-          type: formula
-          expr: datum._source.max_load02_value
-          as: max_load02_value
-        }
-        {
-          type: formula
-          expr: datum._source.max_load03_value
-          as: max_load03_value
-        }
-        {
-          type: formula
-          expr: datum._source.max_load04_value
-          as: max_load04_value
-        }
-        {
-          type: formula
-          expr: datum._source.break_load01_value
-          as: break_load01_value
-        }
-        {
-          type: formula
-          expr: datum._source.break_load02_value
-          as: break_load02_value
-        }
-        {
-          type: formula
-          expr: datum._source.break_load03_value
-          as: break_load03_value
-        }
-        {
-          type: formula
-          expr: datum._source.break_load04_value
-          as: break_load04_value
-        }
-        {
-          type: fold
-          fields: [
-            start_load01_index
-            start_load02_index
-            start_load03_index
-            start_load04_index
-            max_load01_index
-            max_load02_index
-            max_load03_index
-            max_load04_index
-            break_load01_index
-            break_load02_index
-            break_load03_index
-            break_load04_index
-          ]
-          as: [
-            type_load_index
-            index
-          ]
-        }
-        {
-          type: formula
-          expr: split(datum.type_load_index, '_')[0]
-          as: type
-        }
-        {
-          type: formula
-          expr: split(datum.type_load_index, '_')[1]
-          as: load
-        }
-        {
-          type: fold
-          fields: [
-            start_load01_value
-            start_load02_value
-            start_load03_value
-            start_load04_value
-            max_load01_value
-            max_load02_value
-            max_load03_value
-            max_load04_value
-            break_load01_value
-            break_load02_value
-            break_load03_value
-            break_load04_value
-          ]
-          as: [
-            type_load_value
-            value
-          ]
-        }
-        {
-          type: formula
-          expr: split(datum.type_load_value, '_')[0]
-          as: _type
-        }
-        {
-          type: formula
-          expr: split(datum.type_load_value, '_')[1]
-          as: _load
-        }
-        {
-          type: filter
-          expr: datum.load == datum._load
-        }
-        {
-          type: filter
-          expr: datum.type == datum._type
-        }
-      ]
-    }
+      "orient": "bottom",
+      "scale": "x",
+      "grid": true,
+      "title": "sequential_number",
+      "offset": 20
+    },
     {
-      name: selected
-      on: [
-        {
-          trigger: clear
-          remove: true
-        }
-        {
-          trigger: !shift
-          remove: true
-        }
-        {
-          trigger: !shift && clicked
-          insert: clicked
-        }
-        {
-          trigger: shift && clicked
-          toggle: clicked
-        }
-      ]
-    }
-  ]
-  scales: [
+      "orient": "top",
+      "scale": "x2",
+      "grid": false,
+      "title": "shot_number",
+      "titlePadding": 10,
+      "tickMinStep": 1,
+      "labels": false
+    },
+    {"orient": "left", "scale": "y", "grid": true, "title": "load_value"}
+  ],
+  "legends": [
     {
-      name: x
-      type: linear
-      range: width
-      zero: false
-      domain: {
-        data: shots
-        field: sequential_number
-      }
-    }
-    {
-      name: x2
-      type: linear
-      range: width
-      zero: false
-      domain: {
-        data: shots
-        field: shot_number
-      }
-    }
-    {
-      name: y
-      type: linear
-      range: height
-      nice: true
-      zero: true
-      domain: {
-        data: shots
-        field: load_value
-      }
-    }
-    {
-      name: color
-      type: ordinal
-      range: category
-      domain: {
-        data: shots
-        field: load
-      }
-    }
-  ]
-  axes: [
-    {
-      orient: bottom
-      scale: x
-      grid: true
-      title: sequential_number
-      offset: 20
-    }
-    {
-      orient: top
-      scale: x2
-      grid: false
-      title: shot_number
-      titlePadding: 10
-      tickMinStep: 1
-      labels: false
-    }
-    {
-      orient: left
-      scale: y
-      grid: true
-      title: load_value
-    }
-  ]
-  legends: [
-    {
-      stroke: color
-      title: load
-      encode: {
-        symbols: {
-          name: legendSymbol
-          interactive: true
-          update: {
-            fill: {
-              value: transparent
-            }
-            strokeWidth: {
-              value: 2
-            }
-            opacity: [
+      "stroke": "color",
+      "title": "load",
+      "encode": {
+        "symbols": {
+          "name": "legendSymbol",
+          "interactive": true,
+          "update": {
+            "fill": {"value": "transparent"},
+            "strokeWidth": {"value": 2},
+            "opacity": [
               {
-                test: !length(data('selected')) || indata('selected', 'value', datum.value)
-                value: 0.7
-              }
-              {
-                value: 0.15
-              }
-            ]
-            size: {
-              value: 64
-            }
+                "test": "!length(data('selected')) || indata('selected', 'value', datum.value)",
+                "value": 0.7
+              },
+              {"value": 0.15}
+            ],
+            "size": {"value": 64}
           }
-        }
-        labels: {
-          name: legendLabel
-          interactive: true
-          update: {
-            opacity: [
+        },
+        "labels": {
+          "name": "legendLabel",
+          "interactive": true,
+          "update": {
+            "opacity": [
               {
-                test: !length(data('selected')) || indata('selected', 'value', datum.value)
-                value: 1
-              }
-              {
-                value: 0.25
-              }
+                "test": "!length(data('selected')) || indata('selected', 'value', datum.value)",
+                "value": 1
+              },
+              {"value": 0.25}
             ]
           }
         }
       }
     }
-  ]
-  marks: [
+  ],
+  "marks": [
     {
-      type: group
-      from: {
-        facet: {
-          name: shot
-          data: shots
-          groupby: load
-        }
-      }
-      marks: [
+      "type": "group",
+      "from": {"facet": {"name": "shot", "data": "shots", "groupby": "load"}},
+      "marks": [
         {
-          type: line
-          from: {
-            data: shot
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: sequential_number
-              }
-              y: {
-                scale: y
-                field: load_value
-              }
-              opacity: [
+          "type": "line",
+          "from": {"data": "shot"},
+          "encode": {
+            "update": {
+              "x": {"scale": "x", "field": "sequential_number"},
+              "y": {"scale": "y", "field": "load_value"},
+              "opacity": [
                 {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  value: 0.7
-                }
+                  "test": "(!length(data('selected')) || indata('selected', 'value', datum.load))",
+                  "value": 0.7
+                },
+                {"value": 0.15}
+              ],
+              "stroke": [
                 {
-                  value: 0.15
-                }
-              ]
-              stroke: [
-                {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  scale: color
-                  field: load
-                }
-                {
-                  value: "#ccc"
-                }
-              ]
-              hover: {
-                strokeOpacity: {
-                  value: 0.5
-                }
-              }
+                  "test": "(!length(data('selected')) || indata('selected', 'value', datum.load))",
+                  "scale": "color",
+                  "field": "load"
+                },
+                {"value": "#ccc"}
+              ],
+              "hover": {"strokeOpacity": {"value": 0.5}}
             }
           }
         }
       ]
-    }
+    },
     {
-      type: group
-      from: {
-        facet: {
-          name: filter
-          data: shots_by_filter
-          groupby: shot_number
+      "type": "group",
+      "from": {
+        "facet": {
+          "name": "filter",
+          "data": "shots_by_filter",
+          "groupby": "shot_number"
         }
-      }
-      marks: [
+      },
+      "marks": [
         {
-          type: rule
-          from: {
-            data: filter
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: sequential_number
-              }
-              y: {
-                value: 0
-              }
-              y2: {
-                value: 260
-              }
-              stroke: {
-                value: red
-              }
-              strokeOpacity: {
-                value: 0.5
-              }
+          "type": "rule",
+          "from": {"data": "filter"},
+          "encode": {
+            "update": {
+              "x": {"scale": "x", "field": "sequential_number"},
+              "y": {"value": 0},
+              "y2": {"value": 260},
+              "stroke": {"value": "red"},
+              "strokeOpacity": {"value": 0.5}
             }
           }
-        }
+        },
         {
-          type: text
-          from: {
-            data: filter
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: sequential_number
-              }
-              y: {
-                value: -5
-              }
-              align: {
-                value: center
-              }
-              text: {
-                field: shot_number
-              }
+          "type": "text",
+          "from": {"data": "filter"},
+          "encode": {
+            "update": {
+              "x": {"scale": "x", "field": "sequential_number"},
+              "y": {"value": -5},
+              "align": {"value": "center"},
+              "text": {"field": "shot_number"}
             }
           }
         }
       ]
-    }
+    },
     {
-      type: group
-      from: {
-        facet: {
-          name: feature
-          data: features
-          groupby: load
-        }
-      }
-      marks: [
+      "type": "group",
+      "from": {
+        "facet": {"name": "feature", "data": "features", "groupby": "load"}
+      },
+      "marks": [
         {
-          type: rule
-          from: {
-            data: feature
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: index
-              }
-              y: {
-                value: 0
-              }
-              y2: {
-                value: 260
-              }
-              stroke: {
-                scale: color
-                field: load
-              }
-              fill: {
-                scale: color
-                field: load
-              }
-              opacity: [
+          "type": "rule",
+          "from": {"data": "feature"},
+          "encode": {
+            "update": {
+              "x": {"scale": "x", "field": "index"},
+              "y": {"value": 0},
+              "y2": {"value": 260},
+              "stroke": {"scale": "color", "field": "load"},
+              "fill": {"scale": "color", "field": "load"},
+              "opacity": [
                 {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  value: 0.7
-                }
-                {
-                  value: 0.0
-                }
+                  "test": "(!length(data('selected')) || indata('selected', 'value', datum.load))",
+                  "value": 0.7
+                },
+                {"value": 0}
               ]
             }
           }
-        }
+        },
         {
-          type: symbol
-          from: {
-            data: feature
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: index
-              }
-              y: {
-                value: 270
-              }
-              size: [
+          "type": "symbol",
+          "from": {"data": "feature"},
+          "encode": {
+            "update": {
+              "x": {"scale": "x", "field": "index"},
+              "y": {"value": 270},
+              "size": [
                 {
-                  test: (!length(data('selected')) || indata('selected', 'value', datum.load))
-                  value: 80
-                }
+                  "test": "(!length(data('selected')) || indata('selected', 'value', datum.load))",
+                  "value": 80
+                },
+                {"value": 0}
+              ],
+              "shape": [
+                {"test": "datum.type == 'start'", "value": "circle"},
+                {"test": "datum.type == 'max'", "value": "triangle-down"},
+                {"test": "datum.type == 'break'", "value": "diamond"}
+              ],
+              "stroke": {"scale": "color", "field": "load"},
+              "fill": {"scale": "color", "field": "load"},
+              "opacity": {"value": 0.7},
+              "tooltip": [
                 {
-                  value: 0
-                }
-              ]
-              shape: [
+                  "test": "datum.type == 'start'",
+                  "signal": "{'開始点': datum.index, '　値　': datum.value}"
+                },
                 {
-                  test: datum.type == 'start'
-                  value: circle
-                }
+                  "test": "datum.type == 'max'",
+                  "signal": "{'最大点': datum.index, '　値　': datum.value}"
+                },
                 {
-                  test: datum.type == 'max'
-                  value: triangle-down
-                }
-                {
-                  test: datum.type == 'break'
-                  value: diamond
-                }
-              ]
-              stroke: {
-                scale: color
-                field: load
-              }
-              fill: {
-                scale: color
-                field: load
-              }
-              opacity: {
-                value: 0.7
-              }
-              tooltip: [
-                {
-                  test: datum.type == 'start'
-                  signal: "{'開始点': datum.index, '　値　': datum.value}"
-                }
-                {
-                  test: datum.type == 'max'
-                  signal: "{'最大点': datum.index, '　値　': datum.value}"
-                }
-                {
-                  test: datum.type == 'break'
-                  signal: "{'破断点': datum.index, '　値　': datum.value}"
+                  "test": "datum.type == 'break'",
+                  "signal": "{'破断点': datum.index, '　値　': datum.value}"
                 }
               ]
             }
