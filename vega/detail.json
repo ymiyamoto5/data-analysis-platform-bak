@@ -4,7 +4,7 @@
   "data": {
     "name": "shots",
     "url": {
-      %context%: true,
+      "%context%": true,
       "%timefield%": "timestamp",
       "index": "shots-*-data",
       "body": {
@@ -17,7 +17,7 @@
           "load01",
           "load02",
           "load03",
-          "load04",
+          "load04"
         ],
         "sort": [{"sequential_number": {"order": "asc"}}],
         "size": 3000
@@ -26,23 +26,30 @@
     "format": {"property": "hits.hits"}
   },
   "transform": [
-    {"calculate": "replace(datum._source.load01, '_source.', '')", "as": "load01"},
-    {"calculate": "replace(datum._source.load02, '_source.', '')", "as": "load02"},
-    {"calculate": "replace(datum._source.load03, '_source.', '')", "as": "load03"},
-    {"calculate": "replace(datum._source.load04, '_source.', '')", "as": "load04"},
     {
-      "fold": [
-        "load01",
-        "load02",
-        "load03",
-        "load04"
-      ],
-      "as": ["load", "load-value"],
+      "calculate": "replace(datum._source.load01, '_source.', '')",
+      "as": "load01"
+    },
+    {
+      "calculate": "replace(datum._source.load02, '_source.', '')",
+      "as": "load02"
+    },
+    {
+      "calculate": "replace(datum._source.load03, '_source.', '')",
+      "as": "load03"
+    },
+    {
+      "calculate": "replace(datum._source.load04, '_source.', '')",
+      "as": "load04"
+    },
+    {
+      "fold": ["load01", "load02", "load03", "load04"],
+      "as": ["load", "load-value"]
     }
   ],
   "layer": [
     {
-      "mark": {"type": "line", "strokeWidth": 1.0},
+      "mark": {"type": "line", "strokeWidth": 1},
       "selection": {
         "load": {"type": "multi", "fields": ["load"], "bind": "legend"}
       },
@@ -57,8 +64,8 @@
           "type": "quantitative",
           "axis": {"title": "荷重"}
         },
-        "color": {"field": "load"}
-        "opacity": {"condition": {"selection": "load", "value": 1.0}, "value": 0},
+        "color": {"field": "load"},
+        "opacity": {"condition": {"selection": "load", "value": 1}, "value": 0},
         "tooltip": [
           {
             "field": "_source.shot_number",
@@ -91,7 +98,7 @@
       "data": {
         "name": "start-point",
         "url": {
-          %context%: true,
+          "%context%": true,
           "%timefield%": "timestamp",
           "index": "shots-*-start-point",
           "body": {
@@ -111,7 +118,10 @@
         "format": {"property": "hits.hits"}
       },
       "transform": [
-        {"calculate": "replace(datum._source.load, '_source.', '')", "as": "load"}
+        {
+          "calculate": "replace(datum._source.load, '_source.', '')",
+          "as": "load"
+        }
       ],
       "mark": {"type": "point", "size": 80, "filled": true},
       "encoding": {
@@ -134,7 +144,11 @@
             "title": "ショット内連番"
           },
           {"field": "_source.value", "type": "quantitative", "title": "開始点荷重値"},
-          {"field": "_source.displacement", "type": "quantitative", "title": "変位"}
+          {
+            "field": "_source.displacement",
+            "type": "quantitative",
+            "title": "変位"
+          }
         ]
       }
     },
@@ -142,7 +156,7 @@
       "data": {
         "name": "max-point",
         "url": {
-          %context%: true,
+          "%context%": true,
           "%timefield%": "timestamp",
           "index": "shots-*-max-point",
           "body": {
@@ -152,7 +166,7 @@
               "sequential_number",
               "sequential_number_by_shot",
               "shot_number",
-              "value"
+              "value",
               "displacement"
             ],
             "sort": [{"sequential_number": {"order": "asc"}}],
@@ -162,9 +176,17 @@
         "format": {"property": "hits.hits"}
       },
       "transform": [
-        {"calculate": "replace(datum._source.load, '_source.', '')", "as": "load"}
+        {
+          "calculate": "replace(datum._source.load, '_source.', '')",
+          "as": "load"
+        }
       ],
-      "mark": {"type": "point", "size": 80, "filled": true, "shape": "triangle-down"},
+      "mark": {
+        "type": "point",
+        "size": 80,
+        "filled": true,
+        "shape": "triangle-down"
+      },
       "encoding": {
         "x": {
           "field": "_source.sequential_number",
@@ -185,15 +207,19 @@
             "title": "ショット内連番"
           },
           {"field": "_source.value", "type": "quantitative", "title": "最大点荷重値"},
-          {"field": "_source.displacement", "type": "quantitative", "title": "変位"}
+          {
+            "field": "_source.displacement",
+            "type": "quantitative",
+            "title": "変位"
+          }
         ]
       }
     },
-      {
+    {
       "data": {
         "name": "break-point",
         "url": {
-          %context%: true,
+          "%context%": true,
           "%timefield%": "timestamp",
           "index": "shots-*-break-point",
           "body": {
@@ -203,7 +229,7 @@
               "sequential_number",
               "sequential_number_by_shot",
               "shot_number",
-              "value"
+              "value",
               "displacement"
             ],
             "sort": [{"sequential_number": {"order": "asc"}}],
@@ -213,7 +239,10 @@
         "format": {"property": "hits.hits"}
       },
       "transform": [
-        {"calculate": "replace(datum._source.load, '_source.', '')", "as": "load"}
+        {
+          "calculate": "replace(datum._source.load, '_source.', '')",
+          "as": "load"
+        }
       ],
       "mark": {"type": "point", "size": 80, "filled": true, "shape": "diamond"},
       "encoding": {
@@ -236,14 +265,14 @@
             "title": "ショット内連番"
           },
           {"field": "_source.value", "type": "quantitative", "title": "破断点荷重値"},
-          {"field": "_source.displacement", "type": "quantitative", "title": "変位"}
+          {
+            "field": "_source.displacement",
+            "type": "quantitative",
+            "title": "変位"
+          }
         ]
       }
-    }   
-  ],
-  "config": {
-    "kibana": {
-      "hideWarnings": true
     }
-  }
+  ],
+  "config": {"kibana": {"hideWarnings": true}}
 }

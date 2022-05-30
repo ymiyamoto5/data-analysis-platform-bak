@@ -1,179 +1,100 @@
 {
-  $schema: https://vega.github.io/schema/vega/v5.json
-  width: 600
-  height: 400
-  autosize: none
-  padding: 70
-  data: [
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "width": 600,
+  "height": 400,
+  "autosize": "none",
+  "padding": 70,
+  "data": [
     {
-      name: shots
-      url: {
-        %context%: true
-        %timefield%: timestamp
-        index: shots-*-start-break-diff
-        body: {
-          _source: [
-            shot_number
-            load
-            timestamp
-            diff
-          ]
-          sort: [
-            {
-              shot_number: {
-                order: asc
-              }
-            }
-          ]
-          size: 10000
+      "name": "shots",
+      "url": {
+        "%context%": true,
+        "%timefield%": "timestamp",
+        "index": "shots-*-start-break-diff",
+        "body": {
+          "_source": ["shot_number", "load", "timestamp", "diff"],
+          "sort": [{"shot_number": {"order": "asc"}}],
+          "size": 10000
         }
-      }
-      format: {
-        property: hits.hits
-      }
-      transform: [
+      },
+      "format": {"property": "hits.hits"},
+      "transform": [
         {
-          type: formula
-          expr: datum._source.shot_number
-          as: shot_number
-        }
+          "type": "formula",
+          "expr": "datum._source.shot_number",
+          "as": "shot_number"
+        },
+        {"type": "formula", "expr": "datum._source.load", "as": "load"},
         {
-          type: formula
-          expr: datum._source.load
-          as: load
-        }
-        {
-          type: formula
-          expr: datum._source.timestamp
-          as: timestamp
-        }
-        {
-          type: formula
-          expr: datum._source.diff
-          as: diff
-        }
+          "type": "formula",
+          "expr": "datum._source.timestamp",
+          "as": "timestamp"
+        },
+        {"type": "formula", "expr": "datum._source.diff", "as": "diff"}
       ]
     }
-  ]
-  scales: [
+  ],
+  "scales": [
     {
-      name: x
-      type: linear
-      range: width
-      zero: false
-      domain: {
-        data: shots
-        field: shot_number
-      }
+      "name": "x",
+      "type": "linear",
+      "range": "width",
+      "zero": false,
+      "domain": {"data": "shots", "field": "shot_number"}
+    },
+    {
+      "name": "y",
+      "type": "linear",
+      "range": "height",
+      "nice": true,
+      "zero": true,
+      "domain": {"data": "shots", "field": "diff"}
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "range": "category",
+      "domain": {"data": "shots", "field": "load"}
     }
+  ],
+  "axes": [
+    {"orient": "bottom", "scale": "x", "grid": true, "title": "shot_number"},
+    {"orient": "left", "scale": "y", "grid": true, "title": "diff"}
+  ],
+  "legends": [
     {
-      name: y
-      type: linear
-      range: height
-      nice: true
-      zero: true
-      domain: {
-        data: shots
-        field: diff
-      }
-    }
-    {
-      name: color
-      type: ordinal
-      range: category
-      domain: {
-        data: shots
-        field: load
-      }
-    }
-  ]
-  axes: [
-    {
-      orient: bottom
-      scale: x
-      grid: true
-      title: shot_number
-    }
-    {
-      orient: left
-      scale: y
-      grid: true
-      title: diff
-    }
-  ]
-  legends: [
-    {
-      stroke: color
-      title: load
-      padding: 0
-      orient: right
-      fill: color
-      encode: {
-        symbols: {
-          enter: {
-            strokeWidth: {
-              value: 2
-            }
-            size: {
-              value: 50
-            }
-          }
+      "stroke": "color",
+      "title": "load",
+      "padding": 0,
+      "orient": "right",
+      "fill": "color",
+      "encode": {
+        "symbols": {
+          "enter": {"strokeWidth": {"value": 2}, "size": {"value": 50}}
         }
       }
     }
-  ]
-  marks: [
+  ],
+  "marks": [
     {
-      type: group
-      from: {
-        facet: {
-          name: series
-          data: shots
-          groupby: load
-        }
-      }
-      marks: [
+      "type": "group",
+      "from": {"facet": {"name": "series", "data": "shots", "groupby": "load"}},
+      "marks": [
         {
-          type: symbol
-          from: {
-            data: series
-          }
-          encode: {
-            update: {
-              x: {
-                scale: x
-                field: shot_number
-              }
-              y: {
-                scale: y
-                field: diff
-              }
-              size: {
-                value: 20
-              }
-              stroke: {
-                scale: color
-                field: load
-              }
-              strokeWidth: {
-                value: 1
-              }
-              strokeOpacity: {
-                value: 0.5
-              }
-              // hover: {
-              //   strokeOpacity: {
-              //     value: 0.5
-              //   }
-              // }
+          "type": "symbol",
+          "from": {"data": "series"},
+          "encode": {
+            "update": {
+              "x": {"scale": "x", "field": "shot_number"},
+              "y": {"scale": "y", "field": "diff"},
+              "size": {"value": 20},
+              "stroke": {"scale": "color", "field": "load"},
+              "strokeWidth": {"value": 1},
+              "strokeOpacity": {"value": 0.5}
             }
           }
         }
       ]
     }
-  ] // config: {
-  //   kibana: {
-  //     hideWarnings: true
-  //   }
-  // }
+  ]
 }
