@@ -2,7 +2,10 @@ name: Python package
 
 on:
   push:
-    branches: [master]
+    # branches: [master]
+    branches:
+      - master
+      - 'feature**'
   pull_request:
     branches: [master]
 
@@ -27,7 +30,14 @@ jobs:
       - name: Poetry Version
         run: |
           poetry --version
+      - name: Load cached poetry
+        id: poetry_cache
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       - name: Poetry Install Dependencies
+        if: steps.poetry_cache.outputs.cache-hit != 'true'
         run: |
           poetry install --no-interaction
       - name: Test with pytest
