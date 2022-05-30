@@ -12,7 +12,7 @@ services:
       dockerfile: docker/elasticsearch.dockerfile
       args:
         - UID=${UID}
-        - GID=${GID}      
+        - GID=${GID}
     environment:
       - discovery.type=single-node
       - cluster.name=docker-cluster
@@ -57,6 +57,8 @@ services:
         - GID=${GID}
     working_dir: '/home/${USERNAME}/work'
     user: '${UID}:${GID}'
+    environment:
+      DOCKER_STACKS_JUPYTER_CMD: 'notebook'
     env_file: ${ENV_FILE}
     restart: always
     volumes:
