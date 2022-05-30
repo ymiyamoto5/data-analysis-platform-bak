@@ -1094,7 +1094,7 @@ test = ["pexpect"]
 name = "jupyter-contrib-core"
 version = "0.3.3"
 description = "Common utilities for jupyter-contrib projects."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1111,7 +1111,7 @@ testing_utils = ["nose", "mock"]
 name = "jupyter-contrib-nbextensions"
 version = "0.5.1"
 description = "A collection of Jupyter nbextensions."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1148,7 +1148,7 @@ traitlets = "*"
 name = "jupyter-highlight-selected-word"
 version = "0.2.0"
 description = "Jupyter notebook extension that enables highlighting every instance of the current word in the notebook."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1156,7 +1156,7 @@ python-versions = "*"
 name = "jupyter-latex-envs"
 version = "1.4.6"
 description = "Jupyter notebook extension which supports (some) LaTeX environments within markdown cells. Also provides support for labels and crossreferences, document wide numbering, bibliography, and more..."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1171,7 +1171,7 @@ traitlets = ">=4.1"
 name = "jupyter-nbextensions-configurator"
 version = "0.4.1"
 description = "jupyter serverextension providing configuration interfaces for nbextensions."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1257,7 +1257,7 @@ six = ">=1.0.0"
 name = "lxml"
 version = "4.8.0"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, != 3.4.*"
 
@@ -2581,7 +2581,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8.12"
-content-hash = "652a800938e5be84210d9b45e7f7801e9ec3db89465f91c40979b4fee20adc62"
+content-hash = "ac8114e3972775563de908b2a70669b5f55a9771a5598b03fd49cf7310bbc22b"
 
 [metadata.files]
 aiofiles = [
