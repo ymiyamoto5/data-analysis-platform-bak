@@ -17,19 +17,23 @@ export APP_CONFIG_PATH=/Users/hao/notebooks/data-analysis-platform/app_config_de
 import os
 import sys
 
-sys.path.append("/Users/hao/.ipython")
-
 import dash
 import dash_bootstrap_components as dbc
-import dash_core_components as dcc
-import dash_html_components as html
+
+# import dash_html_components as html
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
+
+# import dash_core_components as dcc
+from dash import dcc, html
 from dash.dependencies import Input, Output
 
 from dsl_generator.fft_tools import *
 from dsl_generator.plotly_utils import *
+
+# sys.path.append("/Users/hao/.ipython")
+
 
 # from datetime import date, datetime, timedelta
 # from textwrap import dedent as d
@@ -166,18 +170,6 @@ csv_data_dic = {
     # "breakthrough (100kHz)": np.array(breakthrough),
 }
 # demo_data_dic.update(csv_data_dic)
-
-## h-oneデータ追加
-# from pathlib import Path
-# p = Path(DATA_ROOT+'/H-One/20201127/shots/')
-# flist = list(sorted(p.glob('shots_*.csv')))
-# h_df = {}
-# for f in flist:
-#    df1 = pd.read_csv(f)
-#    shot = os.path.basename(f)[0:9]
-#    for ch in ['v1','v2','v3','v4']:
-#        h_df['h-%s:%s'%(shot,ch)] = np.array(df1[ch])
-# demo_data_dic.update(h_df)
 
 
 def _idiff(x):
