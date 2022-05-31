@@ -17,10 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          cache: poetry
       - name: Install poetry
         run: |
           curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
@@ -28,16 +27,16 @@ jobs:
       - name: Poetry Version
         run: |
           poetry --version
-      # - name: Load cached poetry
-      #   id: poetry_cache
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ~/.cache/pypoetry
-      #       .venv
-      #     key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Load cached poetry
+        id: poetry_cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       - name: Poetry Install Dependencies
-        # if: steps.poetry_cache.outputs.cache-hit != 'true'
+        if: steps.poetry_cache.outputs.cache-hit != 'true'
         run: |
           poetry install --no-interaction
       - name: Test with pytest
