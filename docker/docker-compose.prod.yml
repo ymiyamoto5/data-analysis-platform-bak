@@ -33,3 +33,6 @@ services:
   flower:
     ports:
       - ${IP}:5555:5555
+  dsl_generator:
+    ports:
+      - ${IP}:8047:8047
