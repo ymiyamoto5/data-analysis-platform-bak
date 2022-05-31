@@ -38,4 +38,5 @@ RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-
 USER $UID
 RUN jupyter contrib nbextension install --user \
     && jupyter nbextension enable hinterland/hinterland \
-    && jupyter nbextension enable toc2/main
+    && jupyter nbextension enable toc2/main \
+    && fix-permissions /home/$USERNAME
