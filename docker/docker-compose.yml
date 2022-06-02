@@ -139,15 +139,15 @@ services:
     build:
       context: .
       dockerfile: mlflow.dockerfile
-      args:
-        - USERNAME=${USERNAME}
-        - UID=${UID}
-        - GID=${GID}
+      # args:
+        # - USERNAME=${USERNAME}
+        # - UID=${UID}
+        # - GID=${GID}
     volumes:
       - mlflow:/mlflow
     depends_on:
       - minio
-    user: '${UID}:${GID}'
+    # user: '${UID}:${GID}'
     environment:
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
       AWS_ACCESS_KEY_ID: minio-access-key
