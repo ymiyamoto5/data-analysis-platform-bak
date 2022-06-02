@@ -29,8 +29,8 @@ import plotly.graph_objs as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
 
-from dsl_generator.fft_tools import *
-from dsl_generator.plotly_utils import *
+from dsl_generator.fft_tools import bandpass_ifft, fft_spectrum
+from dsl_generator.plotly_utils import multi_col_figure, plotly_hspan, plotly_vspan
 
 # sys.path.append("/Users/hao/.ipython")
 
@@ -57,7 +57,7 @@ from backend.elastic_manager.elastic_manager import ElasticManager
 
 use_elastic = True
 
-if use_elastic == True:
+if use_elastic:
     dr = DataReader()
     # target = '20210327141514'
     # target = '20210709190000'
@@ -958,7 +958,7 @@ def update_timescale(
         df1,
         title="",
         row_titles=df1_cols,
-        mode=scatter_mode,
+        # mode=scatter_mode,    # TODO: 必要性確認
         margin={"t": 20, "l": 30, "r": 10, "b": 20},
         heights_list=heights_list,
     )
@@ -1036,7 +1036,8 @@ def update_timescale(
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port=8047)
+    # app.run_server(debug=True, host="0.0.0.0", port=8047)
+    app.run_server(debug=True)
 
 """
 検索範囲上限に文字入力されると、316のupdate_timescale()に飛ぶ。
