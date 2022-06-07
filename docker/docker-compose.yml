@@ -47,7 +47,6 @@ services:
     networks:
       - docker_network
   notebook:
-    image: build_jupyter/base-notebook
     build:
       context: ..
       dockerfile: docker/jupyter.dockerfile
@@ -55,17 +54,22 @@ services:
         - USERNAME=${USERNAME}
         - UID=${UID}
         - GID=${GID}
-    working_dir: '/home/${USERNAME}/work'
-    user: '${UID}:${GID}'
-    environment:
-      DOCKER_STACKS_JUPYTER_CMD: 'notebook'
+    entrypoint: >
+      jupyter notebook
+      --allow-root
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --NotebookApp.token=''
+      --notebook-dir=/home/${USERNAME}/notebooks
     env_file: ${ENV_FILE}
     restart: always
     volumes:
-      - ../notebooks:/home/${USERNAME}/work
+      - ../notebooks:/home/${USERNAME}/notebooks
       - ../backend:/home/${USERNAME}/backend
       - ${DATA_DRIVE}:${DATA_DRIVE}
-    command: start-notebook.sh --NotebookApp.token=${JUPYTER_PASSWORD}
+    # command: start-notebook.sh --NotebookApp.token=${JUPYTER_PASSWORD}
+    # command: /bin/sh -c "while :; do sleep 10; done"
     networks:
       - docker_network
   webap:
