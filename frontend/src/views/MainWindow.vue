@@ -101,10 +101,10 @@ export default {
           link: CSV_UPLOAD_PATH,
         },
         {
-          id: 'gollum',
+          id: 'manual',
           name: 'マニュアル',
           icon: 'mdi-help-box',
-          link: '/gollum',
+          link: '/manual',
         },
       ],
     }
