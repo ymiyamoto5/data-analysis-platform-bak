@@ -33,6 +33,6 @@ services:
   flower:
     ports:
       - ${IP}:5555:5555
-  gollum:
+  dsl_generator:
     ports:
-      - ${IP}:4567:4567
+      - ${IP}:8047:8047
