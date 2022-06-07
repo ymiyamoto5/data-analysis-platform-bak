@@ -23,7 +23,7 @@ export const SENSOR_SETTINGS_NAME = 'sensor'
 export const SENSOR_SETTINGS_PATH = SETTINGS_PATH + '/' + SENSOR_SETTINGS_NAME
 export const KIBANA_PATH = process.env.VUE_APP_KIBANA_URL
 export const JUPYTER_PATH = process.env.VUE_APP_JUPYTER_URL
-export const GOLLUM_PATH = process.env.VUE_APP_GOLLUM_URL
+export const MANUAL_PATH = process.env.VUE_APP_MANUAL_URL
 export const MODEL_MANAGEMENT_NAME = 'model_management'
 export const MODEL_MANAGEMENT_PATH = ROOT_PATH + MODEL_MANAGEMENT_NAME
 export const CSV_UPLOAD_NAME = 'csv_upload'
@@ -105,9 +105,9 @@ const routes = [
     },
   },
   {
-    path: '/gollum',
+    path: '/manual',
     beforeEnter() {
-      window.open(GOLLUM_PATH, '_blank', 'noreferrer')
+      window.open(MANUAL_PATH, '_blank', 'noreferrer')
     },
   },
   {
