@@ -108,7 +108,7 @@ class DataImporter:
             df = df.set_axis(cols_name, axis="columns")
 
             # NOTE: 刃のなまりシナリオに対するadhoc処理
-            if target == "machine-01-20210709190000":
+            if target == "machine-01_20210709190000":
                 df["load02"] = df["load01"].copy()
                 df["load03"] = df["load01"].copy()
                 df["load04"] = df["load01"].copy()
@@ -127,7 +127,7 @@ class DataImporter:
             # 並べ替え
             cols = ["sequential_number", "timestamp"] + cols_name
             # NOTE: 刃のなまりシナリオに対するadhoc処理
-            if target == "machine-01-20210709190000":
+            if target == "machine-01_20210709190000":
                 cols = ["sequential_number", "timestamp", "load01", "load02", "load03", "load04"]
             df = df.reindex(columns=cols)
 
