@@ -1036,8 +1036,9 @@ def update_timescale(
 
 
 if __name__ == "__main__":
-    # app.run_server(debug=True, host="0.0.0.0", port=8047)
-    app.run_server(debug=True)
+    port: int = int(os.getenv("DSL_GENERATOR_PORT", 8047))
+    app.run_server(debug=True, host="0.0.0.0", port=port)
+    # app.run_server(debug=True)
 
 """
 検索範囲上限に文字入力されると、316のupdate_timescale()に飛ぶ。
