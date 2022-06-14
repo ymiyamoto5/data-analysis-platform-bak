@@ -1,20 +1,5 @@
 # データ分析基盤
 
-## ルール
-
-push 前に以下を実行すること。
-ターミナルでプロジェクト直下に移動し、ユニットテスト実行。
-
-```
-pytest
-```
-
-ターミナルでプロジェクト直下に移動し、backend の型チェック実行。
-
-```
-mypy backend
-```
-
 ## プロジェクト構成
 
 ### frontend
@@ -44,6 +29,7 @@ Web アプリケーション
 - ショット切り出し
 - モデル作成、管理
 - 管理画面
+- CSV アップロード
 - 関連リンク
 
 ##### app.api
@@ -141,46 +127,26 @@ jupyter notebook のファイル群。分析ロジック適用は jupyter notebo
 
 サンプル
 
-- .env.prod
+- .env.dev
 
 ```
-SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
-DB_SQL_ECHO=0
-NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
-no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
-MLFLOW_SERVER_URI=http://mlflow:5000
-MLFLOW_EXPERIMENT_NAME=some
-MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-AWS_ACCESS_KEY_ID=minio-access-key
-AWS_SECRET_ACCESS_KEY=minio-secret-key
-DATA_DIR=/mnt/datadrive/data
-ELASTIC_URL=elasticsearch:9200
-ELASTIC_USER=<elastic user>
-ELASTIC_PASSWORD=<elastic password>
-MAPPING_RAWDATA_PATH=backend/mappings/mapping_rawdata.json
-SETTING_RAWDATA_PATH=backend/mappings/setting_rawdata.json
-SETTING_SHOTS_PATH=backend/mappings/setting_shots.json
-SETTING_SHOTS_META_PATH=backend/mappings/setting_shots_meta.json
-SETTING_RESAMPLE_PATH=backend/mappings/setting_resample.json
-CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
-CELERY_RESULT_BACKEND=redis://redis/0
-```
-
-```
+# 開発要コンテナー内環境変数
+# 以下は社内環境のみ必要な設定
 HTTP_PROXY=http://proxy.unisys.co.jp:8080
 HTTPS_PROXY=http://proxy.unisys.co.jp:8080
 NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
 no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio,127.0.0.1
-SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
+
+PORT=8080
+DSL_GENERATOR_PORT=8047
+SQLALCHEMY_DATABASE_URI=sqlite:///<DBファイルのフルパス>
+DATA_DIR=<dataディレクトリのフルパス>
 DB_SQL_ECHO=0
-NO_PROXY=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
-no_proxy=localhost,elasticsearch,redis,rabbitmq,mlflow,minio
 MLFLOW_SERVER_URI=http://mlflow:5000
 MLFLOW_EXPERIMENT_NAME=some
 MLFLOW_S3_ENDPOINT_URL=http://minio:9000
 AWS_ACCESS_KEY_ID=minio-access-key
 AWS_SECRET_ACCESS_KEY=minio-secret-key
-DATA_DIR=/mnt/datadrive/data
 ELASTIC_URL=elasticsearch:9200
 ELASTIC_USER=<elastic user>
 ELASTIC_PASSWORD=<elastic password>
@@ -193,18 +159,21 @@ CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq:5672
 CELERY_RESULT_BACKEND=redis://redis/0
 ```
 
-.env.local
+- .env.local
 
 ```
+# ローカルデバッグ用環境変数(.vscode/settings.jsonで指定)
 LOCAL_IP=<ローカルIP>
-SQLALCHEMY_DATABASE_URI=sqlite:////mnt/datadrive/app.db
+PORT=8080
+DSL_GENERATOR_PORT=8047
+SQLALCHEMY_DATABASE_URI=sqlite:///<DBファイルのフルパス>
+DATA_DIR=<dataディレクトリのフルパス>
 DB_SQL_ECHO=1
 MLFLOW_SERVER_URI=http://${LOCAL_IP}:5000
 MLFLOW_EXPERIMENT_NAME=some
 MLFLOW_S3_ENDPOINT_URL=http://${LOCAL_IP}:9000
 AWS_ACCESS_KEY_ID=minio-access-key
 AWS_SECRET_ACCESS_KEY=minio-secret-key
-DATA_DIR=/mnt/datadrive/data
 ELASTIC_URL=${LOCAL_IP}:9200
 ELASTIC_USER=<elastic user>
 ELASTIC_PASSWORD=<elastic password>
@@ -221,26 +190,36 @@ CELERY_RESULT_BACKEND=redis://${LOCAL_IP}/0
 
 ```
 COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
-COMPOSE_PROJECT_NAME=data-analysis-platform
-DATA_DIR=/mnt/datadrive/data
-DATA_DRIVE=/mnt/datadrive
-IP=<ローカルIP>
-ELASTIC_USERNAME=<elastic user>
+COMPOSE_PROJECT_NAME=ymiyamoto5-jfe_A8J9
+DATA_DIR=<dataディレクトリのフルパス>
+DATA_DRIVE=<dataディレクトリの親ディレクトリのフルパス>
+IP=<ローカルIPアドレス>
+ELASTIC_USER=<elastic user>
 ELASTIC_PASSWORD=<elastic password>
-ENV_FILE=../.env
+ENV_FILE=../.env.prod
+USERNAME=<ローカルユーザー名>
+UID=<ローカルユーザーのUID>
+GID=<ローカルユーザーのGID>
+DOCKER_GID=998
+JUPYTER_PASSWORD=<Jupyter password>
 ```
 
 - docker/.env.dev
 
 ```
 COMPOSE_FILE=docker-compose.yml:docker-compose.override.yml
-COMPOSE_PROJECT_NAME=data-analysis-platform
-DATA_DIR=/mnt/datadrive/data
-DATA_DRIVE=/mnt/datadrive
-IP=<ローカルIP>
-ELASTIC_USERNAME=<elastic user>
+COMPOSE_PROJECT_NAME=ymiyamoto5-jfe_A8J9
+DATA_DIR=<dataディレクトリのフルパス>
+DATA_DRIVE=<dataディレクトリの親ディレクトリのフルパス>
+IP=<ローカルIPアドレス>
+ELASTIC_USER=<elastic user>
 ELASTIC_PASSWORD=<elastic password>
-ENV_FILE=../.env
+ENV_FILE=../.env.dev
+USERNAME=<ローカルユーザー名>
+UID=<ローカルユーザーのUID>
+GID=<ローカルユーザーのGID>
+DOCKER_GID=998
+JUPYTER_PASSWORD=<Jupyter password>
 ELASTICSEARCH_PORT=<デフォルトポート番号（9200）+ X>
 KIBANA_PORT=<デフォルトポート番号（5601）+ X>
 NOTEBOOK_PORT=<デフォルトポート番号（8888）+ X>
@@ -254,6 +233,7 @@ RABBITMQ_PORT_3=<デフォルトポート番号（25672）+ X>
 RABBITMQ_PORT_4=<デフォルトポート番号（15672）+ X>
 REDIS_PORT=<デフォルトポート番号（6379）+ X>
 FLOWER_PORT=<デフォルトポート番号（5555）+ X>
+DSL_GENERATOR_PORT=<デフォルトポート番号（8047）+ X>
 ```
 
 - frontend/.env.production
