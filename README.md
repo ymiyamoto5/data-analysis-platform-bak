@@ -264,6 +264,7 @@ VUE_APP_API_BASE_URL='http://<ローカルIP>'
 VUE_APP_KIBANA_URL='http://<ローカルIP>:5601/'
 VUE_APP_JUPYTER_URL='http://<ローカルIP>:8888/'
 VUE_APP_MLFLOW_URL='http://<ローカルIP>:5000'
+VUE_APP_MANUAL_URL='http://<ローカルIP>:8888/notebooks/manual'
 ```
 
 - frontend/.env.development
@@ -274,6 +275,7 @@ VUE_APP_API_BASE_URL='http://localhost:8000'
 VUE_APP_KIBANA_URL='http://localhost:5601/'
 VUE_APP_JUPYTER_URL='http://localhost:8888/'
 VUE_APP_MLFLOW_URL='http://localhost:5000'
+VUE_APP_MANUAL_URL='http://localhost:8888/notebooks/manual'
 ```
 
 ### mypy.ini

@@ -100,6 +100,12 @@ export default {
           icon: 'mdi-file-upload',
           link: CSV_UPLOAD_PATH,
         },
+        {
+          id: 'manual',
+          name: 'マニュアル',
+          icon: 'mdi-help-box',
+          link: '/manual',
+        },
       ],
     }
   },
