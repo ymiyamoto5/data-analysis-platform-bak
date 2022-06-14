@@ -35,4 +35,5 @@ USER $UID
 
 RUN jupyter contrib nbextension install --user \
     && jupyter nbextension enable hinterland/hinterland \
-    && jupyter nbextension enable toc2/main
+    && jupyter nbextension enable toc2/main \
+    && jupyter nbextension enable freeze/main
