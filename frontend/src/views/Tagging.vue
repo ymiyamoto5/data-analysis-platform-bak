@@ -191,6 +191,17 @@
                     item-value="id"
                     :items="machines"
                     label="機器ID"
+                    @input="setMachineId"
+                  >
+                  </v-select>
+
+                  <v-select
+                    v-model="editedItem.experiment_id"
+                    :rules="[rules.required]"
+                    item-text="experiment_id"
+                    item-value="id"
+                    :items="experiments"
+                    label="実験ID"
                   >
                   </v-select>
 
@@ -268,12 +279,14 @@ export default {
         value: 'ended_at',
       },
       { text: '機器ID', value: 'machine_id' },
+      { text: '実験ID', value: 'experiment_id' },
       { text: 'タグ', value: 'tag' },
       { text: 'アクション', value: 'actions', sortable: false },
     ],
     search: '',
     tags: [],
     machines: [],
+    experiments: [],
     occurred_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
       .toISOString()
       .substr(0, 10),
@@ -284,6 +297,7 @@ export default {
       occurred_at: '',
       ended_at: null,
       machine_id: 0,
+      experiment_id: 0,
       tag: '',
       occurred_dateFormatted: vm.formatDate(
         new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -303,6 +317,7 @@ export default {
       occurred_at: '',
       ended_at: null,
       machine_id: 0,
+      experiment_id: 0,
       tag: '',
       occurred_dateFormatted: vm.formatDate(
         new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -421,6 +436,30 @@ export default {
         })
     },
 
+    setMachineId: async function() {
+      this.experiments = []
+      this.fetchExperimentId()
+    },
+
+    fetchExperimentId: async function() {
+      const client = createBaseApiClient()
+      const url = TAGS_API_URL + this.editedItem.machine_id + '/experiments'
+      let data = []
+      await client
+        .get(url)
+        .then((res) => {
+          if (res.data.length === 0) {
+            return
+          }
+          data = res.data
+          this.experiments = data
+        })
+        .catch((e) => {
+          console.log(e.response.data.detail)
+          this.errorSnackbar(e.response)
+        })
+    },
+
     // 終了日時のNULL値を表示用にフォーマット
     formatNull(ended_at) {
       return ended_at !== null ? ended_at : '-'
@@ -465,6 +504,7 @@ export default {
           occurred_at: occurred_datetime,
           ended_at: ended_datetime,
           machine_id: this.editedItem.machine_id,
+          experiment_id: this.editedItem.experiment_id,
           tag: this.editedItem.tag,
         }
         await client
@@ -485,6 +525,7 @@ export default {
           occurred_at: occurred_datetime,
           ended_at: ended_datetime,
           machine_id: this.editedItem.machine_id,
+          experiment_id: this.editedItem.experiment_id,
           tag: this.editedItem.tag,
         }
         await client
