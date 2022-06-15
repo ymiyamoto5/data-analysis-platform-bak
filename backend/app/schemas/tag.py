@@ -9,6 +9,7 @@ class TagBase(BaseModel):
     ended_at: Optional[str] = None
     tag: str = Field(..., max_length=255)
     machine_id: str = Field(..., max_length=255, regex=common.ID_PATTERN)
+    experiment_id: str
 
 
 class Tag(TagBase):
