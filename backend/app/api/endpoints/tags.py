@@ -37,7 +37,7 @@ def fetch_tags():
 
 
 @router.get("/{machine_id}/experiments", response_model=List[str])
-def fetch_experiment_id(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN)):
+def fetch_experiment_id_by_machine_id(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN)):
     """機器IDをもとに実験ID一覧を返す"""
 
     index_df = ElasticManager.show_indices(index=f"shots-{machine_id}-*-data")
@@ -45,7 +45,7 @@ def fetch_experiment_id(machine_id: str = Path(..., max_length=255, regex=common
     experiment_id_list: List[str] = []
 
     for i in index_df["index"]:
-        experiment_id_list.append(re.findall(r"\d{14}", i)[0])
+        experiment_id_list.append(re.findall(r"\d{%s}" % (common.DATETIME_STR_LENGTH), i)[0])
 
     return experiment_id_list
 
