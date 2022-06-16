@@ -1,12 +1,14 @@
 import datetime
+import re
 import traceback
 from typing import List
 
 from backend.app.schemas import tag
+from backend.common import common
 from backend.common.common_logger import uvicorn_logger as logger
 from backend.common.error_message import ErrorMessage, ErrorTypes
 from backend.elastic_manager.elastic_manager import ElasticManager
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 
 router = APIRouter()
 
@@ -34,6 +36,20 @@ def fetch_tags():
         raise HTTPException(status_code=500, detail=ErrorMessage.generate_message(ErrorTypes.READ_FAIL))
 
 
+@router.get("/{machine_id}/experiments", response_model=List[str])
+def fetch_experiment_id_by_machine_id(machine_id: str = Path(..., max_length=255, regex=common.ID_PATTERN)):
+    """機器IDをもとに実験ID一覧を返す"""
+
+    index_df = ElasticManager.show_indices(index=f"shots-{machine_id}-*-data")
+
+    experiment_id_list: List[str] = []
+
+    for i in index_df["index"]:
+        experiment_id_list.append(re.findall(r"\d{%s}" % (common.DATETIME_STR_LENGTH), i)[0])
+
+    return experiment_id_list
+
+
 @router.post("/")
 def create(tag_in: tag.TagBase):
     """タグを記録する"""
@@ -52,6 +68,7 @@ def create(tag_in: tag.TagBase):
         "occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"),
         "ended_at": ended_at,
         "machine_id": tag_in.machine_id,
+        "experiment_id": tag_in.experiment_id,
         "tag": tag_in.tag,
     }
 
@@ -76,6 +93,7 @@ def update(tag_id: str, tag_in: tag.TagBase):
         "occurred_at": datetime.datetime.strptime(tag_in.occurred_at, "%Y/%m/%d %H:%M:%S"),
         "ended_at": ended_at,
         "machine_id": tag_in.machine_id,
+        "experiment_id": tag_in.experiment_id,
         "tag": tag_in.tag,
     }
 

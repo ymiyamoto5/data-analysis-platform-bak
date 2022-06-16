@@ -42,7 +42,7 @@ def predictor_task(machine_id: str, debug_mode: bool = False):
 
     # yyyyMMddhhmmss文字列を取得
     basename: str = os.path.basename(data_collect_history.processed_dir_path)
-    pattern: Pattern = re.compile(".*-(\d{14})")
+    pattern: Pattern = re.compile(".*-(\d{%s})" % (common.DATETIME_STR_LENGTH))
     pattern_match: Union[Match[str], None] = pattern.match(basename)
     if pattern_match is None:
         db.close()
