@@ -32,7 +32,7 @@ services:
     networks:
       - docker_network
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.14.0
+    image: docker.elastic.co/kibana/kibana:7.17.4
     environment:
       SERVER_NAME: 'kibana'
       ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
