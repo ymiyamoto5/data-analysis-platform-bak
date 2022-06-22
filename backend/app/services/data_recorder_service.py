@@ -16,7 +16,7 @@ class DataRecorderService:
         jst_started_at: datetime = started_at + timedelta(hours=9)
         datetime_suffix: str = jst_started_at.strftime("%Y%m%d%H%M%S")
 
-        dir_name: str = machine_id + "-" + datetime_suffix
+        dir_name: str = machine_id + "_" + datetime_suffix
 
         processed_dir_path: str = os.path.join(os.environ["DATA_DIR"], dir_name)
 
