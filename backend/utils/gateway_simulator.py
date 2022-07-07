@@ -20,10 +20,25 @@ def main(machine_id: str, show_fig: bool = False):
 
     try:
         data_collect_history = CRUDDataCollectHistory.select_latest_by_machine_id(db, machine_id)
-        handlers = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(db, data_collect_history.id)
-        sensors = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(db, data_collect_history.id)
+        if data_collect_history is None:
+            raise Exception
     except Exception:
-        print("Read DB error.")
+        print("data_collect_history read error.")
+        sys.exit(1)
+    try:
+        handlers = CRUDDataCollectHistory.select_cut_out_target_handlers_by_hisotry_id(db, data_collect_history.id)
+        if handlers is None:
+            raise Exception
+    except Exception:
+        print("handlers read error.")
+        sys.exit(1)
+    try:
+        sensors = CRUDDataCollectHistory.select_cut_out_target_sensors_by_history_id(db, data_collect_history.id)
+        if sensors is None:
+            raise Exception
+    except Exception:
+        print("sensors read error.")
+        sys.exit(1)
 
     is_multi_handler = True if len(handlers) >= 2 else False
 
