@@ -49,7 +49,7 @@ class CutOutShot:
         chunk_size: int = 5_000,
     ):
         self.__machine_id = machine_id
-        self.__rawdata_dir_name = machine_id + "-" + target
+        self.__rawdata_dir_name = machine_id + "_" + target
         self.__min_spm: int = min_spm
         self.__num_of_process: int = num_of_process
         self.__chunk_size: int = chunk_size
