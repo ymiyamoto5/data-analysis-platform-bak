@@ -6,7 +6,7 @@ module.exports = {
   assetsDir: 'static',
   transpileDependencies: ['vuetify'],
   devServer: {
-    host: 'localhost',
-    port: 8080,
+    host: process.env.VUE_DEV_SERVER_IP,
+    port: process.env.VUE_DEV_SERVER_PORT,
   },
 }
