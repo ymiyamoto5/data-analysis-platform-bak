@@ -123,7 +123,7 @@
                 "webpack:///./src/store/modules/*.js": "${webRoot}/store/modules/*.js",
                 "webpack:///./node_modules/*.js": "${webRoot}/../node_modules/*.js",
             },
-            // "preLaunchTask": "delay5sec",
+            "preLaunchTask": "Sleepdelay",
             // "runtimeExecutable": "${workspaceFolder}/_devtools/start_dev_web.sh"
         },
         // 全てのテストを実行：package.json にある、scripts/test:unit を実行
