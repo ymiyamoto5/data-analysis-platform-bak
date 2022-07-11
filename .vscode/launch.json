@@ -23,6 +23,14 @@
             ]
         },
         {
+            "name": "dash_app_brew_features",
+            "type": "python",
+            "module": "backend.dash_app.brew_features",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "analyzer",
             "type": "python",
             "module": "backend.analyzer.analyzer",
