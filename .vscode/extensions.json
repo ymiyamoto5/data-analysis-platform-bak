@@ -10,7 +10,6 @@
         "esbenp.prettier-vscode",
         "ms-python.python",
         "octref.vetur",
-        "msjsdiag.debugger-for-chrome",
         "github.vscode-pull-request-github"
     ]
 }
