@@ -132,6 +132,9 @@ class brewFeatures:
 
     def set_dispcol(self, disp_col):
         '''  ToDo:
+        3項目目の禁則文字チェックが必要。コーテーションとか。
+        '''
+        '''  ToDo:
         disp_colの要素を[row,col,値の変換式:Noneだったら元の項目そのまま]のまま行くとしたら、
         ほとんどの場合意味のない3項目目のNoneをユーザが書き忘れる可能性が高い。
         書き忘れると、対応の難しいバグとして現れるので、
@@ -161,7 +164,6 @@ class brewFeatures:
     def get_dispcol(self):
         return self.disp_col
 
-                #options=[{'label':str(s),'value':str(s)} for s in df.columns[1:]]), width=2,),\
 
     # 特徴抽出操作指示のgridの1行を生成   
     ''' ToDo: 選択肢はdisp_colにある項目のみで良い '''
@@ -183,7 +185,7 @@ class brewFeatures:
             dbc.Col( dcc.Dropdown(id='find_target%d'%row_id,clearable=False,value='DPT',
                 options=[{'label':'元波形','value':'DPT'},{'label':'速度','value':'VCT'},{'label':'加速度','value':'ACC'}]), width=1,),\
             dbc.Col( dcc.Dropdown(id='find_dir%d'%row_id,clearable=False,value='MAX',
-                options=[{'label':str(s),'value':str(s)} for s in ['MAX','MIN','RMS','VAR']]), width=1,)
+                options=[{'label':str(s),'value':str(s)} for s in ['MAX','MIN','RMS','VAR','AMP']]), width=1,)
 
     '''  locate_feature()を呼ぶために必要なパラメタ群をdictに '''
     def params_to_dict(self,feature_name,select_col,rolling_width,low_find_type,low_feature,low_lim,
@@ -320,6 +322,9 @@ class brewFeatures:
             elif find_dir == 'VAR':
                 target_i = x_lim[0]
                 target_v = df[select_col][x_lim[0]:x_lim[1]].var()
+            elif find_dir == 'AMP':
+                target_i = x_lim[0]
+                target_v = df[select_col][x_lim[0]:x_lim[1]].max() - df[select_col][x_lim[0]:x_lim[1]].max()
 
         result['select_col'] = select_col
         result['x_lim'] = x_lim
@@ -354,11 +359,8 @@ class brewFeatures:
                         options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
                     width=5,
                     style={'width':'50vw'} # viewpoint height
-        #         style={'height': '20vh','width':'50vw'} # viewpoint height
                 ),
-            #dbc.Col( dcc.Dropdown(id='find_type1',value='固定',options=[{'label':str(s),'value':str(s)} for s in ['固定','値域','特徴点']]), width=1,),
             ]),
-        #     dcc.Dropdown(id='shot_select',options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
             # グラフ表示部
             dcc.Graph(id='graph'),
             # 特徴抽出操作指示: gen_input_forms()がInput,Dropdownを含むdbc.Colのリストを生成する
