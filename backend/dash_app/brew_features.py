@@ -185,6 +185,54 @@ class brewFeatures:
             ),
         )
 
+    def gen_display_settings(self, row_id, sel_col="", row=1, column=0):
+        return (
+            dbc.Col(
+                dcc.Dropdown(
+                    id="select_col_%d" % row_id,
+                    value=sel_col,
+                    options=[{"label": str(s), "value": str(s)} for s in df.columns[1:]],
+                    # style={"width": "25%"},
+                ),
+            ),
+            dbc.Col(
+                dcc.Input(
+                    id="input_row%d" % row_id,
+                    value=row,
+                    type="number",
+                    placeholder="行",
+                    min=1,
+                    max=5,
+                    step=1,
+                    # style={"width": "25%"},
+                ),
+            ),
+            dbc.Col(
+                dcc.Input(
+                    id="input_column%d" % row_id,
+                    value=column,
+                    type="number",
+                    placeholder="列",
+                    min=0,
+                    max=2,
+                    step=1,
+                    # style={"width": "25%"},
+                ),
+            ),
+            dbc.Col(
+                dcc.Dropdown(
+                    id="select_calculation%d" % row_id,
+                    clearable=False,
+                    value="test",
+                    options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
+                    # style={"width": "25%"},
+                ),
+            ),
+        )
+
+    def gen_target_item_dropdown(self):
+        return [{"label": str(s), "value": str(s)} for s in df.columns[1:]]
+
     # 特徴抽出機能のコア部   ToDo: グラフ操作を分離して特徴抽出だけを呼べるように
     def locate_feature(
         self,
@@ -332,9 +380,11 @@ class brewFeatures:
         import dash_html_components as html
         import plotly.express as px
 
-        # from jupyter_dash import JupyterDash
-        from dash import Dash
-        from dash.dependencies import Input, Output
+        # sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+        from backend.elastic_manager.elastic_manager import ElasticManager
+        from dash import Dash, dash_table
+        from dash.dependencies import Input, Output, State
+        from jupyter_dash import JupyterDash
 
         #     app = JupyterDash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
         # app = JupyterDash("brewFeatures", external_stylesheets=[dbc.themes.CERULEAN])
@@ -343,47 +393,196 @@ class brewFeatures:
         # 画面全体のレイアウト
         app.layout = html.Div(
             [
-                #     dcc.Dropdown(id='shot_select',options=[{'label':'a','value':'a'},{'label':'b','value':'b'},]),
-                # ショット選択
-                dbc.Row(
+                dcc.Tabs(
                     [
-                        dbc.Col(
-                            dcc.Dropdown(
-                                id="shot_select", value=str(flist[9]), options=[{"label": str(f), "value": str(f)} for f in flist[8:]]
-                            ),
-                            width=5,
-                            style={"width": "50vw"}  # viewpoint height
-                            #         style={'height': '20vh','width':'50vw'} # viewpoint height
+                        dcc.Tab(
+                            label="表示設定",
+                            children=[
+                                html.Div(
+                                    [
+                                        dbc.Col(
+                                            dbc.Label(
+                                                "データソース",
+                                            ),
+                                            style={"width": "40%", "display": "inline-block"},
+                                        ),
+                                        dcc.Dropdown(
+                                            id="els_index_",
+                                            clearable=False,
+                                            value="test",
+                                            # options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
+                                            options=[
+                                                {"label": s, "value": s} for s in ElasticManager.show_indices(index="shots-*-data")["index"]
+                                            ],
+                                            style={"width": "40%", "display": "inline-block"},
+                                        ),
+                                    ]
+                                ),
+                                dbc.Col(dbc.Label("表示行列")),
+                                dbc.Row(
+                                    [
+                                        dbc.Col(dbc.Label("行数")),
+                                        dcc.Dropdown(
+                                            id="row",
+                                            clearable=False,
+                                            value="row-1",
+                                            options=[
+                                                {"label": "1", "value": "row-1"},
+                                                {"label": "2", "value": "row-2"},
+                                                {"label": "3", "value": "row-3"},
+                                                {"label": "4", "value": "row-4"},
+                                                {"label": "5", "value": "row-5"},
+                                            ],
+                                            style={"width": "25%"},
+                                        ),
+                                        dbc.Col(dbc.Label("列数")),
+                                        # dcc.Dropdown(
+                                        #     id="column",
+                                        #     clearable=False,
+                                        #     value="column-1",
+                                        #     options=[{"label": "1", "value": "column-1"}, {"label": "2", "value": "column-2"}],
+                                        #     style={"width": "25%"},
+                                        # ),
+                                        dcc.Input(
+                                            id="input_column",
+                                            type="number",
+                                            placeholder="列数",
+                                            min=1,
+                                            max=2,
+                                            step=1,
+                                            style={"width": "25%"},
+                                        ),
+                                    ]
+                                ),
+                                dbc.Row(
+                                    [
+                                        dbc.Col(dbc.Label("対象項目")),
+                                        dbc.Col(dbc.Label("行")),
+                                        dbc.Col(dbc.Label("列")),
+                                        dbc.Col(dbc.Label("演算")),
+                                    ]
+                                ),
+                                # dbc.Row(
+                                #     [
+                                #         dcc.Dropdown(
+                                #             id="tmp_1",
+                                #             clearable=False,
+                                #             value="test",
+                                #             options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
+                                #             style={"width": "25%"},
+                                #         ),
+                                #         dcc.Input(id="tmp_row", value="", style={"width": "25%"}),
+                                #         dcc.Input(id="tmp_column", value="", style={"width": "25%"}),
+                                #         dcc.Dropdown(
+                                #             id="tmp_4",
+                                #             clearable=False,
+                                #             value="test",
+                                #             options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
+                                #             style={"width": "25%"},
+                                #         ),
+                                #     ]
+                                # ),
+                                html.Div(
+                                    [
+                                        dbc.Row(self.gen_display_settings(0, sel_col="プレス荷重shift")),
+                                        dbc.Row(self.gen_display_settings(1)),
+                                        dbc.Row(self.gen_display_settings(2)),
+                                        dbc.Row(self.gen_display_settings(3)),
+                                    ],
+                                    id="settings-table",
+                                ),
+                                html.Button("対象項目追加", id="add-target-item-button", n_clicks=4),
+                                # test table
+                                # dash_table.DataTable(
+                                #     id="test-table",
+                                #     columns=[
+                                #         {"name": "対象項目", "id": "column-1", "presentation": "dropdown"},
+                                #         {"name": "行", "id": "column-2", "deletable": True, "renamable": True},
+                                #         {"name": "列", "id": "column-3", "deletable": True, "renamable": True},
+                                #         {"name": "演算", "id": "column-4", "deletable": True, "renamable": True},
+                                #     ],
+                                #     # data=[{"column-{}".format(i): "" for i in range(1, 5)}],
+                                #     data=[
+                                #         {
+                                #             "column-1": df.columns[1],
+                                #             "column-2": df.columns[1],
+                                #             "column-3": df.columns[1],
+                                #             "column-4": df.columns[1],
+                                #         },
+                                #     ],
+                                #     editable=True,
+                                #     row_deletable=True,
+                                #     # dropdown={"column-1": {"options": [{"label": str(s), "value": str(s)} for s in df.columns[1:]]}},
+                                #     dropdown_conditional={"column-1": {"options": self.gen_target_item_dropdown()}},
+                                #     # dropdown={"column-1": {"options": [{"label": str(s), "value": str(s)} for s in df.columns.values]}},
+                                # ),
+                                # html.Div(id="test-table-container"),
+                                # html.Button("Add Row", id="editing-rows-button", n_clicks=0),
+                            ],
                         ),
-                        # dbc.Col( dcc.Dropdown(id='find_type1',value='固定',options=[{'label':str(s),'value':str(s)} for s in ['固定','値域','特徴点']]), width=1,),
+                        dcc.Tab(
+                            label="特徴量抽出",
+                            children=[
+                                #     dcc.Dropdown(id='shot_select',options=[{'label':'a','value':'a'},{'label':'b','value':'b'},]),
+                                # ショット選択
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            dcc.Dropdown(
+                                                id="shot_select",
+                                                value=str(flist[9]),
+                                                options=[{"label": str(f), "value": str(f)} for f in flist[8:]],
+                                            ),
+                                            width=5,
+                                            style={"width": "50vw"}  # viewpoint height
+                                            #         style={'height': '20vh','width':'50vw'} # viewpoint height
+                                        ),
+                                        # dbc.Col( dcc.Dropdown(id='find_type1',value='固定',options=[{'label':str(s),'value':str(s)} for s in ['固定','値域','特徴点']]), width=1,),
+                                    ]
+                                ),
+                                #     dcc.Dropdown(id='shot_select',options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
+                                # グラフ表示部
+                                dcc.Graph(id="graph"),
+                                # 特徴抽出操作指示: gen_input_forms()がInput,Dropdownを含むdbc.Colのリストを生成する
+                                dbc.Row(
+                                    [
+                                        dbc.Col(dbc.Label("特徴量名")),
+                                        dbc.Col(dbc.Label("対象項目"), width=2),
+                                        dbc.Col(dbc.Label("移動平均範囲")),
+                                        dbc.Col(dbc.Label("下限限定方法")),
+                                        dbc.Col(dbc.Label("下限特徴量")),
+                                        dbc.Col(dbc.Label("下限位置")),
+                                        dbc.Col(dbc.Label("上限限定方法")),
+                                        dbc.Col(dbc.Label("上限特徴量")),
+                                        dbc.Col(dbc.Label("上限位置")),
+                                        dbc.Col(dbc.Label("検索対象")),
+                                        dbc.Col(dbc.Label("検索方向")),
+                                    ]
+                                ),
+                                #         dbc.Row(gen_input_forms(0,fname='vct_min',sel_col='プレス荷重shift',rw=9,llim=1000,ulim=3000)),
+                                dbc.Row(self.gen_input_forms(0, fname="", sel_col="プレス荷重shift", rw=9, llim=1000, ulim=3000)),
+                                dbc.Row(self.gen_input_forms(1)),
+                                dbc.Row(self.gen_input_forms(2)),
+                                dbc.Row(self.gen_input_forms(3)),
+                            ],
+                        ),
                     ]
-                ),
-                #     dcc.Dropdown(id='shot_select',options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
-                # グラフ表示部
-                dcc.Graph(id="graph"),
-                # 特徴抽出操作指示: gen_input_forms()がInput,Dropdownを含むdbc.Colのリストを生成する
-                dbc.Row(
-                    [
-                        dbc.Col(dbc.Label("特徴量名")),
-                        dbc.Col(dbc.Label("対象項目"), width=2),
-                        dbc.Col(dbc.Label("移動平均範囲")),
-                        dbc.Col(dbc.Label("下限限定方法")),
-                        dbc.Col(dbc.Label("下限特徴量")),
-                        dbc.Col(dbc.Label("下限位置")),
-                        dbc.Col(dbc.Label("上限限定方法")),
-                        dbc.Col(dbc.Label("上限特徴量")),
-                        dbc.Col(dbc.Label("上限位置")),
-                        dbc.Col(dbc.Label("検索対象")),
-                        dbc.Col(dbc.Label("検索方向")),
-                    ]
-                ),
-                #         dbc.Row(gen_input_forms(0,fname='vct_min',sel_col='プレス荷重shift',rw=9,llim=1000,ulim=3000)),
-                dbc.Row(self.gen_input_forms(0, fname="", sel_col="プレス荷重shift", rw=9, llim=1000, ulim=3000)),
-                dbc.Row(self.gen_input_forms(1)),
-                dbc.Row(self.gen_input_forms(2)),
-                dbc.Row(self.gen_input_forms(3)),
+                )
             ]
         )
+
+        # 対象項目追加ボタン
+        @app.callback(
+            Output("settings-table", "children"),
+            Input("add-target-item-button", "n_clicks"),
+            State("settings-table", "children"),
+            prevent_initial_call=True,
+        )
+        def add_settings_row(row_id, row_list):
+            # return row_list.append(dbc.Row(self.gen_display_settings(row_id, "右垂直")))
+            # return dbc.Row(self.gen_display_settings(row_id, "右垂直"))
+            return row_list + [dbc.Row(self.gen_display_settings(row_id))]
+            # return dbc.Label(str(type(row_list)))
 
         # 特徴点セット2行目
         @app.callback(
