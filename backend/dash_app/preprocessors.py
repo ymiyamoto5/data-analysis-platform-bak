@@ -3,6 +3,7 @@ from sklearn.linear_model import LinearRegression
 
 def diff(df, field):
     """微分"""
+    df["sequential_number"] = df.index
     return df[field].diff() / df["sequential_number"].diff()
 
 
