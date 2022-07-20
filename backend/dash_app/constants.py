@@ -1,6 +1,5 @@
 from enum import Enum, auto
 
-
 SIDEBAR_STYLE = {
     "position": "fixed",
     "top": 0,
@@ -17,6 +16,7 @@ CONTENT_STYLE = {
     "padding": "2rem 1rem",
 }
 
+
 class NoValue(Enum):
     """自動採番される値を隠ぺいする"""
 
@@ -31,6 +31,13 @@ class NoValue(Enum):
 class PREPROCESS(NoValue):
     DIFF = auto()
     ADD = auto()
+    SUB = auto()
+    MUL = auto()
+    SHIFT = auto()
+    CALIBRATION = auto()
+    MOVING_AVERAGE = auto()
+    REGRESSION_LINE = auto()
+    THINNING_OUT = auto()
 
 
 MAX_ROWS = 2
