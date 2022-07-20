@@ -1,6 +1,5 @@
 from enum import Enum, auto
 
-
 SIDEBAR_STYLE = {
     "position": "fixed",
     "top": 0,
@@ -16,6 +15,7 @@ CONTENT_STYLE = {
     "margin-right": "2rem",
     "padding": "2rem 1rem",
 }
+
 
 class NoValue(Enum):
     """自動採番される値を隠ぺいする"""
@@ -33,5 +33,5 @@ class PREPROCESS(NoValue):
     ADD = auto()
 
 
-MAX_ROWS = 2
+MAX_ROWS = 5
 MAX_COLS = 2

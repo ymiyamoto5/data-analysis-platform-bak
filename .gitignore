@@ -54,6 +54,6 @@ tmp.png
 .env.prod
 docker-compose.override.yml
 docker/copy_dist_dir.sh
-.vscode/settings.json
+.vscode/launch.json
 notebooks/manual/*
 !notebooks/manual/利用手順書.ipynb
