@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
 from backend.elastic_manager.elastic_manager import ElasticManager
-from dash import Dash, Input, Output, State, dash_table, dcc, html
+from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html
 from plotly.subplots import make_subplots
 
 app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -33,7 +33,16 @@ def get_data_source_dropdown_options():
 
 
 def get_field_dropdown_options():
-    return [{"label": c, "value": c} for c in shot_df.columns]
+    # return [{"label": c, "value": c} for c in shot_df.columns]
+    return []
+
+
+def get_index_field_dropdown_options(index):
+    query: dict = {"sort": {"shot_number": {"order": "asc"}}}
+    result = ElasticManager.get_docs(index=index, query=query)
+    shot_df = pd.DataFrame(result)
+    options = [{"label": c, "value": c} for c in shot_df.columns]
+    return options
 
 
 def get_preprocess_dropdown_options():
@@ -62,7 +71,31 @@ def serve_layout():
                 children=[
                     html.H2("Sidebar", className="display-4"),
                     html.Hr(),
-                    html.Div([html.Label("データソース"), dcc.Dropdown(id="data-source-dropdown", options=get_data_source_dropdown_options())]),
+                    html.Div(
+                        [
+                            html.Label("データソースタイプ"),
+                            dcc.Dropdown(
+                                id="data-source-type-dropdown",
+                                options=[{"label": "CSV", "value": "csv"}, {"label": "Elasticsearch", "value": "elastic"}],
+                            ),
+                        ]
+                    ),
+                    html.Div(
+                        id="csv-field",
+                        children=[
+                            html.Label("ファイル"),
+                            dcc.Dropdown(id="csv-field-dropdown", options=[]),
+                        ],
+                        style={"display": "none"},
+                    ),
+                    html.Div(
+                        id="index-field",
+                        children=[
+                            html.Label("インデックス"),
+                            dcc.Dropdown(id="index-field-dropdown", options=get_data_source_dropdown_options()),
+                        ],
+                        style={"display": "none"},
+                    ),
                     html.Div(
                         [
                             html.Label("フィールド"),
@@ -112,7 +145,7 @@ def serve_layout():
                         id="mul-field",
                         children=[
                             html.Label("係数", style={"width": "100%"}),
-                            dcc.Input(id="mul-field-dropdown", type="number", min=1, max=1000, step=1),
+                            dcc.Input(id="mul-field-input", type="number", min=1, max=1000, step=1),
                         ],
                         style={"display": "none"},
                     ),
@@ -120,7 +153,7 @@ def serve_layout():
                         id="shift-field",
                         children=[
                             html.Label("シフト幅", style={"width": "100%"}),
-                            dcc.Input(id="shift-field-dropdown", type="number", min=-1000, max=1000, step=1),
+                            dcc.Input(id="shift-field-input", type="number", min=-1000, max=1000, step=1),
                         ],
                         style={"display": "none"},
                     ),
@@ -128,7 +161,7 @@ def serve_layout():
                         id="calibration-field",
                         children=[
                             html.Label("先頭N件", style={"width": "100%"}),
-                            dcc.Input(id="calibration-field-dropdown", type="number", min=1, max=1000, step=1),
+                            dcc.Input(id="calibration-field-input", type="number", min=1, max=1000, step=1),
                         ],
                         style={"display": "none"},
                     ),
@@ -136,7 +169,7 @@ def serve_layout():
                         id="moving-average-field",
                         children=[
                             html.Label("ウィンドウサイズ", style={"width": "100%"}),
-                            dcc.Input(id="moving-average-field-dropdown", type="number", min=1, max=100, step=1),
+                            dcc.Input(id="moving-average-field-input", type="number", min=1, max=100, step=1),
                         ],
                         style={"display": "none"},
                     ),
@@ -152,7 +185,7 @@ def serve_layout():
                         id="thinning-out-field",
                         children=[
                             html.Label("間引き幅", style={"width": "100%"}),
-                            dcc.Input(id="thinning-out-field-dropdown", type="number", min=1, max=1000, step=1),
+                            dcc.Input(id="thinning-out-field-input", type="number", min=1, max=1000, step=1),
                         ],
                         style={"display": "none"},
                     ),
@@ -197,12 +230,12 @@ app.layout = serve_layout()
     State("preprocess-dropdown", "value"),
     State("add-field-dropdown", "value"),
     State("sub-field-dropdown", "value"),
-    State("mul-field-dropdown", "value"),
-    State("shift-field-dropdown", "value"),
-    State("calibration-field-dropdown", "value"),
-    State("moving-average-field-dropdown", "value"),
+    State("mul-field-input", "value"),
+    State("shift-field-input", "value"),
+    State("calibration-field-input", "value"),
+    State("moving-average-field-input", "value"),
     State("regression-line-field-dropdown", "value"),
-    State("thinning-out-field-dropdown", "value"),
+    State("thinning-out-field-input", "value"),
 )
 def add_field_to_table(
     n_clicks,
@@ -253,32 +286,61 @@ def add_field_to_table(
 
 
 @app.callback(
-    Output("add-field", "style"),
-    Output("add-field-dropdown", "value"),
-    Input("preprocess-dropdown", "value"),
+    Output("csv-field", "style"),
+    Output("csv-field-dropdown", "value"),
+    Input("data-source-type-dropdown", "value"),
 )
-def create_add_field_dropdown(preprocess):
-    if preprocess == PREPROCESS.ADD.name:
+def create_csv_field_dropdown(data_source):
+    if data_source == "csv":
         return {}, ""
     else:
         return {"display": "none"}, ""
+
+
+@app.callback(
+    Output("index-field", "style"),
+    Output("index-field-dropdown", "value"),
+    Input("data-source-type-dropdown", "value"),
+    prevent_initial_call=True,
+)
+def create_index_field_dropdown(data_source):
+    if data_source == "elastic":
+        return {}, ""
+    else:
+        return {"display": "none"}, ""
+
+
+@app.callback(
+    Output("add-field", "style"),
+    Output("add-field-dropdown", "value"),
+    Output("add-field-dropdown", "options"),
+    Input("preprocess-dropdown", "value"),
+    State("field-dropdown", "options"),
+)
+def create_add_field_dropdown(preprocess, options):
+    if preprocess == PREPROCESS.ADD.name:
+        return {}, "", options
+    else:
+        return {"display": "none"}, "", []
 
 
 @app.callback(
     Output("sub-field", "style"),
     Output("sub-field-dropdown", "value"),
+    Output("sub-field-dropdown", "options"),
     Input("preprocess-dropdown", "value"),
+    State("field-dropdown", "options"),
 )
-def create_sub_field_dropdown(preprocess):
+def create_sub_field_dropdown(preprocess, options):
     if preprocess == PREPROCESS.SUB.name:
-        return {}, ""
+        return {}, "", options
     else:
-        return {"display": "none"}, ""
+        return {"display": "none"}, "", []
 
 
 @app.callback(
     Output("mul-field", "style"),
-    Output("mul-field-dropdown", "value"),
+    Output("mul-field-input", "value"),
     Input("preprocess-dropdown", "value"),
 )
 def create_mul_field_dropdown(preprocess):
@@ -290,10 +352,10 @@ def create_mul_field_dropdown(preprocess):
 
 @app.callback(
     Output("shift-field", "style"),
-    Output("shift-field-dropdown", "value"),
+    Output("shift-field-input", "value"),
     Input("preprocess-dropdown", "value"),
 )
-def create_shift_field_dropdown(preprocess):
+def create_shift_field_input(preprocess):
     if preprocess == PREPROCESS.SHIFT.name:
         return {}, ""
     else:
@@ -302,10 +364,10 @@ def create_shift_field_dropdown(preprocess):
 
 @app.callback(
     Output("calibration-field", "style"),
-    Output("calibration-field-dropdown", "value"),
+    Output("calibration-field-input", "value"),
     Input("preprocess-dropdown", "value"),
 )
-def create_calibration_field_dropdown(preprocess):
+def create_calibration_field_input(preprocess):
     if preprocess == PREPROCESS.CALIBRATION.name:
         return {}, ""
     else:
@@ -314,10 +376,10 @@ def create_calibration_field_dropdown(preprocess):
 
 @app.callback(
     Output("moving-average-field", "style"),
-    Output("moving-average-field-dropdown", "value"),
+    Output("moving-average-field-input", "value"),
     Input("preprocess-dropdown", "value"),
 )
-def create_moving_average_field_dropdown(preprocess):
+def create_moving_average_field_input(preprocess):
     if preprocess == PREPROCESS.MOVING_AVERAGE.name:
         return {}, ""
     else:
@@ -327,21 +389,23 @@ def create_moving_average_field_dropdown(preprocess):
 @app.callback(
     Output("regression-line-field", "style"),
     Output("regression-line-field-dropdown", "value"),
+    Output("regression-line-field-dropdown", "options"),
     Input("preprocess-dropdown", "value"),
+    State("field-dropdown", "options"),
 )
-def create_regression_line_field_dropdown(preprocess):
+def create_regression_line_field_dropdown(preprocess, options):
     if preprocess == PREPROCESS.REGRESSION_LINE.name:
-        return {}, ""
+        return {}, "", options
     else:
-        return {"display": "none"}, ""
+        return {"display": "none"}, "", []
 
 
 @app.callback(
     Output("thinning-out-field", "style"),
-    Output("thinning-out-field-dropdown", "value"),
+    Output("thinning-out-field-input", "value"),
     Input("preprocess-dropdown", "value"),
 )
-def create_thinning_out_field_dropdown(preprocess):
+def create_thinning_out_field_input(preprocess):
     if preprocess == PREPROCESS.THINNING_OUT.name:
         return {}, ""
     else:
@@ -351,20 +415,22 @@ def create_thinning_out_field_dropdown(preprocess):
 @app.callback(
     Output("shot-data", "data"),
     Input("add-button", "n_clicks"),
+    Input("index-field-dropdown", "value"),
     State("shot-data", "data"),
     State("field-dropdown", "value"),
     State("preprocess-dropdown", "value"),
     State("add-field-dropdown", "value"),
     State("sub-field-dropdown", "value"),
-    State("mul-field-dropdown", "value"),
-    State("shift-field-dropdown", "value"),
-    State("calibration-field-dropdown", "value"),
-    State("moving-average-field-dropdown", "value"),
+    State("mul-field-input", "value"),
+    State("shift-field-input", "value"),
+    State("calibration-field-input", "value"),
+    State("moving-average-field-input", "value"),
     State("regression-line-field-dropdown", "value"),
-    State("thinning-out-field-dropdown", "value"),
+    State("thinning-out-field-input", "value"),
 )
 def set_data(
     n_clicks,
+    index,
     shot_data,
     field,
     preprocess,
@@ -377,10 +443,13 @@ def set_data(
     regression_line_field,
     thinning_out_field,
 ):
-    if n_clicks <= 0:
-        df = shot_df.copy()
-    else:
+    df = shot_df.copy()
+    if ctx.triggered_id == "add-button":
         df = pd.read_json(shot_data, orient="split")
+    elif ctx.triggered_id == "index-field-dropdown":
+        query: dict = {"sort": {"shot_number": {"order": "asc"}}}
+        result = ElasticManager.get_docs(index=index, query=query)
+        df = pd.DataFrame(result)
 
     if preprocess is None or preprocess == "":
         return df.to_json(date_format="iso", orient="split")
@@ -416,9 +485,11 @@ def set_data(
     Input("shot-data", "data"),
     Input("setting-table", "data_previous"),  # 行削除を監視
     State("setting-table", "data"),
+    prevent_initial_call=True,
 )
 def add_field_to_graph(shot_data, previous_rows, rows):
     df = pd.read_json(shot_data, orient="split")
+    # df = shot_df
 
     # TODO: M行N列は別のInputから取得
     M, N = (2, 2)
@@ -428,7 +499,7 @@ def add_field_to_graph(shot_data, previous_rows, rows):
     # TODO: サブプロットごとにDataFrameを作っているが非効率。もっと良い方法がないか？
     for m in range(1, M + 1):
         for n in range(1, N + 1):
-            display_df = pd.DataFrame(shot_df["sequential_number"])
+            display_df = pd.DataFrame(df["sequential_number"])
             for row in rows:
                 if row["field"] == "" or row["row_number"] == "" or row["col_number"] == "":
                     continue
@@ -452,14 +523,28 @@ def add_field_to_graph(shot_data, previous_rows, rows):
 @app.callback(
     Output("field-dropdown", "options"),
     Input("add-button", "n_clicks"),
+    Input("index-field-dropdown", "value"),
+    State("shot-data", "data"),
     State("field-dropdown", "value"),
     State("field-dropdown", "options"),
     State("preprocess-dropdown", "value"),
+    prevent_initial_call=True,
 )
-def add_field_to_preprocess_dropdown(n_clicks, field, options, preprocess):
-    if field is not None and preprocess is not None:
-        new_field = field + preprocess
-        options.append({"label": new_field, "value": new_field})
+def add_field_to_preprocess_dropdown(n_clicks, index, shot_data, field, options, preprocess):
+    """
+    データソースドロップダウンの変更を検知したときはフィールドオプションをセットする。
+    追加ボタンが押下されたときはフィールドオプションに新しいフィールドを追加する。
+    """
+    shot_df = pd.read_json(shot_data, orient="split")
+    if ctx.triggered_id == "index-field-dropdown":
+        if index is not None:
+            options = get_index_field_dropdown_options(index)
+    elif ctx.triggered_id == "add-button":
+        if field is not None and preprocess is not None:
+            new_field = field + preprocess
+            # 既存のフィールドは追加しない
+            if new_field not in shot_df.columns:
+                options.append({"label": new_field, "value": new_field})
     return options
 
 
