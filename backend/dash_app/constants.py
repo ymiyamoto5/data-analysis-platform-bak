@@ -40,5 +40,5 @@ class PREPROCESS(NoValue):
     THINNING_OUT = auto()
 
 
-MAX_ROWS = 2
+MAX_ROWS = 5
 MAX_COLS = 2
