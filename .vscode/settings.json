@@ -1,0 +1,54 @@
+{
+    "python.pythonPath": "venv/bin/python",
+    "python.languageServer": "Pylance",
+    "python.linting.flake8Enabled": true,
+    "python.linting.lintOnSave": true,
+    "python.linting.flake8Args": [
+        "--ignore=E731,W503,E125,E203,E402",
+        "--max-line-length=140",
+    ],
+    "python.formatting.blackArgs": [
+        "--line-length",
+        "140"
+    ],
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--config-file",
+        "mypy.ini"
+    ],
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "."
+    ],
+    // for frontend
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true,
+        "source.fixAll.vue": true,
+        "source.organizeImports": true
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "[vue]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2
+    },
+    "prettier.trailingComma": "all",
+    "prettier.singleQuote": true,
+    "prettier.semi": false,
+    "prettier.vueIndentScriptAndStyle": false,
+    "python.envFile": "${workspaceFolder}/.env.local",
+    "LOCAL_IP": "10.25.163.156",
+    "FASTAPI_DEV_SERVER_PORT": "8002",
+    "VUE_DEV_SERVER_PORT": "8082",
+    "git.ignoreLimitWarning": true
+}
