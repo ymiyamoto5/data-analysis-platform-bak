@@ -2,7 +2,6 @@ from pathlib import Path
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
@@ -50,6 +49,8 @@ def get_shot_df_from_csv(csv_file):
 
 
 def get_preprocess_dropdown_options():
+    """演算処理のドロップダウンリストオプションを返す"""
+
     return [
         {"label": "", "value": ""},
         {"label": PREPROCESS.DIFF.value, "value": PREPROCESS.DIFF.name},
@@ -65,6 +66,8 @@ def get_preprocess_dropdown_options():
 
 
 def serve_layout():
+    """レイアウト定義を返す"""
+
     return html.Div(
         id="main",
         children=[
@@ -263,6 +266,10 @@ def add_button_clicked(
     csv_file,
     shot_data,
 ):
+    """追加ボタン押下時のコールバック
+    演算処理、テーブル行の追加、およびショットデータのStoreへの格納を行う
+    """
+
     if n_clicks <= 0:
         raise PreventUpdate
 
@@ -275,32 +282,7 @@ def add_button_clicked(
         elif csv_file:
             df = get_shot_df_from_csv(csv_file)
 
-    # ショットデータへの演算処理
-    if preprocess is not None and preprocess != "":
-        if preprocess == PREPROCESS.DIFF.name:
-            preprocessed_field = diff(df, field)
-        elif preprocess == PREPROCESS.ADD.name:
-            preprocessed_field = add(df, field, add_field)
-        elif preprocess == PREPROCESS.SUB.name:
-            preprocessed_field = sub(df, field, sub_field)
-        elif preprocess == PREPROCESS.MUL.name:
-            preprocessed_field = mul(df, field, mul_field)
-        elif preprocess == PREPROCESS.SHIFT.name:
-            preprocessed_field = shift(df, field, shift_field)
-        elif preprocess == PREPROCESS.CALIBRATION.name:
-            preprocessed_field = calibration(df, field, calibration_field)
-        elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
-            preprocessed_field = moving_average(df, field, moving_average_field)
-        elif preprocess == PREPROCESS.REGRESSION_LINE.name:
-            preprocessed_field = regression_line(df, field, regression_line_field)
-            # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
-        elif preprocess == PREPROCESS.THINNING_OUT.name:
-            preprocessed_field = thinning_out(df, field, thinning_out_field)
-        else:
-            preprocessed_field = df[field]
-        df[field + preprocess] = preprocessed_field
-
-    # テーブルへの処理
+    # テーブルに追加する行データ
     new_row = {
         "field": field,
         "row_number": row_number,
@@ -309,22 +291,39 @@ def add_button_clicked(
         "detail": "",
     }
 
-    if add_field:
-        new_row["detail"] = f"加算行: {add_field}"
-    elif sub_field:
-        new_row["detail"] = f"減算行: {sub_field}"
-    elif mul_field:
-        new_row["detail"] = f"係数: {mul_field}"
-    elif shift_field:
-        new_row["detail"] = f"シフト幅: {shift_field}"
-    elif calibration_field:
-        new_row["detail"] = f"校正: 先頭{calibration_field}件"
-    elif moving_average_field:
-        new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
-    elif regression_line_field:
-        new_row["detail"] = f"回帰直線: {regression_line_field}"
-    elif thinning_out_field:
-        new_row["detail"] = f"間引き幅: {thinning_out_field}"
+    # ショットデータへの演算処理
+    if preprocess:
+        if preprocess == PREPROCESS.DIFF.name:
+            preprocessed_field = diff(df, field)
+            new_row["detail"] = "微分"
+        elif preprocess == PREPROCESS.ADD.name:
+            preprocessed_field = add(df, field, add_field)
+            new_row["detail"] = f"加算行: {add_field}"
+        elif preprocess == PREPROCESS.SUB.name:
+            preprocessed_field = sub(df, field, sub_field)
+            new_row["detail"] = f"減算行: {sub_field}"
+        elif preprocess == PREPROCESS.MUL.name:
+            preprocessed_field = mul(df, field, mul_field)
+            new_row["detail"] = f"係数: {mul_field}"
+        elif preprocess == PREPROCESS.SHIFT.name:
+            preprocessed_field = shift(df, field, shift_field)
+            new_row["detail"] = f"シフト幅: {shift_field}"
+        elif preprocess == PREPROCESS.CALIBRATION.name:
+            preprocessed_field = calibration(df, field, calibration_field)
+            new_row["detail"] = f"校正: 先頭{calibration_field}件"
+        elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
+            preprocessed_field = moving_average(df, field, moving_average_field)
+            new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
+        elif preprocess == PREPROCESS.REGRESSION_LINE.name:
+            # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
+            preprocessed_field = regression_line(df, field, regression_line_field)
+            new_row["detail"] = f"回帰直線: {regression_line_field}"
+        elif preprocess == PREPROCESS.THINNING_OUT.name:
+            preprocessed_field = thinning_out(df, field, thinning_out_field)
+            new_row["detail"] = f"間引き幅: {thinning_out_field}"
+        else:
+            preprocessed_field = df[field]
+        df[field + preprocess] = preprocessed_field
 
     rows.append(new_row)
 
@@ -479,33 +478,32 @@ def create_thinning_out_field_input(preprocess):
     prevent_initial_call=True,
 )
 def add_field_to_graph(previous_rows, rows, shot_data):
+    """テーブルの変更（フィールドの追加・削除）を検知し、グラフを描画する。
+    グラフ領域はコールバックの度にテーブル内容を参照して再描画する。
+    """
+
+    if len(rows) == 0:
+        fig = make_subplots()
+        return fig
+
     df = pd.read_json(shot_data, orient="split")
 
     max_row_number = max([r["row_number"] for r in rows])
     max_col_number = max([r["col_number"] for r in rows])
 
-    fig = make_subplots(rows=max_row_number, cols=max_col_number)
+    # M行N列のグラフ領域
+    fig = make_subplots(rows=max_row_number, cols=max_col_number, shared_xaxes=True, vertical_spacing=0.02, horizontal_spacing=0.05)
 
-    # TODO: サブプロットごとにDataFrameを作っているが非効率。もっと良い方法がないか？
+    # グラフの数だけループ
     for m in range(1, max_row_number + 1):
         for n in range(1, max_col_number + 1):
-            display_df = pd.DataFrame({"sequential_number": df.index})
             for row in rows:
-                if row["field"] == "" or row["row_number"] == "" or row["col_number"] == "":
-                    continue
-                row_number = int(row["row_number"])
-                col_number = int(row["col_number"])
-                # 入力で指定した行列番号と一致する場合、その項目を表示するためにDataFrameに加える
-                if row_number == m and col_number == n:
-                    if row["preprocess"] is not None:
-                        display_df[row["field"] + row["preprocess"]] = df[row["field"] + row["preprocess"]]
-                    else:
-                        display_df[row["field"]] = df[row["field"]]
-            sub_fig = px.line(data_frame=display_df, x="sequential_number", y=display_df.columns)
-            for d in sub_fig.data:
-                fig.add_trace(go.Scatter(x=d["x"], y=d["y"], name=d["name"], connectgaps=True), row=m, col=n)
+                # 入力で指定した（テーブルに記録されている）行列番号と一致する場合、当該位置のグラフに追加表示
+                if row["row_number"] == m and row["col_number"] == n:
+                    display_row = row["field"] + row["preprocess"] if row["preprocess"] else row["field"]
+                    fig.add_trace(go.Scatter(x=df.index, y=df[display_row], name=display_row), row=m, col=n)
 
-    fig.update_layout(height=600, width=1000)
+    fig.update_layout(width=1300, height=600)
 
     return fig
 
@@ -538,14 +536,14 @@ def change_field_dropdown(n_clicks, index, csv_file, field, options, preprocess)
 
     # フィールドドロップダウンリストに演算結果のフィールドを追加
     if ctx.triggered_id == "add-button":
-        if field is not None and preprocess is not None:
+        if field and preprocess:
             new_field = field + preprocess
-            # 既存のフィールドは追加しない
+            # FIXME: 既存のフィールドチェックのためだけにデータを読んでいるが、非効率
             if index:
                 df = get_shot_df_from_elastic(index, size=1)
             elif csv_file:
                 df = get_shot_df_from_csv(csv_file)
-
+            # 既存のフィールドは追加しない
             if new_field not in df.columns:
                 options.append({"label": new_field, "value": new_field})
 
