@@ -1,40 +1,33 @@
-import dash_bootstrap_components as dbc
+from pathlib import Path
+
+import dash_bootstrap_components as dbc  # type: ignore
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import plotly.express as px  # type: ignore
+import plotly.graph_objects as go  # type: ignore
 from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
 from backend.elastic_manager.elastic_manager import ElasticManager
-from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html
-from dash.exceptions import PreventUpdate
-from plotly.subplots import make_subplots
+from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html  # type: ignore
+from dash.exceptions import PreventUpdate  # type: ignore
+from plotly.subplots import make_subplots  # type: ignore
+
+app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 
-def get_index_field_dropdown_options(index):
+def get_shot_df_from_elastic(index, size=10):
+    """elasticsearch indexからショットデータを取得し、DataFrameとして返す"""
+
     query: dict = {"sort": {"shot_number": {"order": "asc"}}}
-    result = ElasticManager.get_docs(index=index, query=query)
+    result = ElasticManager.get_docs(index=index, query=query, size=size)
     shot_df = pd.DataFrame(result)
-    options = [{"label": c, "value": c} for c in shot_df.columns]
-    return options
+    return shot_df
 
 
-def get_preprocess_dropdown_options():
-    return [
-        {"label": "", "value": ""},
-        {"label": "微分", "value": PREPROCESS.DIFF.name},
-        {"label": "加算", "value": PREPROCESS.ADD.name},
-        {"label": "減算", "value": PREPROCESS.SUB.name},
-        {"label": "係数乗算", "value": PREPROCESS.MUL.name},
-        {"label": "シフト", "value": PREPROCESS.SHIFT.name},
-        {"label": "校正", "value": PREPROCESS.CALIBRATION.name},
-        {"label": "移動平均", "value": PREPROCESS.MOVING_AVERAGE.name},
-        {"label": "回帰直線", "value": PREPROCESS.REGRESSION_LINE.name},
-        {"label": "間引き", "value": PREPROCESS.THINNING_OUT.name},
-    ]
+def get_shot_df_from_csv(csv_file):
+    """csvファイルを読み込み、DataFrameとして返す
+    TODO: 特定のCSVファイルに特化されているため、汎用化が必要
+    """
 
-
-def get_csv_file(csv_file):
-    df = pd.read_csv(csv_file, encoding="cp932", skiprows=[0, 1, 2, 3, 4, 5, 6, 7])
     df = pd.read_csv(
         csv_file,
         encoding="cp932",
@@ -56,6 +49,21 @@ def get_csv_file(csv_file):
     return df
 
 
+def get_preprocess_dropdown_options():
+    return [
+        {"label": "", "value": ""},
+        {"label": PREPROCESS.DIFF.value, "value": PREPROCESS.DIFF.name},
+        {"label": PREPROCESS.ADD.value, "value": PREPROCESS.ADD.name},
+        {"label": PREPROCESS.SUB.value, "value": PREPROCESS.SUB.name},
+        {"label": PREPROCESS.MUL.value, "value": PREPROCESS.MUL.name},
+        {"label": PREPROCESS.SHIFT.value, "value": PREPROCESS.SHIFT.name},
+        {"label": PREPROCESS.CALIBRATION.value, "value": PREPROCESS.CALIBRATION.name},
+        {"label": PREPROCESS.MOVING_AVERAGE.value, "value": PREPROCESS.MOVING_AVERAGE.name},
+        {"label": PREPROCESS.REGRESSION_LINE.value, "value": PREPROCESS.REGRESSION_LINE.name},
+        {"label": PREPROCESS.THINNING_OUT.value, "value": PREPROCESS.THINNING_OUT.name},
+    ]
+
+
 def serve_layout():
     return html.Div(
         id="main",
@@ -64,7 +72,7 @@ def serve_layout():
             html.Div(
                 id="sidebar",
                 children=[
-                    html.H2("表示設定", className="display-4"),
+                    html.H3("表示設定", className="display-4"),
                     html.Hr(),
                     html.Div(
                         [
@@ -181,7 +189,7 @@ def serve_layout():
                         ],
                         style={"display": "none"},
                     ),
-                    html.Button("追加", id="add-button", n_clicks=0),
+                    dbc.Button("追加", id="add-button", n_clicks=0, style={"margin-top": "1rem"}),
                 ],
                 style=SIDEBAR_STYLE,
             ),
@@ -209,8 +217,9 @@ def serve_layout():
     )
 
 
-app = Dash()
 app.layout = serve_layout()
+
+######## callbacks ########
 
 
 @app.callback(
@@ -262,11 +271,9 @@ def add_button_clicked(
         df = pd.read_json(shot_data, orient="split")
     else:
         if elastic_index:
-            query: dict = {"sort": {"shot_number": {"order": "asc"}}}
-            result = ElasticManager.get_docs(index=elastic_index, query=query)
-            df = pd.DataFrame(result)
+            df = get_shot_df_from_elastic(elastic_index, size=10000)
         elif csv_file:
-            df = get_csv_file(csv_file)
+            df = get_shot_df_from_csv(csv_file)
 
     # ショットデータへの演算処理
     if preprocess is not None and preprocess != "":
@@ -331,8 +338,6 @@ def add_button_clicked(
     prevent_initial_call=True,
 )
 def set_csv_file_options(data_source_type):
-    from pathlib import Path
-
     if data_source_type == "csv":
         path = Path("/customer_data/ymiyamoto5-aida_A39D/private/data/aida/")
         flist = list(sorted(path.glob("*.CSV")))
@@ -349,9 +354,8 @@ def set_csv_file_options(data_source_type):
     prevent_initial_call=True,
 )
 def set_elastic_index_options(data_source_type):
-    # TODO: 実装
     if data_source_type == "elastic":
-        options = []
+        options = [{"label": s, "value": s} for s in ElasticManager.show_indices(index="shots-*-data")["index"]]
         return {}, options
     else:
         return {"display": "none"}, []
@@ -477,22 +481,14 @@ def create_thinning_out_field_input(preprocess):
 def add_field_to_graph(previous_rows, rows, shot_data):
     df = pd.read_json(shot_data, orient="split")
 
-    graph_max_row = 1
-    graph_max_col = 1
+    max_row_number = max([r["row_number"] for r in rows])
+    max_col_number = max([r["col_number"] for r in rows])
 
-    for row in rows:
-        if graph_max_row < row["row_number"]:
-            graph_max_row = row["row_number"]
-        if graph_max_col < row["col_number"]:
-            graph_max_col = row["col_number"]
-
-    M, N = (graph_max_row, graph_max_col)
-
-    fig = make_subplots(rows=M, cols=N)
+    fig = make_subplots(rows=max_row_number, cols=max_col_number)
 
     # TODO: サブプロットごとにDataFrameを作っているが非効率。もっと良い方法がないか？
-    for m in range(1, M + 1):
-        for n in range(1, N + 1):
+    for m in range(1, max_row_number + 1):
+        for n in range(1, max_col_number + 1):
             display_df = pd.DataFrame({"sequential_number": df.index})
             for row in rows:
                 if row["field"] == "" or row["row_number"] == "" or row["col_number"] == "":
@@ -530,23 +526,32 @@ def change_field_dropdown(n_clicks, index, csv_file, field, options, preprocess)
     追加ボタンが押下されたときはフィールドオプションに新しいフィールドを追加する。
     """
 
-    if ctx.triggered_id == "elastic-index-dropdown":
-        if index is not None:
-            options = get_index_field_dropdown_options(index)
-
-    elif ctx.triggered_id == "csv-file-dropdown":
-        df = get_csv_file(csv_file)
+    if ctx.triggered_id == "elastic-index-dropdown" and index:
+        df = get_shot_df_from_elastic(index, size=1)
         options = [{"label": c, "value": c} for c in df.columns]
+        return options
 
-    elif ctx.triggered_id == "add-button":
+    if ctx.triggered_id == "csv-file-dropdown" and csv_file:
+        df = get_shot_df_from_csv(csv_file)
+        options = [{"label": c, "value": c} for c in df.columns]
+        return options
+
+    # フィールドドロップダウンリストに演算結果のフィールドを追加
+    if ctx.triggered_id == "add-button":
         if field is not None and preprocess is not None:
             new_field = field + preprocess
             # 既存のフィールドは追加しない
-            df = get_csv_file(csv_file)
+            if index:
+                df = get_shot_df_from_elastic(index, size=1)
+            elif csv_file:
+                df = get_shot_df_from_csv(csv_file)
+
             if new_field not in df.columns:
                 options.append({"label": new_field, "value": new_field})
 
-    return options
+        return options
+
+    return []
 
 
 if __name__ == "__main__":
