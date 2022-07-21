@@ -72,6 +72,7 @@ def serve_layout():
         id="main",
         children=[
             dcc.Store(id="shot-data"),
+            dcc.Store(id="preprocessed-shot-data"),
             html.Div(
                 id="sidebar",
                 children=[
@@ -227,10 +228,14 @@ app.layout = serve_layout()
 
 @app.callback(
     Output("setting-table", "data"),
+    Output("field-dropdown", "options"),
     Output("shot-data", "data"),
     Input("add-button", "n_clicks"),
+    Input("elastic-index-dropdown", "value"),
+    Input("csv-file-dropdown", "value"),
     State("setting-table", "data"),
     State("field-dropdown", "value"),
+    State("field-dropdown", "options"),
     State("row-number-dropdown", "value"),
     State("col-number-dropdown", "value"),
     State("preprocess-dropdown", "value"),
@@ -242,15 +247,16 @@ app.layout = serve_layout()
     State("moving-average-field-input", "value"),
     State("regression-line-field-dropdown", "value"),
     State("thinning-out-field-input", "value"),
-    State("elastic-index-dropdown", "value"),
-    State("csv-file-dropdown", "value"),
     State("shot-data", "data"),
     prevent_initial_call=True,
 )
 def add_button_clicked(
     n_clicks,
+    elastic_index,
+    csv_file,
     rows,
     field,
+    field_options,
     row_number,
     col_number,
     preprocess,
@@ -262,37 +268,51 @@ def add_button_clicked(
     moving_average_field,
     regression_line_field,
     thinning_out_field,
-    elastic_index,
-    csv_file,
     shot_data,
 ):
     """追加ボタン押下時のコールバック
     演算処理、テーブル行の追加、およびショットデータのStoreへの格納を行う
+    NOTE: 複数のコールバックから同じIDの要素へのOutputを指定することはできない。つまり、同じ要素へOutputしたい処理は
+          同じコールバック内にまとめる必要がある。ctx.triggerd_idでどのUIからトリガーされたかは判断できるが、コールバック内の
+          処理が煩雑になるのは致し方ない。
     """
 
-    if n_clicks <= 0:
-        raise PreventUpdate
+    # elasticsearch index選択のドロップダウンが変更されたときはデータ再読み込み。テーブルはクリア。
+    if ctx.triggered_id == "elastic-index-dropdown" and elastic_index:
+        df = get_shot_df_from_elastic(elastic_index, size=10000)
+        options = [{"label": c, "value": c} for c in df.columns]
+        return [], options, df.to_json(date_format="iso", orient="split")
 
-    # すでにshot_dataがキャッシュされている場合はそれを使う
-    if shot_data:
-        df = pd.read_json(shot_data, orient="split")
-    else:
-        if elastic_index:
-            df = get_shot_df_from_elastic(elastic_index, size=10000)
+    # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルはクリア。
+    if ctx.triggered_id == "csv-file-dropdown" and csv_file:
+        df = get_shot_df_from_csv(csv_file)
+        options = [{"label": c, "value": c} for c in df.columns]
+        return [], options, df.to_json(date_format="iso", orient="split")
+
+    # 追加ボタン押下時はテーブルへの行追加とフィールドドロップダウンリストに演算結果のフィールド追加を行う
+    if ctx.triggered_id == "add-button":
+        if shot_data:
+            df = pd.read_json(shot_data, orient="split")
+        elif elastic_index:
+            df = get_shot_df_from_elastic(elastic_index, size=1)
         elif csv_file:
             df = get_shot_df_from_csv(csv_file)
 
-    # テーブルに追加する行データ
-    new_row = {
-        "field": field,
-        "row_number": row_number,
-        "col_number": col_number,
-        "preprocess": preprocess,
-        "detail": "",
-    }
+        # テーブルに追加する行データ
+        new_row = {
+            "field": field,
+            "row_number": row_number,
+            "col_number": col_number,
+            "preprocess": preprocess,
+            "detail": "",
+        }
 
-    # ショットデータへの演算処理
-    if preprocess:
+        # 演算がなければ、テーブルに新しい行を追加するだけ。
+        if not preprocess:
+            rows.append(new_row)
+            return rows, field_options, df.to_json(date_format="iso", orient="split")
+
+        # ショットデータへの演算処理
         if preprocess == PREPROCESS.DIFF.name:
             preprocessed_field = diff(df, field)
             new_row["detail"] = "微分"
@@ -323,11 +343,17 @@ def add_button_clicked(
             new_row["detail"] = f"間引き幅: {thinning_out_field}"
         else:
             preprocessed_field = df[field]
-        df[field + preprocess] = preprocessed_field
 
-    rows.append(new_row)
+        new_field = field + preprocess
+        df[new_field] = preprocessed_field
 
-    return rows, df.to_json(date_format="iso", orient="split")
+        # フィールドドロップダウンオプションに演算結果列を追加。既存のフィールドは追加しない。
+        if new_field not in field_options:
+            field_options.append({"label": new_field, "value": new_field})
+
+        rows.append(new_row)
+
+        return rows, field_options, df.to_json(date_format="iso", orient="split")
 
 
 @app.callback(
@@ -506,50 +532,6 @@ def add_field_to_graph(previous_rows, rows, shot_data):
     fig.update_layout(width=1300, height=600)
 
     return fig
-
-
-@app.callback(
-    Output("field-dropdown", "options"),
-    Input("add-button", "n_clicks"),
-    Input("elastic-index-dropdown", "value"),
-    Input("csv-file-dropdown", "value"),
-    State("field-dropdown", "value"),
-    State("field-dropdown", "options"),
-    State("preprocess-dropdown", "value"),
-    prevent_initial_call=True,
-)
-def change_field_dropdown(n_clicks, index, csv_file, field, options, preprocess):
-    """
-    データソースドロップダウンの変更を検知したときはフィールドオプションをセットする。
-    追加ボタンが押下されたときはフィールドオプションに新しいフィールドを追加する。
-    """
-
-    if ctx.triggered_id == "elastic-index-dropdown" and index:
-        df = get_shot_df_from_elastic(index, size=1)
-        options = [{"label": c, "value": c} for c in df.columns]
-        return options
-
-    if ctx.triggered_id == "csv-file-dropdown" and csv_file:
-        df = get_shot_df_from_csv(csv_file)
-        options = [{"label": c, "value": c} for c in df.columns]
-        return options
-
-    # フィールドドロップダウンリストに演算結果のフィールドを追加
-    if ctx.triggered_id == "add-button":
-        if field and preprocess:
-            new_field = field + preprocess
-            # FIXME: 既存のフィールドチェックのためだけにデータを読んでいるが、非効率
-            if index:
-                df = get_shot_df_from_elastic(index, size=1)
-            elif csv_file:
-                df = get_shot_df_from_csv(csv_file)
-            # 既存のフィールドは追加しない
-            if new_field not in df.columns:
-                options.append({"label": new_field, "value": new_field})
-
-        return options
-
-    return []
 
 
 if __name__ == "__main__":
