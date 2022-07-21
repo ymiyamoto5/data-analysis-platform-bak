@@ -1,15 +1,15 @@
 from pathlib import Path
 
-import dash_bootstrap_components as dbc  # type: ignore
+import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.express as px  # type: ignore
-import plotly.graph_objects as go  # type: ignore
+import plotly.express as px
+import plotly.graph_objects as go
 from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
 from backend.elastic_manager.elastic_manager import ElasticManager
-from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html  # type: ignore
-from dash.exceptions import PreventUpdate  # type: ignore
-from plotly.subplots import make_subplots  # type: ignore
+from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html
+from dash.exceptions import PreventUpdate
+from plotly.subplots import make_subplots
 
 app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
