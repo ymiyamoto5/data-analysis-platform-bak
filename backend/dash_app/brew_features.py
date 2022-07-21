@@ -1,19 +1,15 @@
-import json
-import os
-from datetime import date, datetime, timedelta
 from textwrap import dedent as d
 
-import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
-import dash_html_components as html
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 from backend.dash_app.fft_tools import *
 from backend.dash_app.plotly_utils import *
 
-gened_features = {}  # global!!!
+# global!!!
+gened_features = {}  # type: ignore
 
 
 def read_logger(f):
@@ -872,13 +868,13 @@ class brewFeatures:
 
 
 if __name__ == "__main__":
-    brewFeatures = brewFeatures()
+    brewFeatures = brewFeatures()  # type: ignore
     disp_co = {}
     disp_co["プレス荷重shift"] = [1, 1, None]
     disp_co["右垂直"] = [1, 1, None]
     disp_co["スライド変位右"] = [2, 1, None]
     disp_co["スライド変位左"] = [2, 1, None]
     # disp_co["F*dFdt"] = [3, 1, 'df["F*dFdt"] = df["プレス荷重shift"]*(df["プレス荷重shift"].diff() / df["time"].diff())']
-    brewFeatures.set_dispcol(disp_co)
-    app = brewFeatures.make_app()
+    brewFeatures.set_dispcol(disp_co)  # type: ignore
+    app = brewFeatures.make_app()  # type: ignore
     app.run_server(host="0.0.0.0", port=8048, debug=True)
