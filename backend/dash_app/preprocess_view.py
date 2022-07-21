@@ -2,7 +2,6 @@ from pathlib import Path
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
@@ -263,6 +262,10 @@ def add_button_clicked(
     csv_file,
     shot_data,
 ):
+    """追加ボタン押下時のコールバック
+    演算処理、テーブル行の追加、およびショットデータのStoreへの格納を行う
+    """
+
     if n_clicks <= 0:
         raise PreventUpdate
 
@@ -276,7 +279,7 @@ def add_button_clicked(
             df = get_shot_df_from_csv(csv_file)
 
     # ショットデータへの演算処理
-    if preprocess is not None and preprocess != "":
+    if preprocess:
         if preprocess == PREPROCESS.DIFF.name:
             preprocessed_field = diff(df, field)
         elif preprocess == PREPROCESS.ADD.name:
@@ -479,33 +482,28 @@ def create_thinning_out_field_input(preprocess):
     prevent_initial_call=True,
 )
 def add_field_to_graph(previous_rows, rows, shot_data):
+    """テーブルの変更（フィールドの追加・削除）を検知し、グラフを描画する"""
+
+    if len(rows) == 0:
+        fig = make_subplots()
+        return fig
+
     df = pd.read_json(shot_data, orient="split")
 
     max_row_number = max([r["row_number"] for r in rows])
     max_col_number = max([r["col_number"] for r in rows])
 
-    fig = make_subplots(rows=max_row_number, cols=max_col_number)
+    fig = make_subplots(rows=max_row_number, cols=max_col_number, shared_xaxes=True, vertical_spacing=0.02, horizontal_spacing=0.05)
 
-    # TODO: サブプロットごとにDataFrameを作っているが非効率。もっと良い方法がないか？
+    # 入力で指定した行列番号と一致する場合、その項目を表示するためにDataFrameに加える
     for m in range(1, max_row_number + 1):
         for n in range(1, max_col_number + 1):
-            display_df = pd.DataFrame({"sequential_number": df.index})
             for row in rows:
-                if row["field"] == "" or row["row_number"] == "" or row["col_number"] == "":
-                    continue
-                row_number = int(row["row_number"])
-                col_number = int(row["col_number"])
-                # 入力で指定した行列番号と一致する場合、その項目を表示するためにDataFrameに加える
-                if row_number == m and col_number == n:
-                    if row["preprocess"] is not None:
-                        display_df[row["field"] + row["preprocess"]] = df[row["field"] + row["preprocess"]]
-                    else:
-                        display_df[row["field"]] = df[row["field"]]
-            sub_fig = px.line(data_frame=display_df, x="sequential_number", y=display_df.columns)
-            for d in sub_fig.data:
-                fig.add_trace(go.Scatter(x=d["x"], y=d["y"], name=d["name"], connectgaps=True), row=m, col=n)
+                if row["row_number"] == m and row["col_number"] == n:
+                    display_row = row["field"] + row["preprocess"] if row["preprocess"] else row["field"]
+                    fig.add_trace(go.Scatter(x=df.index, y=df[display_row], name=display_row), row=m, col=n)
 
-    fig.update_layout(height=600, width=1000)
+    fig.update_layout(width=1300, height=600)
 
     return fig
 
