@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum
 
 SIDEBAR_STYLE = {
     "position": "fixed",
@@ -17,27 +17,16 @@ CONTENT_STYLE = {
 }
 
 
-class NoValue(Enum):
-    """自動採番される値を隠ぺいする"""
-
-    def __repr__(self):
-        """PREPROCESS.DIFFでアクセスした場合の表示
-        overrideなし: <PREPROCESS.DIFF: 1>
-        overrideあり: <PREPROCESS.DIFF>
-        """
-        return "<%s.%s>" % (self.__class__.__name__, self.name)
-
-
-class PREPROCESS(NoValue):
-    DIFF = auto()
-    ADD = auto()
-    SUB = auto()
-    MUL = auto()
-    SHIFT = auto()
-    CALIBRATION = auto()
-    MOVING_AVERAGE = auto()
-    REGRESSION_LINE = auto()
-    THINNING_OUT = auto()
+class PREPROCESS(Enum):
+    DIFF = "微分"
+    ADD = "加算"
+    SUB = "減算"
+    MUL = "係数乗算"
+    SHIFT = "シフト"
+    CALIBRATION = "校正"
+    MOVING_AVERAGE = "移動平均"
+    REGRESSION_LINE = "回帰直線"
+    THINNING_OUT = "間引き"
 
 
 MAX_ROWS = 5
