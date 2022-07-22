@@ -7,16 +7,16 @@ from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPRO
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
 from backend.elastic_manager.elastic_manager import ElasticManager
 from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html
-from dash.exceptions import PreventUpdate
 from plotly.subplots import make_subplots
 
 app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 
-def get_shot_df_from_elastic(index, size=10):
+def get_shot_df_from_elastic(index, shot_number, size=10000):
     """elasticsearch indexからショットデータを取得し、DataFrameとして返す"""
 
-    query: dict = {"sort": {"shot_number": {"order": "asc"}}}
+    query: dict = {"query": {"term": {"shot_number": {"value": shot_number}}}, "sort": {"sequential_number": {"order": "asc"}}}
+
     result = ElasticManager.get_docs(index=index, query=query, size=size)
     shot_df = pd.DataFrame(result)
     return shot_df
@@ -100,6 +100,14 @@ def serve_layout():
                         children=[
                             html.Label("インデックス"),
                             dcc.Dropdown(id="elastic-index-dropdown"),
+                        ],
+                        style={"display": "none"},
+                    ),
+                    html.Div(
+                        id="shot-number",
+                        children=[
+                            html.Label("ショット番号"),
+                            dcc.Dropdown(id="shot-number-dropdown"),
                         ],
                         style={"display": "none"},
                     ),
@@ -261,6 +269,31 @@ def set_elastic_index_options(data_source_type):
         return {"display": "none"}, []
 
 
+@app.callback(
+    Output("shot-number", "style"),
+    Output("shot-number-dropdown", "options"),
+    Input("elastic-index-dropdown", "value"),
+    prevent_initial_call=True,
+)
+def set_shot_number_options(elastic_index):
+    """ショット番号選択ドロップダウンのオプション設定"""
+
+    if not elastic_index:
+        return {"display": "none"}, []
+
+    query: dict = {
+        "collapse": {"field": "shot_number"},
+        "query": {"match_all": {}},
+        "_source": ["shot_number"],
+        "sort": {"shot_number": {"order": "asc"}},
+    }
+
+    docs = ElasticManager.get_docs(index=elastic_index, query=query, size=10000)
+    shot_numbers = [d["shot_number"] for d in docs]
+
+    return {}, shot_numbers
+
+
 # Start 演算用callbacks
 
 
@@ -382,8 +415,9 @@ def create_thinning_out_field_input(preprocess):
     Output("field-dropdown", "options"),
     Output("shot-data", "data"),
     Input("add-button", "n_clicks"),
-    Input("elastic-index-dropdown", "value"),
+    Input("shot-number-dropdown", "value"),
     Input("csv-file-dropdown", "value"),
+    State("elastic-index-dropdown", "value"),
     State("setting-table", "data"),
     State("field-dropdown", "value"),
     State("field-dropdown", "options"),
@@ -403,8 +437,9 @@ def create_thinning_out_field_input(preprocess):
 )
 def add_button_clicked(
     n_clicks,
-    elastic_index,
+    shot_number,
     csv_file,
+    elastic_index,
     rows,
     field,
     field_options,
@@ -430,8 +465,8 @@ def add_button_clicked(
 
     # elasticsearch index選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
     # NOTE: 変更後に同じフィールドが存在しない場合エラーとなるが、テーブルから手動削除することによる運用回避とする。
-    if ctx.triggered_id == "elastic-index-dropdown" and elastic_index:
-        df = get_shot_df_from_elastic(elastic_index, size=10000)
+    if ctx.triggered_id == "shot-number-dropdown" and elastic_index:
+        df = get_shot_df_from_elastic(elastic_index, shot_number, size=10000)
         options = [{"label": c, "value": c} for c in df.columns]
         return rows, options, df.to_json(date_format="iso", orient="split")
 
