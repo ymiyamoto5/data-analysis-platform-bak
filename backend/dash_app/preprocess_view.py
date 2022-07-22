@@ -223,137 +223,7 @@ def serve_layout():
 
 app.layout = serve_layout()
 
-######## callbacks ########
-
-
-@app.callback(
-    Output("setting-table", "data"),
-    Output("field-dropdown", "options"),
-    Output("shot-data", "data"),
-    Input("add-button", "n_clicks"),
-    Input("elastic-index-dropdown", "value"),
-    Input("csv-file-dropdown", "value"),
-    State("setting-table", "data"),
-    State("field-dropdown", "value"),
-    State("field-dropdown", "options"),
-    State("row-number-dropdown", "value"),
-    State("col-number-dropdown", "value"),
-    State("preprocess-dropdown", "value"),
-    State("add-field-dropdown", "value"),
-    State("sub-field-dropdown", "value"),
-    State("mul-field-input", "value"),
-    State("shift-field-input", "value"),
-    State("calibration-field-input", "value"),
-    State("moving-average-field-input", "value"),
-    State("regression-line-field-dropdown", "value"),
-    State("thinning-out-field-input", "value"),
-    State("shot-data", "data"),
-    prevent_initial_call=True,
-)
-def add_button_clicked(
-    n_clicks,
-    elastic_index,
-    csv_file,
-    rows,
-    field,
-    field_options,
-    row_number,
-    col_number,
-    preprocess,
-    add_field,
-    sub_field,
-    mul_field,
-    shift_field,
-    calibration_field,
-    moving_average_field,
-    regression_line_field,
-    thinning_out_field,
-    shot_data,
-):
-    """追加ボタン押下時のコールバック
-    演算処理、テーブル行の追加、およびショットデータのStoreへの格納を行う
-    NOTE: 複数のコールバックから同じIDの要素へのOutputを指定することはできない。つまり、同じ要素へOutputしたい処理は
-          同じコールバック内にまとめる必要がある。ctx.triggerd_idでどのUIからトリガーされたかは判断できるが、コールバック内の
-          処理が煩雑になるのは致し方ない。
-    """
-
-    # elasticsearch index選択のドロップダウンが変更されたときはデータ再読み込み。テーブルはクリア。
-    if ctx.triggered_id == "elastic-index-dropdown" and elastic_index:
-        df = get_shot_df_from_elastic(elastic_index, size=10000)
-        options = [{"label": c, "value": c} for c in df.columns]
-        return [], options, df.to_json(date_format="iso", orient="split")
-
-    # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルはクリア。
-    if ctx.triggered_id == "csv-file-dropdown" and csv_file:
-        df = get_shot_df_from_csv(csv_file)
-        options = [{"label": c, "value": c} for c in df.columns]
-        return [], options, df.to_json(date_format="iso", orient="split")
-
-    # 追加ボタン押下時はテーブルへの行追加とフィールドドロップダウンリストに演算結果のフィールド追加を行う
-    if ctx.triggered_id == "add-button":
-        if shot_data:
-            df = pd.read_json(shot_data, orient="split")
-        elif elastic_index:
-            df = get_shot_df_from_elastic(elastic_index, size=1)
-        elif csv_file:
-            df = get_shot_df_from_csv(csv_file)
-
-        # テーブルに追加する行データ
-        new_row = {
-            "field": field,
-            "row_number": row_number,
-            "col_number": col_number,
-            "preprocess": preprocess,
-            "detail": "",
-        }
-
-        # 演算がなければ、テーブルに新しい行を追加するだけ。
-        if not preprocess:
-            rows.append(new_row)
-            return rows, field_options, df.to_json(date_format="iso", orient="split")
-
-        # ショットデータへの演算処理
-        if preprocess == PREPROCESS.DIFF.name:
-            preprocessed_field = diff(df, field)
-            new_row["detail"] = "微分"
-        elif preprocess == PREPROCESS.ADD.name:
-            preprocessed_field = add(df, field, add_field)
-            new_row["detail"] = f"加算行: {add_field}"
-        elif preprocess == PREPROCESS.SUB.name:
-            preprocessed_field = sub(df, field, sub_field)
-            new_row["detail"] = f"減算行: {sub_field}"
-        elif preprocess == PREPROCESS.MUL.name:
-            preprocessed_field = mul(df, field, mul_field)
-            new_row["detail"] = f"係数: {mul_field}"
-        elif preprocess == PREPROCESS.SHIFT.name:
-            preprocessed_field = shift(df, field, shift_field)
-            new_row["detail"] = f"シフト幅: {shift_field}"
-        elif preprocess == PREPROCESS.CALIBRATION.name:
-            preprocessed_field = calibration(df, field, calibration_field)
-            new_row["detail"] = f"校正: 先頭{calibration_field}件"
-        elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
-            preprocessed_field = moving_average(df, field, moving_average_field)
-            new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
-        elif preprocess == PREPROCESS.REGRESSION_LINE.name:
-            # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
-            preprocessed_field = regression_line(df, field, regression_line_field)
-            new_row["detail"] = f"回帰直線: {regression_line_field}"
-        elif preprocess == PREPROCESS.THINNING_OUT.name:
-            preprocessed_field = thinning_out(df, field, thinning_out_field)
-            new_row["detail"] = f"間引き幅: {thinning_out_field}"
-        else:
-            preprocessed_field = df[field]
-
-        new_field = field + preprocess
-        df[new_field] = preprocessed_field
-
-        # フィールドドロップダウンオプションに演算結果列を追加。既存のフィールドは追加しない。
-        if new_field not in field_options:
-            field_options.append({"label": new_field, "value": new_field})
-
-        rows.append(new_row)
-
-        return rows, field_options, df.to_json(date_format="iso", orient="split")
+# callbacks #
 
 
 @app.callback(
@@ -363,7 +233,10 @@ def add_button_clicked(
     prevent_initial_call=True,
 )
 def set_csv_file_options(data_source_type):
+    """CSVファイル選択ドロップダウンのオプション設定"""
+
     if data_source_type == "csv":
+        # TODO: CSVファイルのディレクトリパスが決め打ちのため、要修正
         path = Path("/customer_data/ymiyamoto5-aida_A39D/private/data/aida/")
         flist = list(sorted(path.glob("*.CSV")))
         options = [{"label": f.name, "value": str(f)} for f in flist]
@@ -379,11 +252,16 @@ def set_csv_file_options(data_source_type):
     prevent_initial_call=True,
 )
 def set_elastic_index_options(data_source_type):
+    """Elasticsearch index選択ドロップダウンのオプション設定"""
+
     if data_source_type == "elastic":
         options = [{"label": s, "value": s} for s in ElasticManager.show_indices(index="shots-*-data")["index"]]
         return {}, options
     else:
         return {"display": "none"}, []
+
+
+# Start 演算用callbacks
 
 
 @app.callback(
@@ -494,6 +372,140 @@ def create_thinning_out_field_input(preprocess):
         return {}, ""
     else:
         return {"display": "none"}, ""
+
+
+# End 演算用callbacks
+
+
+@app.callback(
+    Output("setting-table", "data"),
+    Output("field-dropdown", "options"),
+    Output("shot-data", "data"),
+    Input("add-button", "n_clicks"),
+    Input("elastic-index-dropdown", "value"),
+    Input("csv-file-dropdown", "value"),
+    State("setting-table", "data"),
+    State("field-dropdown", "value"),
+    State("field-dropdown", "options"),
+    State("row-number-dropdown", "value"),
+    State("col-number-dropdown", "value"),
+    State("preprocess-dropdown", "value"),
+    State("add-field-dropdown", "value"),
+    State("sub-field-dropdown", "value"),
+    State("mul-field-input", "value"),
+    State("shift-field-input", "value"),
+    State("calibration-field-input", "value"),
+    State("moving-average-field-input", "value"),
+    State("regression-line-field-dropdown", "value"),
+    State("thinning-out-field-input", "value"),
+    State("shot-data", "data"),
+    prevent_initial_call=True,
+)
+def add_button_clicked(
+    n_clicks,
+    elastic_index,
+    csv_file,
+    rows,
+    field,
+    field_options,
+    row_number,
+    col_number,
+    preprocess,
+    add_field,
+    sub_field,
+    mul_field,
+    shift_field,
+    calibration_field,
+    moving_average_field,
+    regression_line_field,
+    thinning_out_field,
+    shot_data,
+):
+    """追加ボタン押下時のコールバック
+    演算処理、テーブル行の追加、およびショットデータのStoreへの格納を行う
+    NOTE: 複数のコールバックから同じIDの要素へのOutputを指定することはできない。つまり、同じ要素へOutputしたい処理は
+          同じコールバック内にまとめる必要がある。ctx.triggerd_idでどのUIからトリガーされたかは判断できるが、コールバック内の
+          処理が煩雑になるのは致し方ない。
+    """
+
+    # elasticsearch index選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
+    # NOTE: 変更後に同じフィールドが存在しない場合エラーとなるが、テーブルから手動削除することによる運用回避とする。
+    if ctx.triggered_id == "elastic-index-dropdown" and elastic_index:
+        df = get_shot_df_from_elastic(elastic_index, size=10000)
+        options = [{"label": c, "value": c} for c in df.columns]
+        return rows, options, df.to_json(date_format="iso", orient="split")
+
+    # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
+    if ctx.triggered_id == "csv-file-dropdown" and csv_file:
+        df = get_shot_df_from_csv(csv_file)
+        options = [{"label": c, "value": c} for c in df.columns]
+        return rows, options, df.to_json(date_format="iso", orient="split")
+
+    # 追加ボタン押下時はテーブルへの行追加とフィールドドロップダウンリストに演算結果のフィールド追加を行う
+    if ctx.triggered_id == "add-button":
+        if shot_data:
+            df = pd.read_json(shot_data, orient="split")
+        elif elastic_index:
+            df = get_shot_df_from_elastic(elastic_index, size=1)
+        elif csv_file:
+            df = get_shot_df_from_csv(csv_file)
+
+        # テーブルに追加する行データ
+        new_row = {
+            "field": field,
+            "row_number": row_number,
+            "col_number": col_number,
+            "preprocess": preprocess,
+            "detail": "",
+        }
+
+        # 演算がなければ、テーブルに新しい行を追加するだけ。
+        if not preprocess:
+            rows.append(new_row)
+            return rows, field_options, df.to_json(date_format="iso", orient="split")
+
+        # ショットデータへの演算処理
+        if preprocess == PREPROCESS.DIFF.name:
+            preprocessed_field = diff(df, field)
+            new_row["detail"] = "微分"
+        elif preprocess == PREPROCESS.ADD.name:
+            preprocessed_field = add(df, field, add_field)
+            new_row["detail"] = f"加算行: {add_field}"
+        elif preprocess == PREPROCESS.SUB.name:
+            preprocessed_field = sub(df, field, sub_field)
+            new_row["detail"] = f"減算行: {sub_field}"
+        elif preprocess == PREPROCESS.MUL.name:
+            preprocessed_field = mul(df, field, mul_field)
+            new_row["detail"] = f"係数: {mul_field}"
+        elif preprocess == PREPROCESS.SHIFT.name:
+            preprocessed_field = shift(df, field, shift_field)
+            new_row["detail"] = f"シフト幅: {shift_field}"
+        elif preprocess == PREPROCESS.CALIBRATION.name:
+            preprocessed_field = calibration(df, field, calibration_field)
+            new_row["detail"] = f"校正: 先頭{calibration_field}件"
+        elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
+            preprocessed_field = moving_average(df, field, moving_average_field)
+            new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
+        elif preprocess == PREPROCESS.REGRESSION_LINE.name:
+            # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
+            preprocessed_field = regression_line(df, field, regression_line_field)
+            new_row["detail"] = f"回帰直線: {regression_line_field}"
+        elif preprocess == PREPROCESS.THINNING_OUT.name:
+            preprocessed_field = thinning_out(df, field, thinning_out_field)
+            new_row["detail"] = f"間引き幅: {thinning_out_field}"
+        else:
+            preprocessed_field = df[field]
+
+        new_field = field + preprocess
+        df[new_field] = preprocessed_field
+
+        # フィールドドロップダウンオプションに演算結果列を追加。既存のフィールドは追加しない。
+        if new_field not in field_options:
+            field_options.append({"label": new_field, "value": new_field})
+
+        rows.append(new_row)
+
+        return rows, field_options, df.to_json(date_format="iso", orient="split")
 
 
 @app.callback(
