@@ -1,3 +1,13 @@
+"""
+ ==================================
+  brew_features.py
+ ==================================
+
+  Copyright(c) 2022 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
 import json
 import os
 from textwrap import dedent as d
@@ -15,40 +25,40 @@ import numpy as np
 
 
 
-# データごとにこの関数を書けば良いように
-def read_logger(f):
-    # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
-    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
-    unit = df.iloc[4]
-    offset = df.iloc[3]
-    calibration = df.iloc[2]
-    v_range = df.iloc[1]
-    channel = df.iloc[0]
-    # 改めて8行目をヘッダにして読み込む
-    # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
-    # floatのindex作っちゃダメ!!!
-    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
-    try:
-        df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
-        df['dF/dt'] = df['プレス荷重shift'].diff()
-        df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
-        if '加速度左右_X_左+' in df.columns:
-            df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
-        if '加速度上下_Y_下+' in df.columns:
-            df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
-        if '加速度前後_Z_前+' in df.columns:
-            df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
-    except KeyError:
-        print('プレス荷重　無し')
-
-    return df,unit,offset,calibration,v_range,channel
-
-# 項目の情報を取得するため1ファイルだけ先に読む。ToDo:前データ項目共通の前提
-from pathlib import Path
-p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
-flist = list(sorted(p.glob('*.CSV')))
-f = flist[10]
-df = read_logger(f)[0][:3000]
+## データごとにこの関数を書けば良いように
+#def read_logger(f):
+#    # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
+#    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
+#    unit = df.iloc[4]
+#    offset = df.iloc[3]
+#    calibration = df.iloc[2]
+#    v_range = df.iloc[1]
+#    channel = df.iloc[0]
+#    # 改めて8行目をヘッダにして読み込む
+#    # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
+#    # floatのindex作っちゃダメ!!!
+#    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
+#    try:
+#        df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
+#        df['dF/dt'] = df['プレス荷重shift'].diff()
+#        df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
+#        if '加速度左右_X_左+' in df.columns:
+#            df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
+#        if '加速度上下_Y_下+' in df.columns:
+#            df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
+#        if '加速度前後_Z_前+' in df.columns:
+#            df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
+#    except KeyError:
+#        print('プレス荷重　無し')
+#
+#    return df,unit,offset,calibration,v_range,channel
+#
+## 項目の情報を取得するため1ファイルだけ先に読む。ToDo:前データ項目共通の前提
+#from pathlib import Path
+#p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
+#flist = list(sorted(p.glob('*.CSV')))
+#f = flist[10]
+#df = read_logger(f)[0][:3000]
 
 ## "項目名" => 表示subplot-id のdictionary
 #disp_col = {}
@@ -74,46 +84,46 @@ df = read_logger(f)[0][:3000]
 #disp_col['スライド＿金型隙間'] = [2,2]
 
 
-class dataReader:
-    def __init__(self):
-        # 抽出済み特徴量の "名前=>値(index)" となるdictionary。
-        from pathlib import Path
-        p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
-        self.flist = list(sorted(p.glob('*.CSV')))
-
-    def get_shot_list(self):
-        return self.flist
-
-    def get_shot(self,num):
-        return self.flist[num]
-
-    def read_logger(self,f):
-        # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
-        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
-        unit = df.iloc[4]
-        offset = df.iloc[3]
-        calibration = df.iloc[2]
-        v_range = df.iloc[1]
-        channel = df.iloc[0]
-        # 改めて8行目をヘッダにして読み込む
-        # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
-        # floatのindex作っちゃダメ!!!
-        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
-        try:
-            df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
-            df['dF/dt'] = df['プレス荷重shift'].diff()
-            df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
-            if '加速度左右_X_左+' in df.columns:
-                df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
-            if '加速度上下_Y_下+' in df.columns:
-                df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
-            if '加速度前後_Z_前+' in df.columns:
-                df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
-        except KeyError:
-            print('プレス荷重　無し')
-
-        #return df,unit,offset,calibration,v_range,channel
-        return df
+#class DataAccessor:
+#    def __init__(self):
+#        # 抽出済み特徴量の "名前=>値(index)" となるdictionary。
+#        from pathlib import Path
+#        p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
+#        self.flist = list(sorted(p.glob('*.CSV')))
+#
+#    def get_shot_list(self):
+#        return self.flist
+#
+#    def get_shot(self,num):
+#        return self.flist[num]
+#
+#    def read_logger(self,f):
+#        # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
+#        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
+#        unit = df.iloc[4]
+#        offset = df.iloc[3]
+#        calibration = df.iloc[2]
+#        v_range = df.iloc[1]
+#        channel = df.iloc[0]
+#        # 改めて8行目をヘッダにして読み込む
+#        # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
+#        # floatのindex作っちゃダメ!!!
+#        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
+#        try:
+#            df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
+#            df['dF/dt'] = df['プレス荷重shift'].diff()
+#            df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
+#            if '加速度左右_X_左+' in df.columns:
+#                df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
+#            if '加速度上下_Y_下+' in df.columns:
+#                df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
+#            if '加速度前後_Z_前+' in df.columns:
+#                df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
+#        except KeyError:
+#            print('プレス荷重　無し')
+#
+#        #return df,unit,offset,calibration,v_range,channel
+#        return df
 
 class brewFeatures:
     def __init__(self):
@@ -127,7 +137,7 @@ class brewFeatures:
         self.dr = None
         self.gened_features = {}
 
-    def set_dataReader(self,dr):
+    def set_DataAccessor(self,dr):
         self.dr = dr
 
     def set_dispcol(self, disp_col):
@@ -649,14 +659,16 @@ class brewFeatures:
         return app
 
 if __name__ == '__main__':
+    from data_accessor import DataAccessor
+
     # brewFeaturesインスタンスを生成
     brewFeatures = brewFeatures()
-    # dataReaderインスタンスを生成してbrewFeaturesにセット
-    brewFeatures.set_dataReader(dataReader())
+    # DataAccessorインスタンスを生成してbrewFeaturesにセット
+    brewFeatures.set_DataAccessor(DataAccessor())
     # disp_colをoverrideすることで、グラフ表示をカスタマイズ
-    # disp_colはdataReader側にあるべきか?
+    # disp_colはDataAccessor側にあるべきか?
     disp_co = {}
-    # "time"項目は表示対象外だが、微分する時に必要。dataReaderで必ず"time"項目を作るという決まりにする?
+    # "time"項目は表示対象外だが、微分する時に必要。DataAccessorで必ず"time"項目を作るという決まりにする?
     #disp_co['time'] = [0,0,None]    # plotlyのsubplotのrow,colは0 originではないので0,0は存在しない
     disp_co['プレス荷重shift'] = [1,1,None]
     disp_co['右垂直'] = [1,1,None]
