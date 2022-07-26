@@ -211,24 +211,6 @@ services:
     networks:
       - docker_network
     restart: always
-  dsl_generator:
-    build:
-      context: ..
-      dockerfile: docker/dsl_generator.dockerfile
-      args:
-        - USERNAME=${USERNAME}
-        - UID=${UID}
-        - GID=${GID}
-    env_file: ${ENV_FILE}
-    volumes:
-      - ../dsl_generator:/home/${USERNAME}/dsl_generator
-      - ../backend:/home/${USERNAME}/backend
-    user: '${UID}:${GID}'
-    command: python -m dsl_generator.dsl_generator
-    # command: /bin/sh -c "while :; do sleep 10; done"
-    restart: always
-    networks:
-      - docker_network
 
 networks:
   docker_network:
