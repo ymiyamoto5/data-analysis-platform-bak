@@ -157,7 +157,7 @@ def serve_layout():
                         id="mul-field",
                         children=[
                             html.Label("係数", style={"width": "100%"}),
-                            dcc.Input(id="mul-field-input", type="number", min=1, max=1000, step=1),
+                            dcc.Input(id="mul-field-input", type="number", min=0.1, max=1000),
                         ],
                         style={"display": "none"},
                     ),
@@ -495,6 +495,7 @@ def add_button_clicked(
             "col_number": col_number,
             "preprocess": preprocess,
             "detail": "",
+            "parameter": "",
         }
 
         # 演算がなければ、テーブルに新しい行を追加するだけ。
@@ -506,35 +507,43 @@ def add_button_clicked(
         if preprocess == PREPROCESS.DIFF.name:
             preprocessed_field = diff(df, field)
             new_row["detail"] = "微分"
+            parameter = ""
         elif preprocess == PREPROCESS.ADD.name:
             preprocessed_field = add(df, field, add_field)
             new_row["detail"] = f"加算行: {add_field}"
+            parameter = f"_{add_field}"
         elif preprocess == PREPROCESS.SUB.name:
             preprocessed_field = sub(df, field, sub_field)
             new_row["detail"] = f"減算行: {sub_field}"
+            parameter = f"_{sub_field}"
         elif preprocess == PREPROCESS.MUL.name:
             preprocessed_field = mul(df, field, mul_field)
             new_row["detail"] = f"係数: {mul_field}"
+            parameter = f"_{mul_field}"
         elif preprocess == PREPROCESS.SHIFT.name:
             preprocessed_field = shift(df, field, shift_field)
             new_row["detail"] = f"シフト幅: {shift_field}"
+            parameter = f"_{shift_field}"
         elif preprocess == PREPROCESS.CALIBRATION.name:
             preprocessed_field = calibration(df, field, calibration_field)
             new_row["detail"] = f"校正: 先頭{calibration_field}件"
+            parameter = f"_{calibration_field}"
         elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
             preprocessed_field = moving_average(df, field, moving_average_field)
             new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
+            parameter = f"_{moving_average_field}"
         elif preprocess == PREPROCESS.REGRESSION_LINE.name:
             # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
             preprocessed_field = regression_line(df, field, regression_line_field)
             new_row["detail"] = f"回帰直線: {regression_line_field}"
+            parameter = f"_{regression_line_field}"
         elif preprocess == PREPROCESS.THINNING_OUT.name:
             preprocessed_field = thinning_out(df, field, thinning_out_field)
             new_row["detail"] = f"間引き幅: {thinning_out_field}"
-        else:
-            preprocessed_field = df[field]
+            parameter = f"_{thinning_out_field}"
 
-        new_field = field + preprocess
+        new_row["parameter"] = parameter
+        new_field = f"{field}_{preprocess}{parameter}"
         df[new_field] = preprocessed_field
 
         # フィールドドロップダウンオプションに演算結果列を追加。既存のフィールドは追加しない。
@@ -576,7 +585,7 @@ def add_field_to_graph(previous_rows, rows, shot_data):
             for row in rows:
                 # 入力で指定した（テーブルに記録されている）行列番号と一致する場合、当該位置のグラフに追加表示
                 if row["row_number"] == m and row["col_number"] == n:
-                    display_row = row["field"] + row["preprocess"] if row["preprocess"] else row["field"]
+                    display_row = f'{row["field"]}_{row["preprocess"]}{row["parameter"]}' if row["preprocess"] else row["field"]
                     fig.add_trace(go.Scatter(x=df.index, y=df[display_row], name=display_row), row=m, col=n)
 
     fig.update_layout(width=1300, height=600)
