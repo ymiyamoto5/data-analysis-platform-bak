@@ -231,7 +231,7 @@ def serve_layout():
 
 app.layout = serve_layout()
 
-# callbacks #
+# BEGIN callbacks #
 
 
 @app.callback(
@@ -269,9 +269,6 @@ def set_elastic_index_options(data_source_type):
         return {"display": "none"}, []
 
 
-# Start 演算用callbacks
-
-
 @app.callback(
     Output("shot-number", "style"),
     Output("shot-number-dropdown", "options"),
@@ -297,7 +294,7 @@ def set_shot_number_options(elastic_index):
     return {}, shot_numbers
 
 
-# Start 演算用callbacks
+# BEGIN 演算用callbacks
 
 
 @app.callback(
@@ -410,7 +407,7 @@ def create_thinning_out_field_input(preprocess):
         return {"display": "none"}, ""
 
 
-# End 演算用callbacks
+# END 演算用callbacks
 
 
 @app.callback(
@@ -592,6 +589,8 @@ def add_field_to_graph(previous_rows, rows, shot_data):
 
     return fig
 
+
+# END callbacks
 
 if __name__ == "__main__":
     app.run_server(host="0.0.0.0", port=8053, debug=True)
