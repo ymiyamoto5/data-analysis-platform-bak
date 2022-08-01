@@ -1,44 +1,57 @@
 import numpy as np
 import plotly.graph_objs as go
 import dash
-#import dash_core_components as dcc
-#import dash_html_components as html
+
+# import dash_core_components as dcc
+# import dash_html_components as html
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
-def _plotly_add_shape(fig,ftype,xmin,xmax,ymin,ymax,fillcolor,alpha,xref,yref,layer,line_width):
+
+def _plotly_add_shape(fig, ftype, xmin, xmax, ymin, ymax, fillcolor, alpha, xref, yref, layer, line_width):
     """
     plotly_hspan(),plotly_vspan()からのみ呼ばれ、figオブジェクトにshapeを描きこむ。
-    """    
+    """
     shapes = []
-    #for s in fig.layout['shapes']:
-    for s in fig['layout']['shapes']:
+    # for s in fig.layout['shapes']:
+    for s in fig["layout"]["shapes"]:
         shapes.append(s)
-    if ftype == 'rect':
+    if ftype == "rect":
         shapes.append(
-            {'type':'rect',
-             'x0':xmin, 'x1':xmax,
-             'y0':ymin, 'y1':ymax,
-             'xref': xref, 'yref': yref,
-             'fillcolor':fillcolor,
-             'opacity':alpha,
-             'layer':layer,
-             'line_width':0,}
+            {
+                "type": "rect",
+                "x0": xmin,
+                "x1": xmax,
+                "y0": ymin,
+                "y1": ymax,
+                "xref": xref,
+                "yref": yref,
+                "fillcolor": fillcolor,
+                "opacity": alpha,
+                "layer": layer,
+                "line_width": 0,
+            }
         )
-    elif ftype == 'line':
-        alpha=1.0
+    elif ftype == "line":
+        alpha = 1.0
         shapes.append(
-            {'type':'line',
-             'x0':xmin, 'x1':xmax,
-             'y0':ymin, 'y1':ymax,
-             'xref': xref, 'yref': yref,
-             'line':{'color':fillcolor,'width': line_width},
-             'opacity':alpha,
-             'layer':layer, }
+            {
+                "type": "line",
+                "x0": xmin,
+                "x1": xmax,
+                "y0": ymin,
+                "y1": ymax,
+                "xref": xref,
+                "yref": yref,
+                "line": {"color": fillcolor, "width": line_width},
+                "opacity": alpha,
+                "layer": layer,
+            }
         )
     fig.update_layout(shapes=shapes)
 
-def plotly_hspan(fig,ymin,ymax,ftype='rect',xref='x',yref='y',fillcolor='LightSalmon',alpha=0.5,layer='below',line_width=1):
+
+def plotly_hspan(fig, ymin, ymax, ftype="rect", xref="x", yref="y", fillcolor="LightSalmon", alpha=0.5, layer="below", line_width=1):
     """
     figオブジェクトに、X方向最大、Y方向任意の矩形、もしくは直線をshapeとして描画する。
     Y方向の描画位置はymin,ymaxの必須引数として指定する。矩形と直線はftypeとして指定する。
@@ -64,57 +77,62 @@ def plotly_hspan(fig,ymin,ymax,ftype='rect',xref='x',yref='y',fillcolor='LightSa
     :fillcolor (str)        塗りつぶし色
     :alpha (float(0.0-1.0)) 透明度
     :return                 なし
-    """    
+    """
 
     for d in fig.data:
-        if d['xaxis'] == xref:
-            xmin = d['x'].min()
-            xmax = d['x'].max()
+        if d["xaxis"] == xref:
+            xmin = d["x"].min()
+            xmax = d["x"].max()
             break
-    _plotly_add_shape(fig,ftype,xmin,xmax,ymin,ymax,fillcolor,alpha,xref,yref,layer,line_width)
-    
-def plotly_vspan(fig,xmin,xmax,ftype='rect',xref='x',yref='y',fillcolor='LightSalmon',alpha=0.5,layer='below',line_width=1):
+    _plotly_add_shape(fig, ftype, xmin, xmax, ymin, ymax, fillcolor, alpha, xref, yref, layer, line_width)
+
+
+def plotly_vspan(fig, xmin, xmax, ftype="rect", xref="x", yref="y", fillcolor="LightSalmon", alpha=0.5, layer="below", line_width=1):
     """
     plotly_hspan()のX軸/Y軸を入れ替えたもの。plotly_hspan()参照。
-    """    
-    #for d in fig.data:
-    for d in fig['data']:
-        if d['yaxis'] == yref:
+    """
+    # for d in fig.data:
+    for d in fig["data"]:
+        if d["yaxis"] == yref:
 
-#             s = '%s'%d
-#             f = open('/tmp/debug.log','a')
-#             f.write(s)
-#             f.close()
-            
-            ymin = d['y'][~np.isnan(d['y'])].min()
-            ymax = d['y'][~np.isnan(d['y'])].max()
+            #             s = '%s'%d
+            #             f = open('/tmp/debug.log','a')
+            #             f.write(s)
+            #             f.close()
 
-#             f = open('/tmp/debug.log','a')
-#             s = 'ymin:%f ymax:%f\n'%(ymin,ymax)
-#             f.write(s)
-#             f.close()
+            ymin = d["y"][~np.isnan(d["y"])].min()
+            ymax = d["y"][~np.isnan(d["y"])].max()
+
+            #             f = open('/tmp/debug.log','a')
+            #             s = 'ymin:%f ymax:%f\n'%(ymin,ymax)
+            #             f.write(s)
+            #             f.close()
 
             break
-    _plotly_add_shape(fig,ftype,xmin,xmax,ymin,ymax,fillcolor,alpha,xref,yref,layer,line_width)    
+    _plotly_add_shape(fig, ftype, xmin, xmax, ymin, ymax, fillcolor, alpha, xref, yref, layer, line_width)
+
+
 import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-def multi_col_figure(df,title='',row_titles=None,width=500,height=600,margin={'t':80,'l':60,'r':30,'b':30},heights_list=None):
-    # 
-    if row_titles is None:
-        row_titles=list(df.columns)
-    fig = make_subplots(rows=len(df.columns), cols=1, shared_xaxes=True, vertical_spacing = 0.01, 
-                    row_titles=row_titles,row_heights=heights_list)
-    for i in range(len(df.columns)):
-        fig.add_trace(go.Scatter(x=df.index, y=df.iloc[:,i], name=df.columns[i],marker_color='#3498db' ), row=i+1, col=1)
 
-    fig.update_xaxes(matches='x')  # X軸だけ連動
-    #fig.update_layout(showlegend=False, title_text=title,width=width,height=height,margin=margin)
-    fig.update_layout(showlegend=False, title_text=title,height=height,margin=margin)
+def multi_col_figure(df, title="", row_titles=None, width=500, height=600, margin={"t": 80, "l": 60, "r": 30, "b": 30}, heights_list=None):
+    #
+    if row_titles is None:
+        row_titles = list(df.columns)
+    fig = make_subplots(
+        rows=len(df.columns), cols=1, shared_xaxes=True, vertical_spacing=0.01, row_titles=row_titles, row_heights=heights_list
+    )
+    for i in range(len(df.columns)):
+        fig.add_trace(go.Scatter(x=df.index, y=df.iloc[:, i], name=df.columns[i], marker_color="#3498db"), row=i + 1, col=1)
+
+    fig.update_xaxes(matches="x")  # X軸だけ連動
+    # fig.update_layout(showlegend=False, title_text=title,width=width,height=height,margin=margin)
+    fig.update_layout(showlegend=False, title_text=title, height=height, margin=margin)
     return fig
 
-def plot_multi_col(df,title='',width=800,height=1000,margin={'t':80,'l':60,'r':30,'b':60},heights_list=None):
-    fig = multi_col_figure(df,title,width,height,margin)
-    fig.show()
 
+def plot_multi_col(df, title="", width=800, height=1000, margin={"t": 80, "l": 60, "r": 30, "b": 60}, heights_list=None):
+    fig = multi_col_figure(df, title, width, height, margin)
+    fig.show()
