@@ -1,8 +1,9 @@
 import numpy as np
 import plotly.graph_objs as go
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+#import dash_core_components as dcc
+#import dash_html_components as html
+from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 def _plotly_add_shape(fig,ftype,xmin,xmax,ymin,ymax,fillcolor,alpha,xref,yref,layer,line_width):

@@ -1,30 +1,59 @@
-from textwrap import dedent as d
+"""
+ ==================================
+  brew_features.py
+ ==================================
 
-import dash_bootstrap_components as dbc
-import dash_core_components as dcc
+  Copyright(c) 2022 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
+'''
+export DB_SQL_ECHO=0
+export SQLALCHEMY_DATABASE_URI='sqlite:////mnt/datadrive/app.db'
+#export ELASTIC_URL=10.25.175.39:9200
+#export ELASTIC_URL=10.25.160.104:9200
+#export ELASTIC_URL=10.25.163.156:9200
+#export ELASTIC_USER=elastic
+#export ELASTIC_PASSWORD=P@ssw0rd
+export ELASTIC_URL=10.25.163.156:9200
+#export ELASTIC_URL='http://10.25.163.156:9200'  # elasticsearch 8.3.1ではscheme必須
+export ELASTIC_USER=elastic
+export ELASTIC_PASSWORD=1qazZAQ!
+
+python -m backend.dash_app.brew_features
+'''
 import numpy as np
 import pandas as pd
+import plotly.express as px
+from jupyter_dash import JupyterDash
+import dash_bootstrap_components as dbc
+from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
+from backend.dash_app.preprocessors import add, calibration, diff, moving_average,   mul, regression_line, shift, sub, thinning_out
+from backend.elastic_manager.elastic_manager import ElasticManager
+from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html
+from dash import dash_table
+from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-from backend.dash_app.fft_tools import *
-from backend.dash_app.plotly_utils import *
+from collections import OrderedDict
+from pathlib import Path
 
-# global!!!
-gened_features = {}  # type: ignore
+def get_shot_df_from_elastic(index, shot_number, size=10000):
+    """elasticsearch indexからショットデータを取得し、DataFrameとして返す"""
 
+    query: dict = {"query": {"term": {"shot_number": {"value": shot_number}}}, "sort": {"sequential_number": {"order": "asc"}}}
 
-def read_logger(f):
-    # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
-    df = pd.read_csv(f, encoding="cp932", skiprows=[0, 1, 2, 3, 4, 5, 6, 7])
-    unit = df.iloc[4]
-    offset = df.iloc[3]
-    calibration = df.iloc[2]
-    v_range = df.iloc[1]
-    channel = df.iloc[0]
-    # 改めて8行目をヘッダにして読み込む
-    # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
-    # floatのindex作っちゃダメ!!!
+    result = ElasticManager.get_docs(index=index, query=query, size=size)
+    shot_df = pd.DataFrame(result)
+    return shot_df
+ 
+def get_shot_df_from_csv(csv_file):
+    """csvファイルを読み込み、DataFrameとして返す
+    TODO: 特定のCSVファイルに特化されているため、汎用化が必要
+    """
+
     df = pd.read_csv(
-        f,
+        csv_file,
         encoding="cp932",
         skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13],
     ).rename({"CH名称": "time"}, axis=1)
@@ -41,59 +70,58 @@ def read_logger(f):
     except KeyError:
         print("プレス荷重　無し")
 
-    return df, unit, offset, calibration, v_range, channel
+    return df
 
 
-# 項目の情報を取得するため1ファイルだけ先に読む。ToDo:前データ項目共通の前提
-from pathlib import Path
+def get_preprocess_dropdown_options():
+      """演算処理のドロップダウンリストオプションを返す"""
 
-# p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
-p = Path("/customer_data/ymiyamoto5-aida_A39D/private/data/aida/")
-flist = list(sorted(p.glob("*.CSV")))
-f = flist[10]
-df = read_logger(f)[0][:3000]
+      return [
+          {"label": "", "value": ""},
+          {"label": PREPROCESS.DIFF.value, "value": PREPROCESS.DIFF.name},
+          {"label": PREPROCESS.ADD.value, "value": PREPROCESS.ADD.name},
+          {"label": PREPROCESS.SUB.value, "value": PREPROCESS.SUB.name},
+          {"label": PREPROCESS.MUL.value, "value": PREPROCESS.MUL.name},
+          {"label": PREPROCESS.SHIFT.value, "value": PREPROCESS.SHIFT.name},
+          {"label": PREPROCESS.CALIBRATION.value, "value": PREPROCESS.CALIBRATION.name},
+          {"label": PREPROCESS.MOVING_AVERAGE.value, "value": PREPROCESS.MOVING_AVERAGE.name},
+          {"label": PREPROCESS.REGRESSION_LINE.value, "value": PREPROCESS.REGRESSION_LINE.name},
+          {"label": PREPROCESS.THINNING_OUT.value, "value": PREPROCESS.THINNING_OUT.name},
+      ]
 
-## "項目名" => 表示subplot-id のdictionary
-# disp_col = {}
-# disp_col['プレス荷重shift'] = 0
-# disp_col['右垂直'] = 0
-# disp_col['スライド変位右'] = 1
-# disp_col['加速度左右_X_左+500G'] = 2
-#
-# yref = {0:'y', 1:'y2', 2:'y3'}
-
-# "項目名" => 表示subplot-id のdictionary
-# nrows = 3; ncols = 2;
-# disp_col = {}
-# disp_col['プレス荷重shift'] = [1,1]
-# disp_col['右垂直'] = [1,1]
-# disp_col['左垂直'] = [1,1]
-# disp_col['スライド変位右'] = [2,1]
-# disp_col['スライド変位左'] = [2,1]
-# disp_col['M30ボルスタ右奥'] = [1,2]
-# disp_col['加速度左右_X_左+500G'] = [3,1]
-# disp_col['加速度上下_Y_下+500G'] = [3,1]
-# disp_col['加速度前後_Z_前+500G'] = [3,1]
-# disp_col['スライド＿金型隙間'] = [2,2]
-
-xref = {1: "x", 2: "x2", 3: "x3", 4: "x4"}
-yref = {1: "y", 2: "y2", 3: "y3", 4: "y4", 5: "y5", 6: "y6"}
 
 
 class brewFeatures:
     def __init__(self):
         self.nrows = 2
         self.ncols = 1
+        # disp_colのdefaultの初期値をここで設定
         self.disp_col = {}
-        self.disp_col["プレス荷重shift"] = [1, 1, None]
-        self.disp_col["スライド変位右"] = [2, 1, None]
+        self.disp_col['プレス荷重shift'] = [1,1,None]
+        self.disp_col['スライド変位右'] = [2,1,None]
+        # 抽出済み特徴量の "名前=>値(index)" となるdictionary。
+        self.dr = None
+        self.gened_features = {}
+
+    def set_DataAccessor(self,dr):
+        self.dr = dr
 
     def set_dispcol(self, disp_col):
-        """
+        '''  ToDo:
+        3項目目の禁則文字チェックが必要。コーテーションとか。
+        '''
+        '''  ToDo:
+        disp_colの要素を[row,col,値の変換式:Noneだったら元の項目そのまま]のまま行くとしたら、
+        ほとんどの場合意味のない3項目目のNoneをユーザが書き忘れる可能性が高い。
+        書き忘れると、対応の難しいバグとして現れるので、
+        ここでsetする時に足りないNoneを補うとかした方が良さそう。
+        その前に、この変な形のまま行くかどうかを考えるべきだが。
+        '''
+        '''
         disp_colは、項目名 => [表示位置row, 表示位置col] となるdictionary。
-        """
+        '''
         self.disp_col = disp_col
-        """
+        '''
         disp_colからnrows,ncolsを算出
         values()でdict_valuesを取り出してlistにcast、さらにnumpy.arrayにcast
         (2,x)のarrayになるので、[:,0]でrowだけ、[:,1]でcolだけ取り出す。
@@ -105,776 +133,927 @@ class brewFeatures:
                                                               [2, 1],
                                                               [2, 1]])
             np.array(list(disp_col.values()))[:,0]   #   array([1, 1, 2, 2, 2])
-        """
-        self.nrows = int(np.array(list(disp_col.values()))[:, 0].max())  # intにcastしないとダメ、なんでだ?
-        self.ncols = int(np.array(list(disp_col.values()))[:, 1].max())
+        '''
+        self.nrows = int(np.array(list(disp_col.values()))[:,0].max())   # intにcastしないとダメ、なんでだ?
+        self.ncols = int(np.array(list(disp_col.values()))[:,1].max())
 
     def get_dispcol(self):
         return self.disp_col
 
-    # 特徴抽出操作指示のgridの1行を生成
-    def gen_input_forms(self, row_id, fname="", sel_col="", rw=1, llim=0, ulim=0):
-        return (
-            dbc.Col(
-                dcc.Input(id="feature_name%d" % row_id, value=fname),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Dropdown(
-                    id="select_col%d" % row_id, value=sel_col, options=[{"label": str(s), "value": str(s)} for s in df.columns[1:]]
-                ),
-                width=2,
-            ),
-            dbc.Col(
-                dcc.Input(id="rolling_width%d" % row_id, value=rw),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Dropdown(
-                    id="low_find_type%d" % row_id,
-                    value="固定",
-                    options=[{"label": str(s), "value": str(s)} for s in ["固定", "値域>", "値域<", "特徴点"]],
-                ),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Dropdown(id="low_feature%d" % row_id, value="-", options=[{"label": "-", "value": "-"}]),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Input(id="low_lim%d" % row_id, value=llim),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Dropdown(
-                    id="up_find_type%d" % row_id,
-                    value="固定",
-                    options=[{"label": str(s), "value": str(s)} for s in ["固定", "値域>", "値域<", "特徴点"]],
-                ),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Dropdown(id="up_feature%d" % row_id, value="-", options=[{"label": "-", "value": "-"}]),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Input(id="up_lim%d" % row_id, value=ulim),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Dropdown(
-                    id="find_target%d" % row_id,
-                    clearable=False,
-                    value="DPT",
-                    options=[{"label": "元波形", "value": "DPT"}, {"label": "速度", "value": "VCT"}, {"label": "加速度", "value": "ACC"}],
-                ),
-                width=1,
-            ),
-            dbc.Col(
-                dcc.Dropdown(
-                    id="find_dir%d" % row_id,
-                    clearable=False,
-                    value="MAX",
-                    options=[{"label": "MAX", "value": "MAX"}, {"label": "MIN", "value": "MIN"}],
-                ),
-                width=1,
-            ),
-        )
+    '''  locate_feature()を呼ぶために必要なパラメタ群をdictに '''
+    def params_to_dict(self,feature_name,select_col,rolling_width,low_find_type,low_feature,low_lim,
+                        up_find_type,up_feature,up_lim,find_target,find_dir):
+        params = {}
+        params['feature_name'] = feature_name
+        params['select_col'] = select_col
+        params['rolling_width'] = rolling_width
+        params['low_find_type'] = low_find_type
+        params['low_feature'] = low_feature
+        params['low_lim'] = low_lim
+        params['up_find_type'] = up_find_type
+        params['up_feature'] = up_feature
+        params['up_lim'] = up_lim
+        params['find_target'] = find_target
+        params['find_dir'] = find_dir
 
-    def gen_display_settings(self, row_id, sel_col="", row=1, column=0):
-        return (
-            dbc.Col(
-                dcc.Dropdown(
-                    id="select_col_%d" % row_id,
-                    value=sel_col,
-                    options=[{"label": str(s), "value": str(s)} for s in df.columns[1:]],
-                    # style={"width": "25%"},
-                ),
-            ),
-            dbc.Col(
-                dcc.Input(
-                    id="input_row%d" % row_id,
-                    value=row,
-                    type="number",
-                    placeholder="行",
-                    min=1,
-                    max=5,
-                    step=1,
-                    # style={"width": "25%"},
-                ),
-            ),
-            dbc.Col(
-                dcc.Input(
-                    id="input_column%d" % row_id,
-                    value=column,
-                    type="number",
-                    placeholder="列",
-                    min=0,
-                    max=2,
-                    step=1,
-                    # style={"width": "25%"},
-                ),
-            ),
-            dbc.Col(
-                dcc.Dropdown(
-                    id="select_calculation%d" % row_id,
-                    clearable=False,
-                    value="test",
-                    options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
-                    # style={"width": "25%"},
-                ),
-            ),
-        )
+        return params
 
-    def gen_target_item_dropdown(self):
-        return [{"label": str(s), "value": str(s)} for s in df.columns[1:]]
+    ''' locate_feature()の結果(検索範囲と検索結果)をfigに描き込む
+        figは既に時系列データがplotされている前提
+    '''
+    def draw_result(self,
+                    fig,     # figオブジェクト
+                    result,   # 検索結果(検索範囲、検索結果(index, value))
+                    row,
+                    col,
+                    ):
+        if 'target_i' in result:
+            select_col = result['select_col']
+#            row = self.disp_col[select_col][0]
+#            col = self.disp_col[select_col][1]
+
+            # 値域 -> 水平方向(hrect)緑網掛け
+            ''' ToDo: add_hrect()はY軸方向の下限と上限を指定する。下限だけ指定して上限はグラフの上限まで、というような
+                都合の良い機能は無さそう。
+                dataから網掛けの上限下限を決めると上下に隙間ができる。1.2倍とかでいいのか?  '''
+            ''' low_less_ylimだけ描けない、なんでだ? '''
+            for hrect_key in ['low_less_ylim','low_more_ylim','up_less_ylim','up_more_ylim']:
+                if hrect_key in result:
+                    y_lim = result[hrect_key]
+                    fig.add_hrect(y0=y_lim[0],y1=y_lim[1],line_width=0, fillcolor="green", opacity=0.2,layer='below', row=row,col=col)
+
+            # 検索範囲 -> 垂直方向(vrect)オレンジ網掛け
+            x_lim = result['x_lim']
+            fig.add_vrect(x0=x_lim[0],x1=x_lim[1],line_width=0, fillcolor="LightSalmon", opacity=0.2,layer='below', row=row,col=col)
+
+            # 検索結果 -> 赤縦線   ToDo: 特徴量ごとに色分けしたい
+            fig.add_vline(x=result['target_i'],line_color="red", row=row,col=col)
 
     # 特徴抽出機能のコア部   ToDo: グラフ操作を分離して特徴抽出だけを呼べるように
-    def locate_feature(
-        self,
-        df,
-        fig,
-        feature_name,
-        select_col,
-        rolling_width,
-        low_find_type,
-        low_feature,
-        low_lim,
-        up_find_type,
-        up_feature,
-        up_lim,
-        find_target,
-        find_dir,
-    ):
-        global gened_features
-        # global disp_col
+    def locate_feature(self,
+                       df,              # 対象データ:pandas.DataFrame
+                       feature_name,    # 特徴量名:str
+                       select_col,      # 処理対象項目:str
+                       rolling_width,   # 検索下限限方法:'固定' or '値域>' or '値域<' or '特徴点'
+                       low_find_type,   # 検索下限限特徴量名:str
+                       low_feature,     # 検索下限限値:int
+                       low_lim,         # 検出下限対象:'DPT' or 'VCT' or 'ACC'
+                       up_find_type,    # 検索上限方法:'固定' or '値域>' or '値域<' or '特徴点'
+                       up_feature,      # 検索上限特徴量名:str
+                       up_lim,          # 検索上限値:int
+                       find_target,     # 検出上限対象:'DPT' or 'VCT' or 'ACC'
+                       find_dir         # ピーク方向:'MAX' or 'MIN'
+                       ):
         target_i = None
+        result = {}
+        result['feature_name'] = feature_name
 
-        if feature_name == "":
-            return fig
+        if feature_name == '' or feature_name is None:
+            return result
+        if select_col == '':
+            return result
 
-        x_lim = [0, 0]  # 初期値
-
-        if low_find_type == "固定":
+        x_lim = [0,0]   # 初期値
+        
+        # 検索範囲下限(左端)の決定
+        if low_find_type == '固定':
             x_lim[0] = int(low_lim)
-        elif low_find_type == "値域>":  # 指定値より大きい範囲を検索して左端のindexを返す
-            sdf = df[(df[select_col] >= float(low_lim))]
+        elif low_find_type == '値域>':                      # 指定値より大きい範囲を検索して左端のindexを返す
+            result['low_more_ylim'] = [float(low_lim),df[select_col].max()]
+            sdf = df[(df[select_col]>=float(low_lim))]
             if len(sdf) > 0:
                 x_lim[0] = sdf.index[0]
-        elif low_find_type == "値域<":  # 指定値より小さい範囲を検索して左端のindexを返す
-            sdf = df[(df[select_col] <= float(low_lim))]
+        elif low_find_type == '値域<':                      # 指定値より小さい範囲を検索して左端のindexを返す
+            result['low_less_ylim'] = [df[select_col].min(),float(low_lim)]
+            sdf = df[(df[select_col]<=float(low_lim))]
             if len(sdf) > 0:
                 x_lim[0] = sdf.index[0]
             # print('value:',x_lim)
-        elif low_find_type == "特徴点":
+        elif low_find_type == '特徴点':
             try:
-                x_lim[0] = gened_features[low_feature] + int(low_lim)
-                # , gened_features[up_feature] + int(up_lim)]
+                x_lim[0] = self.gened_features[low_feature] + int(low_lim)
+                #, gened_features[up_feature] + int(up_lim)]
             except KeyError:
-                print("Error")
+                print('Error')
 
-        if up_find_type == "固定":
+        # 検索範囲上限(右端)の決定
+        if up_find_type == '固定':
             x_lim[1] = int(up_lim)
-        elif up_find_type == "値域>":  # 指定値より大きい範囲を検索して右端のindexを返す
-            sdf = df[(df[select_col] >= float(up_lim))]
+        elif up_find_type == '値域>':                      # 指定値より大きい範囲を検索して右端のindexを返す
+            result['up_more_ylim'] = [float(up_lim),df[select_col].max()]
+            sdf = df[(df[select_col]>=float(up_lim))]
             if len(sdf) > 0:
                 x_lim[1] = sdf.index[-1]
-        elif up_find_type == "値域<":  # 指定値より小さい範囲を検索して右端のindexを返す
-            sdf = df[(df[select_col] <= float(up_lim))]
+        elif up_find_type == '値域<':                      # 指定値より小さい範囲を検索して右端のindexを返す
+            result['up_less_ylim'] = [df[select_col].min(),float(up_lim)]
+            sdf = df[(df[select_col]<=float(up_lim))]
             if len(sdf) > 0:
                 x_lim[1] = sdf.index[-1]
             # print('value:',x_lim)
-        elif up_find_type == "特徴点":
+        elif up_find_type == '特徴点':
             try:
-                x_lim[1] = gened_features[up_feature] + int(up_lim)
-                # , gened_features[up_feature] + int(up_lim)]
+                x_lim[1] = self.gened_features[up_feature] + int(up_lim)
+                #, gened_features[up_feature] + int(up_lim)]
             except KeyError:
-                print("Error")
+                print('Error')
 
-        for d in fig.data:
-            if d["name"] == select_col:
-                target_fig = [d["yaxis"], d["xaxis"]]
-                continue
-        #     target_fig = [yref[disp_col[select_col][0]],xref[disp_col[select_col][1]]]
-        #    print(fig.data)
-        #    print(target_fig)
-
-        ########3 ToDO!!! ###############
-        if low_find_type == "値域>":
-            plotly_hspan(fig, float(low_lim), float(low_lim) + 5, yref=target_fig[0], xref=target_fig[1], fillcolor="green", alpha=0.2)
-        if low_find_type == "値域<":
-            plotly_hspan(fig, float(low_lim), float(low_lim) - 5, yref=target_fig[0], xref=target_fig[1], fillcolor="green", alpha=0.2)
-        if up_find_type == "値域>":
-            plotly_hspan(fig, float(up_lim), float(up_lim) + 5, yref=target_fig[0], xref=target_fig[1], fillcolor="green", alpha=0.2)
-        if up_find_type == "値域<":
-            plotly_hspan(fig, float(up_lim), float(up_lim) - 5, yref=target_fig[0], xref=target_fig[1], fillcolor="green", alpha=0.2)
-
-        #    print('x_lim:',x_lim)
-        plotly_vspan(fig, x_lim[0], x_lim[1], yref=target_fig[0], xref=target_fig[1], alpha=0.2)
         # 検索対象時系列データの生成
-        if find_target == "DPT":
+        if find_target == 'DPT':
             target = df[select_col]
-        elif find_target == "VCT":
-            target = df[select_col].rolling(int(rolling_width), center=True).mean().diff()
-            # print('VCT:')
-        elif find_target == "ACC":
-            target = (
-                df[select_col].rolling(int(rolling_width), center=True).mean().diff().rolling(int(rolling_width), center=True).mean().diff()
-            )
-            # print('ACC:')
-        if x_lim[1] - x_lim[0] > 0:  # 検索範囲が適切に指定されてなければ何もしない  ToDo:「何もしない」ことのフィードバック? 範囲指定せずに検索したい時もある
-            #     print('len:',len(target))
-            # print('xlim:',x_lim)
-            if find_dir == "MAX":
-                target_i = target[x_lim[0] : x_lim[1]].idxmax()
-            elif find_dir == "MIN":
-                target_i = target[x_lim[0] : x_lim[1]].idxmin()
-            plotly_vspan(
-                fig,
-                target_i,
-                target_i,
-                ftype="line",
-                yref=target_fig[0],
-                xref=target_fig[1],
-                fillcolor="red",
-                alpha=1.0,
-                layer="above",
-                line_width=2,
-            )
-        target_fig = [yref[self.disp_col[select_col][0]], xref[self.disp_col[select_col][1]]]
-        # plotly_vspan(fig,x_lim[0],x_lim[1],yref=target_fig)
-        # 検索対象時系列データの生成
-        if find_target == "DPT":
-            target = df[select_col]
-        elif find_target == "VCT":
-            target = df[select_col].rolling(int(rolling_width), center=True).mean().diff()
-        elif find_target == "ACC":
-            target = (
-                df[select_col].rolling(int(rolling_width), center=True).mean().diff().rolling(int(rolling_width), center=True).mean().diff()
-            )
-        if x_lim[1] - x_lim[0] > 0:  # 検索範囲が適切に指定されてなければ何もしない  ToDo:「何もしない」ことのフィードバック? 範囲指定せずに検索したい時もある
-            #     print('len:',len(target))
-            print("xlim:", x_lim)
-            if find_dir == "MAX":
-                target_i = target[x_lim[0] : x_lim[1]].idxmax()
-            elif find_dir == "MIN":
-                target_i = target[x_lim[0] : x_lim[1]].idxmin()
-            # plotly_vspan(fig,target_i,target_i,ftype='line',yref=target_fig[0],xref=target_fig[1],alpha=1.0)
-            fig.add_vline(x=target_i, line_color="red", row=self.disp_col[select_col][0], col=self.disp_col[select_col][1])
-            # span(fig,target_i,target_i,ftype='line',yref=target_fig[0],xref=target_fig[1],alpha=1.0)
-            # fig.add_vline(x=2.5, line_width=3, line_dash="dash", line_color="green")
+        elif find_target == 'VCT':
+            target = df[select_col].rolling(int(rolling_width),center=True).mean().diff()
+        elif find_target == 'ACC':
+            target = df[select_col].rolling(int(rolling_width),center=True).mean().diff().rolling(int(rolling_width),center=True).mean().diff()
+        if x_lim[1] - x_lim[0] > 0:     # 検索範囲が適切に指定されてなければ何もしない  ToDo:「何もしない」ことのフィードバック? 範囲指定せずに検索したい時もある
+            if find_dir == 'MAX':
+                target_i = target[x_lim[0]:x_lim[1]].idxmax()
+                target_v = df[select_col][target_i]   # ToDo: 値は元波形の値を返さないと意味が無い
+            elif find_dir == 'MIN':
+                target_i = target[x_lim[0]:x_lim[1]].idxmin()
+                target_v = df[select_col][target_i]   # ToDo: 値は元波形の値を返さないと意味が無い
+            elif find_dir == 'RMS':
+                target_i = x_lim[0]
+                target_v = np.sqrt((df[select_col][x_lim[0]:x_lim[1]]**2).mean())
+            elif find_dir == 'VAR':
+                target_i = x_lim[0]
+                target_v = df[select_col][x_lim[0]:x_lim[1]].var()
+            elif find_dir == 'AMP':
+                target_i = x_lim[0]
+                target_v = df[select_col][x_lim[0]:x_lim[1]].max() - df[select_col][x_lim[0]:x_lim[1]].max()
+
+        result['select_col'] = select_col
+        result['x_lim'] = x_lim
 
         if target_i is not None:
-            gened_features[feature_name] = target_i
+            self.gened_features[feature_name] = target_i
+            result['target_i'] = target_i             # 検索結果 インデックス
+            result['target_v'] = target_v             # 検索結果 値
 
-        return fig
+        return result
 
     def make_app(self):
+        #app = JupyterDash('brewFeatures')
+        app = JupyterDash('brewFeatures', external_stylesheets=[dbc.themes.CERULEAN])
 
-        import dash_bootstrap_components as dbc
-        import dash_core_components as dcc
-        import dash_html_components as html
-        import plotly.express as px
-
-        # sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-        from backend.elastic_manager.elastic_manager import ElasticManager
-        from dash import Dash, dash_table
-        from dash.dependencies import Input, Output, State
-        from jupyter_dash import JupyterDash
-
-        #     app = JupyterDash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
-        # app = JupyterDash("brewFeatures", external_stylesheets=[dbc.themes.CERULEAN])
-        app = Dash("brewFeatures", external_stylesheets=[dbc.themes.CERULEAN])
+        flist = self.dr.get_shot_list()
 
         # 画面全体のレイアウト
+        main_div = html.Div([
+        #     dcc.Dropdown(id='shot_select',options=[{'label':'a','value':'a'},{'label':'b','value':'b'},]),
+            # ショット選択
+#            dbc.Row([
+#                dbc.Col(
+#                    dcc.Dropdown(id='shot_select',value=str(flist[9]),
+#                        options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
+#                    width=5,
+#                    style={'width':'50vw'} # viewpoint height
+#                ),
+#            ]),
+            dash_table.DataTable(
+                id="setting-table",
+                data=pd.DataFrame().to_dict("records"),
+                style_table={"width": "1000px"},
+                columns=[
+                    {"id": "field", "name": "フィールド"},
+                    {"id": "row_number", "name": "行番号"},
+                    {"id": "col_number", "name": "列番号"},
+                    {"id": "rolling_width", "name": "移動平均"},
+                    {"id": "preprocess", "name": "前処理"},
+                    {"id": "detail", "name": "詳細"},
+                ],
+                editable=True,
+                row_deletable=True,
+            ),
+
+            # グラフ表示部
+            dcc.Graph(id='graph'),
+            # ショット選択
+
+            dash_table.DataTable(
+                id='feature-table',
+                #data=pd.DataFrame().to_dict("records"),
+                data=pd.DataFrame({
+                    'feature_name':['vct_min','breaking',''], 
+                    'select_col'  :['','',''],
+                    'rolling_width'  :[9,1,1],
+                    'low_find_type'  :['固定','固定','特徴点'],
+                    'low_feature'  :['','',''],
+                    'low_lim'     :['1000','1000','1000'],
+                    'up_find_type'  :['固定','固定','特徴点'],
+                    'up_feature'  :['','',''],
+                    'up_lim'      :['3000','5000','3000'],
+                    'find_target' :['VCT','ACC','DPT'],
+                    'find_dir'    :['MIN','MAX','MIN']}
+                ).to_dict("records"),
+                columns=[
+                    {"id": "feature_name", "name": "特徴量名"},
+                    {"id": "select_col", "name": "対象項目", 'presentation':'dropdown'},
+                    {"id": "rolling_width", "name": "移動平均範囲"},
+                    {"id": "low_find_type", "name": "検索方法下限", 'presentation':'dropdown'},
+                    {"id": "low_feature", "name": "検索特徴名下限"},
+                    {"id": "low_lim", "name": "検索下限"},
+                    {"id": "up_find_type", "name": "検索方法上限", 'presentation':'dropdown'},
+                    {"id": "up_feature", "name": "検索特徴名上限"},
+                    {"id": "up_lim", "name": "検索上限"},
+                    {"id": "find_target", "name": "検索対象", 'presentation':'dropdown'},
+                    {"id": "find_dir", "name": "検索方向", 'presentation':'dropdown'},
+                ],
+                editable=True,
+                dropdown={
+                    'select_col':    {'options': [ {'label': i, 'value': i} for i in self.disp_col.keys() ] },
+                    'low_find_type': {'options': [ {'label': i, 'value': i} for i in ['固定','値域<','値域>','特徴点'] ] },
+                    'up_find_type':  {'options': [ {'label': i, 'value': i} for i in ['固定','値域<','値域>','特徴点'] ] },
+                    'find_target':   {'options': [ {'label': i, 'value': i} for i in ['DPT','VCT','ACC'] ] },
+                    'find_dir':      {'options': [ {'label': i, 'value': i} for i in ['MAX','MIN'] ] },
+                },
+                style_table={'width': '90%', 'overflowX': 'auto'},   # これの効果不明?
+            ),
+        ],
+        style=CONTENT_STYLE,
+		)
+
+        side_div = html.Div(
+			id="sidebar",
+			children=[
+				html.H3("表示設定", className="display-4"),
+				html.Hr(),
+				html.Div(
+					[
+						html.Label("データソースタイプ"),
+						dcc.Dropdown(
+							value='csv',
+							id="data-source-type-dropdown",
+							options=[{"label": "CSV", "value": "csv"}, {"label": "Elasticsearch", "value": "elastic"}],
+						),
+					]
+				),
+				html.Div(
+					id="csv-file",
+					children=[
+						html.Label("ファイル"),
+						#dcc.Dropdown(id="csv-file-dropdown"),
+						dcc.Dropdown(id="csv-file-dropdown", value='2110040017_A0000.CSV'),  # 暫定
+					],
+					style={"display": "none"},    # 暫定コメントアウト
+				),
+				html.Div(
+					id="elastic-index",
+					children=[
+						html.Label("インデックス"),
+						dcc.Dropdown(id="elastic-index-dropdown"),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="shot-number",
+					children=[
+						html.Label("ショット番号"),
+						dcc.Dropdown(id="shot-number-dropdown"),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="field",
+					children=[
+						html.Label("フィールド"),
+						dcc.Dropdown(id="field-dropdown"),
+					]
+				),
+				html.Div(
+					[
+						html.Label("グラフ行番号"),
+						dcc.Dropdown(
+							id="row-number-dropdown",
+                            value=1,
+							options=[r for r in range(1, MAX_ROWS + 1)],
+						),
+						html.Label("グラフ列番号"),
+						dcc.Dropdown(
+							id="col-number-dropdown",
+                            value=1,
+							options=[c for c in range(1, MAX_COLS + 1)],
+						),
+					]
+				),
+				html.Div(
+					[
+						html.Label("移動平均"), 
+						dcc.Input(id="pre-rolling-width", value=1),
+					]
+				),
+				html.Div(
+					[
+						html.Label("前処理"),
+						dcc.Dropdown(id="preprocess-dropdown", options=get_preprocess_dropdown_options()),
+					]
+				),
+				html.Div(
+					id="add-field",
+					children=[
+						html.Label("加算列"),
+						dcc.Dropdown(id="add-field-dropdown"),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="sub-field",
+					children=[
+						html.Label("減算列"),
+						dcc.Dropdown(id="sub-field-dropdown"),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="mul-field",
+					children=[
+						html.Label("係数", style={"width": "100%"}),
+						dcc.Input(id="mul-field-input", type="number", min=1, max=1000, step=1),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="shift-field",
+					children=[
+						html.Label("シフト幅", style={"width": "100%"}),
+						dcc.Input(id="shift-field-input", type="number", min=-1000, max=1000, step=1),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="calibration-field",
+					children=[
+						html.Label("先頭N件", style={"width": "100%"}),
+						dcc.Input(id="calibration-field-input", type="number", min=1, max=1000, step=1),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="moving-average-field",
+					children=[
+						html.Label("ウィンドウサイズ", style={"width": "100%"}),
+						dcc.Input(id="moving-average-field-input", type="number", min=1, max=100, step=1),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="regression-line-field",
+					children=[
+						html.Label("フィールド"),
+						dcc.Dropdown(id="regression-line-field-dropdown"),
+					],
+					style={"display": "none"},
+				),
+				html.Div(
+					id="thinning-out-field",
+					children=[
+						html.Label("間引き幅", style={"width": "100%"}),
+						dcc.Input(id="thinning-out-field-input", type="number", min=1, max=1000, step=1),
+					],
+					style={"display": "none"},
+				),
+				dbc.Button("追加", id="add-button", n_clicks=0, style={"margin-top": "1rem"}),
+		    ],
+		    style=SIDEBAR_STYLE,
+        )
+
         app.layout = html.Div(
-            [
-                dcc.Tabs(
-                    [
-                        dcc.Tab(
-                            label="表示設定",
-                            children=[
-                                html.Div(
-                                    [
-                                        dbc.Col(
-                                            dbc.Label(
-                                                "データソース",
-                                            ),
-                                            style={"width": "40%", "display": "inline-block"},
-                                        ),
-                                        dcc.Dropdown(
-                                            id="els_index_",
-                                            clearable=False,
-                                            value="test",
-                                            # options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
-                                            options=[
-                                                {"label": s, "value": s} for s in ElasticManager.show_indices(index="shots-*-data")["index"]
-                                            ],
-                                            style={"width": "40%", "display": "inline-block"},
-                                        ),
-                                    ]
-                                ),
-                                dbc.Col(dbc.Label("表示行列")),
-                                dbc.Row(
-                                    [
-                                        dbc.Col(dbc.Label("行数")),
-                                        dcc.Dropdown(
-                                            id="row",
-                                            clearable=False,
-                                            value="row-1",
-                                            options=[
-                                                {"label": "1", "value": "row-1"},
-                                                {"label": "2", "value": "row-2"},
-                                                {"label": "3", "value": "row-3"},
-                                                {"label": "4", "value": "row-4"},
-                                                {"label": "5", "value": "row-5"},
-                                            ],
-                                            style={"width": "25%"},
-                                        ),
-                                        dbc.Col(dbc.Label("列数")),
-                                        # dcc.Dropdown(
-                                        #     id="column",
-                                        #     clearable=False,
-                                        #     value="column-1",
-                                        #     options=[{"label": "1", "value": "column-1"}, {"label": "2", "value": "column-2"}],
-                                        #     style={"width": "25%"},
-                                        # ),
-                                        dcc.Input(
-                                            id="input_column",
-                                            type="number",
-                                            placeholder="列数",
-                                            min=1,
-                                            max=2,
-                                            step=1,
-                                            style={"width": "25%"},
-                                        ),
-                                    ]
-                                ),
-                                dbc.Row(
-                                    [
-                                        dbc.Col(dbc.Label("対象項目")),
-                                        dbc.Col(dbc.Label("行")),
-                                        dbc.Col(dbc.Label("列")),
-                                        dbc.Col(dbc.Label("演算")),
-                                    ]
-                                ),
-                                # dbc.Row(
-                                #     [
-                                #         dcc.Dropdown(
-                                #             id="tmp_1",
-                                #             clearable=False,
-                                #             value="test",
-                                #             options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
-                                #             style={"width": "25%"},
-                                #         ),
-                                #         dcc.Input(id="tmp_row", value="", style={"width": "25%"}),
-                                #         dcc.Input(id="tmp_column", value="", style={"width": "25%"}),
-                                #         dcc.Dropdown(
-                                #             id="tmp_4",
-                                #             clearable=False,
-                                #             value="test",
-                                #             options=[{"label": "test", "value": "test"}, {"label": "dummy", "value": "dummy"}],
-                                #             style={"width": "25%"},
-                                #         ),
-                                #     ]
-                                # ),
-                                html.Div(
-                                    [
-                                        dbc.Row(self.gen_display_settings(0, sel_col="プレス荷重shift")),
-                                        dbc.Row(self.gen_display_settings(1)),
-                                        dbc.Row(self.gen_display_settings(2)),
-                                        dbc.Row(self.gen_display_settings(3)),
-                                    ],
-                                    id="settings-table",
-                                ),
-                                html.Button("対象項目追加", id="add-target-item-button", n_clicks=4),
-                                # test table
-                                # dash_table.DataTable(
-                                #     id="test-table",
-                                #     columns=[
-                                #         {"name": "対象項目", "id": "column-1", "presentation": "dropdown"},
-                                #         {"name": "行", "id": "column-2", "deletable": True, "renamable": True},
-                                #         {"name": "列", "id": "column-3", "deletable": True, "renamable": True},
-                                #         {"name": "演算", "id": "column-4", "deletable": True, "renamable": True},
-                                #     ],
-                                #     # data=[{"column-{}".format(i): "" for i in range(1, 5)}],
-                                #     data=[
-                                #         {
-                                #             "column-1": df.columns[1],
-                                #             "column-2": df.columns[1],
-                                #             "column-3": df.columns[1],
-                                #             "column-4": df.columns[1],
-                                #         },
-                                #     ],
-                                #     editable=True,
-                                #     row_deletable=True,
-                                #     # dropdown={"column-1": {"options": [{"label": str(s), "value": str(s)} for s in df.columns[1:]]}},
-                                #     dropdown_conditional={"column-1": {"options": self.gen_target_item_dropdown()}},
-                                #     # dropdown={"column-1": {"options": [{"label": str(s), "value": str(s)} for s in df.columns.values]}},
-                                # ),
-                                # html.Div(id="test-table-container"),
-                                # html.Button("Add Row", id="editing-rows-button", n_clicks=0),
-                            ],
-                        ),
-                        dcc.Tab(
-                            label="特徴量抽出",
-                            children=[
-                                #     dcc.Dropdown(id='shot_select',options=[{'label':'a','value':'a'},{'label':'b','value':'b'},]),
-                                # ショット選択
-                                dbc.Row(
-                                    [
-                                        dbc.Col(
-                                            dcc.Dropdown(
-                                                id="shot_select",
-                                                value=str(flist[9]),
-                                                options=[{"label": str(f), "value": str(f)} for f in flist[8:]],
-                                            ),
-                                            width=5,
-                                            style={"width": "50vw"}  # viewpoint height
-                                            #         style={'height': '20vh','width':'50vw'} # viewpoint height
-                                        ),
-                                        # dbc.Col( dcc.Dropdown(id='find_type1',value='固定',options=[{'label':str(s),'value':str(s)} for s in ['固定','値域','特徴点']]), width=1,),
-                                    ]
-                                ),
-                                #     dcc.Dropdown(id='shot_select',options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
-                                # グラフ表示部
-                                dcc.Graph(id="graph"),
-                                # 特徴抽出操作指示: gen_input_forms()がInput,Dropdownを含むdbc.Colのリストを生成する
-                                dbc.Row(
-                                    [
-                                        dbc.Col(dbc.Label("特徴量名")),
-                                        dbc.Col(dbc.Label("対象項目"), width=2),
-                                        dbc.Col(dbc.Label("移動平均範囲")),
-                                        dbc.Col(dbc.Label("下限限定方法")),
-                                        dbc.Col(dbc.Label("下限特徴量")),
-                                        dbc.Col(dbc.Label("下限位置")),
-                                        dbc.Col(dbc.Label("上限限定方法")),
-                                        dbc.Col(dbc.Label("上限特徴量")),
-                                        dbc.Col(dbc.Label("上限位置")),
-                                        dbc.Col(dbc.Label("検索対象")),
-                                        dbc.Col(dbc.Label("検索方向")),
-                                    ]
-                                ),
-                                #         dbc.Row(gen_input_forms(0,fname='vct_min',sel_col='プレス荷重shift',rw=9,llim=1000,ulim=3000)),
-                                dbc.Row(self.gen_input_forms(0, fname="", sel_col="プレス荷重shift", rw=9, llim=1000, ulim=3000)),
-                                dbc.Row(self.gen_input_forms(1)),
-                                dbc.Row(self.gen_input_forms(2)),
-                                dbc.Row(self.gen_input_forms(3)),
-                            ],
-                        ),
-                    ]
-                )
+            children=[
+                dcc.Store(id='shot-data'),
+                side_div,
+                main_div
             ]
         )
 
-        # 対象項目追加ボタン
+        # callbacks #
         @app.callback(
-            Output("settings-table", "children"),
-            Input("add-target-item-button", "n_clicks"),
-            State("settings-table", "children"),
+            Output("csv-file", "style"),
+            Output("csv-file-dropdown", "options"),
+            Input("data-source-type-dropdown", "value"),
+            #prevent_initial_call=True,   # 暫定コメント
+        )
+        def set_csv_file_options(data_source_type):
+            """CSVファイル選択ドロップダウンのオプション設定"""
+
+            if data_source_type == "csv":
+                # TODO: CSVファイルのディレクトリパスが決め打ちのため、要修正
+                #path = Path("/customer_data/ymiyamoto5-aida_A39D/private/data/aida/")
+                path = Path("/Users/hao/data/ADDQ/20211004ブレークスルー/")
+                flist = list(sorted(path.glob("*.CSV")))
+                options = [{"label": f.name, "value": str(f)} for f in flist]
+                return {}, options
+            else:
+                return {"display": "none"}, []
+
+        @app.callback(
+            Output("elastic-index", "style"),
+            Output("elastic-index-dropdown", "options"),
+            Input("data-source-type-dropdown", "value"),
             prevent_initial_call=True,
         )
-        def add_settings_row(row_id, row_list):
-            # return row_list.append(dbc.Row(self.gen_display_settings(row_id, "右垂直")))
-            # return dbc.Row(self.gen_display_settings(row_id, "右垂直"))
-            return row_list + [dbc.Row(self.gen_display_settings(row_id))]
-            # return dbc.Label(str(type(row_list)))
+        def set_elastic_index_options(data_source_type):
+            """Elasticsearch index選択ドロップダウンのオプション設定"""
 
-        # 特徴点セット2行目
-        @app.callback(
-            Output("low_feature1", "options"),
-            [
-                Input("low_find_type1", "value"),
-                Input("feature_name0", "value"),
-                Input("low_feature1", "options"),
-            ],
-        )
-        def set_low_features1(find_type, fname0, options):
-            if find_type == "特徴点":
-                return [{"label": fname0, "value": fname0}]
+            if data_source_type == "elastic":
+                options = [{"label": s, "value": s} for s in ElasticManager.show_indices(index="shots-*-data")["index"]]
+                return {}, options
             else:
-                return options
+                return {"display": "none"}, []
 
+
+        # Start 演算用callbacks
+        
+        
         @app.callback(
-            Output("up_feature1", "options"),
-            [
-                Input("up_find_type1", "value"),
-                Input("feature_name0", "value"),
-                Input("up_feature1", "options"),
-            ],
+            Output("shot-number", "style"),
+            Output("shot-number-dropdown", "options"),
+            Input("elastic-index-dropdown", "value"),
+            prevent_initial_call=True,
         )
-        def set_up_features1(find_type, fname0, options):
-            if find_type == "特徴点":
-                return [{"label": fname0, "value": fname0}]
+        def set_shot_number_options(elastic_index):
+            """ショット番号選択ドロップダウンのオプション設定"""
+        
+            if not elastic_index:
+                return {"display": "none"}, []
+        
+            query: dict = {
+                "collapse": {"field": "shot_number"},
+                "query": {"match_all": {}},
+                "_source": ["shot_number"],
+                "sort": {"shot_number": {"order": "asc"}},
+            }
+        
+            docs = ElasticManager.get_docs(index=elastic_index, query=query, size=10000)
+            shot_numbers = [d["shot_number"] for d in docs]
+        
+            return {}, shot_numbers
+        
+        
+        # Start 演算用callbacks
+        
+        
+        @app.callback(
+            Output("add-field", "style"),
+            Output("add-field-dropdown", "value"),
+            Output("add-field-dropdown", "options"),
+            Input("preprocess-dropdown", "value"),
+            State("field-dropdown", "options"),
+            prevent_initial_call=False,   ### 暫定
+        )
+        def create_add_field_dropdown(preprocess, options):
+            if preprocess == PREPROCESS.ADD.name:
+                return {}, "", options
             else:
-                return options
-
-        # 特徴点セット3行目 (1行目と2行目のfeature_nameをDropdownにセットする。このコーディングどうにかならんか....)
+                return {"display": "none"}, "", []
+        
+        
         @app.callback(
-            Output("low_feature2", "options"),
-            [
-                Input("low_find_type2", "value"),
-                Input("feature_name0", "value"),
-                Input("feature_name1", "value"),
-                Input("low_feature2", "options"),
-            ],
+            Output("sub-field", "style"),
+            Output("sub-field-dropdown", "value"),
+            Output("sub-field-dropdown", "options"),
+            Input("preprocess-dropdown", "value"),
+            State("field-dropdown", "options"),
+            prevent_initial_call=True,
         )
-        def set_low_features2(find_type, fname0, fname1, options):
-            if find_type == "特徴点":
-                return [{"label": f, "value": f} for f in [fname0, fname1]]
+        def create_sub_field_dropdown(preprocess, options):
+            if preprocess == PREPROCESS.SUB.name:
+                return {}, "", options
             else:
-                return options
-
+                return {"display": "none"}, "", []
+        
+        
         @app.callback(
-            Output("up_feature2", "options"),
-            [
-                Input("up_find_type2", "value"),
-                Input("feature_name0", "value"),
-                Input("feature_name1", "value"),
-                Input("up_feature2", "options"),
-            ],
+            Output("mul-field", "style"),
+            Output("mul-field-input", "value"),
+            Input("preprocess-dropdown", "value"),
+            prevent_initial_call=True,
         )
-        def set_up_features2(find_type, fname0, fname1, options):
-            if find_type == "特徴点":
-                return [{"label": f, "value": f} for f in [fname0, fname1]]
+        def create_mul_field_dropdown(preprocess):
+            if preprocess == PREPROCESS.MUL.name:
+                return {}, ""
             else:
-                return options
-
-        # 特徴点セット4行目 (1行目と2行目のfeature_nameをDropdownにセットする。このコーディングどうにかならんか....)
+                return {"display": "none"}, ""
+        
+        
         @app.callback(
-            Output("low_feature3", "options"),
-            [
-                Input("low_find_type3", "value"),
-                Input("feature_name0", "value"),
-                Input("feature_name1", "value"),
-                Input("feature_name2", "value"),
-                Input("low_feature3", "options"),
-            ],
+            Output("shift-field", "style"),
+            Output("shift-field-input", "value"),
+            Input("preprocess-dropdown", "value"),
+            prevent_initial_call=True,
         )
-        def set_low_features3(find_type, fname0, fname1, fname2, options):
-            if find_type == "特徴点":
-                return [{"label": f, "value": f} for f in [fname0, fname1, fname2]]
+        def create_shift_field_input(preprocess):
+            if preprocess == PREPROCESS.SHIFT.name:
+                return {}, ""
             else:
-                return options  # '特徴点'以外の場合は現状のまま...で良いのか?
-
+                return {"display": "none"}, ""
+        
+        
         @app.callback(
-            Output("up_feature3", "options"),
-            [
-                Input("up_find_type3", "value"),
-                Input("feature_name0", "value"),
-                Input("feature_name1", "value"),
-                Input("feature_name2", "value"),
-                Input("up_feature3", "options"),
-            ],
+            Output("calibration-field", "style"),
+            Output("calibration-field-input", "value"),
+            Input("preprocess-dropdown", "value"),
+            prevent_initial_call=True,
         )
-        def set_up_features3(find_type, fname0, fname1, fname2, options):
-            if find_type == "特徴点":
-                return [{"label": f, "value": f} for f in [fname0, fname1, fname2]]
+        def create_calibration_field_input(preprocess):
+            if preprocess == PREPROCESS.CALIBRATION.name:
+                return {}, ""
             else:
-                return options
+                return {"display": "none"}, ""
+        
+        
+        @app.callback(
+            Output("moving-average-field", "style"),
+            Output("moving-average-field-input", "value"),
+            Input("preprocess-dropdown", "value"),
+            prevent_initial_call=True,
+        )
+        def create_moving_average_field_input(preprocess):
+            if preprocess == PREPROCESS.MOVING_AVERAGE.name:
+                return {}, ""
+            else:
+                return {"display": "none"}, ""
+        
+        
+        @app.callback(
+            Output("regression-line-field", "style"),
+            Output("regression-line-field-dropdown", "value"),
+            Output("regression-line-field-dropdown", "options"),
+            Input("preprocess-dropdown", "value"),
+            State("field-dropdown", "options"),
+            prevent_initial_call=True,
+        )
+        def create_regression_line_field_dropdown(preprocess, options):
+            if preprocess == PREPROCESS.REGRESSION_LINE.name:
+                return {}, "", options
+            else:
+                return {"display": "none"}, "", []
+        
+        
+        @app.callback(
+            Output("thinning-out-field", "style"),
+            Output("thinning-out-field-input", "value"),
+            Input("preprocess-dropdown", "value"),
+            prevent_initial_call=True,
+        )
+        def create_thinning_out_field_input(preprocess):
+            if preprocess == PREPROCESS.THINNING_OUT.name:
+                return {}, ""
+            else:
+                return {"display": "none"}, ""
+
+# End 演算用callbacks
+
 
         @app.callback(
-            #     dash.dependencies.Output('graph', 'figure'),
-            Output("graph", "figure"),
-            [
-                Input("shot_select", "value"),
-                Input("feature_name0", "value"),
-                Input("select_col0", "value"),
-                Input("rolling_width0", "value"),
-                Input("low_find_type0", "value"),
-                Input("low_feature0", "value"),
-                Input("low_lim0", "value"),
-                Input("up_find_type0", "value"),
-                Input("up_feature0", "value"),
-                Input("up_lim0", "value"),
-                Input("find_target0", "value"),
-                Input("find_dir0", "value"),
-                Input("feature_name1", "value"),
-                Input("select_col1", "value"),
-                Input("rolling_width1", "value"),
-                Input("low_find_type1", "value"),
-                Input("low_feature1", "value"),
-                Input("low_lim1", "value"),
-                Input("up_find_type1", "value"),
-                Input("up_feature1", "value"),
-                Input("up_lim1", "value"),
-                Input("find_target1", "value"),
-                Input("find_dir1", "value"),
-                Input("feature_name2", "value"),
-                Input("select_col2", "value"),
-                Input("rolling_width2", "value"),
-                Input("low_find_type2", "value"),
-                Input("low_feature2", "value"),
-                Input("low_lim2", "value"),
-                Input("up_find_type2", "value"),
-                Input("up_feature2", "value"),
-                Input("up_lim2", "value"),
-                Input("find_target2", "value"),
-                Input("find_dir2", "value"),
-                Input("feature_name3", "value"),
-                Input("select_col3", "value"),
-                Input("rolling_width3", "value"),
-                Input("low_find_type3", "value"),
-                Input("low_feature3", "value"),
-                Input("low_lim3", "value"),
-                Input("up_find_type3", "value"),
-                Input("up_feature3", "value"),
-                Input("up_lim3", "value"),
-                Input("find_target3", "value"),
-                Input("find_dir3", "value"),
-            ],
+            Output("setting-table", "data"),
+            Output("field-dropdown", "options"),
+            Output("shot-data", "data"),
+            Input("add-button", "n_clicks"),
+            Input("shot-number-dropdown", "value"),
+            Input("csv-file-dropdown", "value"),
+            State("elastic-index-dropdown", "value"),
+            State("setting-table", "data"),
+            State("field-dropdown", "value"),
+            State("field-dropdown", "options"),
+            State("row-number-dropdown", "value"),
+            State("col-number-dropdown", "value"),
+            State("pre-rolling-width", "value"),
+            State("preprocess-dropdown", "value"),
+            State("add-field-dropdown", "value"),
+            State("sub-field-dropdown", "value"),
+            State("mul-field-input", "value"),
+            State("shift-field-input", "value"),
+            State("calibration-field-input", "value"),
+            State("moving-average-field-input", "value"),
+            State("regression-line-field-dropdown", "value"),
+            State("thinning-out-field-input", "value"),
+            State("shot-data", "data"),
+            prevent_initial_call=True,
         )
-        def callback_figure(
-            shot,
-            feature_name0,
-            select_col0,
-            rolling_width0,
-            low_find_type0,
-            low_feature0,
-            low_lim0,
-            up_find_type0,
-            up_feature0,
-            up_lim0,
-            find_target0,
-            find_dir0,
-            feature_name1,
-            select_col1,
-            rolling_width1,
-            low_find_type1,
-            low_feature1,
-            low_lim1,
-            up_find_type1,
-            up_feature1,
-            up_lim1,
-            find_target1,
-            find_dir1,
-            feature_name2,
-            select_col2,
-            rolling_width2,
-            low_find_type2,
-            low_feature2,
-            low_lim2,
-            up_find_type2,
-            up_feature2,
-            up_lim2,
-            find_target2,
-            find_dir2,
-            feature_name3,
-            select_col3,
-            rolling_width3,
-            low_find_type3,
-            low_feature3,
-            low_lim3,
-            up_find_type3,
-            up_feature3,
-            up_lim3,
-            find_target3,
-            find_dir3,
+        def add_button_clicked(
+            n_clicks,
+            shot_number,
+            csv_file,
+            elastic_index,
+            rows,
+            field,
+            field_options,
+            row_number,
+            col_number,
+            rolling_width,
+            preprocess,
+            add_field,
+            sub_field,
+            mul_field,
+            shift_field,
+            calibration_field,
+            moving_average_field,
+            regression_line_field,
+            thinning_out_field,
+            shot_data,
         ):
-            gened_features = {}
-            # global disp_col
-            # print(shot)
-            df = read_logger(shot)[0][:7000]
-            for col in self.get_dispcol().keys():
-                if not col in df.columns:
-                    df[col] = eval(self.get_dispcol()[col][2])
-                    """
-                    execだとスタンドアローンではうまく行くが、jupyterからの実行でエラー。disp_colがnot fefined.
-                    コンテキストが違う?  exec()にコンテキストを指定する方法があるようだが良くわからず。
-                    恐らくeval()は、その構文がそこに書いてあるものとして評価するので、むしろeval()がふさわしい。
-                    """
-                    # exec_str = self.get_dispcol()[col][2]
-                    # exec(exec_str)
-                    # exec(self.disp_col[col][2])
+            """追加ボタン押下時のコールバック
+            演算処理、テーブル行の追加、およびショットデータのStoreへの格納を行う
+            NOTE: 複数のコールバックから同じIDの要素へのOutputを指定することはできない。つまり、同じ要素へOutputしたい処理は
+                  同じコールバック内にまとめる必要がある。ctx.triggerd_idでどのUIからトリガーされたかは判断できるが、コールバック内の
+                  処理が煩雑になるのは致し方ない。
+            """
+        
+            # elasticsearch index選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
+            # NOTE: 変更後に同じフィールドが存在しない場合エラーとなるが、テーブルから手動削除することによる運用回避とする。
+            if ctx.triggered_id == "shot-number-dropdown" and elastic_index:
+                df = get_shot_df_from_elastic(elastic_index, shot_number, size=10000)
+                options = [{"label": c, "value": c} for c in df.columns]
+                return rows, options, df.to_json(date_format="iso", orient="split")
+        
+            # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
+            if ctx.triggered_id == "csv-file-dropdown" and csv_file:
+                df = get_shot_df_from_csv(csv_file)
+                options = [{"label": c, "value": c} for c in df.columns]
+                return rows, options, df.to_json(date_format="iso", orient="split")
+        
+            # 追加ボタン押下時はテーブルへの行追加とフィールドドロップダウンリストに演算結果のフィールド追加を行う
+            if ctx.triggered_id == "add-button":
+                if shot_data:
+                    df = pd.read_json(shot_data, orient="split")
+                elif elastic_index:
+                    df = get_shot_df_from_elastic(elastic_index, size=1)
+                elif csv_file:
+                    df = get_shot_df_from_csv(csv_file)
+        
+                # テーブルに追加する行データ
+                new_row = {
+                    "field": field,
+                    "row_number": row_number,
+                    "col_number": col_number,
+                    "rolling_width": rolling_width,
+                    "preprocess": preprocess,
+                    "detail": "",
+                }
+        
+                # 演算がなければ、テーブルに新しい行を追加するだけ。
+                if not preprocess:
+                    rows.append(new_row)
+                    return rows, field_options, df.to_json(date_format="iso", orient="split")
+        
+                # ショットデータへの演算処理
+                if preprocess == PREPROCESS.DIFF.name:
+                    preprocessed_field = diff(df, field)
+                    new_row["detail"] = "微分"
+                elif preprocess == PREPROCESS.ADD.name:
+                    preprocessed_field = add(df, field, add_field)
+                    new_row["detail"] = f"加算行: {add_field}"
+                elif preprocess == PREPROCESS.SUB.name:
+                    preprocessed_field = sub(df, field, sub_field)
+                    new_row["detail"] = f"減算行: {sub_field}"
+                elif preprocess == PREPROCESS.MUL.name:
+                    preprocessed_field = mul(df, field, mul_field)
+                    new_row["detail"] = f"係数: {mul_field}"
+                elif preprocess == PREPROCESS.SHIFT.name:
+                    preprocessed_field = shift(df, field, shift_field)
+                    new_row["detail"] = f"シフト幅: {shift_field}"
+                elif preprocess == PREPROCESS.CALIBRATION.name:
+                    preprocessed_field = calibration(df, field, calibration_field)
+                    new_row["detail"] = f"校正: 先頭{calibration_field}件"
+                elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
+                    preprocessed_field = moving_average(df, field, moving_average_field)
+                    new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
+                elif preprocess == PREPROCESS.REGRESSION_LINE.name:
+                    # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
+                    preprocessed_field = regression_line(df, field, regression_line_field)
+                    new_row["detail"] = f"回帰直線: {regression_line_field}"
+                elif preprocess == PREPROCESS.THINNING_OUT.name:
+                    preprocessed_field = thinning_out(df, field, thinning_out_field)
+                    new_row["detail"] = f"間引き幅: {thinning_out_field}"
+                else:
+                    preprocessed_field = df[field]
+        
+                new_field = field + preprocess
+                df[new_field] = preprocessed_field
+        
+                # フィールドドロップダウンオプションに演算結果列を追加。既存のフィールドは追加しない。
+                if new_field not in field_options:
+                    field_options.append({"label": new_field, "value": new_field})
+        
+                rows.append(new_row)
+        
+                return rows, field_options, df.to_json(date_format="iso", orient="split")
 
-            #         fig = multi_col_figure(df[['プレス荷重shift','スライド変位右','加速度左右_X_左+500G']])
+        @app.callback(
+            Output('feature-table', 'dropdown'),
+            [Input('setting-table', 'data')])
+        def callback_update_select_col(setting_data):
+            
+            ### 暫定
+            dropdown={
+                'select_col': {
+                    'options': [ {'label': r['field'], 'value': r['field']} for r in setting_data ]
+                },
+                'low_find_type': {
+                    'options': [ {'label': i, 'value': i} for i in ['固定','値域<','値域>','特徴点'] ]
+                },
+                'up_find_type': {
+                    'options': [ {'label': i, 'value': i} for i in ['固定','値域<','値域>','特徴点'] ]
+                },
+                'find_target': {
+                    'options': [ {'label': i, 'value': i} for i in ['DPT','VCT','ACC'] ]
+                },
+                'find_dir': { 
+                    'options': [ {'label': i, 'value': i} for i in ['MAX','MIN'] ]
+                },
+            }
+            return dropdown
+
+
+#@app.callback(
+#    Output("graph", "figure"),
+#    Input("setting-table", "data_previous"),  # 行削除を監視
+#    Input("setting-table", "data"),
+#    Input("feature-table", "data"),
+#    State("shot-data", "data"),
+#    prevent_initial_call=True,
+#)
+#def add_field_to_graph(previous_rows, rows, feature_data, shot_data):
+#    """テーブルの変更（フィールドの追加・削除）を検知し、グラフを描画する。
+#    グラフ領域はコールバックの度にテーブル内容を参照して再描画する。
+#    """
+#    print('rows:',rows)
+#    print('feature_data:',feature_data)
+#
+#    if len(rows) == 0:
+#        fig = make_subplots()
+#        return fig
+#
+#    df = pd.read_json(shot_data, orient="split")
+#
+#    max_row_number = max([r["row_number"] for r in rows])
+#    max_col_number = max([r["col_number"] for r in rows])
+#
+#    # M行N列のグラフ領域
+#    fig = make_subplots(rows=max_row_number, cols=max_col_number, shared_xaxes=True, vertical_spacing=0.02, horizontal_spacing=0.05)
+#
+#    # グラフの数だけループ
+#    for m in range(1, max_row_number + 1):
+#        for n in range(1, max_col_number + 1):
+#            for row in rows:
+#                # 入力で指定した（テーブルに記録されている）行列番号と一致する場合、当該位置のグラフに追加表示
+#                if row["row_number"] == m and row["col_number"] == n:
+#                    display_row = row["field"] + row["preprocess"] if row["preprocess"] else row["field"]
+#                    fig.add_trace(go.Scatter(x=df.index, y=df[display_row], name=display_row), row=m, col=n)
+#
+#    fig.update_layout(width=1300, height=600)
+#
+#    for f in feature_data:
+#        for r in rows:
+#            if f['col'] == r['field']:
+#                x_lim = [int(f['low_lim']),int(f['up_lim'])]
+#                fig.add_vrect(x0=x_lim[0],x1=x_lim[1],line_width=0, fillcolor="LightSalmon", opacity=0.2,layer='below', row=r['row_number'],col=r['col_number'])
+#
+#
+#    return fig
+    
+        # 波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
+        # つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
+        ''' ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持 '''
+        @app.callback(
+    #     dash.dependencies.Output('graph', 'figure'),
+            Output('graph', 'figure'),
+            [
+            Input('setting-table', 'data'),
+            Input('feature-table','data'),
+            Input('shot-data', 'data'),
+            ])
+        def callback_figure(setting_data,feature_data,shot_data):
+            if len(setting_data) == 0:
+                return go.FigureWidget()
+#                return None
+            df = pd.read_json(shot_data, orient="split")
+            #print(df.columns)
+
+            max_row_number = max([r["row_number"] for r in setting_data])
+            max_col_number = max([r["col_number"] for r in setting_data])
+
             fig = go.FigureWidget(
-                make_subplots(rows=self.nrows, cols=self.ncols, shared_xaxes=True, vertical_spacing=0.02, horizontal_spacing=0.05)
-                #             make_subplots(rows=max(disp_col.values())+1, cols=1, shared_xaxes=True,vertical_spacing = 0.01,)
+                #make_subplots(rows=self.nrows, cols=self.ncols, shared_xaxes=True,vertical_spacing = 0.03,horizontal_spacing=0.05)
+                make_subplots(rows=max_row_number, cols=max_col_number, vertical_spacing = 0.02,horizontal_spacing=0.05)
             )
-            # disp_colで定義された項目を時系列グラフとして描画
-            for col in self.disp_col:
-                fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=self.disp_col[col][0], col=self.disp_col[col][1])
-            #             fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=disp_col[col]+1, col=1)
+            fig.update_xaxes(matches='x')
+ 
+            for r in setting_data:
+                if r['preprocess'] is None:
+                    col = r['field']
+                else:
+                    col = r['field'] + r['preprocess']
+                rw = int(r['rolling_width'])
+                fig.add_trace(go.Scatter(x=df.index, y=df[col].rolling(rw,center=True).mean(), name=col), row=r['row_number'], col=r['col_number'])            
 
-            fig.update_layout(showlegend=True, title_text="shot No.", width=1600, height=800)
-            # ToDo: legendはsubplotのtitleで入れた方が見栄えが良いが、一つのsubplotに複数ある時の対応をどうするか?
-
-            # ToDo: 今のところ、gridの1行ごとにlocate_featureが必要
-            fig = self.locate_feature(
-                df,
-                fig,
-                feature_name0,
-                select_col0,
-                rolling_width0,
-                low_find_type0,
-                low_feature0,
-                low_lim0,
-                up_find_type0,
-                up_feature0,
-                up_lim0,
-                find_target0,
-                find_dir0,
-            )
-            fig = self.locate_feature(
-                df,
-                fig,
-                feature_name1,
-                select_col1,
-                rolling_width1,
-                low_find_type1,
-                low_feature1,
-                low_lim1,
-                up_find_type1,
-                up_feature1,
-                up_lim1,
-                find_target1,
-                find_dir1,
-            )
-            fig = self.locate_feature(
-                df,
-                fig,
-                feature_name2,
-                select_col2,
-                rolling_width2,
-                low_find_type2,
-                low_feature2,
-                low_lim2,
-                up_find_type2,
-                up_feature2,
-                up_lim2,
-                find_target2,
-                find_dir2,
-            )
-            fig = self.locate_feature(
-                df,
-                fig,
-                feature_name3,
-                select_col3,
-                rolling_width3,
-                low_find_type3,
-                low_feature3,
-                low_lim3,
-                up_find_type3,
-                up_feature3,
-                up_lim3,
-                find_target3,
-                find_dir3,
-            )
+            for f in feature_data:
+                result = self.locate_feature(df,
+                    f['feature_name'],f['select_col'], f['rolling_width'],
+                    f['low_find_type'],f['low_feature'],f['low_lim'],
+                    f['up_find_type'],f['up_feature'],f['up_lim'],
+                    f['find_target'],f['find_dir'])
+                #print(result)
+                for r in setting_data:
+                    if f['select_col'] == r['field']:
+                        self.draw_result(fig,result,r['row_number'],r['col_number'])
 
             return fig
 
+
+#        @app.callback(
+#    #     dash.dependencies.Output('graph', 'figure'),
+#            Output('graph', 'figure'),
+#            [Input('shot_select', 'value'),Input('feature-table','data'),
+#            ])
+#        def callback_figure(shot,feature_data
+#                ):
+#            #print(feature_data)
+#            #print(shot)
+#            #df = read_logger(shot)[0][:7000]    ##############################
+#            df = self.dr.read_logger(shot)[:7000]   ##### こっちは[0]が無い　　!!!注意!!!  ######
+#            for col in self.get_dispcol().keys():
+#                if not col in df.columns:
+#                    df[col] = eval(self.get_dispcol()[col][2])
+#                    '''
+#                    execだとスタンドアローンではうまく行くが、jupyterからの実行でエラー。disp_colがnot fefined.
+#                    コンテキストが違う?  exec()にコンテキストを指定する方法があるようだが良くわからず。
+#                    恐らくeval()は、その構文がそこに書いてあるものとして評価するので、むしろeval()がふさわしい。
+#                    '''
+#                    #exec_str = self.get_dispcol()[col][2]
+#                    #exec(exec_str)
+#                    #exec(self.disp_col[col][2])
+#
+#    #         fig = multi_col_figure(df[['プレス荷重shift','スライド変位右','加速度左右_X_左+500G']])
+#            '''
+#            make_subplots(shared_xaxes=True)X軸連動の対象は同じcol同志のみ。複数colある場合は縦に並んだsubplotだけが連動する。
+#            update_xaxes(matches='x')で連動させた場合は全てのsubplotが連動。
+#            shared_xaxes=Trueとupdate_xaxes(matches='x')は同じ機能にアクセスするAPIだとの議論もあるが、
+#            試した範囲では動作が異なる。バグか?
+#            https://github.com/plotly/plotly.py/issues/775
+#            https://community.plotly.com/t/shared-x-axis-with-sub-and-side-by-side-plots-and-click-events-in-html-output-file/34613
+#            '''
+#            # make_subplots()はgo.Figureインスタンスを生成。go.FigureWidgetはgo.Figureの継承クラスで、
+#            # go.Figureインスタンスを引数にコンストラクタを呼ぶとsubplot化されたgo.FigureWidgetインスタンスになる。
+#            fig = go.FigureWidget(
+#                #make_subplots(rows=self.nrows, cols=self.ncols, shared_xaxes=True,vertical_spacing = 0.03,horizontal_spacing=0.05)
+#                make_subplots(rows=self.nrows, cols=self.ncols, vertical_spacing = 0.04,horizontal_spacing=0.05)
+#            )
+#            fig.update_xaxes(matches='x')
+#
+#            # disp_colで定義された項目を時系列グラフとして描画
+#            for col in self.disp_col:
+#                ''' ToDo: 要検討 このスコープのdfにはread_logger()で読んだ項目全て含まれてるので「表示しない項目」を考慮する必要無し? '''
+##                if self.disp_col[col][0] == 0:  # disp_col['time'] = [0,0,None] と定義されてたら表示対象外
+##                    continue
+#                fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=self.disp_col[col][0], col=self.disp_col[col][1])            
+#    #             fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=disp_col[col]+1, col=1)            
+#
+#            '''
+#            matplotlibのsubplotでは、各subplotがそれぞれaxであるため、そのaxに対する操作が、
+#            非subplot環境、つまりfigure全体がaxである場合と同様に行えるようになっているのだが、
+#            そういった考え方がplotlyには無く、subplotはただ単にfigureを分割したものになっている。
+#            そのため、subplotごとにlegendを描く、という発想が無い。
+#            legendgroupという機能があり、複数データ系列のlegendをグルーピングすることができるが、
+#            これはsubplotとは無関係、あくまでlegend描画エリアの中でグルーピングし、
+#            そのグループ間のgapが指定可能(legend_tracegroupgap)になっているだけ。
+#            legend描画エリアはgo.Figureの中に一つだけだ。
+#            '''
+#            fig.update_layout(showlegend=True, title_text='shot No.', width=1600,height=800)
+#            # ToDo: legendはsubplotのtitleで入れた方が見栄えが良いが、一つのsubplotに複数ある時の対応をどうするか?
+#
+#            for f in feature_data:
+#                result = self.locate_feature(df,
+#                    f['feature_name'],f['select_col'], f['rolling_width'],
+#                    f['low_find_type'],f['low_feature'],f['low_lim'],
+#                    f['up_find_type'],f['up_feature'],f['up_lim'],
+#                    f['find_target'],f['find_dir'])
+#                #print(result)
+#                self.draw_result(fig,result)
+#
+#            return fig
+
         return app
 
+if __name__ == '__main__':
+    #from data_accessor import DataAccessor
+    from backend.dash_app.data_accessor import DataAccessor
 
-if __name__ == "__main__":
-    brewFeatures = brewFeatures()  # type: ignore
+    # brewFeaturesインスタンスを生成
+    brewFeatures = brewFeatures()
+    # DataAccessorインスタンスを生成してbrewFeaturesにセット
+    brewFeatures.set_DataAccessor(DataAccessor())
+    # disp_colをoverrideすることで、グラフ表示をカスタマイズ
+    # disp_colはDataAccessor側にあるべきか?
     disp_co = {}
-    disp_co["プレス荷重shift"] = [1, 1, None]
-    disp_co["右垂直"] = [1, 1, None]
-    disp_co["スライド変位右"] = [2, 1, None]
-    disp_co["スライド変位左"] = [2, 1, None]
-    # disp_co["F*dFdt"] = [3, 1, 'df["F*dFdt"] = df["プレス荷重shift"]*(df["プレス荷重shift"].diff() / df["time"].diff())']
-    brewFeatures.set_dispcol(disp_co)  # type: ignore
-    app = brewFeatures.make_app()  # type: ignore
-    app.run_server(host="0.0.0.0", port=8048, debug=True)
+    # "time"項目は表示対象外だが、微分する時に必要。DataAccessorで必ず"time"項目を作るという決まりにする?
+    #disp_co['time'] = [0,0,None]    # plotlyのsubplotのrow,colは0 originではないので0,0は存在しない
+    disp_co['プレス荷重shift'] = [1,1,None]
+    disp_co['右垂直'] = [1,1,None]
+    disp_co['スライド変位右'] = [2,1,None]
+    disp_co['スライド変位左'] = [1,2,None]
+    disp_co['F*dFdt'] = [3,1,'df["プレス荷重shift"]*(df["プレス荷重shift"].diff() / df["time"].diff())']
+    brewFeatures.set_dispcol(disp_co)
+    # サーバ実行
+    app = brewFeatures.make_app()
+    # JupyterDashでは今のところ0.0.0.0にbindできない
+    app.run_server(host='0.0.0.0',port=8048,debug=True)
