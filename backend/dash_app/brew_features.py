@@ -25,6 +25,7 @@ python -m backend.dash_app.brew_features
 """
 import numpy as np
 import pandas as pd
+import re
 import plotly.express as px
 from jupyter_dash import JupyterDash
 import dash_bootstrap_components as dbc
@@ -92,10 +93,10 @@ class brewFeatures:
     def __init__(self):
         self.nrows = 2
         self.ncols = 1
-        # disp_colのdefaultの初期値をここで設定
-        self.disp_col = {}
-        self.disp_col["プレス荷重shift"] = [1, 1, None]
-        self.disp_col["スライド変位右"] = [2, 1, None]
+#        # disp_colのdefaultの初期値をここで設定
+#        self.disp_col = {}
+#        self.disp_col["プレス荷重shift"] = [1, 1, None]
+#        self.disp_col["スライド変位右"] = [2, 1, None]
         # 抽出済み特徴量の "名前=>値(index)" となるdictionary。
         self.dr = None
         self.gened_features = {}
@@ -103,39 +104,39 @@ class brewFeatures:
     def set_DataAccessor(self, dr):
         self.dr = dr
 
-    def set_dispcol(self, disp_col):
-        """  ToDo:
-        3項目目の禁則文字チェックが必要。コーテーションとか。
-        """
-        """  ToDo:
-        disp_colの要素を[row,col,値の変換式:Noneだったら元の項目そのまま]のまま行くとしたら、
-        ほとんどの場合意味のない3項目目のNoneをユーザが書き忘れる可能性が高い。
-        書き忘れると、対応の難しいバグとして現れるので、
-        ここでsetする時に足りないNoneを補うとかした方が良さそう。
-        その前に、この変な形のまま行くかどうかを考えるべきだが。
-        """
-        """
-        disp_colは、項目名 => [表示位置row, 表示位置col] となるdictionary。
-        """
-        self.disp_col = disp_col
-        """
-        disp_colからnrows,ncolsを算出
-        values()でdict_valuesを取り出してlistにcast、さらにnumpy.arrayにcast
-        (2,x)のarrayになるので、[:,0]でrowだけ、[:,1]でcolだけ取り出す。
-            disp_col.values()                        # dict_values([[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]])
-            list(disp_col.values())                  # [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]]
-            np.array(list(disp_col.values()))        # array([[1, 1],
-                                                              [1, 1],
-                                                              [2, 1],
-                                                              [2, 1],
-                                                              [2, 1]])
-            np.array(list(disp_col.values()))[:,0]   #   array([1, 1, 2, 2, 2])
-        """
-        self.nrows = int(np.array(list(disp_col.values()))[:, 0].max())  # intにcastしないとダメ、なんでだ?
-        self.ncols = int(np.array(list(disp_col.values()))[:, 1].max())
-
-    def get_dispcol(self):
-        return self.disp_col
+#    def set_dispcol(self, disp_col):
+#        """  ToDo:
+#        3項目目の禁則文字チェックが必要。コーテーションとか。
+#        """
+#        """  ToDo:
+#        disp_colの要素を[row,col,値の変換式:Noneだったら元の項目そのまま]のまま行くとしたら、
+#        ほとんどの場合意味のない3項目目のNoneをユーザが書き忘れる可能性が高い。
+#        書き忘れると、対応の難しいバグとして現れるので、
+#        ここでsetする時に足りないNoneを補うとかした方が良さそう。
+#        その前に、この変な形のまま行くかどうかを考えるべきだが。
+#        """
+#        """
+#        disp_colは、項目名 => [表示位置row, 表示位置col] となるdictionary。
+#        """
+#        self.disp_col = disp_col
+#        """
+#        disp_colからnrows,ncolsを算出
+#        values()でdict_valuesを取り出してlistにcast、さらにnumpy.arrayにcast
+#        (2,x)のarrayになるので、[:,0]でrowだけ、[:,1]でcolだけ取り出す。
+#            disp_col.values()                        # dict_values([[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]])
+#            list(disp_col.values())                  # [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]]
+#            np.array(list(disp_col.values()))        # array([[1, 1],
+#                                                              [1, 1],
+#                                                              [2, 1],
+#                                                              [2, 1],
+#                                                              [2, 1]])
+#            np.array(list(disp_col.values()))[:,0]   #   array([1, 1, 2, 2, 2])
+#        """
+#        self.nrows = int(np.array(list(disp_col.values()))[:, 0].max())  # intにcastしないとダメ、なんでだ?
+#        self.ncols = int(np.array(list(disp_col.values()))[:, 1].max())
+#
+#    def get_dispcol(self):
+#        return self.disp_col
 
     """  locate_feature()を呼ぶために必要なパラメタ群をdictに """
 
@@ -200,23 +201,24 @@ class brewFeatures:
     # 特徴抽出機能のコア部   ToDo: グラフ操作を分離して特徴抽出だけを呼べるように
     def locate_feature(
         self,
-        df,  # 対象データ:pandas.DataFrame
-        feature_name,  # 特徴量名:str
-        select_col,  # 処理対象項目:str
+        df,             # 対象データ:pandas.DataFrame
+        feature_name,   # 特徴量名:str
+        select_col,     # 処理対象項目:str
         rolling_width,  # 検索下限限方法:'固定' or '値域>' or '値域<' or '特徴点'
         low_find_type,  # 検索下限限特徴量名:str
-        low_feature,  # 検索下限限値:int
-        low_lim,  # 検出下限対象:'DPT' or 'VCT' or 'ACC'
-        up_find_type,  # 検索上限方法:'固定' or '値域>' or '値域<' or '特徴点'
-        up_feature,  # 検索上限特徴量名:str
-        up_lim,  # 検索上限値:int
-        find_target,  # 検出上限対象:'DPT' or 'VCT' or 'ACC'
-        find_dir,  # ピーク方向:'MAX' or 'MIN'
+        low_feature,    # 検索下限限値:int
+        low_lim,        # 検出下限対象:'DPT' or 'VCT' or 'ACC'
+        up_find_type,   # 検索上限方法:'固定' or '値域>' or '値域<' or '特徴点'
+        up_feature,     # 検索上限特徴量名:str
+        up_lim,         # 検索上限値:int
+        find_target,    # 検出上限対象:'DPT' or 'VCT' or 'ACC'
+        find_dir,       # ピーク方向:'MAX' or 'MIN'
     ):
         target_i = None
         result = {}
         result["feature_name"] = feature_name
 
+        # 特徴量名が空白 or 未入力、対象項目未選択の場合は空のresultを返す
         if feature_name == "" or feature_name is None:
             return result
         if select_col == "":
@@ -303,8 +305,8 @@ class brewFeatures:
         return result
 
     def make_app(self):
-        # app = JupyterDash('brewFeatures')
-        app = JupyterDash("brewFeatures", external_stylesheets=[dbc.themes.CERULEAN])
+        app = JupyterDash('brewFeatures')
+        #app = JupyterDash("brewFeatures", external_stylesheets=[dbc.themes.CERULEAN])  # DataTableのdropdownが表示されない。
 
         flist = self.dr.get_shot_list()
 
@@ -330,6 +332,7 @@ class brewFeatures:
                         {"id": "row_number", "name": "行番号"},
                         {"id": "col_number", "name": "列番号"},
                         {"id": "rolling_width", "name": "移動平均"},
+                        {"id": "original_field", "name": "ソースフィールド"},
                         {"id": "preprocess", "name": "前処理"},
                         {"id": "detail", "name": "詳細"},
                     ],
@@ -344,17 +347,17 @@ class brewFeatures:
                     # data=pd.DataFrame().to_dict("records"),
                     data=pd.DataFrame(
                         {
-                            "feature_name": ["vct_min", "breaking", ""],
-                            "select_col": ["", "", ""],
-                            "rolling_width": [9, 1, 1],
-                            "low_find_type": ["固定", "固定", "特徴点"],
-                            "low_feature": ["", "", ""],
-                            "low_lim": ["1000", "1000", "1000"],
-                            "up_find_type": ["固定", "固定", "特徴点"],
-                            "up_feature": ["", "", ""],
-                            "up_lim": ["3000", "5000", "3000"],
-                            "find_target": ["VCT", "ACC", "DPT"],
-                            "find_dir": ["MIN", "MAX", "MIN"],
+                            "feature_name": ["vct_min", "breaking", "", "", ""],
+                            "select_col": ["", "", "", "", ""],
+                            "rolling_width": [9, 1, 1, 1, 1],
+                            "low_find_type": ["固定", "特徴点", "特徴点", "", ""],
+                            "low_feature": ["", "vct_min", "", "", ""],
+                            "low_lim": ["1000", "-100", "1000", "0", "0"],
+                            "up_find_type": ["固定", "特徴点", "特徴点", "", ""],
+                            "up_feature": ["", "vct_min", "", "", ""],
+                            "up_lim": ["3000", "0", "3000", "0", "0"],
+                            "find_target": ["VCT", "ACC", "DPT", "DPT", "DPT"],
+                            "find_dir": ["MIN", "MIN", "MIN", "MAX", "MAX"],
                         }
                     ).to_dict("records"),
                     columns=[
@@ -362,17 +365,19 @@ class brewFeatures:
                         {"id": "select_col", "name": "対象項目", "presentation": "dropdown"},
                         {"id": "rolling_width", "name": "移動平均範囲"},
                         {"id": "low_find_type", "name": "検索方法下限", "presentation": "dropdown"},
-                        {"id": "low_feature", "name": "検索特徴名下限"},
+                        {"id": "low_feature", "name": "検索特徴名下限", "presentation": "dropdown"},
                         {"id": "low_lim", "name": "検索下限"},
                         {"id": "up_find_type", "name": "検索方法上限", "presentation": "dropdown"},
-                        {"id": "up_feature", "name": "検索特徴名上限"},
+                        {"id": "up_feature", "name": "検索特徴名上限", "presentation": "dropdown"},
                         {"id": "up_lim", "name": "検索上限"},
                         {"id": "find_target", "name": "検索対象", "presentation": "dropdown"},
                         {"id": "find_dir", "name": "検索方向", "presentation": "dropdown"},
                     ],
                     editable=True,
+                    row_selectable='multi',
                     dropdown={
-                        "select_col": {"options": [{"label": i, "value": i} for i in self.disp_col.keys()]},
+                        #"select_col": {"options": [{"label": i, "value": i} for i in self.disp_col.keys()]},
+                        "select_col": {"options": [{"label": i, "value": i} for i in ['']]},
                         "low_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
                         "up_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
                         "find_target": {"options": [{"label": i, "value": i} for i in ["DPT", "VCT", "ACC"]]},
@@ -731,6 +736,7 @@ class brewFeatures:
                     "row_number": row_number,
                     "col_number": col_number,
                     "rolling_width": rolling_width,
+                    "original_field": field,
                     "preprocess": preprocess,
                     "detail": "",
                 }
@@ -742,38 +748,29 @@ class brewFeatures:
 
                 # ショットデータへの演算処理
                 if preprocess == PREPROCESS.DIFF.name:
-                    preprocessed_field = diff(df, field)
                     new_row["detail"] = "微分"
                 elif preprocess == PREPROCESS.ADD.name:
-                    preprocessed_field = add(df, field, add_field)
                     new_row["detail"] = f"加算行: {add_field}"
                 elif preprocess == PREPROCESS.SUB.name:
-                    preprocessed_field = sub(df, field, sub_field)
                     new_row["detail"] = f"減算行: {sub_field}"
                 elif preprocess == PREPROCESS.MUL.name:
-                    preprocessed_field = mul(df, field, mul_field)
                     new_row["detail"] = f"係数: {mul_field}"
                 elif preprocess == PREPROCESS.SHIFT.name:
-                    preprocessed_field = shift(df, field, shift_field)
                     new_row["detail"] = f"シフト幅: {shift_field}"
                 elif preprocess == PREPROCESS.CALIBRATION.name:
-                    preprocessed_field = calibration(df, field, calibration_field)
                     new_row["detail"] = f"校正: 先頭{calibration_field}件"
                 elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
-                    preprocessed_field = moving_average(df, field, moving_average_field)
                     new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
                 elif preprocess == PREPROCESS.REGRESSION_LINE.name:
                     # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
-                    preprocessed_field = regression_line(df, field, regression_line_field)
                     new_row["detail"] = f"回帰直線: {regression_line_field}"
                 elif preprocess == PREPROCESS.THINNING_OUT.name:
-                    preprocessed_field = thinning_out(df, field, thinning_out_field)
                     new_row["detail"] = f"間引き幅: {thinning_out_field}"
                 else:
                     preprocessed_field = df[field]
 
                 new_field = field + preprocess
-                df[new_field] = preprocessed_field
+                new_row['field'] = new_field
 
                 # フィールドドロップダウンオプションに演算結果列を追加。既存のフィールドは追加しない。
                 if new_field not in field_options:
@@ -783,101 +780,103 @@ class brewFeatures:
 
                 return rows, field_options, df.to_json(date_format="iso", orient="split")
 
-        @app.callback(Output("feature-table", "dropdown"), [Input("setting-table", "data")])
-        def callback_update_select_col(setting_data):
-
+        @app.callback(Output("feature-table", "dropdown"), 
+                     [Input("setting-table", "data"),Input("feature-table", "data"),])
+        def callback_update_select_col(setting_data,feature_data):
+            feature_opt = {"options": [{"label": f["feature_name"], "value": f["feature_name"]} for f in feature_data]}
             ### 暫定
             dropdown = {
                 "select_col": {"options": [{"label": r["field"], "value": r["field"]} for r in setting_data]},
                 "low_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
+                "low_feature": feature_opt,
                 "up_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
+                "up_feature": feature_opt,
                 "find_target": {"options": [{"label": i, "value": i} for i in ["DPT", "VCT", "ACC"]]},
                 "find_dir": {"options": [{"label": i, "value": i} for i in ["MAX", "MIN"]]},
             }
             return dropdown
 
-        # @app.callback(
-        #    Output("graph", "figure"),
-        #    Input("setting-table", "data_previous"),  # 行削除を監視
-        #    Input("setting-table", "data"),
-        #    Input("feature-table", "data"),
-        #    State("shot-data", "data"),
-        #    prevent_initial_call=True,
-        # )
-        # def add_field_to_graph(previous_rows, rows, feature_data, shot_data):
-        #    """テーブルの変更（フィールドの追加・削除）を検知し、グラフを描画する。
-        #    グラフ領域はコールバックの度にテーブル内容を参照して再描画する。
-        #    """
-        #    print('rows:',rows)
-        #    print('feature_data:',feature_data)
-        #
-        #    if len(rows) == 0:
-        #        fig = make_subplots()
-        #        return fig
-        #
-        #    df = pd.read_json(shot_data, orient="split")
-        #
-        #    max_row_number = max([r["row_number"] for r in rows])
-        #    max_col_number = max([r["col_number"] for r in rows])
-        #
-        #    # M行N列のグラフ領域
-        #    fig = make_subplots(rows=max_row_number, cols=max_col_number, shared_xaxes=True, vertical_spacing=0.02, horizontal_spacing=0.05)
-        #
-        #    # グラフの数だけループ
-        #    for m in range(1, max_row_number + 1):
-        #        for n in range(1, max_col_number + 1):
-        #            for row in rows:
-        #                # 入力で指定した（テーブルに記録されている）行列番号と一致する場合、当該位置のグラフに追加表示
-        #                if row["row_number"] == m and row["col_number"] == n:
-        #                    display_row = row["field"] + row["preprocess"] if row["preprocess"] else row["field"]
-        #                    fig.add_trace(go.Scatter(x=df.index, y=df[display_row], name=display_row), row=m, col=n)
-        #
-        #    fig.update_layout(width=1300, height=600)
-        #
-        #    for f in feature_data:
-        #        for r in rows:
-        #            if f['col'] == r['field']:
-        #                x_lim = [int(f['low_lim']),int(f['up_lim'])]
-        #                fig.add_vrect(x0=x_lim[0],x1=x_lim[1],line_width=0, fillcolor="LightSalmon", opacity=0.2,layer='below', row=r['row_number'],col=r['col_number'])
-        #
-        #
-        #    return fig
 
         # 波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
         # つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
         """ ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持 """
 
         @app.callback(
-            #     dash.dependencies.Output('graph', 'figure'),
             Output("graph", "figure"),
-            [Input("setting-table", "data"), Input("feature-table", "data"), Input("shot-data", "data"),],
+            [
+            Input("shot-number-dropdown", "value"),
+            Input("csv-file-dropdown", "value"),
+            State("elastic-index-dropdown", "value"),
+            Input("setting-table", "data"), 
+            Input("feature-table", "data"), 
+            Input("feature-table", "selected_rows"),   # [2,0] チェックした順番が維持される
+            Input("shot-data", "data"),       # これ、もう要らない?
+            ],
         )
-        def callback_figure(setting_data, feature_data, shot_data):
+        def callback_figure(shot_number, csv_file, elastic_index, setting_data, feature_data, feature_rows,shot_data):
+
+#            print(feature_data)
+#            if feature_rows:
+#                print(sorted(feature_rows))
+            ''' 表示位置設定が空なら空のfigureオブジェクトを返す '''
             if len(setting_data) == 0:
                 return go.FigureWidget()
             #                return None
-            df = pd.read_json(shot_data, orient="split")
+            #df = pd.read_json(shot_data, orient="split")
             # print(df.columns)
 
-            max_row_number = max([r["row_number"] for r in setting_data])
-            max_col_number = max([r["col_number"] for r in setting_data])
+            ''' 入力データ '''
+            if elastic_index:
+                df = get_shot_df_from_elastic(elastic_index, shot_number, size=10000)
+                options = [{"label": c, "value": c} for c in df.columns]
+                #return rows, options, df.to_json(date_format="iso", orient="split")
 
-            fig = go.FigureWidget(
-                # make_subplots(rows=self.nrows, cols=self.ncols, shared_xaxes=True,vertical_spacing = 0.03,horizontal_spacing=0.05)
-                make_subplots(rows=max_row_number, cols=max_col_number, vertical_spacing=0.02, horizontal_spacing=0.05)
-            )
-            fig.update_xaxes(matches="x")
+            # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
+            if csv_file:
+                df = get_shot_df_from_csv(csv_file)
+                options = [{"label": c, "value": c} for c in df.columns]
+                #return rows, options, df.to_json(date_format="iso", orient="split")
 
+            ''' 各種前処理 '''
             for r in setting_data:
-                if r["preprocess"] is None:
-                    col = r["field"]
-                else:
-                    col = r["field"] + r["preprocess"]
-                rw = int(r["rolling_width"])
-                fig.add_trace(
-                    go.Scatter(x=df.index, y=df[col].rolling(rw, center=True).mean(), name=col), row=r["row_number"], col=r["col_number"]
-                )
+                field = r["field"]
+                org_field = r["original_field"]
+                preprocess = r["preprocess"]
+                '''  setting-table['detail']に格納されている「加算列」、「減算列」などの文字列からそれぞれの引数を取り出している。
+                     setting-tableに非表示項目を作る(可能かどうか不明)など、もう少しスマートかつ拡張可能な方法で対応したい。      '''
+                argument = re.sub('^.*: ','',r["detail"])
+                if not preprocess is None:
+                    if preprocess == PREPROCESS.DIFF.name:
+                        df[field] = diff(df, org_field)
+                    elif preprocess == PREPROCESS.ADD.name:
+                        df[field] = add(df, org_field, argument)
+                    elif preprocess == PREPROCESS.SUB.name:
+                        df[field] = sub(df, org_field, argument)
+                    elif preprocess == PREPROCESS.MUL.name:
+                        df[field] = mul(df, org_field, argument)
+                    elif preprocess == PREPROCESS.SHIFT.name:
+                        df[field] = shift(df, org_field, int(argument))
+                    elif preprocess == PREPROCESS.CALIBRATION.name:
+                        df[field] = calibration(df, org_field, argument)
+                    elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
+                        df[field] = moving_average(df, org_field, int(argument))
+                    elif preprocess == PREPROCESS.REGRESSION_LINE.name:
+                        # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
+                        df[field] = regression_line(df, org_field, argument)
+                    elif preprocess == PREPROCESS.THINNING_OUT.name:
+                        df[field] = thinning_out(df, org_field, int(argument))
 
+                    #new_row["detail"] = "微分"
+                    #col = r["field"]
+                #else:
+                    #col = r["field"]   # setting-table上で新項目名を付けるよう変更
+                    #col = r["field"] + r["preprocess"]   # setting-table上で新項目名を付けるよう変更
+
+            ''' 特徴量検索 '''
+            # feature_rowsは特徴量記述テーブルの選択行番号であり、特徴量描画の有無を指定しており、
+            # 特徴量抽出結果の len(result_data) と len(feature_data) は一致してなければならない。
+            # ここで、空のresultを間引いたりするべからず。
+            result_data = []
             for f in feature_data:
                 result = self.locate_feature(
                     df,
@@ -893,84 +892,36 @@ class brewFeatures:
                     f["find_target"],
                     f["find_dir"],
                 )
-                # print(result)
+                #print(result)
+                result_data.append(result)
+
+            ''' subplot '''
+            max_row_number = max([int(r["row_number"]) for r in setting_data])
+            max_col_number = max([int(r["col_number"]) for r in setting_data])
+
+            fig = go.FigureWidget(
+                # make_subplots(rows=self.nrows, cols=self.ncols, shared_xaxes=True,vertical_spacing = 0.03,horizontal_spacing=0.05)
+                make_subplots(rows=max_row_number, cols=max_col_number, vertical_spacing=0.02, horizontal_spacing=0.05)
+            )
+            fig.update_xaxes(matches="x")
+
+            ''' 波形グラフ描画 '''
+            for r in setting_data:
+                field = r["field"]
+                rw = int(r["rolling_width"])
+                #print('add_trace:',col,rw)
+                fig.add_trace(
+                    go.Scatter(x=df.index, y=df[field].rolling(rw, center=True).mean(), name=field), row=int(r["row_number"]), col=int(r["col_number"])
+                )
+
+            for result in np.array(result_data)[feature_rows]:
                 for r in setting_data:
-                    if f["select_col"] == r["field"]:
-                        self.draw_result(fig, result, r["row_number"], r["col_number"])
+                    if 'select_col' in result:
+                        if result["select_col"] == r["field"]:
+                            self.draw_result(fig, result, r["row_number"], r["col_number"])
 
+            fig.update_layout(width=1300, height=600)   # TODO: 相対サイズ指定?
             return fig
-
-        #        @app.callback(
-        #    #     dash.dependencies.Output('graph', 'figure'),
-        #            Output('graph', 'figure'),
-        #            [Input('shot_select', 'value'),Input('feature-table','data'),
-        #            ])
-        #        def callback_figure(shot,feature_data
-        #                ):
-        #            #print(feature_data)
-        #            #print(shot)
-        #            #df = read_logger(shot)[0][:7000]    ##############################
-        #            df = self.dr.read_logger(shot)[:7000]   ##### こっちは[0]が無い　　!!!注意!!!  ######
-        #            for col in self.get_dispcol().keys():
-        #                if not col in df.columns:
-        #                    df[col] = eval(self.get_dispcol()[col][2])
-        #                    '''
-        #                    execだとスタンドアローンではうまく行くが、jupyterからの実行でエラー。disp_colがnot fefined.
-        #                    コンテキストが違う?  exec()にコンテキストを指定する方法があるようだが良くわからず。
-        #                    恐らくeval()は、その構文がそこに書いてあるものとして評価するので、むしろeval()がふさわしい。
-        #                    '''
-        #                    #exec_str = self.get_dispcol()[col][2]
-        #                    #exec(exec_str)
-        #                    #exec(self.disp_col[col][2])
-        #
-        #    #         fig = multi_col_figure(df[['プレス荷重shift','スライド変位右','加速度左右_X_左+500G']])
-        #            '''
-        #            make_subplots(shared_xaxes=True)X軸連動の対象は同じcol同志のみ。複数colある場合は縦に並んだsubplotだけが連動する。
-        #            update_xaxes(matches='x')で連動させた場合は全てのsubplotが連動。
-        #            shared_xaxes=Trueとupdate_xaxes(matches='x')は同じ機能にアクセスするAPIだとの議論もあるが、
-        #            試した範囲では動作が異なる。バグか?
-        #            https://github.com/plotly/plotly.py/issues/775
-        #            https://community.plotly.com/t/shared-x-axis-with-sub-and-side-by-side-plots-and-click-events-in-html-output-file/34613
-        #            '''
-        #            # make_subplots()はgo.Figureインスタンスを生成。go.FigureWidgetはgo.Figureの継承クラスで、
-        #            # go.Figureインスタンスを引数にコンストラクタを呼ぶとsubplot化されたgo.FigureWidgetインスタンスになる。
-        #            fig = go.FigureWidget(
-        #                #make_subplots(rows=self.nrows, cols=self.ncols, shared_xaxes=True,vertical_spacing = 0.03,horizontal_spacing=0.05)
-        #                make_subplots(rows=self.nrows, cols=self.ncols, vertical_spacing = 0.04,horizontal_spacing=0.05)
-        #            )
-        #            fig.update_xaxes(matches='x')
-        #
-        #            # disp_colで定義された項目を時系列グラフとして描画
-        #            for col in self.disp_col:
-        #                ''' ToDo: 要検討 このスコープのdfにはread_logger()で読んだ項目全て含まれてるので「表示しない項目」を考慮する必要無し? '''
-        ##                if self.disp_col[col][0] == 0:  # disp_col['time'] = [0,0,None] と定義されてたら表示対象外
-        ##                    continue
-        #                fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=self.disp_col[col][0], col=self.disp_col[col][1])
-        #    #             fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=disp_col[col]+1, col=1)
-        #
-        #            '''
-        #            matplotlibのsubplotでは、各subplotがそれぞれaxであるため、そのaxに対する操作が、
-        #            非subplot環境、つまりfigure全体がaxである場合と同様に行えるようになっているのだが、
-        #            そういった考え方がplotlyには無く、subplotはただ単にfigureを分割したものになっている。
-        #            そのため、subplotごとにlegendを描く、という発想が無い。
-        #            legendgroupという機能があり、複数データ系列のlegendをグルーピングすることができるが、
-        #            これはsubplotとは無関係、あくまでlegend描画エリアの中でグルーピングし、
-        #            そのグループ間のgapが指定可能(legend_tracegroupgap)になっているだけ。
-        #            legend描画エリアはgo.Figureの中に一つだけだ。
-        #            '''
-        #            fig.update_layout(showlegend=True, title_text='shot No.', width=1600,height=800)
-        #            # ToDo: legendはsubplotのtitleで入れた方が見栄えが良いが、一つのsubplotに複数ある時の対応をどうするか?
-        #
-        #            for f in feature_data:
-        #                result = self.locate_feature(df,
-        #                    f['feature_name'],f['select_col'], f['rolling_width'],
-        #                    f['low_find_type'],f['low_feature'],f['low_lim'],
-        #                    f['up_find_type'],f['up_feature'],f['up_lim'],
-        #                    f['find_target'],f['find_dir'])
-        #                #print(result)
-        #                self.draw_result(fig,result)
-        #
-        #            return fig
 
         return app
 
@@ -985,15 +936,15 @@ if __name__ == "__main__":
     brewFeatures.set_DataAccessor(DataAccessor())
     # disp_colをoverrideすることで、グラフ表示をカスタマイズ
     # disp_colはDataAccessor側にあるべきか?
-    disp_co = {}
-    # "time"項目は表示対象外だが、微分する時に必要。DataAccessorで必ず"time"項目を作るという決まりにする?
-    # disp_co['time'] = [0,0,None]    # plotlyのsubplotのrow,colは0 originではないので0,0は存在しない
-    disp_co["プレス荷重shift"] = [1, 1, None]
-    disp_co["右垂直"] = [1, 1, None]
-    disp_co["スライド変位右"] = [2, 1, None]
-    disp_co["スライド変位左"] = [1, 2, None]
-    disp_co["F*dFdt"] = [3, 1, 'df["プレス荷重shift"]*(df["プレス荷重shift"].diff() / df["time"].diff())']
-    brewFeatures.set_dispcol(disp_co)
+#    disp_co = {}
+#    # "time"項目は表示対象外だが、微分する時に必要。DataAccessorで必ず"time"項目を作るという決まりにする?
+#    # disp_co['time'] = [0,0,None]    # plotlyのsubplotのrow,colは0 originではないので0,0は存在しない
+#    disp_co["プレス荷重shift"] = [1, 1, None]
+#    disp_co["右垂直"] = [1, 1, None]
+#    disp_co["スライド変位右"] = [2, 1, None]
+#    disp_co["スライド変位左"] = [1, 2, None]
+#    disp_co["F*dFdt"] = [3, 1, 'df["プレス荷重shift"]*(df["プレス荷重shift"].diff() / df["time"].diff())']
+#    brewFeatures.set_dispcol(disp_co)
     # サーバ実行
     app = brewFeatures.make_app()
     # JupyterDashでは今のところ0.0.0.0にbindできない
