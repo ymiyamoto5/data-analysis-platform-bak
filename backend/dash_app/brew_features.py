@@ -9,7 +9,6 @@
 
 """
 
-import re
 from pathlib import Path
 
 import dash_bootstrap_components as dbc
@@ -333,7 +332,6 @@ class brewFeatures:
                     [
                         html.Label("データソースタイプ"),
                         dcc.Dropdown(
-                            value="csv",
                             id="data-source-type-dropdown",
                             options=[{"label": "CSV", "value": "csv"}, {"label": "Elasticsearch", "value": "elastic"}],
                         ),
@@ -345,7 +343,7 @@ class brewFeatures:
                         html.Label("ファイル"),
                         dcc.Dropdown(id="csv-file-dropdown"),
                     ],
-                    style={"display": "none"},  # 暫定コメントアウト
+                    style={"display": "none"},
                 ),
                 html.Div(
                     id="elastic-index",
@@ -758,6 +756,7 @@ class brewFeatures:
                     new_row["detail"] = f"間引き幅: {thinning_out_field}"
                     parameter = thinning_out_field
 
+                new_row["parameter"] = parameter
                 new_field = f"{field}_{preprocess}_{parameter}" if parameter else f"{field}_{preprocess}"
                 new_row["field"] = new_field
 
@@ -822,32 +821,33 @@ class brewFeatures:
 
             """ 各種前処理 """
             for r in setting_data:
+                if not preprocess:
+                    continue
+
                 field = r["field"]
                 org_field = r["original_field"]
                 preprocess = r["preprocess"]
-                """  setting-table['detail']に格納されている「加算列」、「減算列」などの文字列からそれぞれの引数を取り出している。
-                     setting-tableに非表示項目を作る(可能かどうか不明)など、もう少しスマートかつ拡張可能な方法で対応したい。      """
-                argument = re.sub("^.*: ", "", r["detail"])
-                if not preprocess is None:
-                    if preprocess == PREPROCESS.DIFF.name:
-                        df[field] = diff(df, org_field)
-                    elif preprocess == PREPROCESS.ADD.name:
-                        df[field] = add(df, org_field, argument)
-                    elif preprocess == PREPROCESS.SUB.name:
-                        df[field] = sub(df, org_field, argument)
-                    elif preprocess == PREPROCESS.MUL.name:
-                        df[field] = mul(df, org_field, argument)
-                    elif preprocess == PREPROCESS.SHIFT.name:
-                        df[field] = shift(df, org_field, int(argument))
-                    elif preprocess == PREPROCESS.CALIBRATION.name:
-                        df[field] = calibration(df, org_field, argument)
-                    elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
-                        df[field] = moving_average(df, org_field, int(argument))
-                    elif preprocess == PREPROCESS.REGRESSION_LINE.name:
-                        # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
-                        df[field] = regression_line(df, org_field, argument)
-                    elif preprocess == PREPROCESS.THINNING_OUT.name:
-                        df[field] = thinning_out(df, org_field, int(argument))
+                parameter = r["parameter"]
+
+                if preprocess == PREPROCESS.DIFF.name:
+                    df[field] = diff(df, org_field)
+                elif preprocess == PREPROCESS.ADD.name:
+                    df[field] = add(df, org_field, parameter)
+                elif preprocess == PREPROCESS.SUB.name:
+                    df[field] = sub(df, org_field, parameter)
+                elif preprocess == PREPROCESS.MUL.name:
+                    df[field] = mul(df, org_field, parameter)
+                elif preprocess == PREPROCESS.SHIFT.name:
+                    df[field] = shift(df, org_field, int(parameter))
+                elif preprocess == PREPROCESS.CALIBRATION.name:
+                    df[field] = calibration(df, org_field, parameter)
+                elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
+                    df[field] = moving_average(df, org_field, int(parameter))
+                elif preprocess == PREPROCESS.REGRESSION_LINE.name:
+                    # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
+                    df[field] = regression_line(df, org_field, parameter)
+                elif preprocess == PREPROCESS.THINNING_OUT.name:
+                    df[field] = thinning_out(df, org_field, int(parameter))
 
             """ 特徴量検索 """
             # feature_rowsは特徴量記述テーブルの選択行番号であり、特徴量描画の有無を指定しており、
