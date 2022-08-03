@@ -1,3 +1,13 @@
+"""
+ ==================================
+  brew_features.py
+ ==================================
+
+  Copyright(c) 2022 UNIADEX, Ltd. All Rights Reserved.
+  CONFIDENTIAL
+  Author: UNIADEX, Ltd.
+
+"""
 import json
 import os
 from textwrap import dedent as d
@@ -15,40 +25,40 @@ import numpy as np
 
 
 
-# データごとにこの関数を書けば良いように
-def read_logger(f):
-    # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
-    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
-    unit = df.iloc[4]
-    offset = df.iloc[3]
-    calibration = df.iloc[2]
-    v_range = df.iloc[1]
-    channel = df.iloc[0]
-    # 改めて8行目をヘッダにして読み込む
-    # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
-    # floatのindex作っちゃダメ!!!
-    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
-    try:
-        df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
-        df['dF/dt'] = df['プレス荷重shift'].diff()
-        df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
-        if '加速度左右_X_左+' in df.columns:
-            df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
-        if '加速度上下_Y_下+' in df.columns:
-            df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
-        if '加速度前後_Z_前+' in df.columns:
-            df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
-    except KeyError:
-        print('プレス荷重　無し')
-
-    return df,unit,offset,calibration,v_range,channel
-
-# 項目の情報を取得するため1ファイルだけ先に読む。ToDo:前データ項目共通の前提
-from pathlib import Path
-p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
-flist = list(sorted(p.glob('*.CSV')))
-f = flist[10]
-df = read_logger(f)[0][:3000]
+## データごとにこの関数を書けば良いように
+#def read_logger(f):
+#    # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
+#    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
+#    unit = df.iloc[4]
+#    offset = df.iloc[3]
+#    calibration = df.iloc[2]
+#    v_range = df.iloc[1]
+#    channel = df.iloc[0]
+#    # 改めて8行目をヘッダにして読み込む
+#    # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
+#    # floatのindex作っちゃダメ!!!
+#    df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
+#    try:
+#        df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
+#        df['dF/dt'] = df['プレス荷重shift'].diff()
+#        df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
+#        if '加速度左右_X_左+' in df.columns:
+#            df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
+#        if '加速度上下_Y_下+' in df.columns:
+#            df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
+#        if '加速度前後_Z_前+' in df.columns:
+#            df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
+#    except KeyError:
+#        print('プレス荷重　無し')
+#
+#    return df,unit,offset,calibration,v_range,channel
+#
+## 項目の情報を取得するため1ファイルだけ先に読む。ToDo:前データ項目共通の前提
+#from pathlib import Path
+#p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
+#flist = list(sorted(p.glob('*.CSV')))
+#f = flist[10]
+#df = read_logger(f)[0][:3000]
 
 ## "項目名" => 表示subplot-id のdictionary
 #disp_col = {}
@@ -74,46 +84,46 @@ df = read_logger(f)[0][:3000]
 #disp_col['スライド＿金型隙間'] = [2,2]
 
 
-class dataReader:
-    def __init__(self):
-        # 抽出済み特徴量の "名前=>値(index)" となるdictionary。
-        from pathlib import Path
-        p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
-        self.flist = list(sorted(p.glob('*.CSV')))
-
-    def get_shot_list(self):
-        return self.flist
-
-    def get_shot(self,num):
-        return self.flist[num]
-
-    def read_logger(self,f):
-        # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
-        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
-        unit = df.iloc[4]
-        offset = df.iloc[3]
-        calibration = df.iloc[2]
-        v_range = df.iloc[1]
-        channel = df.iloc[0]
-        # 改めて8行目をヘッダにして読み込む
-        # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
-        # floatのindex作っちゃダメ!!!
-        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
-        try:
-            df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
-            df['dF/dt'] = df['プレス荷重shift'].diff()
-            df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
-            if '加速度左右_X_左+' in df.columns:
-                df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
-            if '加速度上下_Y_下+' in df.columns:
-                df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
-            if '加速度前後_Z_前+' in df.columns:
-                df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
-        except KeyError:
-            print('プレス荷重　無し')
-
-        #return df,unit,offset,calibration,v_range,channel
-        return df
+#class DataAccessor:
+#    def __init__(self):
+#        # 抽出済み特徴量の "名前=>値(index)" となるdictionary。
+#        from pathlib import Path
+#        p = Path('/Users/hao/data/ADDQ/20211004ブレークスルー/')
+#        self.flist = list(sorted(p.glob('*.CSV')))
+#
+#    def get_shot_list(self):
+#        return self.flist
+#
+#    def get_shot(self,num):
+#        return self.flist[num]
+#
+#    def read_logger(self,f):
+#        # 9行目以降のメタ情報を読み込むために一旦8行目以降を読み込み
+#        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7] )
+#        unit = df.iloc[4]
+#        offset = df.iloc[3]
+#        calibration = df.iloc[2]
+#        v_range = df.iloc[1]
+#        channel = df.iloc[0]
+#        # 改めて8行目をヘッダにして読み込む
+#        # df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1).set_index('time')
+#        # floatのindex作っちゃダメ!!!
+#        df = pd.read_csv(f,encoding='cp932' ,skiprows=[0,1,2,3,4,5,6,7,9,10,11,12,13], ).rename({'CH名称':'time'},axis=1)
+#        try:
+#            df['プレス荷重shift'] = df['プレス荷重'].shift(-640)
+#            df['dF/dt'] = df['プレス荷重shift'].diff()
+#            df['F*dF/dt'] = df['プレス荷重shift'] * df['dF/dt']
+#            if '加速度左右_X_左+' in df.columns:
+#                df = df.rename({'加速度左右_X_左+':'加速度左右_X_左+500G'},axis=1)
+#            if '加速度上下_Y_下+' in df.columns:
+#                df = df.rename({'加速度上下_Y_下+':'加速度上下_Y_下+500G'},axis=1)        
+#            if '加速度前後_Z_前+' in df.columns:
+#                df = df.rename({'加速度前後_Z_前+':'加速度前後_Z_前+500G'},axis=1)        
+#        except KeyError:
+#            print('プレス荷重　無し')
+#
+#        #return df,unit,offset,calibration,v_range,channel
+#        return df
 
 class brewFeatures:
     def __init__(self):
@@ -127,10 +137,13 @@ class brewFeatures:
         self.dr = None
         self.gened_features = {}
 
-    def set_dataReader(self,dr):
+    def set_DataAccessor(self,dr):
         self.dr = dr
 
     def set_dispcol(self, disp_col):
+        '''  ToDo:
+        3項目目の禁則文字チェックが必要。コーテーションとか。
+        '''
         '''  ToDo:
         disp_colの要素を[row,col,値の変換式:Noneだったら元の項目そのまま]のまま行くとしたら、
         ほとんどの場合意味のない3項目目のNoneをユーザが書き忘れる可能性が高い。
@@ -161,11 +174,13 @@ class brewFeatures:
     def get_dispcol(self):
         return self.disp_col
 
+
     # 特徴抽出操作指示のgridの1行を生成   
+    ''' ToDo: 選択肢はdisp_colにある項目のみで良い '''
     def gen_input_forms(self,row_id,fname='',sel_col='',rw=1,llim=0,ulim=0):
         return dbc.Col( dcc.Input(id='feature_name%d'%row_id,value=fname), width=1,),\
             dbc.Col( dcc.Dropdown(id='select_col%d'%row_id,value=sel_col,
-                options=[{'label':str(s),'value':str(s)} for s in df.columns[1:]]), width=2,),\
+                options=[{'label':str(s),'value':str(s)} for s in self.disp_col.keys()]), width=2,),\
             dbc.Col( dcc.Input(id='rolling_width%d'%row_id,value=rw), width=1,),\
             dbc.Col( dcc.Dropdown(id='low_find_type%d'%row_id,value='固定',
                 options=[{'label':str(s),'value':str(s)} for s in ['固定','値域>','値域<','特徴点']]), width=1,),\
@@ -180,7 +195,7 @@ class brewFeatures:
             dbc.Col( dcc.Dropdown(id='find_target%d'%row_id,clearable=False,value='DPT',
                 options=[{'label':'元波形','value':'DPT'},{'label':'速度','value':'VCT'},{'label':'加速度','value':'ACC'}]), width=1,),\
             dbc.Col( dcc.Dropdown(id='find_dir%d'%row_id,clearable=False,value='MAX',
-                options=[{'label':'MAX','value':'MAX'},{'label':'MIN','value':'MIN'}]), width=1,)
+                options=[{'label':str(s),'value':str(s)} for s in ['MAX','MIN','RMS','VAR','AMP']]), width=1,)
 
     '''  locate_feature()を呼ぶために必要なパラメタ群をdictに '''
     def params_to_dict(self,feature_name,select_col,rolling_width,low_find_type,low_feature,low_lim,
@@ -307,9 +322,19 @@ class brewFeatures:
         if x_lim[1] - x_lim[0] > 0:     # 検索範囲が適切に指定されてなければ何もしない  ToDo:「何もしない」ことのフィードバック? 範囲指定せずに検索したい時もある
             if find_dir == 'MAX':
                 target_i = target[x_lim[0]:x_lim[1]].idxmax()
+                target_v = df[select_col][target_i]   # ToDo: 値は元波形の値を返さないと意味が無い
             elif find_dir == 'MIN':
                 target_i = target[x_lim[0]:x_lim[1]].idxmin()
-            target_v = target[target_i]   # ToDo: 値は元波形の値を返さないと意味が無い
+                target_v = df[select_col][target_i]   # ToDo: 値は元波形の値を返さないと意味が無い
+            elif find_dir == 'RMS':
+                target_i = x_lim[0]
+                target_v = np.sqrt((df[select_col][x_lim[0]:x_lim[1]]**2).mean())
+            elif find_dir == 'VAR':
+                target_i = x_lim[0]
+                target_v = df[select_col][x_lim[0]:x_lim[1]].var()
+            elif find_dir == 'AMP':
+                target_i = x_lim[0]
+                target_v = df[select_col][x_lim[0]:x_lim[1]].max() - df[select_col][x_lim[0]:x_lim[1]].max()
 
         result['select_col'] = select_col
         result['x_lim'] = x_lim
@@ -344,11 +369,8 @@ class brewFeatures:
                         options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
                     width=5,
                     style={'width':'50vw'} # viewpoint height
-        #         style={'height': '20vh','width':'50vw'} # viewpoint height
                 ),
-            #dbc.Col( dcc.Dropdown(id='find_type1',value='固定',options=[{'label':str(s),'value':str(s)} for s in ['固定','値域','特徴点']]), width=1,),
             ]),
-        #     dcc.Dropdown(id='shot_select',options=[{'label':str(f), 'value':str(f)} for f in flist[8:]]),
             # グラフ表示部
             dcc.Graph(id='graph'),
             # 特徴抽出操作指示: gen_input_forms()がInput,Dropdownを含むdbc.Colのリストを生成する
@@ -519,6 +541,9 @@ class brewFeatures:
 
             # disp_colで定義された項目を時系列グラフとして描画
             for col in self.disp_col:
+                ''' ToDo: 要検討 このスコープのdfにはread_logger()で読んだ項目全て含まれてるので「表示しない項目」を考慮する必要無し? '''
+#                if self.disp_col[col][0] == 0:  # disp_col['time'] = [0,0,None] と定義されてたら表示対象外
+#                    continue
                 fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=self.disp_col[col][0], col=self.disp_col[col][1])            
     #             fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col), row=disp_col[col]+1, col=1)            
 
@@ -634,18 +659,22 @@ class brewFeatures:
         return app
 
 if __name__ == '__main__':
+    from data_accessor import DataAccessor
+
     # brewFeaturesインスタンスを生成
     brewFeatures = brewFeatures()
-    # dataReaderインスタンスを生成してbrewFeaturesにセット
-    brewFeatures.set_dataReader(dataReader())
+    # DataAccessorインスタンスを生成してbrewFeaturesにセット
+    brewFeatures.set_DataAccessor(DataAccessor())
     # disp_colをoverrideすることで、グラフ表示をカスタマイズ
-    # disp_colはdataReader側にあるべきか?
+    # disp_colはDataAccessor側にあるべきか?
     disp_co = {}
+    # "time"項目は表示対象外だが、微分する時に必要。DataAccessorで必ず"time"項目を作るという決まりにする?
+    #disp_co['time'] = [0,0,None]    # plotlyのsubplotのrow,colは0 originではないので0,0は存在しない
     disp_co['プレス荷重shift'] = [1,1,None]
     disp_co['右垂直'] = [1,1,None]
     disp_co['スライド変位右'] = [2,1,None]
     disp_co['スライド変位左'] = [1,2,None]
-    #disp_co['F*dFdt'] = [3,1,'df["F*dFdt"] = df["プレス荷重shift"]*(df["プレス荷重shift"].diff() / df["time"].diff())']
+    disp_co['F*dFdt'] = [3,1,'df["プレス荷重shift"]*(df["プレス荷重shift"].diff() / df["time"].diff())']
     brewFeatures.set_dispcol(disp_co)
     # サーバ実行
     app = brewFeatures.make_app()
