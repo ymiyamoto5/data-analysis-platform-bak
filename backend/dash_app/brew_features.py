@@ -424,7 +424,7 @@ class BrewFeatures:
             style=SIDEBAR_STYLE,
         )
 
-        app.layout = html.Div(children=[dcc.Store(id="shot-data"), side_div, main_div])
+        app.layout = html.Div(children=[side_div, main_div])
 
         # callbacks #
         @app.callback(
@@ -583,7 +583,6 @@ class BrewFeatures:
         @app.callback(
             Output("setting-table", "data"),
             Output("field-dropdown", "options"),
-            Output("shot-data", "data"),
             Input("add-button", "n_clicks"),
             Input("shot-number-dropdown", "value"),
             Input("csv-file-dropdown", "value"),
@@ -603,7 +602,6 @@ class BrewFeatures:
             State("moving-average-field-input", "value"),
             State("regression-line-field-dropdown", "value"),
             State("thinning-out-field-input", "value"),
-            State("shot-data", "data"),
             prevent_initial_call=True,
         )
         def add_button_clicked(
@@ -626,33 +624,30 @@ class BrewFeatures:
             moving_average_field,
             regression_line_field,
             thinning_out_field,
-            shot_data,
         ):
             """追加ボタン押下時のコールバック
-            演算処理、テーブル行の追加、およびショットデータのStoreへの格納を行う
             NOTE: 複数のコールバックから同じIDの要素へのOutputを指定することはできない。つまり、同じ要素へOutputしたい処理は
                   同じコールバック内にまとめる必要がある。ctx.triggerd_idでどのUIからトリガーされたかは判断できるが、コールバック内の
                   処理が煩雑になるのは致し方ない。
             """
 
-            # elasticsearch index選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
+            # ショット番号選択ドロップダウンが変更されたときはオプション再設定。テーブルは設定済みのフィールドを引き継ぐ。
             # NOTE: 変更後に同じフィールドが存在しない場合エラーとなるが、テーブルから手動削除することによる運用回避とする。
             if ctx.triggered_id == "shot-number-dropdown" and elastic_index:
+                # TODO: フィールドのみ取得
                 df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=1)
                 options = [{"label": c, "value": c} for c in df.columns]
-                return rows, options, df.to_json(date_format="iso", orient="split")
+                return rows, options
 
             # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
             if ctx.triggered_id == "csv-file-dropdown" and csv_file:
                 df = self.csv_data_accessor.get_shot_df(csv_file)
                 options = [{"label": c, "value": c} for c in df.columns]
-                return rows, options, df.to_json(date_format="iso", orient="split")
+                return rows, options
 
             # 追加ボタン押下時はテーブルへの行追加とフィールドドロップダウンリストに演算結果のフィールド追加を行う
             if ctx.triggered_id == "add-button":
-                if shot_data:
-                    df = pd.read_json(shot_data, orient="split")
-                elif elastic_index:
+                if elastic_index:
                     # TODO: フィールドのみ取得
                     df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=1)
                 elif csv_file:
@@ -673,7 +668,7 @@ class BrewFeatures:
                 # 演算がなければ、テーブルに新しい行を追加するだけ。
                 if not preprocess:
                     rows.append(new_row)
-                    return rows, field_options, df.to_json(date_format="iso", orient="split")
+                    return rows, field_options
 
                 # ショットデータへの演算処理
                 if preprocess == PREPROCESS.DIFF.name:
@@ -715,7 +710,7 @@ class BrewFeatures:
 
                 rows.append(new_row)
 
-                return rows, field_options, df.to_json(date_format="iso", orient="split")
+                return rows, field_options
 
         @app.callback(
             Output("feature-table", "dropdown"),
@@ -747,13 +742,12 @@ class BrewFeatures:
                 Input("setting-table", "data"),
                 Input("feature-table", "data"),
                 Input("feature-table", "selected_rows"),  # [2,0] チェックした順番が維持される
-                Input("shot-data", "data"),  # これ、もう要らない?
             ],
         )
-        def callback_figure(shot_number, csv_file, elastic_index, setting_data, feature_data, feature_rows, shot_data):
-            # 波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
-            # つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
-            """ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持"""
+        def callback_figure(shot_number, csv_file, elastic_index, setting_data, feature_data, feature_rows):
+            """波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
+            つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
+            ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持"""
 
             """表示位置設定が空なら空のfigureオブジェクトを返す"""
             if len(setting_data) == 0:
@@ -762,8 +756,6 @@ class BrewFeatures:
             """ 入力データ """
             if elastic_index:
                 df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=10000)
-
-            # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
             if csv_file:
                 df = self.csv_data_accessor.get_shot_df(csv_file)
 
