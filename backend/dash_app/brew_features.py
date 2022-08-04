@@ -9,54 +9,18 @@
 
 """
 
-from pathlib import Path
+import os
 
 import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
+from backend.dash_app.data_accessor import CsvDataAccessor, ElasticDataAccessor
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
-from backend.elastic_manager.elastic_manager import ElasticManager
 from dash import Input, Output, State, ctx, dash_table, dcc, html
 from jupyter_dash import JupyterDash
 from plotly.subplots import make_subplots
-
-
-def get_shot_df_from_elastic(index, shot_number, size=10000):
-    """elasticsearch indexからショットデータを取得し、DataFrameとして返す"""
-
-    query: dict = {"query": {"term": {"shot_number": {"value": shot_number}}}, "sort": {"sequential_number": {"order": "asc"}}}
-
-    result = ElasticManager.get_docs(index=index, query=query, size=size)
-    shot_df = pd.DataFrame(result)
-    return shot_df
-
-
-def get_shot_df_from_csv(csv_file):
-    """csvファイルを読み込み、DataFrameとして返す
-    TODO: 特定のCSVファイルに特化されているため、汎用化が必要
-    """
-
-    df = pd.read_csv(
-        csv_file,
-        encoding="cp932",
-        skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13],
-    ).rename({"CH名称": "time"}, axis=1)
-    try:
-        df["プレス荷重shift"] = df["プレス荷重"].shift(-640)
-        df["dF/dt"] = df["プレス荷重shift"].diff()
-        df["F*dF/dt"] = df["プレス荷重shift"] * df["dF/dt"]
-        if "加速度左右_X_左+" in df.columns:
-            df = df.rename({"加速度左右_X_左+": "加速度左右_X_左+500G"}, axis=1)
-        if "加速度上下_Y_下+" in df.columns:
-            df = df.rename({"加速度上下_Y_下+": "加速度上下_Y_下+500G"}, axis=1)
-        if "加速度前後_Z_前+" in df.columns:
-            df = df.rename({"加速度前後_Z_前+": "加速度前後_Z_前+500G"}, axis=1)
-    except KeyError:
-        print("プレス荷重　無し")
-
-    return df
 
 
 def get_preprocess_dropdown_options():
@@ -76,17 +40,10 @@ def get_preprocess_dropdown_options():
     ]
 
 
-class brewFeatures:
-    def __init__(self):
-        self.nrows = 2
-        self.ncols = 1
-        self.dr = None
-        self.gened_features = {}
-
-    def set_DataAccessor(self, dr):
-        self.dr = dr
-
-    """  locate_feature()を呼ぶために必要なパラメタ群をdictに """
+class BrewFeatures:
+    def __init__(self, csv_data_accessor: CsvDataAccessor):
+        self.gened_features: dict = {}
+        self.csv_data_accessor = csv_data_accessor
 
     def params_to_dict(
         self,
@@ -102,6 +59,8 @@ class brewFeatures:
         find_target,
         find_dir,
     ):
+        """locate_feature()を呼ぶために必要なパラメタ群をdictに"""
+
         params = {}
         params["feature_name"] = feature_name
         params["select_col"] = select_col
@@ -254,7 +213,7 @@ class brewFeatures:
         return result
 
     def make_app(self):
-        app = JupyterDash("brewFeatures")
+        app = JupyterDash("BrewFeatures")
 
         # 画面全体のレイアウト
         main_div = html.Div(
@@ -472,16 +431,13 @@ class brewFeatures:
             Output("csv-file", "style"),
             Output("csv-file-dropdown", "options"),
             Input("data-source-type-dropdown", "value"),
-            # prevent_initial_call=True,   # 暫定コメント
+            prevent_initial_call=True,
         )
         def set_csv_file_options(data_source_type):
             """CSVファイル選択ドロップダウンのオプション設定"""
 
             if data_source_type == "csv":
-                # TODO: CSVファイルのディレクトリパスが決め打ちのため、要修正
-                # path = Path("/customer_data/ymiyamoto5-aida_A39D/private/data/aida/")
-                path = Path("/Users/hao/data/ADDQ/20211004ブレークスルー/")
-                flist = list(sorted(path.glob("*.CSV")))
+                flist = self.csv_data_accessor.get_flist()
                 options = [{"label": f.name, "value": str(f)} for f in flist]
                 return {}, options
             else:
@@ -497,7 +453,7 @@ class brewFeatures:
             """Elasticsearch index選択ドロップダウンのオプション設定"""
 
             if data_source_type == "elastic":
-                options = [{"label": s, "value": s} for s in ElasticManager.show_indices(index="shots-*-data")["index"]]
+                options = [{"label": i, "value": i} for i in ElasticDataAccessor.get_indices()]
                 return {}, options
             else:
                 return {"display": "none"}, []
@@ -514,15 +470,7 @@ class brewFeatures:
             if not elastic_index:
                 return {"display": "none"}, []
 
-            query: dict = {
-                "collapse": {"field": "shot_number"},
-                "query": {"match_all": {}},
-                "_source": ["shot_number"],
-                "sort": {"shot_number": {"order": "asc"}},
-            }
-
-            docs = ElasticManager.get_docs(index=elastic_index, query=query, size=10000)
-            shot_numbers = [d["shot_number"] for d in docs]
+            shot_numbers = ElasticDataAccessor.get_shot_list(elastic_index)
 
             return {}, shot_numbers
 
@@ -534,7 +482,7 @@ class brewFeatures:
             Output("add-field-dropdown", "options"),
             Input("preprocess-dropdown", "value"),
             State("field-dropdown", "options"),
-            prevent_initial_call=False,  ### 暫定
+            prevent_initial_call=False,
         )
         def create_add_field_dropdown(preprocess, options):
             if preprocess == PREPROCESS.ADD.name:
@@ -690,13 +638,13 @@ class brewFeatures:
             # elasticsearch index選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
             # NOTE: 変更後に同じフィールドが存在しない場合エラーとなるが、テーブルから手動削除することによる運用回避とする。
             if ctx.triggered_id == "shot-number-dropdown" and elastic_index:
-                df = get_shot_df_from_elastic(elastic_index, shot_number, size=10000)
+                df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=1)
                 options = [{"label": c, "value": c} for c in df.columns]
                 return rows, options, df.to_json(date_format="iso", orient="split")
 
             # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
             if ctx.triggered_id == "csv-file-dropdown" and csv_file:
-                df = get_shot_df_from_csv(csv_file)
+                df = self.csv_data_accessor.get_shot_df(csv_file)
                 options = [{"label": c, "value": c} for c in df.columns]
                 return rows, options, df.to_json(date_format="iso", orient="split")
 
@@ -705,9 +653,10 @@ class brewFeatures:
                 if shot_data:
                     df = pd.read_json(shot_data, orient="split")
                 elif elastic_index:
-                    df = get_shot_df_from_elastic(elastic_index, size=1)
+                    # TODO: フィールドのみ取得
+                    df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=1)
                 elif csv_file:
-                    df = get_shot_df_from_csv(csv_file)
+                    df = self.csv_data_accessor.get_shot_df(csv_file)
 
                 # テーブルに追加する行データ
                 new_row = {
@@ -789,10 +738,6 @@ class brewFeatures:
             }
             return dropdown
 
-        # 波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
-        # つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
-        """ ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持 """
-
         @app.callback(
             Output("graph", "figure"),
             [
@@ -806,6 +751,9 @@ class brewFeatures:
             ],
         )
         def callback_figure(shot_number, csv_file, elastic_index, setting_data, feature_data, feature_rows, shot_data):
+            # 波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
+            # つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
+            """ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持"""
 
             """表示位置設定が空なら空のfigureオブジェクトを返す"""
             if len(setting_data) == 0:
@@ -813,20 +761,21 @@ class brewFeatures:
 
             """ 入力データ """
             if elastic_index:
-                df = get_shot_df_from_elastic(elastic_index, shot_number, size=10000)
+                df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=10000)
 
             # csvファイル選択のドロップダウンが変更されたときはデータ再読み込み。テーブルは設定済みのフィールドを引き継ぐ。
             if csv_file:
-                df = get_shot_df_from_csv(csv_file)
+                df = self.csv_data_accessor.get_shot_df(csv_file)
 
             """ 各種前処理 """
             for r in setting_data:
+                preprocess = r["preprocess"]
+
                 if not preprocess:
                     continue
 
                 field = r["field"]
                 org_field = r["original_field"]
-                preprocess = r["preprocess"]
                 parameter = r["parameter"]
 
                 if preprocess == PREPROCESS.DIFF.name:
@@ -901,10 +850,14 @@ class brewFeatures:
 
 
 if __name__ == "__main__":
-    from backend.dash_app.data_accessor import DataAccessor
+    from backend.dash_app.data_accessor import AidaCsvDataAccessor
 
-    brewFeatures = brewFeatures()
-    brewFeatures.set_DataAccessor(DataAccessor())
-    app = brewFeatures.make_app()
+    # TODO: デフォルトパス変更
+    CSV_DIR = os.getenv("CSV_DIR", default="/customer_data/ymiyamoto5-aida_A39D/private/data/aida")
+
+    aida_csv_data_accessor: CsvDataAccessor = AidaCsvDataAccessor(dir=CSV_DIR)
+
+    brew_features = BrewFeatures(csv_data_accessor=aida_csv_data_accessor)
+    app = brew_features.make_app()
     # JupyterDashでは今のところ0.0.0.0にbindできない
     app.run_server(host="0.0.0.0", port=8048, debug=True)
