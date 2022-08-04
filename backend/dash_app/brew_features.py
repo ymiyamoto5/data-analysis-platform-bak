@@ -17,7 +17,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from backend.dash_app.constants import CONTENT_STYLE, DATA_SOURCE_TYPE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.data_accessor import CsvDataAccessor, ElasticDataAccessor
-from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
+from backend.dash_app.preprocessors import add, calibration, diff, mul, regression_line, shift, sub, thinning_out
 from dash import Input, Output, State, ctx, dash_table, dcc, html
 from jupyter_dash import JupyterDash
 from pandas.core.frame import DataFrame
@@ -44,7 +44,6 @@ def get_preprocess_dropdown_options():
         {"label": PREPROCESS.MUL.value, "value": PREPROCESS.MUL.name},
         {"label": PREPROCESS.SHIFT.value, "value": PREPROCESS.SHIFT.name},
         {"label": PREPROCESS.CALIBRATION.value, "value": PREPROCESS.CALIBRATION.name},
-        {"label": PREPROCESS.MOVING_AVERAGE.value, "value": PREPROCESS.MOVING_AVERAGE.name},
         {"label": PREPROCESS.REGRESSION_LINE.value, "value": PREPROCESS.REGRESSION_LINE.name},
         {"label": PREPROCESS.THINNING_OUT.value, "value": PREPROCESS.THINNING_OUT.name},
     ]
@@ -406,14 +405,6 @@ class BrewFeatures:
                     style={"display": "none"},
                 ),
                 html.Div(
-                    id="moving-average-field",
-                    children=[
-                        html.Label("ウィンドウサイズ", style={"width": "100%"}),
-                        dcc.Input(id="moving-average-field-input", type="number", min=1, max=100, step=1),
-                    ],
-                    style={"display": "none"},
-                ),
-                html.Div(
                     id="regression-line-field",
                     children=[
                         html.Label("フィールド"),
@@ -550,18 +541,6 @@ class BrewFeatures:
                 return {"display": "none"}, ""
 
         @app.callback(
-            Output("moving-average-field", "style"),
-            Output("moving-average-field-input", "value"),
-            Input("preprocess-dropdown", "value"),
-            prevent_initial_call=True,
-        )
-        def create_moving_average_field_input(preprocess):
-            if preprocess == PREPROCESS.MOVING_AVERAGE.name:
-                return {}, ""
-            else:
-                return {"display": "none"}, ""
-
-        @app.callback(
             Output("regression-line-field", "style"),
             Output("regression-line-field-dropdown", "value"),
             Output("regression-line-field-dropdown", "options"),
@@ -608,7 +587,6 @@ class BrewFeatures:
             State("mul-field-input", "value"),
             State("shift-field-input", "value"),
             State("calibration-field-input", "value"),
-            State("moving-average-field-input", "value"),
             State("regression-line-field-dropdown", "value"),
             State("thinning-out-field-input", "value"),
             prevent_initial_call=True,
@@ -630,7 +608,6 @@ class BrewFeatures:
             mul_field,
             shift_field,
             calibration_field,
-            moving_average_field,
             regression_line_field,
             thinning_out_field,
         ):
@@ -700,9 +677,6 @@ class BrewFeatures:
                 elif preprocess == PREPROCESS.CALIBRATION.name:
                     new_row["detail"] = f"校正: 先頭{calibration_field}件"
                     parameter = calibration_field
-                elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
-                    new_row["detail"] = f"ウィンドウサイズ: {moving_average_field}"
-                    parameter = moving_average_field
                 elif preprocess == PREPROCESS.REGRESSION_LINE.name:
                     # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
                     new_row["detail"] = f"回帰直線: {regression_line_field}"
@@ -772,34 +746,32 @@ class BrewFeatures:
 
             """ 各種前処理 """
             for r in setting_data:
-                preprocess = r["preprocess"]
-
-                if not preprocess:
-                    continue
-
                 field = r["field"]
-                org_field = r["original_field"]
-                parameter = r["parameter"]
+                preprocess = r["preprocess"]
+                if preprocess:
+                    org_field = r["original_field"]
+                    parameter = r["parameter"]
 
-                if preprocess == PREPROCESS.DIFF.name:
-                    df[field] = diff(df, org_field)
-                elif preprocess == PREPROCESS.ADD.name:
-                    df[field] = add(df, org_field, parameter)
-                elif preprocess == PREPROCESS.SUB.name:
-                    df[field] = sub(df, org_field, parameter)
-                elif preprocess == PREPROCESS.MUL.name:
-                    df[field] = mul(df, org_field, parameter)
-                elif preprocess == PREPROCESS.SHIFT.name:
-                    df[field] = shift(df, org_field, int(parameter))
-                elif preprocess == PREPROCESS.CALIBRATION.name:
-                    df[field] = calibration(df, org_field, parameter)
-                elif preprocess == PREPROCESS.MOVING_AVERAGE.name:
-                    df[field] = moving_average(df, org_field, int(parameter))
-                elif preprocess == PREPROCESS.REGRESSION_LINE.name:
-                    # TODO: モデルから切片と係数を取得してグラフ描写。実装箇所は要検討。
-                    df[field] = regression_line(df, org_field, parameter)
-                elif preprocess == PREPROCESS.THINNING_OUT.name:
-                    df[field] = thinning_out(df, org_field, int(parameter))
+                    if preprocess == PREPROCESS.DIFF.name:
+                        df[field] = diff(df, org_field)
+                    elif preprocess == PREPROCESS.ADD.name:
+                        df[field] = add(df, org_field, parameter)
+                    elif preprocess == PREPROCESS.SUB.name:
+                        df[field] = sub(df, org_field, parameter)
+                    elif preprocess == PREPROCESS.MUL.name:
+                        df[field] = mul(df, org_field, parameter)
+                    elif preprocess == PREPROCESS.SHIFT.name:
+                        df[field] = shift(df, org_field, int(parameter))
+                    elif preprocess == PREPROCESS.CALIBRATION.name:
+                        df[field] = calibration(df, org_field, parameter)
+                    elif preprocess == PREPROCESS.REGRESSION_LINE.name:
+                        df[field] = regression_line(df, org_field, parameter)
+                    elif preprocess == PREPROCESS.THINNING_OUT.name:
+                        df[field] = thinning_out(df, org_field, int(parameter))
+                # 移動平均は前処理有無に関わらず適用する
+                rw = int(r["rolling_width"])
+                if rw > 1:
+                    df[field] = df[field].rolling(rw, center=True).mean()
 
             """ 特徴量検索 """
             # feature_rowsは特徴量記述テーブルの選択行番号であり、特徴量描画の有無を指定しており、
@@ -835,7 +807,7 @@ class BrewFeatures:
                 field = r["field"]
                 rw = int(r["rolling_width"])
                 fig.add_trace(
-                    go.Scatter(x=df.index, y=df[field].rolling(rw, center=True).mean(), name=field),
+                    go.Scatter(x=df.index, y=df[field], name=field),
                     row=int(r["row_number"]),
                     col=int(r["col_number"]),
                 )

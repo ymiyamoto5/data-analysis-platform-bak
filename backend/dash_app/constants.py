@@ -24,7 +24,6 @@ class PREPROCESS(Enum):
     MUL = "係数乗算"
     SHIFT = "シフト"
     CALIBRATION = "校正"
-    MOVING_AVERAGE = "移動平均"
     REGRESSION_LINE = "回帰直線"
     THINNING_OUT = "間引き"
 
