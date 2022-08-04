@@ -6,7 +6,7 @@
         {
             "label": "Sleepdelay",
             "type": "shell",
-            "command": "sleep 7",
+            "command": "sleep 3",
             "group": "none",
             "presentation": {
                 "reveal": "silent",

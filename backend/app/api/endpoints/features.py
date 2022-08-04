@@ -1,6 +1,7 @@
 import re
 
 import pandas as pd
+from backend.common import common
 from backend.elastic_manager.elastic_manager import ElasticManager
 from fastapi import APIRouter
 from fastapi.exceptions import HTTPException
@@ -13,7 +14,7 @@ def fetch_features():
     """特徴量の一覧を返す"""
 
     df = ElasticManager.show_indices()
-    indices = [*filter(None, [re.search(r"^shots-(.*)-(\d{14})-.*-point$", i) for i in df["index"]])]
+    indices = [*filter(None, [re.search(r"^shots-(.*)-(\d{%s})-.*-point$" % (common.DATETIME_STR_LENGTH), i) for i in df["index"]])]
 
     feature_list = set([ind.groups() for ind in indices])
 
@@ -43,7 +44,7 @@ def fetch_feature(machine_id: str, target_dir: str):
 @router.get("/raw/list")
 def fetch_rawdata_list():
     df = ElasticManager.show_indices()
-    indices = [*filter(None, [re.search(r"^shots-(.*)-(\d{14})-data$", i) for i in df["index"]])]
+    indices = [*filter(None, [re.search(r"^shots-(.*)-(\d{%s})-data$" % (common.DATETIME_STR_LENGTH), i) for i in df["index"]])]
 
     data_list = set([ind.groups() for ind in indices])
 

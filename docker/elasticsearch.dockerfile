@@ -1,4 +1,4 @@
-ARG VERSION=7.14.0
+ARG VERSION=7.17.4
 FROM docker.elastic.co/elasticsearch/elasticsearch:$VERSION 
 
 ARG UID
