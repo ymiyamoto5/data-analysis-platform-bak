@@ -222,7 +222,7 @@ class BrewFeatures:
         return result
 
     def make_app(self):
-        app = JupyterDash("BrewFeatures")
+        app = JupyterDash("BrewFeatures", external_stylesheets=[dbc.themes.BOOTSTRAP])
 
         # 画面全体のレイアウト
         main_div = html.Div(
@@ -230,7 +230,6 @@ class BrewFeatures:
                 dash_table.DataTable(
                     id="setting-table",
                     data=pd.DataFrame().to_dict("records"),
-                    style_table={"width": "1000px"},
                     columns=[
                         {"id": "field", "name": "フィールド"},
                         {"id": "row_number", "name": "行番号"},
@@ -242,10 +241,11 @@ class BrewFeatures:
                     ],
                     editable=True,
                     row_deletable=True,
+                    # NOTE: https://github.com/plotly/dash-table/issues/221
+                    css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
                 ),
                 # グラフ表示部
                 dcc.Graph(id="graph"),
-                # ショット選択
                 dash_table.DataTable(
                     id="feature-table",
                     data=pd.DataFrame(
@@ -285,7 +285,7 @@ class BrewFeatures:
                         "find_target": {"options": [{"label": i, "value": i} for i in ["DPT", "VCT", "ACC"]]},
                         "find_dir": {"options": [{"label": i, "value": i} for i in ["MAX", "MIN"]]},
                     },
-                    style_table={"width": "90%", "overflowX": "auto"},  # これの効果不明?
+                    css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
                 ),
             ],
             style=CONTENT_STYLE,
