@@ -15,12 +15,22 @@ import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-from backend.dash_app.constants import CONTENT_STYLE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
+from backend.dash_app.constants import CONTENT_STYLE, DATA_SOURCE_TYPE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.data_accessor import CsvDataAccessor, ElasticDataAccessor
 from backend.dash_app.preprocessors import add, calibration, diff, moving_average, mul, regression_line, shift, sub, thinning_out
 from dash import Input, Output, State, ctx, dash_table, dcc, html
 from jupyter_dash import JupyterDash
+from pandas.core.frame import DataFrame
 from plotly.subplots import make_subplots
+
+
+def get_data_source_type_dropdown_options():
+    """データソースタイプのドロップダウンリストオプションを返す"""
+
+    return [
+        {"label": DATA_SOURCE_TYPE.CSV.name, "value": DATA_SOURCE_TYPE.CSV.name},
+        {"label": DATA_SOURCE_TYPE.ELASTIC.name, "value": DATA_SOURCE_TYPE.ELASTIC.name},
+    ]
 
 
 def get_preprocess_dropdown_options():
@@ -76,10 +86,6 @@ class BrewFeatures:
 
         return params
 
-    """ locate_feature()の結果(検索範囲と検索結果)をfigに描き込む
-        figは既に時系列データがplotされている前提
-    """
-
     def draw_result(
         self,
         fig,
@@ -87,6 +93,10 @@ class BrewFeatures:
         row,
         col,  # figオブジェクト  # 検索結果(検索範囲、検索結果(index, value))
     ):
+        """locate_feature()の結果(検索範囲と検索結果)をfigに描き込む
+        figは既に時系列データがplotされている前提
+        """
+
         if "target_i" in result:
 
             # 値域 -> 水平方向(hrect)緑網掛け
@@ -109,21 +119,21 @@ class BrewFeatures:
     # 特徴抽出機能のコア部   ToDo: グラフ操作を分離して特徴抽出だけを呼べるように
     def locate_feature(
         self,
-        df,  # 対象データ:pandas.DataFrame
-        feature_name,  # 特徴量名:str
-        select_col,  # 処理対象項目:str
-        rolling_width,  # 検索下限限方法:'固定' or '値域>' or '値域<' or '特徴点'
-        low_find_type,  # 検索下限限特徴量名:str
-        low_feature: int,  # 検索下限限値:int
-        low_lim,  # 検出下限対象:'DPT' or 'VCT' or 'ACC'
-        up_find_type,  # 検索上限方法:'固定' or '値域>' or '値域<' or '特徴点'
-        up_feature,  # 検索上限特徴量名:str
-        up_lim,  # 検索上限値:int
-        find_target,  # 検出上限対象:'DPT' or 'VCT' or 'ACC'
-        find_dir,  # ピーク方向:'MAX' or 'MIN'
+        df: DataFrame,  # 対象データ
+        feature_name: str,  # 特徴量名
+        select_col: str,  # 処理対象項目
+        rolling_width: str,  # 検索下限限方法:'固定' or '値域>' or '値域<' or '特徴点'
+        low_find_type: str,  # 検索下限限特徴量名
+        low_feature: int,  # 検索下限限値
+        low_lim: str,  # 検出下限対象:'DPT' or 'VCT' or 'ACC'
+        up_find_type: str,  # 検索上限方法:'固定' or '値域>' or '値域<' or '特徴点'
+        up_feature: str,  # 検索上限特徴量名
+        up_lim: int,  # 検索上限値
+        find_target: str,  # 検出上限対象:'DPT' or 'VCT' or 'ACC'
+        find_dir: str,  # ピーク方向:'MAX' or 'MIN'
     ):
         target_i = None
-        result = {}
+        result: dict = {}
         result["feature_name"] = feature_name
 
         # 特徴量名が空白 or 未入力、対象項目未選択の場合は空のresultを返す
@@ -292,7 +302,7 @@ class BrewFeatures:
                         html.Label("データソースタイプ"),
                         dcc.Dropdown(
                             id="data-source-type-dropdown",
-                            options=[{"label": "CSV", "value": "csv"}, {"label": "Elasticsearch", "value": "elastic"}],
+                            options=get_data_source_type_dropdown_options(),
                         ),
                     ]
                 ),
@@ -426,7 +436,6 @@ class BrewFeatures:
 
         app.layout = html.Div(children=[side_div, main_div])
 
-        # callbacks #
         @app.callback(
             Output("csv-file", "style"),
             Output("csv-file-dropdown", "options"),
@@ -436,7 +445,7 @@ class BrewFeatures:
         def set_csv_file_options(data_source_type):
             """CSVファイル選択ドロップダウンのオプション設定"""
 
-            if data_source_type == "csv":
+            if data_source_type == DATA_SOURCE_TYPE.CSV.name:
                 flist = self.csv_data_accessor.get_flist()
                 options = [{"label": f.name, "value": str(f)} for f in flist]
                 return {}, options
@@ -452,7 +461,7 @@ class BrewFeatures:
         def set_elastic_index_options(data_source_type):
             """Elasticsearch index選択ドロップダウンのオプション設定"""
 
-            if data_source_type == "elastic":
+            if data_source_type == DATA_SOURCE_TYPE.ELASTIC.name:
                 options = [{"label": i, "value": i} for i in ElasticDataAccessor.get_indices()]
                 return {}, options
             else:
@@ -630,6 +639,8 @@ class BrewFeatures:
                   同じコールバック内にまとめる必要がある。ctx.triggerd_idでどのUIからトリガーされたかは判断できるが、コールバック内の
                   処理が煩雑になるのは致し方ない。
             """
+
+            # TODO: データソースを変更した場合
 
             # ショット番号選択ドロップダウンが変更されたときはオプション再設定。テーブルは設定済みのフィールドを引き継ぐ。
             # NOTE: 変更後に同じフィールドが存在しない場合エラーとなるが、テーブルから手動削除することによる運用回避とする。
@@ -844,7 +855,7 @@ class BrewFeatures:
 if __name__ == "__main__":
     from backend.dash_app.data_accessor import AidaCsvDataAccessor
 
-    # TODO: デフォルトパス変更
+    # TODO: デフォルトパスを共通ディレクトリに変更
     CSV_DIR = os.getenv("CSV_DIR", default="/customer_data/ymiyamoto5-aida_A39D/private/data/aida")
 
     aida_csv_data_accessor: CsvDataAccessor = AidaCsvDataAccessor(dir=CSV_DIR)
