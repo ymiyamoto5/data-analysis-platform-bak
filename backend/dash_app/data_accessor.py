@@ -47,6 +47,16 @@ class ElasticDataAccessor:
     def get_indices():
         return ElasticManager.show_indices(index="shots-*-data")["index"]
 
+    @staticmethod
+    def insert(data_list, index_name: str):
+        """data_listをElasticsearchに保存する。既存のindexは削除する。"""
+
+        if ElasticManager.exists_index(index=index_name):
+            ElasticManager.delete_index(index=index_name)
+        ElasticManager.create_index(index=index_name)
+
+        ElasticManager.bulk_insert(data_list, index_name)
+
 
 class CsvDataAccessor:
     def __init__(self, dir: str):
@@ -80,5 +90,6 @@ class AidaCsvDataAccessor(CsvDataAccessor):
                 df = df.rename({"加速度前後_Z_前+": "加速度前後_Z_前+500G"}, axis=1)
         except KeyError:
             print("プレス荷重　無し")
+            return
 
         return df

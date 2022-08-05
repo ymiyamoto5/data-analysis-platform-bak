@@ -15,6 +15,7 @@ import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
+from backend.common.common_logger import logger
 from backend.dash_app.constants import CONTENT_STYLE, DATA_SOURCE_TYPE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.data_accessor import CsvDataAccessor, ElasticDataAccessor
 from backend.dash_app.preprocessors import add, calibration, diff, mul, regression_line, shift, sub, thinning_out
@@ -286,6 +287,15 @@ class BrewFeatures:
                         "find_dir": {"options": [{"label": i, "value": i} for i in ["MAX", "MIN"]]},
                     },
                     css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
+                ),
+                dbc.Button("全ショット適用", id="apply-all-shot-button", n_clicks=0, style={"margin-top": "1rem"}),
+                dbc.Modal(
+                    [
+                        dbc.ModalFooter(dbc.Button("Close", id="close", className="ml-auto")),
+                    ],
+                    size="xl",
+                    id="apply-result-modal",
+                    is_open=False,
                 ),
             ],
             style=CONTENT_STYLE,
@@ -718,33 +728,8 @@ class BrewFeatures:
             }
             return dropdown
 
-        @app.callback(
-            Output("graph", "figure"),
-            [
-                Input("shot-number-dropdown", "value"),
-                Input("csv-file-dropdown", "value"),
-                State("elastic-index-dropdown", "value"),
-                Input("setting-table", "data"),
-                Input("feature-table", "data"),
-                Input("feature-table", "selected_rows"),  # [2,0] チェックした順番が維持される
-            ],
-        )
-        def callback_figure(shot_number, csv_file, elastic_index, setting_data, feature_data, feature_rows):
-            """波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
-            つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
-            ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持"""
-
-            """表示位置設定が空なら空のfigureオブジェクトを返す"""
-            if len(setting_data) == 0:
-                return go.FigureWidget()
-
-            """ 入力データ """
-            if elastic_index:
-                df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=10000)
-            if csv_file:
-                df = self.csv_data_accessor.get_shot_df(csv_file)
-
-            """ 各種前処理 """
+        def exec_preprocess(df, setting_data):
+            """設定テーブルに指定された前処理を実行し、処理済みのDataFrameを返す"""
             for r in setting_data:
                 field = r["field"]
                 preprocess = r["preprocess"]
@@ -772,8 +757,10 @@ class BrewFeatures:
                 rw = int(r["rolling_width"])
                 if rw > 1:
                     df[field] = df[field].rolling(rw, center=True).mean()
+            return df
 
-            """ 特徴量検索 """
+        def extract_features(df, feature_data):
+            """特徴量検索"""
             # feature_rowsは特徴量記述テーブルの選択行番号であり、特徴量描画の有無を指定しており、
             # 特徴量抽出結果の len(result_data) と len(feature_data) は一致してなければならない。
             # ここで、空のresultを間引いたりするべからず。
@@ -794,6 +781,38 @@ class BrewFeatures:
                     f["find_dir"],
                 )
                 result_data.append(result)
+            return result_data
+
+        @app.callback(
+            Output("graph", "figure"),
+            [
+                Input("shot-number-dropdown", "value"),
+                Input("csv-file-dropdown", "value"),
+                State("elastic-index-dropdown", "value"),
+                Input("setting-table", "data"),
+                Input("feature-table", "data"),
+                Input("feature-table", "selected_rows"),  # [2,0] チェックした順番が維持される
+            ],
+        )
+        def callback_figure(shot_number, csv_file, elastic_index, setting_data, feature_data, feature_rows):
+            """波形グラフ描画のためのcallback関数。ショット選択及び下部のgridに含まれる入力フォームを全てobserveしている。
+            つまり入力フォームのいずれかが書き変わると必ずfigオブジェクト全体を再生成して置き換えている。
+            ToDo: 入力フォーム操作で再描画時にzoom/panがリセットされる; relayoutDataの維持"""
+
+            """表示位置設定が空なら空のfigureオブジェクトを返す"""
+            if len(setting_data) == 0:
+                return go.FigureWidget()
+
+            """ 入力データ """
+            if elastic_index:
+                df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=10000)
+            if csv_file:
+                df = self.csv_data_accessor.get_shot_df(csv_file)
+
+            # 前処理
+            preprocessed_df = exec_preprocess(df, setting_data)
+            # 特徴抽出
+            features = extract_features(preprocessed_df, feature_data)
 
             """ subplot """
             max_row_number = max([int(r["row_number"]) for r in setting_data])
@@ -805,21 +824,82 @@ class BrewFeatures:
             """ 波形グラフ描画 """
             for r in setting_data:
                 field = r["field"]
-                rw = int(r["rolling_width"])
                 fig.add_trace(
                     go.Scatter(x=df.index, y=df[field], name=field),
                     row=int(r["row_number"]),
                     col=int(r["col_number"]),
                 )
 
-            for result in np.array(result_data)[feature_rows]:
+            for feature in np.array(features)[feature_rows]:
                 for r in setting_data:
-                    if "select_col" in result:
-                        if result["select_col"] == r["field"]:
-                            self.draw_result(fig, result, r["row_number"], r["col_number"])
+                    if "select_col" in feature:
+                        if feature["select_col"] == r["field"]:
+                            self.draw_result(fig, feature, r["row_number"], r["col_number"])
 
             fig.update_layout(width=1300, height=600)  # TODO: 相対サイズ指定?
             return fig
+
+        @app.callback(
+            Output("apply-result-modal", "children"),
+            Output("apply-result-modal", "is_open"),
+            Input("apply-all-shot-button", "n_clicks"),
+            Input("close", "n_clicks"),
+            State("data-source-type-dropdown", "value"),
+            State("elastic-index-dropdown", "value"),
+            State("setting-table", "data"),
+            State("feature-table", "data"),
+            State("apply-result-modal", "is_open"),
+            State("apply-result-modal", "children"),
+            prevent_initial_call=True,
+        )
+        def apply_all_shot(n_clicks, n_clicks_close, data_source_type, elastic_index, setting_data, feature_data, is_open, children):
+            """特徴量抽出の全ショット適用"""
+
+            if ctx.triggered_id == "close":
+                return children, False
+
+            # 全ショット適用
+            if data_source_type == DATA_SOURCE_TYPE.ELASTIC.name:
+                shot_numbers = ElasticDataAccessor.get_shot_list(elastic_index)
+                features_list = []
+                logger.info("Begin feature extract.")
+                for shot_number in shot_numbers:
+                    logger.info(f"shot_number: {shot_number}")
+                    df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=10000)
+                    preprocessed_df = exec_preprocess(df, setting_data)
+                    features = extract_features(preprocessed_df, feature_data)
+                    features_dict = {"shot_number": shot_number, "features": features}
+                    features_list.append(features_dict)
+                logger.info("End feature extract.")
+                features_index = elastic_index.replace("data", "features")
+            elif data_source_type == DATA_SOURCE_TYPE.CSV.name:
+                flist = self.csv_data_accessor.get_flist()
+                features_list = []
+                logger.info("Begin feature extract.")
+                # NOTE: 1CSVファイルにつき1ショット、1番からの連番が前提
+                for shot_number, f in enumerate(flist, 1):
+                    logger.info(f"file: {f}")
+                    df = self.csv_data_accessor.get_shot_df(f)
+                    # ショット取得に失敗したらdfはNoneとしている。
+                    if df is None:
+                        continue
+                    preprocessed_df = exec_preprocess(df, setting_data)
+                    features = extract_features(preprocessed_df, feature_data)
+                    features_dict = {"shot_number": shot_number, "features": features}
+                    features_list.append(features_dict)
+                logger.info("End feature extract.")
+                features_index = CSV_ELASTIC_INDEX
+
+            # elasticsearchに保存
+            logger.info("Saving to elasticsearch.")
+            ElasticDataAccessor.insert(features_list, features_index)
+            logger.info("Save to elasticsearch completed.")
+
+            return [
+                dbc.ModalHeader("実行結果"),
+                dbc.ModalBody(html.Div([html.Div("特徴量抽出が完了しました")])),
+                dbc.ModalFooter(dbc.Button("Close", id="close")),
+            ], True
 
         return app
 
@@ -829,6 +909,8 @@ if __name__ == "__main__":
 
     # TODO: デフォルトパスを共通ディレクトリに変更
     CSV_DIR = os.getenv("CSV_DIR", default="/customer_data/ymiyamoto5-aida_A39D/private/data/aida")
+    # TODO: デフォルトの出力先インデックス名変更
+    CSV_ELASTIC_INDEX = os.getenv("CSV_ELASTIC_INDEX", default="aida")
 
     aida_csv_data_accessor: CsvDataAccessor = AidaCsvDataAccessor(dir=CSV_DIR)
 
