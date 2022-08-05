@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 
 SIDEBAR_STYLE = {
     "position": "fixed",
@@ -24,9 +24,13 @@ class PREPROCESS(Enum):
     MUL = "係数乗算"
     SHIFT = "シフト"
     CALIBRATION = "校正"
-    MOVING_AVERAGE = "移動平均"
     REGRESSION_LINE = "回帰直線"
     THINNING_OUT = "間引き"
+
+
+class DATA_SOURCE_TYPE(Enum):
+    ELASTIC = auto()
+    CSV = auto()
 
 
 MAX_ROWS = 5
