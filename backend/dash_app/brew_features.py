@@ -289,6 +289,7 @@ class BrewFeatures:
                     css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
                 ),
                 dbc.Button("全ショット適用", id="apply-all-shot-button", n_clicks=0, style={"margin-top": "1rem"}),
+                dcc.Loading(id="loading", type="default", children=html.Div(id="loading-output"), fullscreen=True),
                 dbc.Modal(
                     [
                         dbc.ModalFooter(dbc.Button("Close", id="close", className="ml-auto")),
@@ -840,23 +841,16 @@ class BrewFeatures:
             return fig
 
         @app.callback(
-            Output("apply-result-modal", "children"),
-            Output("apply-result-modal", "is_open"),
+            Output("loading", "children"),
             Input("apply-all-shot-button", "n_clicks"),
-            Input("close", "n_clicks"),
             State("data-source-type-dropdown", "value"),
             State("elastic-index-dropdown", "value"),
             State("setting-table", "data"),
             State("feature-table", "data"),
-            State("apply-result-modal", "is_open"),
-            State("apply-result-modal", "children"),
             prevent_initial_call=True,
         )
-        def apply_all_shot(n_clicks, n_clicks_close, data_source_type, elastic_index, setting_data, feature_data, is_open, children):
+        def apply_all_shot(n_clicks, data_source_type, elastic_index, setting_data, feature_data):
             """特徴量抽出の全ショット適用"""
-
-            if ctx.triggered_id == "close":
-                return children, False
 
             # 全ショット適用
             if data_source_type == DATA_SOURCE_TYPE.ELASTIC.name:
@@ -894,12 +888,7 @@ class BrewFeatures:
             logger.info("Saving to elasticsearch.")
             ElasticDataAccessor.insert(features_list, features_index)
             logger.info("Save to elasticsearch completed.")
-
-            return [
-                dbc.ModalHeader("実行結果"),
-                dbc.ModalBody(html.Div([html.Div("特徴量抽出が完了しました")])),
-                dbc.ModalFooter(dbc.Button("Close", id="close")),
-            ], True
+            return
 
         return app
 
