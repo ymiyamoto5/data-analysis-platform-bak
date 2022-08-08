@@ -49,11 +49,10 @@ class ElasticDataAccessor:
 
     @staticmethod
     def insert(data_list, index_name: str):
-        """data_listをElasticsearchに保存する。既存のindexは削除する。"""
+        """data_listをElasticsearchに保存する。"""
 
-        if ElasticManager.exists_index(index=index_name):
-            ElasticManager.delete_index(index=index_name)
-        ElasticManager.create_index(index=index_name)
+        if not ElasticManager.exists_index(index=index_name):
+            ElasticManager.create_index(index=index_name)
 
         ElasticManager.bulk_insert(data_list, index_name)
 

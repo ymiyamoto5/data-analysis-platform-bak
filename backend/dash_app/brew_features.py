@@ -230,6 +230,7 @@ class BrewFeatures:
         # ショット毎・特徴量毎のリスト
         tmp = [
             {
+                "condition_name": features["condition_name"],
                 "shot_number": features["shot_number"],
                 f"{feature['feature_name']}_index": feature["target_i"],
                 f"{feature['feature_name']}_value": feature["target_v"],
@@ -315,16 +316,6 @@ class BrewFeatures:
                     },
                     css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
                 ),
-                dbc.Button("全ショット適用", id="apply-all-shot-button", n_clicks=0, style={"margin-top": "1rem"}),
-                dcc.Loading(id="loading", type="default", children=html.Div(id="loading-output"), fullscreen=True),
-                dbc.Modal(
-                    [
-                        dbc.ModalFooter(dbc.Button("Close", id="close", className="ml-auto")),
-                    ],
-                    size="xl",
-                    id="apply-result-modal",
-                    is_open=False,
-                ),
             ],
             style=CONTENT_STYLE,
         )
@@ -332,7 +323,7 @@ class BrewFeatures:
         side_div = html.Div(
             id="sidebar",
             children=[
-                html.H3("表示設定", className="display-4"),
+                html.H4("表示設定", className="display-5"),
                 html.Hr(),
                 html.Div(
                     [
@@ -458,12 +449,40 @@ class BrewFeatures:
                     ],
                     style={"display": "none"},
                 ),
-                dbc.Button("追加", id="add-button", n_clicks=0, style={"margin-top": "1rem"}),
+                dbc.Button("追加", id="add-button", n_clicks=0, style={"margin-top": "1rem", "float": "right"}),
+                html.Br(),
+                html.H4("出力設定", className="display-5", style={"margin-top": "3rem"}),
+                html.Hr(),
+                html.Div(
+                    id="export-setting",
+                    children=[
+                        html.Label("抽出条件名"),
+                        dcc.Input(id="condition-name-input", type="text"),
+                        dbc.Button(
+                            "全ショット適用", id="apply-all-shot-button", n_clicks=0, style={"margin-top": "1rem", "float": "right"}, disabled=True
+                        ),
+                    ],
+                ),
             ],
             style=SIDEBAR_STYLE,
         )
 
-        app.layout = html.Div(children=[side_div, main_div])
+        other_div = html.Div(
+            id="other",
+            children=[
+                dcc.Loading(id="loading", type="default", children=html.Div(id="loading-output"), fullscreen=True),
+                dbc.Modal(
+                    [
+                        dbc.ModalFooter(dbc.Button("Close", id="close", className="ml-auto")),
+                    ],
+                    size="xl",
+                    id="apply-result-modal",
+                    is_open=False,
+                ),
+            ],
+        )
+
+        app.layout = html.Div(children=[side_div, main_div, other_div])
 
         @app.callback(
             Output("csv-file", "style"),
@@ -868,15 +887,27 @@ class BrewFeatures:
             return fig
 
         @app.callback(
+            Output("apply-all-shot-button", "disabled"),
+            Input("condition-name-input", "value"),
+            prevent_initial_call=True,
+        )
+        def enalbe_apply_button(condition_name):
+            """抽出条件名が入力されていれば、全ショット適用を有効化する"""
+            if condition_name:
+                return False
+            return True
+
+        @app.callback(
             Output("loading", "children"),
             Input("apply-all-shot-button", "n_clicks"),
             State("data-source-type-dropdown", "value"),
             State("elastic-index-dropdown", "value"),
             State("setting-table", "data"),
             State("feature-table", "data"),
+            State("condition-name-input", "value"),
             prevent_initial_call=True,
         )
-        def apply_all_shot(n_clicks, data_source_type, elastic_index, setting_data, feature_data):
+        def apply_all_shot(n_clicks, data_source_type, elastic_index, setting_data, feature_data, condition_name):
             """特徴量抽出の全ショット適用"""
 
             # 全ショット適用
@@ -889,7 +920,7 @@ class BrewFeatures:
                     df = ElasticDataAccessor.get_shot_df(elastic_index, shot_number, size=10000)
                     preprocessed_df = exec_preprocess(df, setting_data)
                     features = extract_features(preprocessed_df, feature_data)
-                    features_dict = {"shot_number": shot_number, "features": features}
+                    features_dict = {"condition_name": condition_name, "shot_number": shot_number, "features": features}
                     features_list.append(features_dict)
                 logger.info("End feature extract.")
                 features_index = elastic_index.replace("data", "features")
@@ -907,7 +938,7 @@ class BrewFeatures:
                         continue
                     preprocessed_df = exec_preprocess(df, setting_data)
                     features = extract_features(preprocessed_df, feature_data)
-                    features_dict = {"shot_number": shot_number, "features": features}
+                    features_dict = {"condition_name": condition_name, "shot_number": shot_number, "features": features}
                     features_list.append(features_dict)
                 logger.info("End feature extract.")
                 features_index = f"{CSV_ELASTIC_INDEX}-features"
