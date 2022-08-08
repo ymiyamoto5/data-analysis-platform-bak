@@ -247,7 +247,7 @@ class BrewFeatures:
             }
             for features in features_list
             for feature in features["features"]
-            if feature["feature_name"]
+            if feature["feature_name"] and ("target_i" in feature) and ("target_v" in feature)
         ]
 
         # ショット番号でグループ化
