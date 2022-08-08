@@ -28,14 +28,20 @@ class PREPROCESS(Enum):
     THINNING_OUT = "間引き"
 
 
-class COREPARAMS(Enum):
+class FindType(Enum):
     FIX = "固定"
     RANGE_MORE = "値域>"
     RANGE_LESS = "値域<"
     FEATURE_POINT = "特徴点"
+
+
+class FindTarget(Enum):
     DPT = "DPT"
     VCT = "VCT"
     ACC = "ACC"
+
+
+class FindDir(Enum):
     MAX = "MAX"
     MIN = "MIN"
     RMS = "RMS"
