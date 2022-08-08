@@ -18,7 +18,7 @@ import plotly.graph_objs as go
 from backend.dash_app.constants import CONTENT_STYLE, DATA_SOURCE_TYPE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.data_accessor import CsvDataAccessor, ElasticDataAccessor
 from backend.dash_app.preprocessors import add, calibration, diff, mul, regression_line, shift, sub, thinning_out
-from dash import Input, Output, State, ctx, dash_table, dcc, html
+from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html
 from jupyter_dash import JupyterDash
 from pandas.core.frame import DataFrame
 from plotly.subplots import make_subplots
@@ -222,71 +222,91 @@ class BrewFeatures:
         return result
 
     def make_app(self):
-        app = JupyterDash("BrewFeatures", external_stylesheets=[dbc.themes.BOOTSTRAP])
+#        app = Dash("BrewFeatures", external_stylesheets=[dbc.themes.CERULEAN])
+        app = Dash("BrewFeatures", external_stylesheets=[dbc.themes.YETI])
 
         # 画面全体のレイアウト
         main_div = html.Div(
             [
-                dash_table.DataTable(
-                    id="setting-table",
-                    data=pd.DataFrame().to_dict("records"),
-                    columns=[
-                        {"id": "field", "name": "フィールド"},
-                        {"id": "row_number", "name": "行番号"},
-                        {"id": "col_number", "name": "列番号"},
-                        {"id": "rolling_width", "name": "移動平均"},
-                        {"id": "original_field", "name": "ソースフィールド"},
-                        {"id": "preprocess", "name": "前処理"},
-                        {"id": "detail", "name": "詳細"},
-                    ],
-                    editable=True,
-                    row_deletable=True,
-                    # NOTE: https://github.com/plotly/dash-table/issues/221
-                    css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
-                ),
+                dbc.Accordion([
+                    dbc.AccordionItem(
+                        [
+                            dash_table.DataTable(
+                                id="setting-table",
+                                data=pd.DataFrame().to_dict("records"),
+                                columns=[
+                                    {"id": "field", "name": "フィールド"},
+                                    {"id": "row_number", "name": "行番号"},
+                                    {"id": "col_number", "name": "列番号"},
+                                    {"id": "rolling_width", "name": "移動平均"},
+                                    {"id": "original_field", "name": "ソースフィールド"},
+                                    {"id": "preprocess", "name": "前処理"},
+                                    {"id": "detail", "name": "詳細"},
+                                ],
+                                editable=True,
+                                row_deletable=True,
+                                # NOTE: https://github.com/plotly/dash-table/issues/221
+                                css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
+                            ),
+                        ],
+                        title='表示設定',
+                    ),
+                ],),
+
                 # グラフ表示部
                 dcc.Graph(id="graph"),
-                dash_table.DataTable(
-                    id="feature-table",
-                    data=pd.DataFrame(
-                        {
-                            "feature_name": ["vct_min", "breaking", "", "", ""],
-                            "select_col": ["", "", "", "", ""],
-                            "rolling_width": [9, 1, 1, 1, 1],
-                            "low_find_type": ["固定", "特徴点", "特徴点", "", ""],
-                            "low_feature": ["", "vct_min", "", "", ""],
-                            "low_lim": ["1000", "-100", "1000", "0", "0"],
-                            "up_find_type": ["固定", "特徴点", "特徴点", "", ""],
-                            "up_feature": ["", "vct_min", "", "", ""],
-                            "up_lim": ["3000", "0", "3000", "0", "0"],
-                            "find_target": ["VCT", "ACC", "DPT", "DPT", "DPT"],
-                            "find_dir": ["MIN", "MIN", "MIN", "MAX", "MAX"],
-                        }
-                    ).to_dict("records"),
-                    columns=[
-                        {"id": "feature_name", "name": "特徴量名"},
-                        {"id": "select_col", "name": "対象項目", "presentation": "dropdown"},
-                        {"id": "rolling_width", "name": "移動平均範囲"},
-                        {"id": "low_find_type", "name": "検索方法下限", "presentation": "dropdown"},
-                        {"id": "low_feature", "name": "検索特徴名下限", "presentation": "dropdown"},
-                        {"id": "low_lim", "name": "検索下限"},
-                        {"id": "up_find_type", "name": "検索方法上限", "presentation": "dropdown"},
-                        {"id": "up_feature", "name": "検索特徴名上限", "presentation": "dropdown"},
-                        {"id": "up_lim", "name": "検索上限"},
-                        {"id": "find_target", "name": "検索対象", "presentation": "dropdown"},
-                        {"id": "find_dir", "name": "検索方向", "presentation": "dropdown"},
-                    ],
-                    editable=True,
-                    row_selectable="multi",
-                    dropdown={
-                        "select_col": {"options": [{"label": i, "value": i} for i in [""]]},
-                        "low_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
-                        "up_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
-                        "find_target": {"options": [{"label": i, "value": i} for i in ["DPT", "VCT", "ACC"]]},
-                        "find_dir": {"options": [{"label": i, "value": i} for i in ["MAX", "MIN"]]},
-                    },
-                    css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
-                ),
+                #dcc.Graph(id="graph", style={'width': '90vw', 'height': '90vh'}),
+
+                dbc.Accordion([
+                    dbc.AccordionItem(
+                        [
+
+                            dash_table.DataTable(
+                                id="feature-table",
+                                data=pd.DataFrame(
+                                    {
+                                        "feature_name": ["vct_min", "breaking", "", "", ""],
+                                        "select_col": ["", "", "", "", ""],
+                                        "rolling_width": [9, 1, 1, 1, 1],
+                                        "low_find_type": ["固定", "特徴点", "特徴点", "", ""],
+                                        "low_feature": ["", "vct_min", "", "", ""],
+                                        "low_lim": ["1000", "-100", "1000", "0", "0"],
+                                        "up_find_type": ["固定", "特徴点", "特徴点", "", ""],
+                                        "up_feature": ["", "vct_min", "", "", ""],
+                                        "up_lim": ["3000", "0", "3000", "0", "0"],
+                                        "find_target": ["VCT", "ACC", "DPT", "DPT", "DPT"],
+                                        "find_dir": ["MIN", "MIN", "MIN", "MAX", "MAX"],
+                                    }
+                                ).to_dict("records"),
+                                columns=[
+                                    {"id": "feature_name", "name": "特徴量名"},
+                                    {"id": "select_col", "name": "対象項目", "presentation": "dropdown"},
+                                    {"id": "rolling_width", "name": "移動平均範囲"},
+                                    {"id": "low_find_type", "name": "検索方法下限", "presentation": "dropdown"},
+                                    {"id": "low_feature", "name": "検索特徴名下限", "presentation": "dropdown"},
+                                    {"id": "low_lim", "name": "検索下限"},
+                                    {"id": "up_find_type", "name": "検索方法上限", "presentation": "dropdown"},
+                                    {"id": "up_feature", "name": "検索特徴名上限", "presentation": "dropdown"},
+                                    {"id": "up_lim", "name": "検索上限"},
+                                    {"id": "find_target", "name": "検索対象", "presentation": "dropdown"},
+                                    {"id": "find_dir", "name": "検索方向", "presentation": "dropdown"},
+                                ],
+                                editable=True,
+                                row_selectable="multi",
+                                dropdown={
+                                    "select_col": {"options": [{"label": i, "value": i} for i in [""]]},
+                                    "low_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
+                                    "up_find_type": {"options": [{"label": i, "value": i} for i in ["固定", "値域<", "値域>", "特徴点"]]},
+                                    "find_target": {"options": [{"label": i, "value": i} for i in ["DPT", "VCT", "ACC"]]},
+                                    "find_dir": {"options": [{"label": i, "value": i} for i in ["MAX", "MIN"]]},
+                                },
+                                css=[{"selector": ".Select-menu-outer", "rule": "display: block !important"}],
+                            ),
+                        ],
+                        title='特徴抽出設定',
+                    ),
+                ],),
+
             ],
             style=CONTENT_STYLE,
         )
@@ -818,7 +838,9 @@ class BrewFeatures:
                         if result["select_col"] == r["field"]:
                             self.draw_result(fig, result, r["row_number"], r["col_number"])
 
-            fig.update_layout(width=1300, height=600)  # TODO: 相対サイズ指定?
+            fig.update_layout( #width=1300, height=600, # TODO: 相対サイズ指定?
+                              #autosize=True, 
+                              uirevision=True)  # zoom維持
             return fig
 
         return app
