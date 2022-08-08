@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
-from backend.dash_app.constants import CONTENT_STYLE, DATA_SOURCE_TYPE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
+from backend.dash_app.constants import CONTENT_STYLE, COREPARAMS, DATA_SOURCE_TYPE, MAX_COLS, MAX_ROWS, PREPROCESS, SIDEBAR_STYLE
 from backend.dash_app.data_accessor import CsvDataAccessor, ElasticDataAccessor
 from backend.dash_app.preprocessors import add, calibration, diff, mul, regression_line, shift, sub, thinning_out
 from dash import Input, Output, State, ctx, dash_table, dcc, html
@@ -144,20 +144,20 @@ class BrewFeatures:
         x_lim = [0, 0]  # 初期値
 
         # 検索範囲下限(左端)の決定
-        if low_find_type == "固定":
+        if low_find_type == COREPARAMS.FIX.value:
             x_lim[0] = int(low_lim)
-        elif low_find_type == "値域>":  # 指定値より大きい範囲を検索して左端のindexを返す
+        elif low_find_type == COREPARAMS.RANGE_MORE.value:  # 指定値より大きい範囲を検索して左端のindexを返す
             result["low_more_ylim"] = [float(low_lim), df[select_col].max()]
             sdf = df[(df[select_col] >= float(low_lim))]
             if len(sdf) > 0:
                 x_lim[0] = sdf.index[0]
-        elif low_find_type == "値域<":  # 指定値より小さい範囲を検索して左端のindexを返す
+        elif low_find_type == COREPARAMS.RANGE_LESS.value:  # 指定値より小さい範囲を検索して左端のindexを返す
             result["low_less_ylim"] = [df[select_col].min(), float(low_lim)]
             sdf = df[(df[select_col] <= float(low_lim))]
             if len(sdf) > 0:
                 x_lim[0] = sdf.index[0]
             # print('value:',x_lim)
-        elif low_find_type == "特徴点":
+        elif low_find_type == COREPARAMS.FEATURE_POINT.value:
             try:
                 x_lim[0] = self.gened_features[low_feature] + int(low_lim)
                 # , gened_features[up_feature] + int(up_lim)]
@@ -165,20 +165,20 @@ class BrewFeatures:
                 print("Error")
 
         # 検索範囲上限(右端)の決定
-        if up_find_type == "固定":
+        if up_find_type == COREPARAMS.FIX.value:
             x_lim[1] = int(up_lim)
-        elif up_find_type == "値域>":  # 指定値より大きい範囲を検索して右端のindexを返す
+        elif up_find_type == COREPARAMS.RANGE_MORE.value:  # 指定値より大きい範囲を検索して右端のindexを返す
             result["up_more_ylim"] = [float(up_lim), df[select_col].max()]
             sdf = df[(df[select_col] >= float(up_lim))]
             if len(sdf) > 0:
                 x_lim[1] = sdf.index[-1]
-        elif up_find_type == "値域<":  # 指定値より小さい範囲を検索して右端のindexを返す
+        elif up_find_type == COREPARAMS.RANGE_LESS.value:  # 指定値より小さい範囲を検索して右端のindexを返す
             result["up_less_ylim"] = [df[select_col].min(), float(up_lim)]
             sdf = df[(df[select_col] <= float(up_lim))]
             if len(sdf) > 0:
                 x_lim[1] = sdf.index[-1]
             # print('value:',x_lim)
-        elif up_find_type == "特徴点":
+        elif up_find_type == COREPARAMS.FEATURE_POINT.value:
             try:
                 x_lim[1] = self.gened_features[up_feature] + int(up_lim)
                 # , gened_features[up_feature] + int(up_lim)]
@@ -186,28 +186,28 @@ class BrewFeatures:
                 print("Error")
 
         # 検索対象時系列データの生成
-        if find_target == "DPT":
+        if find_target == COREPARAMS.DPT.value:
             target = df[select_col]
-        elif find_target == "VCT":
+        elif find_target == COREPARAMS.VCT.value:
             target = df[select_col].rolling(int(rolling_width), center=True).mean().diff()
-        elif find_target == "ACC":
+        elif find_target == COREPARAMS.ACC.value:
             target = (
                 df[select_col].rolling(int(rolling_width), center=True).mean().diff().rolling(int(rolling_width), center=True).mean().diff()
             )
         if x_lim[1] - x_lim[0] > 0:  # 検索範囲が適切に指定されてなければ何もしない  ToDo:「何もしない」ことのフィードバック? 範囲指定せずに検索したい時もある
-            if find_dir == "MAX":
+            if find_dir == COREPARAMS.MAX.value:
                 target_i = target[x_lim[0] : x_lim[1]].idxmax()
                 target_v = df[select_col][target_i]  # ToDo: 値は元波形の値を返さないと意味が無い
-            elif find_dir == "MIN":
+            elif find_dir == COREPARAMS.MIN.value:
                 target_i = target[x_lim[0] : x_lim[1]].idxmin()
                 target_v = df[select_col][target_i]  # ToDo: 値は元波形の値を返さないと意味が無い
-            elif find_dir == "RMS":
+            elif find_dir == COREPARAMS.RMS.value:
                 target_i = x_lim[0]
                 target_v = np.sqrt((df[select_col][x_lim[0] : x_lim[1]] ** 2).mean())
-            elif find_dir == "VAR":
+            elif find_dir == COREPARAMS.VAR.value:
                 target_i = x_lim[0]
                 target_v = df[select_col][x_lim[0] : x_lim[1]].var()
-            elif find_dir == "AMP":
+            elif find_dir == COREPARAMS.AMP.value:
                 target_i = x_lim[0]
                 target_v = df[select_col][x_lim[0] : x_lim[1]].max() - df[select_col][x_lim[0] : x_lim[1]].max()
 

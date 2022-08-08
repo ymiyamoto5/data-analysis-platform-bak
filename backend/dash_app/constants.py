@@ -28,6 +28,21 @@ class PREPROCESS(Enum):
     THINNING_OUT = "間引き"
 
 
+class COREPARAMS(Enum):
+    FIX = "固定"
+    RANGE_MORE = "値域>"
+    RANGE_LESS = "値域<"
+    FEATURE_POINT = "特徴点"
+    DPT = "DPT"
+    VCT = "VCT"
+    ACC = "ACC"
+    MAX = "MAX"
+    MIN = "MIN"
+    RMS = "RMS"
+    VAR = "VAR"
+    AMP = "AMP"
+
+
 class DATA_SOURCE_TYPE(Enum):
     ELASTIC = auto()
     CSV = auto()
