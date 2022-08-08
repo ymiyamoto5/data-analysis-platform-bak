@@ -28,6 +28,27 @@ class PREPROCESS(Enum):
     THINNING_OUT = "間引き"
 
 
+class FIND_TYPE(Enum):
+    FIX = "固定"
+    RANGE_MORE = "値域>"
+    RANGE_LESS = "値域<"
+    FEATURE_POINT = "特徴点"
+
+
+class FIND_TARGET(Enum):
+    DPT = "DPT"
+    VCT = "VCT"
+    ACC = "ACC"
+
+
+class FIND_DIR(Enum):
+    MAX = "MAX"
+    MIN = "MIN"
+    RMS = "RMS"
+    VAR = "VAR"
+    AMP = "AMP"
+
+
 class DATA_SOURCE_TYPE(Enum):
     ELASTIC = auto()
     CSV = auto()
