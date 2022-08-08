@@ -10,6 +10,8 @@
 """
 
 import os
+from itertools import groupby
+from typing import List
 
 import dash_bootstrap_components as dbc
 import numpy as np
@@ -221,6 +223,31 @@ class BrewFeatures:
             result["target_v"] = target_v  # 検索結果 値
 
         return result
+
+    def get_flatten_features_list(self, features_list: List[dict]) -> List[dict]:
+        """ショット毎に特徴量をフラットに持つ辞書のリストを返す"""
+
+        # ショット毎・特徴量毎のリスト
+        tmp = [
+            {
+                "shot_number": features["shot_number"],
+                f"{feature['feature_name']}_index": feature["target_i"],
+                f"{feature['feature_name']}_value": feature["target_v"],
+            }
+            for features in features_list
+            for feature in features["features"]
+            if feature["feature_name"]
+        ]
+
+        # ショット番号でグループ化
+        res = []
+        for k, g in groupby(tmp, lambda f: f["shot_number"]):  # type: ignore
+            d = {}
+            for i in g:
+                d.update(i)
+            res.append(d)
+
+        return res
 
     def make_app(self):
         app = JupyterDash("BrewFeatures", external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -866,6 +893,7 @@ class BrewFeatures:
                     features_list.append(features_dict)
                 logger.info("End feature extract.")
                 features_index = elastic_index.replace("data", "features")
+                analysis_index = elastic_index.replace("data", "analysis")
             elif data_source_type == DATA_SOURCE_TYPE.CSV.name:
                 flist = self.csv_data_accessor.get_flist()
                 features_list = []
@@ -882,11 +910,16 @@ class BrewFeatures:
                     features_dict = {"shot_number": shot_number, "features": features}
                     features_list.append(features_dict)
                 logger.info("End feature extract.")
-                features_index = CSV_ELASTIC_INDEX
+                features_index = f"{CSV_ELASTIC_INDEX}-features"
+                analysis_index = f"{CSV_ELASTIC_INDEX}-analysis"
+
+            # kibana表示用インデックス（フィールドをフラットに保持）を作成
+            flatten_features_list = self.get_flatten_features_list(features_list)
 
             # elasticsearchに保存
             logger.info("Saving to elasticsearch.")
             ElasticDataAccessor.insert(features_list, features_index)
+            ElasticDataAccessor.insert(flatten_features_list, analysis_index)
             logger.info("Save to elasticsearch completed.")
             return
 
