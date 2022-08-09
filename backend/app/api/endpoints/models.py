@@ -114,9 +114,11 @@ def create(create_model: model.CreateModel):
 def fetch_containers():
     imgs = [i.tags[0] for i in docker_client.images.list() if i.tags and "serving-model_" in i.tags[0]]
 
+    filter_expression = lambda c: c.image.tags[0] == img if len(c.image.tags) else False
+
     containers = []
     for img in imgs:
-        running_instance = [*filter(lambda c: c.image.tags[0] == img, docker_client.containers.list())]
+        running_instance = [*filter(filter_expression, docker_client.containers.list())]
         if running_instance:
             state, name = ["running", running_instance[0].name]
             port_bindings = running_instance[0].attrs["NetworkSettings"]["Ports"]

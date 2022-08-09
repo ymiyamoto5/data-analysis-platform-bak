@@ -28,6 +28,14 @@
         ></ContainerManager>
       </v-row>
     </v-container>
+    <v-snackbar v-model="snackbar" timeout="5000" top color="success">
+      {{ snackbarMessage }}
+      <template v-slot:action="{ attrs }">
+        <v-btn color="white" text v-bind="attrs" @click="snackbar = false">
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
@@ -57,6 +65,8 @@ export default {
       alert: false,
       alertMessage: '',
       containers: [],
+      snackbar: false,
+      snackbarMessage: '',
     }
   },
   mounted() {
@@ -92,6 +102,8 @@ export default {
         .then(() => {
           this.running = false
           this.fetchContainers()
+          this.snackbarMessage = 'コンテナの作成が完了しました'
+          this.snackbar = true
         })
         .catch((e) => {
           this.running = false
