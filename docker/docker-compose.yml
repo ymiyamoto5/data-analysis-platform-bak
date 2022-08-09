@@ -143,17 +143,17 @@ services:
     build:
       context: .
       dockerfile: mlflow.dockerfile
-      args:
-        - USERNAME=${USERNAME}
-        - UID=${UID}
-        - GID=${GID}
+      # args:
+      # - USERNAME=${USERNAME}
+      # - UID=${UID}
+      # - GID=${GID}
     volumes:
       - mlflow:/mlflow
     depends_on:
       - minio
-    user: '${UID}:${GID}'
+    # user: '${UID}:${GID}'
     environment:
-      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      MLFLOW_S3_ENDPOINT_URL: http://${IP}:${MINIO_PORT_1}
       AWS_ACCESS_KEY_ID: minio-access-key
       AWS_SECRET_ACCESS_KEY: minio-secret-key
     command: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root s3://default/ --host 0.0.0.0 --port 5000
@@ -168,7 +168,7 @@ services:
     environment:
       MINIO_ROOT_USER: minio-access-key
       MINIO_ROOT_PASSWORD: minio-secret-key
-      MINIO_SERVER_URL: http://${IP}:9000
+      MINIO_SERVER_URL: http://${IP}:${MINIO_PORT_1}
     command: server /export --console-address :9001
     networks:
       - docker_network
@@ -178,7 +178,7 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      until (/usr/bin/mc alias set minio http://${IP}:9000 minio-access-key minio-secret-key) do echo 'try to create buckets...' && sleep 1; done;
+      until (/usr/bin/mc alias set minio http://${IP}:${MINIO_PORT_1} minio-access-key minio-secret-key) do echo 'try to create buckets...' && sleep 1; done;
       /usr/bin/mc mb minio/default;
       /usr/bin/mc policy set public minio/default;
       exit 0;
