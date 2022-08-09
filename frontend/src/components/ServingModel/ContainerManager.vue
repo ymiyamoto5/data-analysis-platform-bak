@@ -1,53 +1,63 @@
 <template>
-  <v-container>
-    <v-expansion-panels>
-      <v-expansion-panel
-        v-for="(container, index) in attribute"
-        :key="container.image"
-        class="mb-3"
-      >
-        <v-expansion-panel-header>
-          <v-row no-gutters>
-            <v-col cols="8">
-              {{ containerName(container.image) }}
-            </v-col>
-          </v-row>
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <v-row>
-            <v-col cols="4">
-              <v-text-field
-                v-model="container.port"
-                :ref="container.image"
-                label="ポート番号"
-                type="number"
-                :rules="container.state == 'stopping' ? rules : norules"
-                :disabled="container.state != 'stopping'"
-                @input="setPortNumber(index, $event)"
-              ></v-text-field>
-            </v-col>
-          </v-row>
-          <v-row class="mb-3">
-            <v-btn
-              :disabled="portValidate(container.image)"
-              :color="container.color"
-              class="mr-3"
-              @click="containerStateChange(index)"
-            >
-              {{ container.label }}
-            </v-btn>
-            <v-btn
-              v-if="container.delete"
-              color="error"
-              @click="deleteContainer(index)"
-            >
-              削除
-            </v-btn>
-          </v-row>
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-    </v-expansion-panels>
-  </v-container>
+  <v-app>
+    <v-container>
+      <v-expansion-panels>
+        <v-expansion-panel
+          v-for="(container, index) in attribute"
+          :key="container.image"
+          class="mb-3"
+        >
+          <v-expansion-panel-header>
+            <v-row no-gutters>
+              <v-col cols="8">
+                {{ containerName(container.image) }}
+              </v-col>
+            </v-row>
+          </v-expansion-panel-header>
+          <v-expansion-panel-content>
+            <v-row>
+              <v-col cols="4">
+                <v-text-field
+                  v-model="container.port"
+                  :ref="container.image"
+                  label="ポート番号"
+                  type="number"
+                  :rules="container.state == 'stopping' ? rules : norules"
+                  :disabled="container.state != 'stopping'"
+                  @input="setPortNumber(index, $event)"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row class="mb-3">
+              <v-btn
+                :disabled="portValidate(container.image)"
+                :color="container.color"
+                class="mr-3"
+                @click="containerStateChange(index)"
+              >
+                {{ container.label }}
+              </v-btn>
+              <v-btn
+                v-if="container.delete"
+                color="error"
+                @click="deleteContainer(index)"
+              >
+                削除
+              </v-btn>
+            </v-row>
+          </v-expansion-panel-content>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </v-container>
+    <v-snackbar v-model="snackbar" timeout="5000" top color="success">
+      {{ snackbarMessage }}
+      <template v-slot:action="{ attrs }">
+        <v-btn color="white" text v-bind="attrs" @click="snackbar = false">
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </v-app>
 </template>
 
 <script>
@@ -82,7 +92,6 @@ export default {
         elasticsearch: 9200,
       },
       snackbar: false,
-      snackbarHeader: '',
       snackbarMessage: '',
     }
   },
@@ -155,14 +164,17 @@ export default {
     },
     containerStateChange: async function(index) {
       let request = ''
+      let message = ''
       if (this.containers[index].state == 'stopping') {
         request =
           CONTAINER_RUN_API_URL +
           this.containers[index].image +
           '/' +
           this.containers[index].port
+        message = 'コンテナを起動しました'
       } else {
         request = CONTAINER_STOP_API_URL + this.containers[index].name
+        message = 'コンテナを停止しました'
       }
 
       const client = createBaseApiClient()
@@ -175,6 +187,8 @@ export default {
           this.containers[index] = res.data.data
           this.attribute = this.containers.map(this.makeAttribute)
           this.fetchBindedPorts()
+          this.snackbarMessage = message
+          this.snackbar = true
         })
         .catch((e) => {
           console.log(e.response)
@@ -190,6 +204,8 @@ export default {
             return
           }
           this.containers.splice(index, 1)
+          this.snackbarMessage = 'コンテナを削除しました'
+          this.snackbar = true
         })
         .catch((e) => {
           console.log(e.response)
