@@ -55,7 +55,5 @@ tmp.png
 docker-compose.override.yml
 docker/copy_dist_dir.sh
 .vscode/launch.json
-notebooks/manual/*
-!notebooks/manual/利用手順書.ipynb
-!notebooks/manual/モデル作成手順書.ipynb
+notebooks/manual
 git_find_big.sh
