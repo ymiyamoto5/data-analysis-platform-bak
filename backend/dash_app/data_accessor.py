@@ -10,6 +10,7 @@
 """
 
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 from backend.elastic_manager.elastic_manager import ElasticManager
@@ -31,6 +32,15 @@ class ElasticDataAccessor:
         return shot_df
 
     @staticmethod
+    def get_features_by_condition(index, condition, size=10_000) -> List[dict]:
+        """抽出条件を指定してデータを取得する"""
+
+        query: dict = {"query": {"term": {"condition_name": {"value": condition}}}, "sort": {"shot_number": {"order": "asc"}}}
+
+        result = ElasticManager.get_docs(index=index, query=query, size=size)
+        return result
+
+    @staticmethod
     def get_shot_list(index):
         query: dict = {
             "collapse": {"field": "shot_number"},
@@ -46,6 +56,15 @@ class ElasticDataAccessor:
     @staticmethod
     def get_indices():
         return ElasticManager.show_indices(index="shots-*-data")["index"]
+
+    @staticmethod
+    def insert(data_list, index_name: str):
+        """data_listをElasticsearchに保存する。"""
+
+        if not ElasticManager.exists_index(index=index_name):
+            ElasticManager.create_index(index=index_name)
+
+        ElasticManager.bulk_insert(data_list, index_name)
 
 
 class CsvDataAccessor:
@@ -80,5 +99,6 @@ class AidaCsvDataAccessor(CsvDataAccessor):
                 df = df.rename({"加速度前後_Z_前+": "加速度前後_Z_前+500G"}, axis=1)
         except KeyError:
             print("プレス荷重　無し")
+            return
 
         return df
